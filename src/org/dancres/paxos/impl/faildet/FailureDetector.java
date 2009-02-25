@@ -1,8 +1,5 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.apache.mina.common.IoFilterAdapter;
-import org.apache.mina.common.IoSession;
-import org.dancres.paxos.impl.messages.Heartbeat;
 import org.dancres.paxos.impl.messages.PaxosMessage;
 import org.dancres.paxos.impl.messages.Operations;
 import org.slf4j.Logger;
@@ -15,7 +12,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.*;
 
 import java.net.SocketAddress;
-import java.net.InetSocketAddress;
 
 public class FailureDetector implements Runnable {
     private Map _lastHeartbeats = new HashMap();
