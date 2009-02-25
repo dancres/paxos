@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import org.dancres.paxos.impl.messages.Operations;
 
 /**
  *
@@ -28,7 +29,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
     }
 
     public void init(IoSession aSession, FailureDetector aDetector, InetSocketAddress anAddress) {
-        _proposer = new ProposerImpl(aSession, aDetector, anAddress);
+        _proposer = new ProposerImpl(new ChannelImpl(aSession), aDetector, anAddress);
     }
 
     public void exceptionCaught(org.apache.mina.common.IoSession aSession,
@@ -39,16 +40,20 @@ public class ProposerAdapter extends IoHandlerAdapter {
     public void messageReceived(org.apache.mina.common.IoSession aSession,
                                 java.lang.Object anObject) throws java.lang.Exception {
 
-        _logger.info("serverMsgRx: s=" + aSession + " o=" + anObject);
-
         PaxosMessage myMessage = (PaxosMessage) anObject;
 
-        _proposer.process(myMessage, aSession);
+        if (myMessage.getType() != Operations.HEARTBEAT)
+                _logger.info("serverMsgRx: s=" + aSession + " o=" + anObject);
+
+        _proposer.process(myMessage, new ChannelImpl(aSession));
     }
 
     public void messageSent(org.apache.mina.common.IoSession aSession,
                             java.lang.Object anObject) throws java.lang.Exception {
 
-        _logger.info("serverMsgTx: s=" + aSession + " o=" + anObject);
+        PaxosMessage myMessage = (PaxosMessage) anObject;
+
+        if (myMessage.getType() != Operations.HEARTBEAT)
+            _logger.info("serverMsgTx: s=" + aSession + " o=" + anObject);
     }
 }

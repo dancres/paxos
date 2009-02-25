@@ -3,7 +3,6 @@ package org.dancres.paxos.impl.core;
 import org.dancres.paxos.impl.messages.PaxosMessage;
 import org.dancres.paxos.impl.messages.Operations;
 import org.dancres.paxos.impl.faildet.FailureDetector;
-import org.apache.mina.common.IoSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,19 +12,26 @@ public class ProposerImpl {
     private Logger _logger = LoggerFactory.getLogger(ProposerImpl.class);
 
     private ProposerState _state;
-    private IoSession _session;
+    private Channel _channel;
 
-    public ProposerImpl(IoSession aSession, FailureDetector aDetector, InetSocketAddress anAddress) {
+    public ProposerImpl(Channel aChannel, FailureDetector aDetector, InetSocketAddress anAddress) {
         _state = new ProposerState(aDetector, anAddress);
-        _session = aSession;
+        _channel = aChannel;
     }
 
-    public void process(PaxosMessage aMessage, IoSession aSession) {
+    /**
+     * @todo channel that is passed in for a POST will be the channel to talk to the client upon, this needs to be made available to the leader
+     * in some way so it can inform the client of the result.  But the channel it requires for construction is the broadcast channel for
+     * acceptor/learners
+     * @param aMessage
+     * @param aChannel
+     */
+    public void process(PaxosMessage aMessage, Channel aChannel) {
         switch (aMessage.getType()) {
             case Operations.POST : {
                 _logger.info("Received post - starting leader");
 
-                LeaderImpl myLeader = _state.newLeader(_session);
+                LeaderImpl myLeader = _state.newLeader(_channel, aChannel);
                 myLeader.messageReceived(aMessage);
                 break;
             }

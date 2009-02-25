@@ -1,18 +1,18 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.apache.mina.common.IoSession;
+import org.dancres.paxos.impl.core.Channel;
 import org.dancres.paxos.impl.messages.Heartbeat;
 
 public class Heartbeater implements Runnable {
-    private IoSession _session;
+    private Channel _channel;
 
-    public Heartbeater(IoSession aSession) {
-        _session = aSession;
+    public Heartbeater(Channel aChannel) {
+        _channel = aChannel;
     }
 
     public void run() {
         while (true) {
-            _session.write(new Heartbeat());
+            _channel.write(new Heartbeat());
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {

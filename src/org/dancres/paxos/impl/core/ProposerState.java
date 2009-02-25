@@ -3,8 +3,6 @@ package org.dancres.paxos.impl.core;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.dancres.paxos.impl.faildet.FailureDetector;
-import org.dancres.paxos.impl.core.LeaderImpl;
-import org.apache.mina.common.IoSession;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -57,11 +55,18 @@ class ProposerState {
         return _fd;
     }
 
-    LeaderImpl newLeader(IoSession aSession) {
+    /**
+     * Create a leader instance for this round
+     *
+     * @param aChannel is the broadcast channel the leader should use to communicate with acceptor/learners
+     * @param aClientChannel is the channel to send the outcome to when leader is done
+     * @return
+     */
+    LeaderImpl newLeader(Channel aBroadcastChannel, Channel aClientChannel) {
         synchronized(this) {
             long mySeqNum = getNextSeqNum();
 
-            LeaderImpl myLeader = new LeaderImpl(mySeqNum, this, aSession);
+            LeaderImpl myLeader = new LeaderImpl(mySeqNum, this, aBroadcastChannel, aClientChannel);
             _activeRounds.put(new Long(mySeqNum), myLeader);
 
             return myLeader;

@@ -30,6 +30,7 @@ import java.net.SocketAddress;
 
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
+import org.dancres.paxos.impl.server.ChannelImpl;
 
 public class PaxosPeer {
     private static Logger _logger = LoggerFactory.getLogger(PaxosPeer.class);
@@ -120,6 +121,8 @@ public class PaxosPeer {
         
         myAdvertiser.registerService(myInfo);
         */
+
+        /*
         Registrar myReg = RegistrarFactory.getRegistrar();
         myReg.register(myClientUnicast.getLocalAddress());
         
@@ -132,8 +135,9 @@ public class PaxosPeer {
         for (int i = 0; i < myHosts.length; i++) {
         	_logger.info("Host: " + myHosts[i]); 
         }
+        */
         
-        Thread myHeartbeater = new Thread(new Heartbeater(mySession));
+        Thread myHeartbeater = new Thread(new Heartbeater(new ChannelImpl(mySession)));
         myHeartbeater.setDaemon(true);
         myHeartbeater.start();
     }

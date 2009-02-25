@@ -1,6 +1,5 @@
 package org.dancres.paxos.impl.core;
 
-import org.apache.mina.common.IoSession;
 import org.dancres.paxos.impl.faildet.Membership;
 import org.dancres.paxos.impl.faildet.MembershipListener;
 import org.dancres.paxos.impl.messages.*;
@@ -20,7 +19,12 @@ class LeaderImpl implements MembershipListener {
 
     private long _seqNum;
     private byte[] _value;
-    private IoSession _session;
+
+    // Broadcast channel for all acceptor/learners
+    //
+    private Channel _channel;
+    private Channel _clientChannel;
+
     private long _rndNumber = 0;
 
     private ProposerState _state;
@@ -32,14 +36,16 @@ class LeaderImpl implements MembershipListener {
 
     private Logger _logger = LoggerFactory.getLogger(LeaderImpl.class);
 
-    LeaderImpl(long aSeqNum, ProposerState aProposerState, IoSession aSession) {
+    LeaderImpl(long aSeqNum, ProposerState aProposerState, Channel aBroadcastChannel, Channel aClientChannel) {
         _seqNum = aSeqNum;
         _state = aProposerState;
-        _session = aSession;
+        _channel = aBroadcastChannel;
+        _clientChannel = aClientChannel;
     }
 
     /**
      * @todo If we want to retry in face of ABORT we'd reacquire a membership, increment a retry count etc
+     * @todo Send client a failure message
      */
     private void process() {
         switch(_stage) {
@@ -49,6 +55,13 @@ class LeaderImpl implements MembershipListener {
 
                 _membership.dispose();
                 _state.dispose(_seqNum);
+
+                if (_stage == EXIT) {
+                    _clientChannel.write(new Ack(_seqNum));
+                } else {
+                    // Send failure message.....
+                }
+
                 return;
             }
 
@@ -150,7 +163,7 @@ class LeaderImpl implements MembershipListener {
 
         _logger.info("Leader sending collect: " + _seqNum);
 
-        _session.write(myMessage);
+        _channel.write(myMessage);
     }
 
     private void begin() {
@@ -165,7 +178,7 @@ class LeaderImpl implements MembershipListener {
 
         _logger.info("Leader sending begin: " + _seqNum);
 
-        _session.write(myMessage);
+        _channel.write(myMessage);
     }
 
     private void success() {
@@ -179,7 +192,7 @@ class LeaderImpl implements MembershipListener {
 
         _logger.info("Leader sending success: " + _seqNum);
 
-        _session.write(myMessage);
+        _channel.write(myMessage);
     }
 
     /**
