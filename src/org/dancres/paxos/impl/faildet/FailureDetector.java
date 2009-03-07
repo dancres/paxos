@@ -54,6 +54,12 @@ public class FailureDetector implements Runnable {
         }
     }
 
+    public boolean couldComplete() {
+        synchronized(this) {
+            return MembershipImpl.haveMajority(_lastHeartbeats.size());
+        }
+    }
+
     public Membership getMembers(MembershipListener aListener) {
         MembershipImpl myMembership = new MembershipImpl(this, aListener);
         _listeners.add(myMembership);

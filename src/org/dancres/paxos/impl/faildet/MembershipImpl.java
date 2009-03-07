@@ -28,6 +28,10 @@ class MembershipImpl implements Membership, LivenessListener {
 
     private Logger _logger = LoggerFactory.getLogger(MembershipImpl.class);
 
+    static boolean haveMajority(int aSize) {
+        return (aSize >= MAJORITY);
+    }
+
     MembershipImpl(FailureDetector aParent, MembershipListener aListener) {
         _listener = aListener;
         _parent = aParent;
@@ -87,6 +91,12 @@ class MembershipImpl implements Membership, LivenessListener {
 
             // Now we have a member set, accept updates
             notifyAll();
+        }
+    }
+
+    public int getSize() {
+        synchronized(this) {
+            return _memberAddresses.size();
         }
     }
 
