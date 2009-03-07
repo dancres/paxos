@@ -227,7 +227,7 @@ class LeaderImpl implements MembershipListener {
 
             _value = ((Post) aMessage).getValue();
 
-            _logger.info("Got membership for leader: " + _seqNum);
+            _logger.info("Got membership for leader: " + _seqNum + ", (" + _membership.getSize() + ")");
 
             synchronized(this) {
                 process();
