@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package org.dancres.paxos.impl.server;
+package org.dancres.paxos.impl.io.mina;
 
 import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IoSession;

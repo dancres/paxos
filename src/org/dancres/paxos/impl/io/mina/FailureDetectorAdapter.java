@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.server;
+package org.dancres.paxos.impl.io.mina;
 
 import org.apache.mina.common.IoFilterAdapter;
 import org.apache.mina.common.IoSession;

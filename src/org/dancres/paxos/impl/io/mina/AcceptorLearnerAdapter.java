@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.server;
+package org.dancres.paxos.impl.io.mina;
 
 import org.apache.mina.common.*;
 import org.apache.mina.transport.socket.DatagramConnector;
@@ -25,15 +25,12 @@ public class AcceptorLearnerAdapter implements IoHandler {
     }
 
     public void sessionOpened(IoSession ioSession) throws Exception {
-        //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public void sessionClosed(IoSession ioSession) throws Exception {
-        //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public void sessionIdle(IoSession ioSession, IdleStatus idleStatus) throws Exception {
-        //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public void exceptionCaught(IoSession ioSession, Throwable throwable) throws Exception {
