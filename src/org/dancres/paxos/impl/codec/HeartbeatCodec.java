@@ -3,7 +3,6 @@ package org.dancres.paxos.impl.codec;
 import org.apache.mina.common.IoBuffer;
 import org.dancres.paxos.impl.core.messages.Heartbeat;
 import org.dancres.paxos.impl.core.messages.Operations;
-import org.dancres.paxos.impl.NetworkUtils;
 
 public class HeartbeatCodec implements Codec {
     public IoBuffer encode(Object anObject) {
