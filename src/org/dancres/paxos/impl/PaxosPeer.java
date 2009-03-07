@@ -13,23 +13,16 @@ import org.apache.mina.common.IoEventType;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.impl.io.mina.AcceptorLearnerAdapter;
 import org.dancres.paxos.impl.codec.PaxosCodecFactory;
-import org.dancres.paxos.impl.discovery.HostDetails;
-import org.dancres.paxos.impl.discovery.Registrar;
-import org.dancres.paxos.impl.discovery.RegistrarFactory;
 import org.dancres.paxos.impl.io.mina.ProposerAdapter;
 import org.dancres.paxos.impl.io.mina.FailureDetectorAdapter;
-import org.dancres.paxos.impl.faildet.FailureDetector;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.faildet.LivenessListener;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
-import javax.jmdns.JmDNS;
-import javax.jmdns.ServiceInfo;
 import org.dancres.paxos.impl.io.mina.ChannelImpl;
 
 public class PaxosPeer {
