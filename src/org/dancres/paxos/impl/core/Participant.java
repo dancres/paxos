@@ -24,6 +24,11 @@ class Participant {
      * because other failures may cause the round to abort dictating a retry by the leader.
      * We must wait a settle time before clearing out.  We should be able to junk it when we see rounds for the next
      * entry (or one several entry's further on - possibly current seqnum plus total number of possible leaders + 1).
+     *
+     * @todo if we receive a BEGIN or COLLECT that invalidates our old round it would make sense to see if the nodeId is
+     * superior to ours.  If that is the case, another leader is active and we should abort our leader for the proposal
+     * if we have one running.  An alternative is to send in the OLDROUND message the node id so the proposer can
+     * decide for itself to cease chatter and inform it's client of a new leader.
      */
     PaxosMessage process(PaxosMessage aMessage) {
         switch (aMessage.getType()) {
@@ -37,6 +42,8 @@ class Participant {
 
                     return new Last(_seqNum, myMostRecentRound, _value);
                 } else {
+                    // Another collect has already arrived with a higher priority, tell the proposer it has competition
+                    //
                     return new OldRound(_seqNum, _lastRound);
                 }
             }
@@ -51,7 +58,7 @@ class Participant {
                     return new Accept(_seqNum, _lastRound);
                 } else if (myBegin.precedes(_lastRound, _lastNodeId)) {
 
-                    // A new round has arrived and invalidated the collect we're associated with
+                    // A new collect was received since the collect for this begin, tell the proposer it's got competition
                     //
                     return new OldRound(_seqNum, _lastRound);
                 } else {

@@ -23,6 +23,10 @@ class ProposerState {
 
     private InetSocketAddress _addr;
 
+    /**
+     * @param aDetector to maintain for use by proposers
+     * @param anAddr to use for node id generation
+     */
     ProposerState(FailureDetector aDetector, InetSocketAddress anAddr) {
         _fd = aDetector;
 

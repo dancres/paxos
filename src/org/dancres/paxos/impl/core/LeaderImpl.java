@@ -36,6 +36,12 @@ class LeaderImpl implements MembershipListener {
 
     private Logger _logger = LoggerFactory.getLogger(LeaderImpl.class);
 
+    /**
+     * @param aSeqNum is the sequence number for the proposal this leader instance is responsible for
+     * @param aProposerState is the proposer state to use for this proposal
+     * @param aBroadcastChannel is the channel on which acceptor/learners can be reached
+     * @param aClientChannel is the channel on which the client that started this proposal can be found
+     */
     LeaderImpl(long aSeqNum, ProposerState aProposerState, Channel aBroadcastChannel, Channel aClientChannel) {
         _seqNum = aSeqNum;
         _state = aProposerState;
