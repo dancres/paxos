@@ -8,27 +8,23 @@ import java.util.Map;
 import org.dancres.paxos.impl.NetworkUtils;
 
 /**
- * Manages address/recipient mappings for local unit tests - note that it requires an active network interface to source
+ * Allocates local addresses - note that it requires an active network interface to source
  * an ip address from (via NetworkUtils).
  * @author dan
  */
-public class AddressRegistry {
+public class AddressGenerator {
     private int _nextPort = 1024;
-    private Map _addrRecipientMap = new HashMap();
     private InetAddress _addr;
 
-    public AddressRegistry() throws Exception {
+    public AddressGenerator() throws Exception {
         _addr = NetworkUtils.getWorkableInterface();
     }
 
-    public SocketAddress allocate(Object aRecipient) {
+    public InetSocketAddress allocate() {
         synchronized(this) {
             int myPort = _nextPort++;
 
-            SocketAddress myNewAddr = new InetSocketAddress(_addr, myPort);
-            _addrRecipientMap.put(myNewAddr, aRecipient);
-
-            return myNewAddr;
+            return new InetSocketAddress(_addr, myPort);
         }
     }
 }
