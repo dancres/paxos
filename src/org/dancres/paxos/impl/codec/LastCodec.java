@@ -1,8 +1,8 @@
 package org.dancres.paxos.impl.codec;
 
 import org.apache.mina.common.IoBuffer;
-import org.dancres.paxos.impl.messages.Operations;
-import org.dancres.paxos.impl.messages.Last;
+import org.dancres.paxos.impl.core.messages.Operations;
+import org.dancres.paxos.impl.core.messages.Last;
 
 public class LastCodec implements Codec {
     public IoBuffer encode(Object anObject) {

@@ -2,8 +2,8 @@ package org.dancres.paxos.impl.server;
 
 import org.apache.mina.common.IoFilterAdapter;
 import org.apache.mina.common.IoSession;
-import org.dancres.paxos.impl.messages.Operations;
-import org.dancres.paxos.impl.messages.PaxosMessage;
+import org.dancres.paxos.impl.core.messages.Operations;
+import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.faildet.FailureDetector;
 import org.dancres.paxos.impl.faildet.LivenessListener;
 import org.dancres.paxos.impl.PaxosPeer;

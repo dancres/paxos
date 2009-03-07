@@ -1,6 +1,6 @@
 package org.dancres.paxos.impl.core;
 
-import org.dancres.paxos.impl.messages.*;
+import org.dancres.paxos.impl.core.messages.*;
 
 public class AcceptorLearnerImpl {
     private AcceptorLearnerState _state;

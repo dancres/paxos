@@ -2,7 +2,7 @@ package org.dancres.paxos.impl.server;
 
 import org.apache.mina.common.*;
 import org.apache.mina.transport.socket.DatagramConnector;
-import org.dancres.paxos.impl.messages.*;
+import org.dancres.paxos.impl.core.messages.*;
 import org.dancres.paxos.impl.core.AcceptorLearnerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

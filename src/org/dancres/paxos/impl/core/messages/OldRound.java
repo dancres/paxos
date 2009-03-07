@@ -1,7 +1,7 @@
-package org.dancres.paxos.impl.messages;
+package org.dancres.paxos.impl.core.messages;
 
-import org.dancres.paxos.impl.messages.PaxosMessage;
-import org.dancres.paxos.impl.messages.Operations;
+import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.impl.core.messages.Operations;
 
 /**
  * OldRound doesn't need nodeId - if the round is old, round number needs to increase and then it's down to leader

@@ -8,13 +8,13 @@ package org.dancres.paxos.impl.server;
 import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.impl.faildet.FailureDetector;
-import org.dancres.paxos.impl.messages.PaxosMessage;
+import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.ProposerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import org.dancres.paxos.impl.messages.Operations;
+import org.dancres.paxos.impl.core.messages.Operations;
 
 /**
  *

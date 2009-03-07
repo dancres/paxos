@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.dancres.paxos.impl.messages.PaxosMessage;
-import org.dancres.paxos.impl.messages.Operations;
+import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.impl.core.messages.Operations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

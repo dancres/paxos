@@ -4,7 +4,7 @@ import org.apache.mina.filter.codec.ProtocolDecoderOutput;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.common.IoSession;
 import org.apache.mina.common.IoBuffer;
-import org.dancres.paxos.impl.messages.Operations;
+import org.dancres.paxos.impl.core.messages.Operations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

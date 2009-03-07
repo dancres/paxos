@@ -2,7 +2,7 @@ package org.dancres.paxos.impl.server;
 
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.impl.core.Channel;
-import org.dancres.paxos.impl.messages.PaxosMessage;
+import org.dancres.paxos.impl.core.messages.PaxosMessage;
 
 public class ChannelImpl implements Channel {
 

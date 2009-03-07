@@ -1,8 +1,8 @@
 package org.dancres.paxos.impl.codec;
 
 import org.apache.mina.common.IoBuffer;
-import org.dancres.paxos.impl.messages.Success;
-import org.dancres.paxos.impl.messages.Operations;
+import org.dancres.paxos.impl.core.messages.Success;
+import org.dancres.paxos.impl.core.messages.Operations;
 
 public class SuccessCodec implements Codec {
     public IoBuffer encode(Object anObject) {

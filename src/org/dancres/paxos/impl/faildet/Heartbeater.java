@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.impl.core.Channel;
-import org.dancres.paxos.impl.messages.Heartbeat;
+import org.dancres.paxos.impl.core.messages.Heartbeat;
 
 public class Heartbeater implements Runnable {
     private Channel _channel;

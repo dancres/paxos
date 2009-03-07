@@ -6,7 +6,7 @@ import org.apache.mina.common.*;
 import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.dancres.paxos.impl.codec.PaxosCodecFactory;
-import org.dancres.paxos.impl.messages.Post;
+import org.dancres.paxos.impl.core.messages.Post;
 
 import java.net.InetSocketAddress;
 
