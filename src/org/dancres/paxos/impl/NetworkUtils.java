@@ -39,7 +39,7 @@ public class NetworkUtils {
 
             Iterator myPossibles = myWorkableInterfaces.iterator();
             while (myPossibles.hasNext()) {
-                _logger.info("Candidate Interface: " + myPossibles.next());
+                _logger.debug("Candidate Interface: " + myPossibles.next());
             }
 
             /*
@@ -49,7 +49,7 @@ public class NetworkUtils {
             NetworkInterface myLowest = (NetworkInterface) myWorkableInterfaces.first();
             _workableAddress = getValidAddress(myLowest);
 
-            _logger.info("Equates to address: " + _workableAddress);
+            _logger.debug("Equates to address: " + _workableAddress);
         } catch (Exception anE) {
             throw new Error("Failed to find interface", anE);
         }
