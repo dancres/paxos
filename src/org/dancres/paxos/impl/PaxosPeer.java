@@ -78,37 +78,37 @@ public class PaxosPeer {
          * Setup the stacks for Proposer
          *
          * Sends broadcast messages to all participants
-         * Receives unitcast messages from clients
+         * Receives unitcast messages from clients and acceptor/learners
          *   - Heartbeat messages are sent on the broadcast channel to drive the failure detector
          *
          */
         InetSocketAddress myAddr = new InetSocketAddress(NetworkUtils.getWorkableInterface(), 0);
 
         ProposerAdapter myProposer = new ProposerAdapter();
-        DatagramConnector myPartBroad = new NioDatagramConnector();
-        myPartBroad.getSessionConfig().setBroadcast(true);
-        myPartBroad.getSessionConfig().setReuseAddress(true);        
-        myPartBroad.setHandler(myProposer);
-        myPartBroad.getFilterChain().addLast( "logger", myFilter);
-        myPartBroad.getFilterChain().addLast("protocol",
+        DatagramConnector myBroadcastChannel = new NioDatagramConnector();
+        myBroadcastChannel.getSessionConfig().setBroadcast(true);
+        myBroadcastChannel.getSessionConfig().setReuseAddress(true);
+        myBroadcastChannel.setHandler(myProposer);
+        myBroadcastChannel.getFilterChain().addLast( "logger", myFilter);
+        myBroadcastChannel.getFilterChain().addLast("protocol",
                 new ProtocolCodecFilter(new PaxosCodecFactory()));
 
-        ConnectFuture connFuture =
-                myPartBroad.connect(new InetSocketAddress(NetworkUtils.getBroadcastAddress(), BROADCAST_PORT));
-        connFuture.awaitUninterruptibly();
-        IoSession mySession = connFuture.getSession();
+        ConnectFuture myConnFuture =
+                myBroadcastChannel.connect(new InetSocketAddress(NetworkUtils.getBroadcastAddress(), BROADCAST_PORT));
+        myConnFuture.awaitUninterruptibly();
+        IoSession myBroadcastSession = myConnFuture.getSession();
 
         _logger.info("Broadcasting on: " + NetworkUtils.getBroadcastAddress());
         
-        DatagramAcceptor myClientUnicast = new NioDatagramAcceptor();
-        myClientUnicast.setHandler(myProposer);
-        myClientUnicast.getFilterChain().addLast( "logger", myFilter);
-        myClientUnicast.getFilterChain().addLast("protocol",
+        DatagramAcceptor myUnicastChannel = new NioDatagramAcceptor();
+        myUnicastChannel.setHandler(myProposer);
+        myUnicastChannel.getFilterChain().addLast( "logger", myFilter);
+        myUnicastChannel.getFilterChain().addLast("protocol",
                 new ProtocolCodecFilter(new PaxosCodecFactory()));
-        myClientUnicast.bind(myAddr);
-        _logger.info("PaxosPeer bound on port: " + myClientUnicast.getLocalAddress());
+        myUnicastChannel.bind(myAddr);
+        _logger.info("PaxosPeer bound on port: " + myUnicastChannel.getLocalAddress());
 
-        myProposer.init(mySession, myDetectorAdapter.getDetector(), myClientUnicast.getLocalAddress());
+        myProposer.init(myBroadcastSession, myDetectorAdapter.getDetector(), myUnicastChannel.getLocalAddress());
 
         /*
         _logger.info("Paxos Name: " + flatten(myClientUnicast.getLocalAddress().getAddress()));
@@ -137,7 +137,7 @@ public class PaxosPeer {
         }
         */
         
-        Thread myHeartbeater = new Thread(new Heartbeater(new ChannelImpl(mySession)));
+        Thread myHeartbeater = new Thread(new Heartbeater(new ChannelImpl(myBroadcastSession)));
         myHeartbeater.setDaemon(true);
         myHeartbeater.start();
     }
