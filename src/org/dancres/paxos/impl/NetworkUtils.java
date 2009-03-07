@@ -24,7 +24,7 @@ public class NetworkUtils {
             while (myInterfaces.hasMoreElements()) {
                 NetworkInterface myInterface = (NetworkInterface) myInterfaces.nextElement();
 
-                _logger.info("Checking interface: " + myInterface.getDisplayName());
+                _logger.debug("Checking interface: " + myInterface.getDisplayName());
 
                 if (! isMulticastCapable(myInterface))
                     continue;
@@ -86,8 +86,7 @@ public class NetworkUtils {
             try {
                 isReachable = myAddr.isReachable(500);
             } catch (Exception anE) {
-                System.err.println("Not reachable");
-                anE.printStackTrace(System.err);
+                _logger.debug("Not reachable: " + myAddr, anE);
                 continue;
             }
 
@@ -127,7 +126,7 @@ public class NetworkUtils {
 
             return true;
         } catch (Exception anE) {
-            System.out.println("No mcast: " + anE.getMessage());
+            _logger.debug("No mcast: " + anIn, anE);
             return false;
         }
     }

@@ -8,6 +8,7 @@
   <property name="build" location="build"/>
   <property name="lib" location="lib"/>
   <property name="otherlib" location="thirdpartylib"/>
+  <property name="reports.tests" location="reports/tests"/>
 
   <target name="init">
     <!-- Create the time stamp -->
@@ -17,6 +18,7 @@
     <mkdir dir="dbfiles"/>
     <mkdir dir="docs/javadocs"/>
     <mkdir dir="${lib}"/>
+  	<mkdir dir="${reports.tests}"/>
   </target>
 
   <target name="clean"
@@ -43,6 +45,7 @@
         <pathelement location="${otherlib}/slf4j-api-1.5.0.jar"/>
         <pathelement location="${otherlib}/slf4j-jdk14-1.5.0.jar"/>
     	<pathelement location="${otherlib}/jmdns-2.0/lib/jmdns.jar"/>
+    	<pathelement location="${otherlib}/junit-4.5.jar"/>
     </path>
 
   <target name="compile" depends="init"
@@ -56,6 +59,19 @@
         <src path="${src}"/>
         <src path="${testsrc}"/>
     </javac>
+  </target>
+
+  <target name="test" depends="compile">
+  	<junit printsummary="on" haltonfailure="off" showoutput="true" filtertrace="off">
+  	  <classpath refid="allclasses"/>
+  	  <batchtest fork="yes" todir="${reports.tests}">
+  	  	<formatter type="plain" usefile="true">
+  	    </formatter>
+  	    <fileset dir="${testsrc}">
+  	      <include name="**/junit/**/*Test*.java"/>
+  	    </fileset>
+  	  </batchtest>
+  	</junit>
   </target>
 
   <target name="jars" depends="serverjar"/>
