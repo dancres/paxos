@@ -10,12 +10,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-class LeaderImpl implements MembershipListener {
-    private static final int COLLECT = 0;
-    private static final int BEGIN = 1;
-    private static final int SUCCESS = 2;
-    private static final int EXIT = 3;
-    private static final int ABORT = 4;
+class LeaderImpl implements MembershipListener, Leader {
+    private static Logger _logger = LoggerFactory.getLogger(LeaderImpl.class);
 
     private long _seqNum;
     private byte[] _value;
@@ -23,30 +19,28 @@ class LeaderImpl implements MembershipListener {
     // Broadcast channel for all acceptor/learners
     //
     private Channel _channel;
-    private Channel _clientChannel;
+    private LeaderListener _listener;
 
     private long _rndNumber = 0;
 
     private ProposerState _state;
     private Membership _membership;
 
-    private int _stage = COLLECT;
+    private int _stage = Leader.COLLECT;
 
     private List _messages = new ArrayList();
-
-    private Logger _logger = LoggerFactory.getLogger(LeaderImpl.class);
 
     /**
      * @param aSeqNum is the sequence number for the proposal this leader instance is responsible for
      * @param aProposerState is the proposer state to use for this proposal
      * @param aBroadcastChannel is the channel on which acceptor/learners can be reached
-     * @param aClientChannel is the channel on which the client that started this proposal can be found
+     * @param aListener is the listener to announce state changes to.
      */
-    LeaderImpl(long aSeqNum, ProposerState aProposerState, Channel aBroadcastChannel, Channel aClientChannel) {
+    LeaderImpl(long aSeqNum, ProposerState aProposerState, Channel aBroadcastChannel, LeaderListener aListener) {
         _seqNum = aSeqNum;
         _state = aProposerState;
         _channel = aBroadcastChannel;
-        _clientChannel = aClientChannel;
+        _listener = aListener;
     }
 
     /**
@@ -54,29 +48,26 @@ class LeaderImpl implements MembershipListener {
      * @todo Send client a failure message
      */
     private void process() {
+        if (_listener != null)
+            _listener.newState(this);
+
         switch(_stage) {
-            case ABORT :
-            case EXIT : {
-                _logger.info("Exiting leader: " + _seqNum + " " + (_stage == EXIT));
+            case Leader.ABORT :
+            case Leader.EXIT : {
+                _logger.info("Exiting leader: " + _seqNum + " " + (_stage == Leader.EXIT));
 
                 _membership.dispose();
                 _state.dispose(_seqNum);
 
-                if (_stage == EXIT) {
-                    _clientChannel.write(new Ack(_seqNum));
-                } else {
-                    // Send failure message.....
-                }
-
                 return;
             }
 
-            case COLLECT : {
+            case Leader.COLLECT : {
                 collect();
                 break;
             }
 
-            case BEGIN : {
+            case Leader.BEGIN : {
                 // Process _messages to assess what we do next - might be to launch a new round or to give up
                 // We announced round 0, and so if responses are for round 0 we want our value to take precedent
                 // thus the minimum round that can be accepted to overrule our value is 1.
@@ -93,7 +84,7 @@ class LeaderImpl implements MembershipListener {
 
                         _rndNumber = myOldRound.getLastRound() + 1;
 
-                        _stage = COLLECT;
+                        _stage = Leader.COLLECT;
                         collect();
 
                         return;
@@ -113,7 +104,7 @@ class LeaderImpl implements MembershipListener {
                 break;
             }
 
-            case SUCCESS : {
+            case Leader.SUCCESS : {
 
                 // Old round message, causes start at collect
                 // If Accept messages total more than majority we're happy, send Success wait for all acks
@@ -130,7 +121,7 @@ class LeaderImpl implements MembershipListener {
 
                         _rndNumber = myOldRound.getLastRound() + 1;
 
-                        _stage = COLLECT;
+                        _stage = Leader.COLLECT;
                         collect();
 
                         return;
@@ -146,7 +137,7 @@ class LeaderImpl implements MembershipListener {
                     // Need another round then.....
                     _rndNumber += 1;
 
-                    _stage = COLLECT;
+                    _stage = Leader.COLLECT;
                     collect();
                 }
 
@@ -201,12 +192,20 @@ class LeaderImpl implements MembershipListener {
         _channel.write(myMessage);
     }
 
+    public int getState() {
+        return _stage;
+    }
+
+    public long getSeqNum() {
+        return _seqNum;
+    }
+
     /**
      * @todo If we get ABORT, we could try a new round from scratch or make the client re-submit or .....
      */
     public void abort() {
         synchronized(this) {
-            _stage = ABORT;
+            _stage = Leader.ABORT;
             process();
         }
     }
