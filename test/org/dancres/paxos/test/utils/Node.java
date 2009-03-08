@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 public class Node implements PacketListener {
 
     private static Logger _logger = LoggerFactory.getLogger(Node.class);
-    ;
     private InetSocketAddress _addr;
     private PacketQueue _queue;
     private QueueRegistry _qr;
