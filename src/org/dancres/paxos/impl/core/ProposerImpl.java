@@ -7,36 +7,35 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import org.dancres.paxos.impl.core.messages.Ack;
 
 public class ProposerImpl {
     private Logger _logger = LoggerFactory.getLogger(ProposerImpl.class);
 
     private ProposerState _state;
-    private Channel _broadcastChannel;
+    private Channel _channel;
 
     /**
      * @param aChannel to broadcast proposer messages over
      * @param aDetector to use for construction of memberships
      * @param anAddress with which to generate an id for this node
      */
-    public ProposerImpl(Channel aBroadcastChannel, FailureDetector aDetector, InetSocketAddress anAddress) {
+    public ProposerImpl(Channel aChannel, FailureDetector aDetector, InetSocketAddress anAddress) {
         _state = new ProposerState(aDetector, anAddress);
-        _broadcastChannel = aBroadcastChannel;
+        _channel = aChannel;
     }
 
     /**
      * @param aMessage to process
-     * @param aFactory to use to create a LeaderListener if we're starting a new round
+     * @param aChannel on which the sender of this message can be found
      */
-    public void process(PaxosMessage aMessage, LeaderListenerFactory aFactory) {
+    public void process(PaxosMessage aMessage, Channel aChannel) {
         switch (aMessage.getType()) {
             case Operations.POST : {
                 _logger.info("Received post - starting leader");
 
                 // Sender channel will be the client
                 //
-                LeaderImpl myLeader = _state.newLeader(_broadcastChannel, aFactory.newListener());
+                LeaderImpl myLeader = _state.newLeader(_channel, aChannel);
                 myLeader.messageReceived(aMessage);
                 break;
             }

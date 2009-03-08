@@ -66,11 +66,11 @@ class ProposerState {
      * @param aClientChannel is the channel to send the outcome to when leader is done
      * @return
      */
-    LeaderImpl newLeader(Channel aBroadcastChannel, LeaderListener aListener) {
+    LeaderImpl newLeader(Channel aBroadcastChannel, Channel aClientChannel) {
         synchronized(this) {
             long mySeqNum = getNextSeqNum();
 
-            LeaderImpl myLeader = new LeaderImpl(mySeqNum, this, aBroadcastChannel, aListener);
+            LeaderImpl myLeader = new LeaderImpl(mySeqNum, this, aBroadcastChannel, aClientChannel);
             _activeRounds.put(new Long(mySeqNum), myLeader);
 
             return myLeader;

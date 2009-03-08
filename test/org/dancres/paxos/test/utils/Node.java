@@ -1,14 +1,16 @@
 package org.dancres.paxos.test.utils;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import org.dancres.paxos.impl.core.AcceptorLearnerImpl;
-import org.dancres.paxos.impl.core.DefaultLeaderListenerFactoryImpl;
+import org.dancres.paxos.impl.core.Channel;
 import org.dancres.paxos.impl.core.ProposerImpl;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetector;
 import org.dancres.paxos.impl.faildet.Heartbeater;
+import org.dancres.paxos.impl.faildet.LivenessListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +71,7 @@ public class Node implements PacketListener {
             }
 
             default: {
-                _pi.process(myMessage, new DefaultLeaderListenerFactoryImpl(new QueueChannelImpl(_addr, _qr.getQueue(aPacket.getSender()))));
+                _pi.process(myMessage, new QueueChannelImpl(_addr, _qr.getQueue(aPacket.getSender())));
                 break;
             }
         }
