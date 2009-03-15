@@ -4,6 +4,11 @@ import org.dancres.paxos.impl.core.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Implements the acceptor/learner role for a particular instance of paxos.
+ *
+ * @author dan
+ */
 class Participant {
     private Logger _logger = LoggerFactory.getLogger(Participant.class);
     
