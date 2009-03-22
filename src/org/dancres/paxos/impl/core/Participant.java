@@ -29,6 +29,8 @@ class Participant {
      * because other failures may cause the round to abort dictating a retry by the leader.
      * We must wait a settle time before clearing out.  We should be able to junk it when we see rounds for the next
      * entry (or one several entry's further on - possibly current seqnum plus total number of possible leaders + 1).
+     * Note of course we're supposed to keep a log on persistent storage for our state, so we can junk the participant
+     * and restore on iniital completion.
      *
      * @todo if we receive a BEGIN or COLLECT that invalidates our old round it would make sense to see if the nodeId is
      * superior to ours.  If that is the case, another leader is active and we should abort our leader for the proposal
@@ -49,7 +51,7 @@ class Participant {
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
-                    return new OldRound(_seqNum, _lastRound);
+                    return new OldRound(_seqNum, _lastNodeId, _lastRound);
                 }
             }
             case Operations.BEGIN : {
@@ -65,7 +67,7 @@ class Participant {
 
                     // A new collect was received since the collect for this begin, tell the proposer it's got competition
                     //
-                    return new OldRound(_seqNum, _lastRound);
+                    return new OldRound(_seqNum, _lastNodeId, _lastRound);
                 } else {
                     // Be slient - we didn't see the collect, value hasn't take account of us
                     //

@@ -3,15 +3,12 @@ package org.dancres.paxos.impl.core.messages;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.Operations;
 
-/**
- * OldRound doesn't need nodeId - if the round is old, round number needs to increase and then it's down to leader
- * number.  If the other leader drops out, then incrementing the round is sufficient.
- */
 public class OldRound implements PaxosMessage {
     private long _seqNum;
     private long _lastRound;
+    private long _nodeId;
 
-    public OldRound(long aSeqNum, long aLastRound) {
+    public OldRound(long aSeqNum, long aNodeId, long aLastRound) {
         _seqNum = aSeqNum;
         _lastRound = aLastRound;
     }
@@ -22,6 +19,10 @@ public class OldRound implements PaxosMessage {
 
     public long getSeqNum() {
         return _seqNum;
+    }
+
+    public long getNodeId() {
+        return _nodeId;
     }
 
     public long getLastRound() {

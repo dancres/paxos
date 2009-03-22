@@ -113,13 +113,14 @@ public class CodecTest {
     }
 
     @Test public void oldRound() throws Exception {
-        OldRound myOldRound = new OldRound(1, 2);
+        OldRound myOldRound = new OldRound(1, 2, 3);
 
         byte[] myBuffer = encode(myOldRound);
 
         OldRound myOldRound2 = (OldRound) decode(myBuffer, true);
 
         Assert.assertEquals(myOldRound.getSeqNum(), myOldRound2.getSeqNum());
+        Assert.assertEquals(myOldRound.getNodeId(), myOldRound2.getNodeId());
         Assert.assertEquals(myOldRound.getLastRound(), myOldRound2.getLastRound());
     }
 

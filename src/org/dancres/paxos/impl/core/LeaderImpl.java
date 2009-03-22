@@ -10,6 +10,10 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+/**
+ * Responsible for attempting to drive consensus for a particular entry in the paxos ledger (as identified by a sequence number)
+ * @author dan
+ */
 class LeaderImpl implements MembershipListener {
     private static final int COLLECT = 0;
     private static final int BEGIN = 1;
