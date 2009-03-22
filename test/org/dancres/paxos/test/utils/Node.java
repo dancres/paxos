@@ -12,6 +12,11 @@ import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Emulates a paxos network process, acting as both Leader and Acceptor/Learner.
+ * 
+ * @author dan
+ */
 public class Node implements PacketListener {
 
     private static Logger _logger = LoggerFactory.getLogger(Node.class);
@@ -24,6 +29,11 @@ public class Node implements PacketListener {
     private FailureDetector _fd;
     private Heartbeater _hb;
 
+    /**
+     * @param anAddr is the address this node should use
+     * @param aBroadChannel is the broadcast channel to use for e.g. heartbeats
+     * @param aRegistry is the registry from which channels for other addresses can be obtained
+     */
     public Node(InetSocketAddress anAddr, BroadcastChannel aBroadChannel, ChannelRegistry aRegistry) {
         _bc = aBroadChannel;
         _addr = anAddr;

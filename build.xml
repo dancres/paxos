@@ -89,7 +89,7 @@
   </target>
 
   <target name="javadoc" description="Generate developer grade docos for the code">
-    <javadoc sourcepath="${testsrc}:${src}"
+    <javadoc sourcepath="${testsrc}:${src}" classpathref="allclasses"
 	   maxmemory="256m"
        destdir="docs/javadocs"
        private="true"
