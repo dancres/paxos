@@ -9,14 +9,12 @@ import org.dancres.paxos.impl.core.Channel;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 
 public class BroadcastChannel implements Channel {
-    private InetSocketAddress _source;
     private List<InetSocketAddress> _recipients = new ArrayList<InetSocketAddress>();
-    private QueueRegistry _registry;
+    private ChannelRegistry _registry;
     private ExecutorService _executor = Executors.newSingleThreadExecutor();
 
-    public BroadcastChannel(InetSocketAddress aSource, QueueRegistry aRegistry) {
+    public BroadcastChannel(ChannelRegistry aRegistry) {
         _registry = aRegistry;
-        _source = aSource;
     }
 
     public void add(InetSocketAddress anAddr) {
@@ -33,7 +31,7 @@ public class BroadcastChannel implements Channel {
             myRecipients = _recipients.toArray(myRecipients);
         }
 
-        _executor.execute(new BroadcastTask(myRecipients, _source, aMsg));
+        _executor.execute(new BroadcastTask(myRecipients, aMsg));
     }
 
     public void close() {
@@ -42,19 +40,17 @@ public class BroadcastChannel implements Channel {
 
     private class BroadcastTask implements Runnable {
         private InetSocketAddress[] _recipients;
-        private InetSocketAddress _source;
         private PaxosMessage _msg;
 
-        BroadcastTask(InetSocketAddress[] aRecipients, InetSocketAddress aSource, PaxosMessage aMsg) {
+        BroadcastTask(InetSocketAddress[] aRecipients, PaxosMessage aMsg) {
             _recipients = aRecipients;
-            _source = aSource;
             _msg = aMsg;
         }
 
         public void run() {
             for (int i = 0; i < _recipients.length; i++) {
-                PacketQueue myQueue = _registry.getQueue(_recipients[i]);
-                myQueue.add(new Packet(_source, _msg));
+                Channel myChannel = _registry.getChannel(_recipients[i]);
+                myChannel.write(_msg);
             }
         }
     }

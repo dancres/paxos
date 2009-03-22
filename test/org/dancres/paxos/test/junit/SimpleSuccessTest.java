@@ -1,8 +1,8 @@
 package org.dancres.paxos.test.junit;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import org.dancres.paxos.impl.core.Channel;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.Post;
@@ -13,41 +13,55 @@ import org.dancres.paxos.test.utils.Node;
 import org.dancres.paxos.test.utils.Packet;
 import org.dancres.paxos.test.utils.PacketQueue;
 import org.dancres.paxos.test.utils.PacketQueueImpl;
-import org.dancres.paxos.test.utils.QueueRegistry;
+import org.dancres.paxos.test.utils.ChannelRegistry;
+import org.dancres.paxos.test.utils.QueueChannelImpl;
 import org.junit.*;
 import org.junit.Assert.*;
 
 public class SimpleSuccessTest {
-    private QueueRegistry _registry;
+    private ChannelRegistry _registry1;
+    private ChannelRegistry _registry2;
+
     private AddressGenerator _allocator;
-    private BroadcastChannel _channel;
 
     private InetSocketAddress _addr1;
     private InetSocketAddress _addr2;
+
+    private PacketQueue _queue1;
+    private PacketQueue _queue2;
 
     private Node _node1;
     private Node _node2;
 
     @Before public void init() throws Exception {
-        _registry = new QueueRegistry();
+        _registry1 = new ChannelRegistry();
+        _registry2 = new ChannelRegistry();
+
         _allocator = new AddressGenerator();
 
         _addr1 = _allocator.allocate();
         _addr2 = _allocator.allocate();
 
-        BroadcastChannel myBroadChannel = new BroadcastChannel(_addr1, _registry);
-        myBroadChannel.add(_addr1);
-        myBroadChannel.add(_addr2);
+        BroadcastChannel myBroadChannel1 = new BroadcastChannel(_registry1);
+        myBroadChannel1.add(_addr1);
+        myBroadChannel1.add(_addr2);
 
-        _node1 = new Node(_addr1, myBroadChannel, _registry);
-        _registry.register(_addr1, new PacketQueueImpl(_node1));
+        BroadcastChannel myBroadChannel2 = new BroadcastChannel(_registry2);
+        myBroadChannel2.add(_addr1);
+        myBroadChannel2.add(_addr2);
 
-        myBroadChannel = new BroadcastChannel(_addr2, _registry);
-        myBroadChannel.add(_addr1);
-        myBroadChannel.add(_addr2);
 
-        _node2 = new Node(_addr2, myBroadChannel, _registry);
-        _registry.register(_addr2, new PacketQueueImpl(_node2));
+        _node1 = new Node(_addr1, myBroadChannel1, _registry1);
+        _node2 = new Node(_addr2, myBroadChannel2, _registry2);
+
+        _queue1 = new PacketQueueImpl(_node1);
+        _queue2 = new PacketQueueImpl(_node2);
+
+        _registry1.register(_addr1, new QueueChannelImpl(_addr1, _queue1));
+        _registry1.register(_addr2, new QueueChannelImpl(_addr1, _queue2));
+
+        _registry2.register(_addr1, new QueueChannelImpl(_addr2, _queue1));
+        _registry2.register(_addr2, new QueueChannelImpl(_addr2, _queue2));
 
         _node1.startup();
         _node2.startup();
@@ -57,7 +71,8 @@ public class SimpleSuccessTest {
         PacketQueue myQueue = new PacketQueueImpl();
         InetSocketAddress myAddr = _allocator.allocate();
 
-        _registry.register(myAddr, myQueue);
+        _registry1.register(myAddr, new QueueChannelImpl(_addr1, myQueue));
+        _registry2.register(myAddr, new QueueChannelImpl(_addr2, myQueue));
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
@@ -74,7 +89,8 @@ public class SimpleSuccessTest {
             Thread.sleep(5000);
         }
 
-        _registry.getQueue(_addr1).add(new Packet(myAddr, new Post(myBuffer.array())));
+        Channel myChannel = new QueueChannelImpl(myAddr, _queue1);
+        myChannel.write(new Post(myBuffer.array()));
         Packet myPacket = myQueue.getNext(5000);
 
         Assert.assertFalse((myPacket == null));

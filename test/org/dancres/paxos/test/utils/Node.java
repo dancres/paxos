@@ -1,7 +1,6 @@
 package org.dancres.paxos.test.utils;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import org.dancres.paxos.impl.core.AcceptorLearnerImpl;
 import org.dancres.paxos.impl.core.Channel;
 import org.dancres.paxos.impl.core.ProposerImpl;
@@ -10,7 +9,6 @@ import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetector;
 import org.dancres.paxos.impl.faildet.Heartbeater;
-import org.dancres.paxos.impl.faildet.LivenessListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,13 +18,13 @@ public class Node implements PacketListener {
 
     private BroadcastChannel _bc;
     private InetSocketAddress _addr;
-    private QueueRegistry _qr;
+    private ChannelRegistry _qr;
     private AcceptorLearnerImpl _al;
     private ProposerImpl _pi;
     private FailureDetector _fd;
     private Heartbeater _hb;
 
-    public Node(InetSocketAddress anAddr, BroadcastChannel aBroadChannel, QueueRegistry aRegistry) {
+    public Node(InetSocketAddress anAddr, BroadcastChannel aBroadChannel, ChannelRegistry aRegistry) {
         _bc = aBroadChannel;
         _addr = anAddr;
         _hb = new Heartbeater(_bc);
@@ -57,17 +55,17 @@ public class Node implements PacketListener {
                 PaxosMessage myResponse = _al.process(myPropPkt.getOperation());
 
                 if (myResponse != null) {
-                    PacketQueue myQueue = _qr.getQueue(new InetSocketAddress(
+                    Channel myChannel = _qr.getChannel(new InetSocketAddress(
                             aPacket.getSender().getAddress(),
                             aPacket.getSender().getPort()));
-                    myQueue.add(new Packet(_addr, myResponse));
+                    myChannel.write(myResponse);
                 }
 
                 break;
             }
 
             default: {
-                _pi.process(myMessage, new QueueChannelImpl(_addr, _qr.getQueue(aPacket.getSender())));
+                _pi.process(myMessage, _qr.getChannel(aPacket.getSender()));
                 break;
             }
         }
