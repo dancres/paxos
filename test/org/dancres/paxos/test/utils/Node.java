@@ -62,7 +62,9 @@ public class Node implements PacketListener {
                 PaxosMessage myResponse = _al.process(myPropPkt.getOperation());
 
                 if (myResponse != null) {
-                    PacketQueue myQueue = _qr.getQueue(new InetSocketAddress(aPacket.getSender().getAddress(), myPropPkt.getPort()));
+                    PacketQueue myQueue = _qr.getQueue(new InetSocketAddress(
+                            aPacket.getSender().getAddress(),
+                            aPacket.getSender().getPort()));
                     myQueue.add(new Packet(_addr, myResponse));
                 }
 
