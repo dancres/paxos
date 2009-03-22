@@ -20,6 +20,11 @@ import org.junit.Assert.*;
 public class SimpleSuccessTest {
     private QueueRegistry _registry;
     private AddressGenerator _allocator;
+    private BroadcastChannel _channel;
+
+    private InetSocketAddress _addr1;
+    private InetSocketAddress _addr2;
+
     private Node _node1;
     private Node _node2;
 
@@ -27,16 +32,25 @@ public class SimpleSuccessTest {
         _registry = new QueueRegistry();
         _allocator = new AddressGenerator();
 
-        _node1 = new Node(_allocator.allocate(), _registry);
-        _node2 = new Node(_allocator.allocate(), _registry);
+        _addr1 = _allocator.allocate();
+        _addr2 = _allocator.allocate();
 
-        BroadcastChannel myChannel = _node1.getBroadcastChannel();
-        myChannel.add(_node1.getAddr());
-        myChannel.add(_node2.getAddr());
+        BroadcastChannel myBroadChannel = new BroadcastChannel(_addr1, _registry);
+        myBroadChannel.add(_addr1);
+        myBroadChannel.add(_addr2);
 
-        myChannel = _node2.getBroadcastChannel();
-        myChannel.add(_node1.getAddr());
-        myChannel.add(_node2.getAddr());
+        _node1 = new Node(_addr1, myBroadChannel, _registry);
+        _registry.register(_addr1, new PacketQueueImpl(_node1));
+
+        myBroadChannel = new BroadcastChannel(_addr2, _registry);
+        myBroadChannel.add(_addr1);
+        myBroadChannel.add(_addr2);
+
+        _node2 = new Node(_addr2, myBroadChannel, _registry);
+        _registry.register(_addr2, new PacketQueueImpl(_node2));
+
+        _node1.startup();
+        _node2.startup();
     }
 
     @Test public void post() throws Exception {
@@ -60,7 +74,7 @@ public class SimpleSuccessTest {
             Thread.sleep(5000);
         }
 
-        _node1.getQueue().add(new Packet(myAddr, new Post(myBuffer.array())));
+        _registry.getQueue(_addr1).add(new Packet(myAddr, new Post(myBuffer.array())));
         Packet myPacket = myQueue.getNext(5000);
 
         Assert.assertFalse((myPacket == null));

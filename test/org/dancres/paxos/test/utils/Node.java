@@ -17,34 +17,29 @@ import org.slf4j.LoggerFactory;
 public class Node implements PacketListener {
 
     private static Logger _logger = LoggerFactory.getLogger(Node.class);
-    private InetSocketAddress _addr;
-    private PacketQueue _queue;
-    private QueueRegistry _qr;
+
     private BroadcastChannel _bc;
+    private InetSocketAddress _addr;
+    private QueueRegistry _qr;
     private AcceptorLearnerImpl _al;
     private ProposerImpl _pi;
     private FailureDetector _fd;
     private Heartbeater _hb;
 
-    public Node(InetSocketAddress anAddr, QueueRegistry aRegistry) {
-        _bc = new BroadcastChannel(anAddr, aRegistry);
+    public Node(InetSocketAddress anAddr, BroadcastChannel aBroadChannel, QueueRegistry aRegistry) {
+        _bc = aBroadChannel;
         _addr = anAddr;
-        _queue = new PacketQueueImpl(this);
         _hb = new Heartbeater(_bc);
         _fd = new FailureDetector();
         _al = new AcceptorLearnerImpl();
         _pi = new ProposerImpl(_bc, _fd, _addr);
         _qr = aRegistry;
+    }
 
-        _qr.register(anAddr, _queue);
-
+    public void startup() {
         Thread myHeartbeater = new Thread(_hb);
         myHeartbeater.setDaemon(true);
         myHeartbeater.start();
-    }
-
-    public BroadcastChannel getBroadcastChannel() {
-        return _bc;
     }
 
     public void deliver(Packet aPacket) throws Exception {
@@ -78,15 +73,7 @@ public class Node implements PacketListener {
         }
     }
 
-    public InetSocketAddress getAddr() {
-        return _addr;
-    }
-
     public FailureDetector getFailureDetector() {
         return _fd;
-    }
-
-    public PacketQueue getQueue() {
-        return _queue;
     }
 }
