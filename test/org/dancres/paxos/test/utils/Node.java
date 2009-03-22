@@ -29,7 +29,7 @@ public class Node implements PacketListener {
     public Node(InetSocketAddress anAddr, QueueRegistry aRegistry) {
         _bc = new BroadcastChannel(anAddr, aRegistry);
         _addr = anAddr;
-        _queue = new PacketQueue(this);
+        _queue = new PacketQueueImpl(this);
         _hb = new Heartbeater(_bc);
         _fd = new FailureDetector();
         _al = new AcceptorLearnerImpl();

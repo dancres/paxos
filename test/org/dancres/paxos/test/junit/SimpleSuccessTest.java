@@ -12,6 +12,7 @@ import org.dancres.paxos.test.utils.BroadcastChannel;
 import org.dancres.paxos.test.utils.Node;
 import org.dancres.paxos.test.utils.Packet;
 import org.dancres.paxos.test.utils.PacketQueue;
+import org.dancres.paxos.test.utils.PacketQueueImpl;
 import org.dancres.paxos.test.utils.QueueRegistry;
 import org.junit.*;
 import org.junit.Assert.*;
@@ -39,7 +40,7 @@ public class SimpleSuccessTest {
     }
 
     @Test public void post() throws Exception {
-        PacketQueue myQueue = new PacketQueue();
+        PacketQueue myQueue = new PacketQueueImpl();
         InetSocketAddress myAddr = _allocator.allocate();
 
         _registry.register(myAddr, myQueue);
