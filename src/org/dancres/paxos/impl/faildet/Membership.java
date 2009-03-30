@@ -1,5 +1,10 @@
 package org.dancres.paxos.impl.faildet;
 
+/*
+ * Represents a membership snapshot from a particular point in time which will be updated
+ * by the failure detector on the fly.  This majority should be used until a Paxos round is completed
+ * or restarted.
+ */
 public interface Membership {
     /**
      * @return the current size of the membership
