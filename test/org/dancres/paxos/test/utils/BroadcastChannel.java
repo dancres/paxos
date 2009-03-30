@@ -10,7 +10,8 @@ import org.dancres.paxos.impl.core.messages.PaxosMessage;
 
 /**
  * A local emulation of a broadcast network.  Maintains a list of addresses to broadcast to
- * and finds the associated nodes via a {@link ChannelRegistry}.
+ * and finds the associated nodes via a {@link ChannelRegistry}.  Imposes a FIFO ordering
+ * and is reliable.
  *
  * @author dan
  */

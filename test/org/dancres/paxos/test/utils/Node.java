@@ -28,6 +28,7 @@ public class Node implements PacketListener {
     private ProposerImpl _pi;
     private FailureDetector _fd;
     private Heartbeater _hb;
+    private PacketQueue _pq;
 
     /**
      * @param anAddr is the address this node should use
@@ -42,12 +43,17 @@ public class Node implements PacketListener {
         _al = new AcceptorLearnerImpl();
         _pi = new ProposerImpl(_bc, _fd, _addr);
         _qr = aRegistry;
+        _pq = new PacketQueueImpl(this);
     }
 
     public void startup() {
         Thread myHeartbeater = new Thread(_hb);
         myHeartbeater.setDaemon(true);
         myHeartbeater.start();
+    }
+
+    public PacketQueue getQueue() {
+        return _pq;
     }
 
     public void deliver(Packet aPacket) throws Exception {

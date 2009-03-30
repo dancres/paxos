@@ -16,6 +16,10 @@ public class QueueChannelImpl implements Channel {
     private PacketQueue _queue;
     private InetSocketAddress _addr;
 
+    /**
+     * @param anAddr the source address to apply to packets entering this channel
+     * @param aQueue the destination queue to place the packets in
+     */
     public QueueChannelImpl(InetSocketAddress anAddr, PacketQueue aQueue) {
         _queue = aQueue;
         _addr = anAddr;

@@ -27,9 +27,6 @@ public class SimpleSuccessTest {
     private InetSocketAddress _addr1;
     private InetSocketAddress _addr2;
 
-    private PacketQueue _queue1;
-    private PacketQueue _queue2;
-
     private Node _node1;
     private Node _node2;
 
@@ -42,6 +39,10 @@ public class SimpleSuccessTest {
         _addr1 = _allocator.allocate();
         _addr2 = _allocator.allocate();
 
+        /*
+         * BroadcastChannel imposes a FIFO ordering and we wish for the nodes
+         * to be able to act independently thus we must use two separate channels.
+         */
         BroadcastChannel myBroadChannel1 = new BroadcastChannel(_registry1);
         myBroadChannel1.add(_addr1);
         myBroadChannel1.add(_addr2);
@@ -50,18 +51,26 @@ public class SimpleSuccessTest {
         myBroadChannel2.add(_addr1);
         myBroadChannel2.add(_addr2);
 
-
         _node1 = new Node(_addr1, myBroadChannel1, _registry1);
         _node2 = new Node(_addr2, myBroadChannel2, _registry2);
 
-        _queue1 = new PacketQueueImpl(_node1);
-        _queue2 = new PacketQueueImpl(_node2);
+        /*
+         * "Network" mappings for node1's broadcast channel
+         *
+         * addr1 maps to a channel that sends packets from addr1 to node1's queue
+         * addr2 maps to a channel that sends packets from addr1 to node2's queue
+         */
+        _registry1.register(_addr1, new QueueChannelImpl(_addr1, _node1.getQueue()));
+        _registry1.register(_addr2, new QueueChannelImpl(_addr1, _node2.getQueue()));
 
-        _registry1.register(_addr1, new QueueChannelImpl(_addr1, _queue1));
-        _registry1.register(_addr2, new QueueChannelImpl(_addr1, _queue2));
-
-        _registry2.register(_addr1, new QueueChannelImpl(_addr2, _queue1));
-        _registry2.register(_addr2, new QueueChannelImpl(_addr2, _queue2));
+        /*
+         * "Network" mappings for node2's broadcast channel
+         *
+         * addr1 maps to a channel that sends packets from addr2 to node1's queue
+         * addr2 maps to a channel that sends packets from addr2 to node2's queue
+         */
+        _registry2.register(_addr1, new QueueChannelImpl(_addr2, _node1.getQueue()));
+        _registry2.register(_addr2, new QueueChannelImpl(_addr2, _node2.getQueue()));
 
         _node1.startup();
         _node2.startup();
@@ -89,7 +98,7 @@ public class SimpleSuccessTest {
             Thread.sleep(5000);
         }
 
-        Channel myChannel = new QueueChannelImpl(myAddr, _queue1);
+        Channel myChannel = new QueueChannelImpl(myAddr, _node1.getQueue());
         myChannel.write(new Post(myBuffer.array()));
         Packet myPacket = myQueue.getNext(5000);
 
