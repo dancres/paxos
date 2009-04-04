@@ -162,8 +162,6 @@ class LeaderImpl implements MembershipListener {
     }
 
     private void collect() {
-        _logger.info("Leader dispatching collect: " + _seqNum);
-
         _messages.clear();
 
         PaxosMessage myMessage = new ProposerHeader(new Collect(_seqNum, _rndNumber, _state.getNodeId()),
@@ -177,8 +175,6 @@ class LeaderImpl implements MembershipListener {
     }
 
     private void begin() {
-        _logger.info("Leader dispatching begin: " + _seqNum);
-
         _messages.clear();
 
         PaxosMessage myMessage = new ProposerHeader(new Begin(_seqNum, _rndNumber, _state.getNodeId(), _value),
@@ -192,8 +188,6 @@ class LeaderImpl implements MembershipListener {
     }
 
     private void success() {
-        _logger.info("Leader dispatching success: " + _seqNum);
-
         _messages.clear();
 
         PaxosMessage myMessage = new ProposerHeader(new Success(_seqNum, _value), _state.getAddress().getPort());
@@ -209,6 +203,8 @@ class LeaderImpl implements MembershipListener {
      * @todo If we get ABORT, we could try a new round from scratch or make the client re-submit or .....
      */
     public void abort() {
+        _logger.info("Membership requested abort: " + _seqNum);
+
         synchronized(this) {
             _stage = ABORT;
             process();
