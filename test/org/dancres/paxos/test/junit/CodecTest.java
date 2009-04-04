@@ -7,6 +7,7 @@ import org.dancres.paxos.impl.core.messages.Accept;
 import org.dancres.paxos.impl.core.messages.Ack;
 import org.dancres.paxos.impl.core.messages.Begin;
 import org.dancres.paxos.impl.core.messages.Collect;
+import org.dancres.paxos.impl.core.messages.Fail;
 import org.dancres.paxos.impl.core.messages.Heartbeat;
 import org.dancres.paxos.impl.core.messages.Last;
 import org.dancres.paxos.impl.core.messages.OldRound;
@@ -59,6 +60,16 @@ public class CodecTest {
         Ack myAck2 = (Ack) decode(myBuffer, true);
 
         Assert.assertTrue(myAck.getSeqNum() == myAck2.getSeqNum());
+    }
+
+    @Test public void fail() throws Exception {
+        Fail myFail = new Fail(1);
+
+        byte[] myBuffer = encode(myFail);
+
+        Fail myFail2 = (Fail) decode(myBuffer, true);
+
+        Assert.assertTrue(myFail.getSeqNum() == myFail2.getSeqNum());
     }
 
     @Test public void begin() throws Exception {

@@ -69,7 +69,7 @@ class LeaderImpl implements MembershipListener {
                 if (_stage == EXIT) {
                     _clientChannel.write(new Ack(_seqNum));
                 } else {
-                    // Send failure message.....
+                    _clientChannel.write(new Fail(_seqNum));
                 }
 
                 return;
