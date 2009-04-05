@@ -22,6 +22,8 @@ import java.net.SocketAddress;
  * other messages sent by a node for a suitable period of time.
  */
 public class FailureDetector implements Runnable {
+    private static long MAXIMUM_PERIOD_OF_UNRESPONSIVENESS = 5000;
+
     private Map _lastHeartbeats = new HashMap();
     private ExecutorService _executor = Executors.newFixedThreadPool(1);
     private Thread _scanner;
@@ -104,7 +106,7 @@ public class FailureDetector implements Runnable {
 
             synchronized(this) {
                 Iterator myProcesses = _lastHeartbeats.keySet().iterator();
-                long myMinTime = System.currentTimeMillis() - 5000;
+                long myMinTime = System.currentTimeMillis() - MAXIMUM_PERIOD_OF_UNRESPONSIVENESS;
 
                 while (myProcesses.hasNext()) {
                     SocketAddress myAddress = (SocketAddress) myProcesses.next();
