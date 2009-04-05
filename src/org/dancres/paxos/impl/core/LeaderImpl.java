@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Responsible for attempting to drive consensus for a particular entry in the paxos ledger (as identified by a sequence number)
@@ -21,6 +23,8 @@ class LeaderImpl implements MembershipListener {
     private static final int EXIT = 3;
     private static final int ABORT = 4;
 
+    private static Timer _watchdog = new Timer("Leader watchdog");
+
     private long _seqNum;
     private byte[] _value;
 
@@ -28,6 +32,8 @@ class LeaderImpl implements MembershipListener {
     //
     private Channel _channel;
     private Channel _clientChannel;
+
+    private TimerTask _activeAlarm;
 
     private long _rndNumber = 0;
 
@@ -167,7 +173,7 @@ class LeaderImpl implements MembershipListener {
         PaxosMessage myMessage = new ProposerHeader(new Collect(_seqNum, _rndNumber, _state.getNodeId()),
                 _state.getAddress().getPort());
 
-        _membership.startInteraction();
+        startInteraction();
 
         _logger.info("Leader sending collect: " + _seqNum);
 
@@ -180,7 +186,7 @@ class LeaderImpl implements MembershipListener {
         PaxosMessage myMessage = new ProposerHeader(new Begin(_seqNum, _rndNumber, _state.getNodeId(), _value),
                 _state.getAddress().getPort());
 
-        _membership.startInteraction();
+        startInteraction();
 
         _logger.info("Leader sending begin: " + _seqNum);
 
@@ -192,11 +198,18 @@ class LeaderImpl implements MembershipListener {
 
         PaxosMessage myMessage = new ProposerHeader(new Success(_seqNum, _value), _state.getAddress().getPort());
 
-        _membership.startInteraction();
+        startInteraction();
 
         _logger.info("Leader sending success: " + _seqNum);
 
         _channel.write(myMessage);
+    }
+
+    private void startInteraction() {
+        _activeAlarm = new Alarm();
+        _watchdog.schedule(_activeAlarm, 7000);
+
+        _membership.startInteraction();
     }
 
     /**
@@ -205,6 +218,8 @@ class LeaderImpl implements MembershipListener {
     public void abort() {
         _logger.info("Membership requested abort: " + _seqNum);
 
+        _activeAlarm.cancel();
+
         synchronized(this) {
             _stage = ABORT;
             process();
@@ -212,8 +227,19 @@ class LeaderImpl implements MembershipListener {
     }
 
     public void allReceived() {
+        _activeAlarm.cancel();
+
         synchronized(this) {
             _stage++;
+            process();
+        }
+    }
+
+    private void expired() {
+        _logger.info("Watchdog requested abort: " + _seqNum);
+
+        synchronized(this) {
+            _stage = ABORT;
             process();
         }
     }
@@ -246,5 +272,11 @@ class LeaderImpl implements MembershipListener {
         }
 
         _logger.info("Leader processed message: " + aMessage);
+    }
+
+    private class Alarm extends TimerTask {
+        public void run() {
+            expired();
+        }
     }
 }
