@@ -119,7 +119,7 @@ public class DeadNodeTest {
         //
         Channel myChannel = new QueueChannelImpl(myAddr, _node1.getQueue());
         myChannel.write(new Post(myBuffer.array()));
-        Packet myPacket = myQueue.getNext(5000);
+        Packet myPacket = myQueue.getNext(10000);
 
         Assert.assertFalse((myPacket == null));
 
