@@ -40,7 +40,7 @@ public class NoMajorityTest {
         BroadcastChannel myBroadChannel1 = new BroadcastChannel(_registry1);
         myBroadChannel1.add(_addr1);
 
-        _node1 = new Node(_addr1, myBroadChannel1, _registry1);
+        _node1 = new Node(_addr1, myBroadChannel1, _registry1, 5000);
 
         /*
          * "Network" mappings for node1's broadcast channel

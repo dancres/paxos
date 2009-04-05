@@ -22,20 +22,23 @@ import java.net.SocketAddress;
  * other messages sent by a node for a suitable period of time.
  */
 public class FailureDetector implements Runnable {
-    private static long MAXIMUM_PERIOD_OF_UNRESPONSIVENESS = 5000;
-
     private Map _lastHeartbeats = new HashMap();
     private ExecutorService _executor = Executors.newFixedThreadPool(1);
     private Thread _scanner;
     private CopyOnWriteArraySet _listeners;
+    private long _maximumPeriodOfUnresponsiveness;
 
     private Logger _logger = LoggerFactory.getLogger(FailureDetector.class);
 
-    public FailureDetector() {
+    /**
+     * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
+     */
+    public FailureDetector(long anUnresponsivenessThreshold) {
         _scanner = new Thread(this);
         _scanner.setDaemon(true);
         _scanner.start();
         _listeners = new CopyOnWriteArraySet();
+        _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
     }
 
     public void add(LivenessListener aListener) {
@@ -106,7 +109,7 @@ public class FailureDetector implements Runnable {
 
             synchronized(this) {
                 Iterator myProcesses = _lastHeartbeats.keySet().iterator();
-                long myMinTime = System.currentTimeMillis() - MAXIMUM_PERIOD_OF_UNRESPONSIVENESS;
+                long myMinTime = System.currentTimeMillis() - _maximumPeriodOfUnresponsiveness;
 
                 while (myProcesses.hasNext()) {
                     SocketAddress myAddress = (SocketAddress) myProcesses.next();

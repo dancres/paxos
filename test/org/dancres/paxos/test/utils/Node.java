@@ -35,11 +35,11 @@ public class Node implements PacketListener {
      * @param aBroadChannel is the broadcast channel to use for e.g. heartbeats
      * @param aRegistry is the registry from which channels for other addresses can be obtained
      */
-    public Node(InetSocketAddress anAddr, BroadcastChannel aBroadChannel, ChannelRegistry aRegistry) {
+    public Node(InetSocketAddress anAddr, BroadcastChannel aBroadChannel, ChannelRegistry aRegistry, long anUnresponsivenessThreshold) {
         _bc = aBroadChannel;
         _addr = anAddr;
         _hb = new Heartbeater(_bc);
-        _fd = new FailureDetector();
+        _fd = new FailureDetector(anUnresponsivenessThreshold);
         _al = new AcceptorLearnerImpl();
         _pi = new ProposerImpl(_bc, _fd, _addr);
         _qr = aRegistry;

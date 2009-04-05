@@ -54,8 +54,8 @@ public class PacketDropTest {
         myBroadChannel2.add(_addr1);
         myBroadChannel2.add(_addr2);
 
-        _node1 = new Node(_addr1, myBroadChannel1, _registry1);
-        _node2 = new Node(_addr2, myBroadChannel2, _registry2);
+        _node1 = new Node(_addr1, myBroadChannel1, _registry1, 5000);
+        _node2 = new Node(_addr2, myBroadChannel2, _registry2, 5000);
 
         /*
          * "Network" mappings for node1's broadcast channel

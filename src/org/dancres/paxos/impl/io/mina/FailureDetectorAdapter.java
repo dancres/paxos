@@ -11,8 +11,8 @@ import org.dancres.paxos.impl.PaxosPeer;
 public class FailureDetectorAdapter extends IoFilterAdapter {
     private FailureDetector _detector;
 
-    public FailureDetectorAdapter() {
-        _detector = new FailureDetector();
+    public FailureDetectorAdapter(long anUnresponsivenessThreshold) {
+        _detector = new FailureDetector(anUnresponsivenessThreshold);
     }
 
     public void messageReceived(NextFilter aNextFilter, IoSession aSession, Object anObject) throws Exception {

@@ -46,7 +46,7 @@ public class PaxosPeer {
          *   - Failure detector uses broadcast messages to ascertain liveness
          * 
          */
-        FailureDetectorAdapter myDetectorAdapter = new FailureDetectorAdapter();
+        FailureDetectorAdapter myDetectorAdapter = new FailureDetectorAdapter(5000);
         myDetectorAdapter.add(new ListenerImpl());
 
         DatagramConnector myPropUnicast = new NioDatagramConnector();
