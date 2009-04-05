@@ -45,6 +45,10 @@ public class FailureDetector implements Runnable {
         _listeners.add(aListener);
     }
 
+    public long getUnresponsivenessThreshold() {
+        return _maximumPeriodOfUnresponsiveness;
+    }
+
     public void remove(LivenessListener aListener) {
         _listeners.remove(aListener);
     }

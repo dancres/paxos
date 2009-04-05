@@ -17,6 +17,13 @@ import java.util.TimerTask;
  * @author dan
  */
 class LeaderImpl implements MembershipListener {
+    /*
+     * Used to compute the timeout period for watchdog tasks.  In order to behave sanely we want the failure detector to be given
+     * the best possible chance of detecting problems with the members.  Thus the timeout for the watchdog is computed as the
+     * unresponsiveness threshold of the failure detector plus a grace period.
+     */
+    private static final long FAILURE_DETECTOR_GRACE_PERIOD = 2000;
+
     private static final int COLLECT = 0;
     private static final int BEGIN = 1;
     private static final int SUCCESS = 2;
@@ -25,6 +32,7 @@ class LeaderImpl implements MembershipListener {
 
     private static Timer _watchdog = new Timer("Leader watchdog");
 
+    private long _watchdogTimeout;
     private long _seqNum;
     private byte[] _value;
 
@@ -57,6 +65,7 @@ class LeaderImpl implements MembershipListener {
         _state = aProposerState;
         _channel = aBroadcastChannel;
         _clientChannel = aClientChannel;
+        _watchdogTimeout = _state.getFailureDetector().getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
     }
 
     /**
@@ -207,7 +216,7 @@ class LeaderImpl implements MembershipListener {
 
     private void startInteraction() {
         _activeAlarm = new Alarm();
-        _watchdog.schedule(_activeAlarm, 7000);
+        _watchdog.schedule(_activeAlarm, _watchdogTimeout);
 
         _membership.startInteraction();
     }
