@@ -36,6 +36,8 @@ class Participant {
      * superior to ours.  If that is the case, another leader is active and we should abort our leader for the proposal
      * if we have one running.  An alternative is to send in the OLDROUND message the node id so the proposer can
      * decide for itself to cease chatter and inform it's client of a new leader.
+     *
+     * @todo When we send Ack in response to Success we can inform listeners of the new value.
      */
     PaxosMessage process(PaxosMessage aMessage) {
         switch (aMessage.getType()) {
