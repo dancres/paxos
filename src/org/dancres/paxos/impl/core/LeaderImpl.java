@@ -1,6 +1,5 @@
 package org.dancres.paxos.impl.core;
 
-import java.net.SocketAddress;
 import org.dancres.paxos.impl.faildet.Membership;
 import org.dancres.paxos.impl.faildet.MembershipListener;
 import org.dancres.paxos.impl.core.messages.*;
@@ -258,7 +257,7 @@ class LeaderImpl implements MembershipListener {
      * @todo Failure detector my not catch a blip in partition which would cause a single message to be lost, add a
      * timeout to cope with loss or do packet resends
      */
-    void messageReceived(PaxosMessage aMessage, SocketAddress anAddress) {
+    void messageReceived(PaxosMessage aMessage, Address anAddress) {
         _logger.info("Leader received message: " + aMessage);
 
         if (aMessage.getType() == Operations.POST) {

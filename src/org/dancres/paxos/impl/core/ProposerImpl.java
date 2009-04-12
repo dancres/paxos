@@ -29,7 +29,7 @@ public class ProposerImpl {
      * @param aMessage to process
      * @param aChannel on which the sender of this message can be found
      */
-    public void process(PaxosMessage aMessage, Channel aChannel, SocketAddress aSenderAddress) {
+    public void process(PaxosMessage aMessage, Channel aChannel, Address aSenderAddress) {
         switch (aMessage.getType()) {
             case Operations.POST : {
                 _logger.info("Received post - starting leader");

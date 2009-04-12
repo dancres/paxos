@@ -9,6 +9,7 @@ import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetector;
 import org.dancres.paxos.impl.faildet.Heartbeater;
+import org.dancres.paxos.impl.util.AddressImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +62,7 @@ public class Node implements PacketListener {
 
         switch (myMessage.getType()) {
             case Operations.HEARTBEAT: {
-                _fd.processMessage(myMessage, aPacket.getSender());
+                _fd.processMessage(myMessage, new AddressImpl(aPacket.getSender()));
 
                 break;
             }
@@ -81,7 +82,7 @@ public class Node implements PacketListener {
             }
 
             default: {
-                _pi.process(myMessage, _qr.getChannel(aPacket.getSender()), aPacket.getSender());
+                _pi.process(myMessage, _qr.getChannel(aPacket.getSender()), new AddressImpl(aPacket.getSender()));
                 break;
             }
         }

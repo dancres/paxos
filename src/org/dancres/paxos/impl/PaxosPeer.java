@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
+import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.io.mina.ChannelImpl;
 
 public class PaxosPeer {
@@ -142,11 +143,11 @@ public class PaxosPeer {
             _logger = LoggerFactory.getLogger(getClass());
         }
 
-        public void alive(SocketAddress aProcess) {
+        public void alive(Address aProcess) {
             _logger.info("**********Alive************ " + aProcess);
         }
 
-        public void dead(SocketAddress aProcess) {
+        public void dead(Address aProcess) {
             _logger.info("!!!!!!!!!!Dead!!!!!!!!!!! " + aProcess);
         }
     }

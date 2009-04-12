@@ -1,13 +1,11 @@
 package org.dancres.paxos.impl.faildet;
 
-import com.sun.imageio.plugins.jpeg.JPEGImageReader;
-
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Iterator;
 import java.util.HashSet;
-import java.net.SocketAddress;
 
+import org.dancres.paxos.impl.core.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,20 +53,24 @@ class MembershipImpl implements Membership, LivenessListener {
         }
     }
 
-    public void receivedResponse(SocketAddress anAddress) {
+    public void receivedResponse(Address anAddress) {
         synchronized(this) {
             if (_outstandingMemberAddresses.remove(anAddress)) {
                 ++_receivedResponses;
                 interactionComplete();
+            } else {
+                _logger.warn("Not an expected response: " + anAddress);
             }
         }
     }
 
-    public void alive(SocketAddress aProcess) {
+    public void alive(Address aProcess) {
         // Not interested in new arrivals
     }
 
-    public void dead(SocketAddress aProcess) {
+    public void dead(Address aProcess) {
+        _logger.warn("Death detected: " + aProcess);
+
         synchronized(this) {
             // Delay messages until we've got a member set
             while (_populated == false) {

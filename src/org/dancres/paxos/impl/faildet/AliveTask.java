@@ -2,13 +2,13 @@ package org.dancres.paxos.impl.faildet;
 
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.Iterator;
-import java.net.SocketAddress;
+import org.dancres.paxos.impl.core.Address;
 
 class AliveTask implements Runnable {
-    private SocketAddress _address;
+    private Address _address;
     private CopyOnWriteArraySet _listeners;
 
-    public AliveTask(SocketAddress aRemoteAddress, CopyOnWriteArraySet aListeners) {
+    public AliveTask(Address aRemoteAddress, CopyOnWriteArraySet aListeners) {
         _address = aRemoteAddress;
         _listeners = aListeners;
     }

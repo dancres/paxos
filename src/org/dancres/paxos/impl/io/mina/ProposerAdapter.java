@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import org.dancres.paxos.impl.core.messages.Operations;
+import org.dancres.paxos.impl.util.AddressImpl;
 
 /**
  *
@@ -45,7 +46,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
         if (myMessage.getType() != Operations.HEARTBEAT)
                 _logger.info("serverMsgRx: s=" + aSession + " o=" + anObject);
 
-        _proposer.process(myMessage, new ChannelImpl(aSession), aSession.getRemoteAddress());
+        _proposer.process(myMessage, new ChannelImpl(aSession), new AddressImpl(aSession.getRemoteAddress()));
     }
 
     public void messageSent(org.apache.mina.common.IoSession aSession,
