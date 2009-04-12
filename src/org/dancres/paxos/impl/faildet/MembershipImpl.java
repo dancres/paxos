@@ -17,7 +17,15 @@ class MembershipImpl implements Membership, LivenessListener {
      */
     private static final int MAJORITY = 2;
 
-    private Set _memberAddresses = new HashSet();
+    /**
+     * Tracks the membership that forms the base for each round
+     */
+    private Set _initialMemberAddresses = new HashSet();
+
+    /**
+     * Tracks the members that have yet to respond in a round
+     */
+    private Set _outstandingMemberAddresses;
 
     private FailureDetector _parent;
     private boolean _populated = false;
@@ -41,15 +49,18 @@ class MembershipImpl implements Membership, LivenessListener {
         synchronized(this) {
             if (!abort()) {
                 _receivedResponses = 0;
-                _expectedResponses = _memberAddresses.size();
+                _expectedResponses = _initialMemberAddresses.size();
+                _outstandingMemberAddresses = new HashSet(_initialMemberAddresses);
             }
         }
     }
 
-    public void receivedResponse() {
+    public void receivedResponse(SocketAddress anAddress) {
         synchronized(this) {
-            ++_receivedResponses;
-            interactionComplete();
+            if (_outstandingMemberAddresses.remove(anAddress)) {
+                ++_receivedResponses;
+                interactionComplete();
+            }
         }
     }
 
@@ -67,7 +78,8 @@ class MembershipImpl implements Membership, LivenessListener {
                 }
             }
 
-            _memberAddresses.remove(aProcess);
+            _outstandingMemberAddresses.remove(aProcess);
+            _initialMemberAddresses.remove(aProcess);
             --_expectedResponses;
 
             if (abort())
@@ -83,7 +95,7 @@ class MembershipImpl implements Membership, LivenessListener {
         synchronized(this) {
             _logger.info("Populating membership - got lock");
 
-            _memberAddresses.addAll(anActiveAddresses);
+            _initialMemberAddresses.addAll(anActiveAddresses);
 
             _logger.info("Populating membership - addresses added");
 
@@ -96,7 +108,7 @@ class MembershipImpl implements Membership, LivenessListener {
 
     public int getSize() {
         synchronized(this) {
-            return _memberAddresses.size();
+            return _initialMemberAddresses.size();
         }
     }
 
@@ -118,7 +130,7 @@ class MembershipImpl implements Membership, LivenessListener {
     }
 
     private boolean abort() {
-        if (_memberAddresses.size() < MAJORITY) {
+        if (_initialMemberAddresses.size() < MAJORITY) {
             _listener.abort();
             return true;
         }

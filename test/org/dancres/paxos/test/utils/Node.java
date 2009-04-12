@@ -81,7 +81,7 @@ public class Node implements PacketListener {
             }
 
             default: {
-                _pi.process(myMessage, _qr.getChannel(aPacket.getSender()));
+                _pi.process(myMessage, _qr.getChannel(aPacket.getSender()), aPacket.getSender());
                 break;
             }
         }

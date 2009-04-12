@@ -45,7 +45,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
         if (myMessage.getType() != Operations.HEARTBEAT)
                 _logger.info("serverMsgRx: s=" + aSession + " o=" + anObject);
 
-        _proposer.process(myMessage, new ChannelImpl(aSession));
+        _proposer.process(myMessage, new ChannelImpl(aSession), aSession.getRemoteAddress());
     }
 
     public void messageSent(org.apache.mina.common.IoSession aSession,

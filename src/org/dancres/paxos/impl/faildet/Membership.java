@@ -1,5 +1,7 @@
 package org.dancres.paxos.impl.faildet;
 
+import java.net.SocketAddress;
+
 /**
  * Represents a membership snapshot from a particular point in time which will be updated
  * by the failure detector on the fly.  This majority should be used until a Paxos round is completed
@@ -19,7 +21,7 @@ public interface Membership {
     /**
      * Invoke this for each response received (duplicates should be filtered before making this call)
      */
-    public void receivedResponse();
+    public void receivedResponse(SocketAddress anAddress);
 
     /**
      * Indicate this membership will be used no more
