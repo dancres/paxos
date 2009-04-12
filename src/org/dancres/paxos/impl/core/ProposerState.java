@@ -7,7 +7,16 @@ import org.dancres.paxos.impl.faildet.FailureDetector;
 import java.util.Map;
 import java.util.TreeMap;
 import java.net.InetSocketAddress;
+import org.dancres.paxos.impl.util.NodeId;
 
+/**
+ * @todo Remove the need for _addr in this class - that's the transport leaking into the core library and we wish to avoid it.
+ * This is as the result of having the Leader construct the ProposerHeader however it's decoded and used inside of the
+ * AcceptorLearnerAdaptor only.  Thus we should move the wrapping with a ProposerHeader into the transport implementation
+ * which can consider the type of message and wrap it (with the port) as required.
+ * 
+ * @author dan
+ */
 class ProposerState {
     /**
      * The next entry in the ledgers we will try and fill - aka log number
@@ -30,21 +39,7 @@ class ProposerState {
     ProposerState(FailureDetector aDetector, InetSocketAddress anAddr) {
         _fd = aDetector;
 
-        byte[] myAddress = anAddr.getAddress().getAddress();
-        long myNodeId = 0;
-
-        // Only cope with IPv4 right now
-        //
-        assert (myAddress.length == 4);
-
-        for (int i = 0; i < 4; i++) {
-            myNodeId = myNodeId << 8;
-            myNodeId |= (int) myAddress[i] & 0xFF;
-        }
-
-        myNodeId = myNodeId << 32;
-        myNodeId |= anAddr.getPort();
-        _nodeId = myNodeId;
+        _nodeId = NodeId.from(anAddr);
 
         _addr = anAddr;
 
