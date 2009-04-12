@@ -72,6 +72,9 @@ class LeaderImpl implements MembershipListener {
     }
 
     /**
+     * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we process the
+     * result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state we expect ACCEPT or OLDROUND
+     *
      * @todo If we want to retry in face of ABORT we'd reacquire a membership, increment a retry count etc
      * @todo Send client a failure message
      */
