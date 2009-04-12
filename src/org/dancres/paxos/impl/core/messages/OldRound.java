@@ -10,6 +10,7 @@ public class OldRound implements PaxosMessage {
 
     public OldRound(long aSeqNum, long aNodeId, long aLastRound) {
         _seqNum = aSeqNum;
+        _nodeId = aNodeId;
         _lastRound = aLastRound;
     }
 
@@ -30,6 +31,7 @@ public class OldRound implements PaxosMessage {
     }
 
     public String toString() {
-        return "OldRound: " + Long.toHexString(_seqNum) + " [ " + Long.toHexString(_lastRound) + " ]";
+        return "OldRound: " + Long.toHexString(_seqNum) + " [ " + Long.toHexString(_lastRound) + ", " +
+                Long.toHexString(_nodeId) + " ]";
     }
 }
