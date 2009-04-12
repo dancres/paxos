@@ -92,7 +92,7 @@ public class FailureDetector implements Runnable {
 
         synchronized(this) {
             _logger.info("Snapping failure detector members");
-            
+
             myActives.addAll(_lastHeartbeats.keySet());
 
             _logger.info("Snapping failure detector members - done");

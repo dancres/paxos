@@ -21,10 +21,9 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 
 import org.dancres.paxos.impl.core.Address;
-import org.dancres.paxos.impl.io.mina.ChannelImpl;
+import org.dancres.paxos.impl.io.mina.TransportImpl;
 
 public class PaxosPeer {
     private static Logger _logger = LoggerFactory.getLogger(PaxosPeer.class);
@@ -131,7 +130,7 @@ public class PaxosPeer {
         }
         */
         
-        Thread myHeartbeater = new Thread(new Heartbeater(new ChannelImpl(myBroadcastSession)));
+        Thread myHeartbeater = new Thread(new Heartbeater(new TransportImpl(myBroadcastSession)));
         myHeartbeater.setDaemon(true);
         myHeartbeater.start();
     }

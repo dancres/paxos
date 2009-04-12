@@ -2,60 +2,45 @@ package org.dancres.paxos.test.junit;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import org.dancres.paxos.impl.core.Channel;
+import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.Post;
 import org.dancres.paxos.impl.faildet.FailureDetector;
+import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.test.utils.AddressGenerator;
-import org.dancres.paxos.test.utils.BroadcastChannel;
 import org.dancres.paxos.test.utils.Node;
 import org.dancres.paxos.test.utils.Packet;
 import org.dancres.paxos.test.utils.PacketQueue;
 import org.dancres.paxos.test.utils.PacketQueueImpl;
-import org.dancres.paxos.test.utils.ChannelRegistry;
-import org.dancres.paxos.test.utils.QueueChannelImpl;
+import org.dancres.paxos.test.utils.ClientPacketFilter;
+import org.dancres.paxos.test.utils.TransportImpl;
 import org.junit.*;
 import org.junit.Assert.*;
 
 public class PacketDropTest {
-    private ChannelRegistry _registry1;
-    private ChannelRegistry _registry2;
-
     private AddressGenerator _allocator;
 
     private InetSocketAddress _addr1;
     private InetSocketAddress _addr2;
 
-    private DroppingChannelImpl _node2ToNode1;
-    private DroppingChannelImpl _node2ToNode2;
+    private TransportImpl _tport1;
+    private TransportImpl _tport2;
 
     private Node _node1;
     private Node _node2;
 
     @Before public void init() throws Exception {
-        _registry1 = new ChannelRegistry();
-        _registry2 = new ChannelRegistry();
-
         _allocator = new AddressGenerator();
 
         _addr1 = _allocator.allocate();
         _addr2 = _allocator.allocate();
 
-        /*
-         * BroadcastChannel imposes a FIFO ordering and we wish for the nodes
-         * to be able to act independently thus we must use two separate channels.
-         */
-        BroadcastChannel myBroadChannel1 = new BroadcastChannel(_registry1);
-        myBroadChannel1.add(_addr1);
-        myBroadChannel1.add(_addr2);
+        _tport1 = new TransportImpl(_addr1);
+        _tport2 = new DroppingTransportImpl(_addr2);
 
-        BroadcastChannel myBroadChannel2 = new BroadcastChannel(_registry2);
-        myBroadChannel2.add(_addr1);
-        myBroadChannel2.add(_addr2);
-
-        _node1 = new Node(_addr1, myBroadChannel1, _registry1, 5000);
-        _node2 = new Node(_addr2, myBroadChannel2, _registry2, 5000);
+        _node1 = new Node(_addr1, _tport1, 5000);
+        _node2 = new Node(_addr2, _tport2, 5000);
 
         /*
          * "Network" mappings for node1's broadcast channel
@@ -63,8 +48,8 @@ public class PacketDropTest {
          * addr1 maps to a channel that sends packets from addr1 to node1's queue
          * addr2 maps to a channel that sends packets from addr1 to node2's queue
          */
-        _registry1.register(_addr1, new QueueChannelImpl(_addr1, _node1.getQueue()));
-        _registry1.register(_addr2, new QueueChannelImpl(_addr1, _node2.getQueue()));
+        _tport1.add(_addr1, _node1.getQueue());
+        _tport1.add(_addr2, _node2.getQueue());
 
         /*
          * "Network" mappings for node2's broadcast channel
@@ -72,11 +57,8 @@ public class PacketDropTest {
          * addr1 maps to a channel that sends packets from addr2 to node1's queue
          * addr2 maps to a channel that sends packets from addr2 to node2's queue
          */
-        _node2ToNode1 = new DroppingChannelImpl(_addr2, _node1.getQueue());
-        _node2ToNode2 = new DroppingChannelImpl(_addr2, _node2.getQueue());
-
-        _registry2.register(_addr1, _node2ToNode1);
-        _registry2.register(_addr2, _node2ToNode2);
+        _tport2.add(_addr1, _node1.getQueue());
+        _tport2.add(_addr2, _node2.getQueue());
 
         _node1.startup();
         _node2.startup();
@@ -89,11 +71,11 @@ public class PacketDropTest {
      * @throws java.lang.Exception
      */
     @Test public void post() throws Exception {
-        PacketQueue myQueue = new PacketQueueImpl();
+        PacketQueue myQueue = new ClientPacketFilter(new PacketQueueImpl());
         InetSocketAddress myAddr = _allocator.allocate();
 
-        _registry1.register(myAddr, new QueueChannelImpl(_addr1, myQueue));
-        _registry2.register(myAddr, new QueueChannelImpl(_addr2, myQueue));
+        _tport1.add(myAddr, myQueue);
+        _tport2.add(myAddr, myQueue);
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
@@ -115,8 +97,7 @@ public class PacketDropTest {
          * If there is no stable majority and we cannot circumvent packet loss we expect the leader to ultimately
          * give up.
          */
-        Channel myChannel = new QueueChannelImpl(myAddr, _node1.getQueue());
-        myChannel.write(new Post(myBuffer.array()));
+        _node1.getQueue().add(new Packet(new AddressImpl(myAddr), new Post(myBuffer.array())));
         Packet myPacket = myQueue.getNext(15000);
 
         Assert.assertFalse((myPacket == null));
@@ -126,16 +107,16 @@ public class PacketDropTest {
         Assert.assertTrue(myMsg.getType() == Operations.FAIL);
     }
 
-    static class DroppingChannelImpl extends QueueChannelImpl {
+    static class DroppingTransportImpl extends TransportImpl {
         private boolean _drop;
 
-        DroppingChannelImpl(InetSocketAddress anAddr, PacketQueue aQueue) {
-            super(anAddr, aQueue);
+        DroppingTransportImpl(InetSocketAddress anAddr) {
+            super(anAddr);
         }
 
-        public void write(PaxosMessage aMessage) {
+        public void send(PaxosMessage aMessage, Address anAddress) {
             if (aMessage.getType() == Operations.HEARTBEAT)
-                super.write(aMessage);
+                super.send(aMessage, anAddress);
         }
     }
 }

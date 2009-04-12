@@ -38,8 +38,11 @@ class LeaderImpl implements MembershipListener {
 
     // Broadcast channel for all acceptor/learners
     //
-    private Channel _channel;
-    private Channel _clientChannel;
+    // private Channel _channel;
+    // private Channel _clientChannel;
+
+    private Transport _transport;
+    private Address _clientAddress;
 
     private TimerTask _activeAlarm;
 
@@ -57,14 +60,14 @@ class LeaderImpl implements MembershipListener {
     /**
      * @param aSeqNum is the sequence number for the proposal this leader instance is responsible for
      * @param aProposerState is the proposer state to use for this proposal
-     * @param aBroadcastChannel is the channel on which acceptor/learners can be reached
-     * @param aClientChannel is the channel on which the client that started this proposal can be found
+     * @param aTransport is the transport to use for messages
+     * @param aClientAddress is the endpoint for the client
      */
-    LeaderImpl(long aSeqNum, ProposerState aProposerState, Channel aBroadcastChannel, Channel aClientChannel) {
+    LeaderImpl(long aSeqNum, ProposerState aProposerState, Transport aTransport, Address aClientAddress) {
         _seqNum = aSeqNum;
         _state = aProposerState;
-        _channel = aBroadcastChannel;
-        _clientChannel = aClientChannel;
+        _transport = aTransport;
+        _clientAddress = aClientAddress;
         _watchdogTimeout = _state.getFailureDetector().getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
     }
 
@@ -82,9 +85,9 @@ class LeaderImpl implements MembershipListener {
                 _state.dispose(_seqNum);
 
                 if (_stage == EXIT) {
-                    _clientChannel.write(new Ack(_seqNum));
+                    _transport.send(new Ack(_seqNum), _clientAddress);
                 } else {
-                    _clientChannel.write(new Fail(_seqNum));
+                    _transport.send(new Fail(_seqNum), _clientAddress);
                 }
 
                 return;
@@ -186,7 +189,7 @@ class LeaderImpl implements MembershipListener {
 
         _logger.info("Leader sending collect: " + _seqNum);
 
-        _channel.write(myMessage);
+        _transport.send(myMessage, Address.BROADCAST);
     }
 
     private void begin() {
@@ -199,7 +202,7 @@ class LeaderImpl implements MembershipListener {
 
         _logger.info("Leader sending begin: " + _seqNum);
 
-        _channel.write(myMessage);
+        _transport.send(myMessage, Address.BROADCAST);
     }
 
     private void success() {
@@ -211,7 +214,7 @@ class LeaderImpl implements MembershipListener {
 
         _logger.info("Leader sending success: " + _seqNum);
 
-        _channel.write(myMessage);
+        _transport.send(myMessage, Address.BROADCAST);
     }
 
     private void startInteraction() {

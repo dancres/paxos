@@ -13,30 +13,30 @@ public class ProposerImpl {
     private Logger _logger = LoggerFactory.getLogger(ProposerImpl.class);
 
     private ProposerState _state;
-    private Channel _broadcastChannel;
+    private Transport _transport;
 
     /**
-     * @param aChannel to broadcast proposer messages over
+     * @param aTransport to send messages over
      * @param aDetector to use for construction of memberships
      * @param anAddress with which to generate an id for this node
      */
-    public ProposerImpl(Channel aChannel, FailureDetector aDetector, InetSocketAddress anAddress) {
+    public ProposerImpl(Transport aTransport, FailureDetector aDetector, InetSocketAddress anAddress) {
         _state = new ProposerState(aDetector, anAddress);
-        _broadcastChannel = aChannel;
+        _transport = aTransport;
     }
 
     /**
      * @param aMessage to process
-     * @param aChannel on which the sender of this message can be found
+     * @param aSenderAddress at which the sender of this message can be found
      */
-    public void process(PaxosMessage aMessage, Channel aChannel, Address aSenderAddress) {
+    public void process(PaxosMessage aMessage, Address aSenderAddress) {
         switch (aMessage.getType()) {
             case Operations.POST : {
                 _logger.info("Received post - starting leader");
 
-                // Sender channel will be the client
+                // Sender address will be the client
                 //
-                LeaderImpl myLeader = _state.newLeader(_broadcastChannel, aChannel);
+                LeaderImpl myLeader = _state.newLeader(_transport, aSenderAddress);
                 myLeader.messageReceived(aMessage, aSenderAddress);
                 break;
             }

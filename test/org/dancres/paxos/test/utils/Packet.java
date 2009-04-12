@@ -1,13 +1,13 @@
 package org.dancres.paxos.test.utils;
 
-import java.net.InetSocketAddress;
+import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 
 public class Packet {
-    private InetSocketAddress _source;
+    private Address _source;
     private PaxosMessage _msg;
 
-    public Packet(InetSocketAddress aSource, PaxosMessage aMsg) {
+    public Packet(Address aSource, PaxosMessage aMsg) {
         _source = aSource;
         _msg = aMsg;
     }
@@ -16,7 +16,7 @@ public class Packet {
         return _msg;
     }
 
-    InetSocketAddress getSender() {
+    Address getSender() {
         return _source;
     }
 }
