@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.dancres.paxos.impl.core.Transport;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.util.AddressImpl;
+import org.dancres.paxos.impl.util.NodeId;
 
 /**
  *
@@ -39,8 +40,8 @@ public class ProposerAdapter extends IoHandlerAdapter {
      * @param anAddress is the endpoint (address and port) for this node
      */
     public void init(IoSession aSession, FailureDetector aDetector, InetSocketAddress anAddress) {
-        _transport = new TransportImpl(aSession);
-        _proposer = new ProposerImpl(_transport, aDetector, anAddress);
+        _transport = new TransportImpl(anAddress, aSession);
+        _proposer = new ProposerImpl(_transport, aDetector, NodeId.from(anAddress));
     }
 
     public void exceptionCaught(org.apache.mina.common.IoSession aSession,

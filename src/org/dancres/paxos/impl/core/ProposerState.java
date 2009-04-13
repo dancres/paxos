@@ -34,14 +34,10 @@ class ProposerState {
 
     /**
      * @param aDetector to maintain for use by proposers
-     * @param anAddr to use for node id generation
      */
-    ProposerState(FailureDetector aDetector, InetSocketAddress anAddr) {
+    ProposerState(FailureDetector aDetector, long aNodeId) {
         _fd = aDetector;
-
-        _nodeId = NodeId.from(anAddr);
-
-        _addr = anAddr;
+        _nodeId = aNodeId;
 
         _logger.info("Initialized state with id: " + Long.toHexString(_nodeId));
     }
@@ -76,10 +72,6 @@ class ProposerState {
         return _nodeId;
     }
 
-    InetSocketAddress getAddress() {
-        return _addr;
-    }
-    
     void dispose(long aSeqNum) {
         synchronized(this) {
             _activeRounds.remove(new Long(aSeqNum));

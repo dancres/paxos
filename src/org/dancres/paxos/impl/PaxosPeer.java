@@ -130,7 +130,7 @@ public class PaxosPeer {
         }
         */
         
-        Thread myHeartbeater = new Thread(new Heartbeater(new TransportImpl(myBroadcastSession)));
+        Thread myHeartbeater = new Thread(new Heartbeater(new TransportImpl(myUnicastChannel.getLocalAddress(), myBroadcastSession)));
         myHeartbeater.setDaemon(true);
         myHeartbeater.start();
     }

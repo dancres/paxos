@@ -20,8 +20,8 @@ public class ProposerImpl {
      * @param aDetector to use for construction of memberships
      * @param anAddress with which to generate an id for this node
      */
-    public ProposerImpl(Transport aTransport, FailureDetector aDetector, InetSocketAddress anAddress) {
-        _state = new ProposerState(aDetector, anAddress);
+    public ProposerImpl(Transport aTransport, FailureDetector aDetector, long aNodeId) {
+        _state = new ProposerState(aDetector, aNodeId);
         _transport = aTransport;
     }
 

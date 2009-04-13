@@ -185,8 +185,7 @@ class LeaderImpl implements MembershipListener {
     private void collect() {
         _messages.clear();
 
-        PaxosMessage myMessage = new ProposerHeader(new Collect(_seqNum, _rndNumber, _state.getNodeId()),
-                _state.getAddress().getPort());
+        PaxosMessage myMessage = new Collect(_seqNum, _rndNumber, _state.getNodeId());
 
         startInteraction();
 
@@ -198,8 +197,7 @@ class LeaderImpl implements MembershipListener {
     private void begin() {
         _messages.clear();
 
-        PaxosMessage myMessage = new ProposerHeader(new Begin(_seqNum, _rndNumber, _state.getNodeId(), _value),
-                _state.getAddress().getPort());
+        PaxosMessage myMessage = new Begin(_seqNum, _rndNumber, _state.getNodeId(), _value);
 
         startInteraction();
 
@@ -211,7 +209,7 @@ class LeaderImpl implements MembershipListener {
     private void success() {
         _messages.clear();
 
-        PaxosMessage myMessage = new ProposerHeader(new Success(_seqNum, _value), _state.getAddress().getPort());
+        PaxosMessage myMessage = new Success(_seqNum, _value);
 
         startInteraction();
 
