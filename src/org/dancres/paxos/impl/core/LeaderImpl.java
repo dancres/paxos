@@ -114,13 +114,7 @@ class LeaderImpl implements MembershipListener {
                     PaxosMessage myMessage = (PaxosMessage) myMessages.next();
 
                     if (myMessage.getType() == Operations.OLDROUND) {
-                        OldRound myOldRound = (OldRound) myMessage;
-
-                        _rndNumber = myOldRound.getLastRound() + 1;
-
-                        _stage = COLLECT;
-                        collect();
-
+                        oldRound(myMessage);
                         return;
                     } else {
                         Last myLast = (Last) myMessage;
@@ -151,13 +145,7 @@ class LeaderImpl implements MembershipListener {
                     PaxosMessage myMessage = (PaxosMessage) myMessages.next();
 
                     if (myMessage.getType() == Operations.OLDROUND) {
-                        OldRound myOldRound = (OldRound) myMessage;
-
-                        _rndNumber = myOldRound.getLastRound() + 1;
-
-                        _stage = COLLECT;
-                        collect();
-
+                        oldRound(myMessage);
                         return;
                     } else {
                         myAcceptCount++;
@@ -166,13 +154,13 @@ class LeaderImpl implements MembershipListener {
 
                 if (myAcceptCount >= _membership.getMajority()) {
                     // Send success, wait for acks
+                    //
                     success();
                 } else {
-                    // Need another round then.....
-                    _rndNumber += 1;
-
-                    _stage = COLLECT;
-                    collect();
+                    // Need another try, didn't get enough accepts but didn't get leader conflict
+                    //
+                    _stage = BEGIN;
+                    begin();
                 }
 
                 break;
@@ -180,6 +168,32 @@ class LeaderImpl implements MembershipListener {
 
             default : throw new RuntimeException("Invalid state: " + _stage);
         }
+    }
+
+    /**
+     * @todo Check the failure detector before deciding to abort - if the other leader is dead, we'll continue
+     * in spite of the OLDROUND which is potentially out-of-date.
+     *
+     * @param aMessage is an OldRound message received from some other node
+     */
+    private void oldRound(PaxosMessage aMessage) {
+        OldRound myOldRound = (OldRound) aMessage;
+
+        long myCompetingNodeId = myOldRound.getNodeId();
+
+        /*
+         * Some other node is active, we should abort as they are the leader by virtue of a larger nodeId
+         */
+        if (myCompetingNodeId > _state.getNodeId()) {
+            _stage = ABORT;
+            process();
+            return;
+        }
+
+        _rndNumber = myOldRound.getLastRound() + 1;
+
+        _stage = COLLECT;
+        collect();
     }
 
     private void collect() {
