@@ -40,6 +40,8 @@ public class ProposerImpl {
                 myLeader.messageReceived(aMessage, aSenderAddress);
                 break;
             }
+            
+            case Operations.OLDROUND :
             case Operations.LAST :
             case Operations.ACCEPT :
             case Operations.ACK: {
