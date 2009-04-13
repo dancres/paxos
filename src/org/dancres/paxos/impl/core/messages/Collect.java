@@ -32,12 +32,7 @@ public class Collect implements PaxosMessage {
                 Long.toHexString(_rndNumber) + ", " + Long.toHexString(_nodeId) + " ] ";
     }
 
-    public boolean supercedes(long aLastRound, long aLastNodeId) {
-        if (_rndNumber > aLastRound)
-            return true;
-        else if ((_rndNumber == aLastRound) && (_nodeId > aLastNodeId))
-            return true;
-        else
-            return false;
+    public boolean supercedes(long aLastRound) {
+        return (_rndNumber > aLastRound);
     }
 }

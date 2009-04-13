@@ -38,13 +38,8 @@ public class Begin implements PaxosMessage {
         return ((_rndNumber == aRound) && (_nodeId == aNodeId));
     }
 
-    public boolean precedes(long aRound, long aNodeId) {
-        if (_rndNumber < aRound)
-            return true;
-        else if ((_rndNumber == aRound) && (_nodeId < aNodeId))
-            return true;
-        else
-            return false;
+    public boolean precedes(long aRound) {
+        return (_rndNumber < aRound);
     }
 
     public long getNodeId() {

@@ -13,7 +13,7 @@ class Participant {
     private Logger _logger = LoggerFactory.getLogger(Participant.class);
     
     private long _seqNum;
-    private long _lastRound = 0;
+    private long _lastRound = Long.MIN_VALUE;
     private long _lastNodeId = Long.MIN_VALUE;
     private byte[] _value = null;
 
@@ -43,7 +43,7 @@ class Participant {
         switch (aMessage.getType()) {
             case Operations.COLLECT : {
                 Collect myCollect = (Collect) aMessage;
-                if (myCollect.supercedes(_lastRound, _lastNodeId)) {
+                if (myCollect.supercedes(_lastRound)) {
                     long myMostRecentRound = _lastRound;
 
                     _lastRound = myCollect.getRndNumber();
@@ -65,7 +65,7 @@ class Participant {
                     _value = myBegin.getValue();
 
                     return new Accept(_seqNum, _lastRound);
-                } else if (myBegin.precedes(_lastRound, _lastNodeId)) {
+                } else if (myBegin.precedes(_lastRound)) {
 
                     // A new collect was received since the collect for this begin, tell the proposer it's got competition
                     //
