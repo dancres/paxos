@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl.core;
 
+import org.dancres.paxos.impl.core.messages.OldRound;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.dancres.paxos.impl.faildet.FailureDetector;
@@ -30,7 +31,7 @@ class ProposerState {
 
     private FailureDetector _fd;
 
-    private InetSocketAddress _addr;
+    private long _rndNumber = 0;
 
     /**
      * @param aDetector to maintain for use by proposers
@@ -65,6 +66,18 @@ class ProposerState {
             _activeRounds.put(new Long(mySeqNum), myLeader);
 
             return myLeader;
+        }
+    }
+
+    void updateRndNumber(OldRound anOldRound) {
+        synchronized(this) {
+            _rndNumber = anOldRound.getLastRound() + 1;
+        }
+    }
+
+    long getRndNumber() {
+        synchronized(this) {
+            return _rndNumber;
         }
     }
 

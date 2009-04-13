@@ -46,8 +46,6 @@ class LeaderImpl implements MembershipListener {
 
     private TimerTask _activeAlarm;
 
-    private long _rndNumber = 0;
-
     private ProposerState _state;
     private Membership _membership;
 
@@ -182,7 +180,7 @@ class LeaderImpl implements MembershipListener {
         long myCompetingNodeId = myOldRound.getNodeId();
 
         /*
-         * Some other node is active, we should abort as they are the leader by virtue of a larger nodeId
+         * Some other node is active, we should abort if they are the leader by virtue of a larger nodeId
          */
         if (myCompetingNodeId > _state.getNodeId()) {
             _stage = ABORT;
@@ -190,7 +188,7 @@ class LeaderImpl implements MembershipListener {
             return;
         }
 
-        _rndNumber = myOldRound.getLastRound() + 1;
+        _state.updateRndNumber(myOldRound);
 
         _stage = COLLECT;
         collect();
@@ -199,7 +197,7 @@ class LeaderImpl implements MembershipListener {
     private void collect() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Collect(_seqNum, _rndNumber, _state.getNodeId());
+        PaxosMessage myMessage = new Collect(_seqNum, _state.getRndNumber(), _state.getNodeId());
 
         startInteraction();
 
@@ -211,7 +209,7 @@ class LeaderImpl implements MembershipListener {
     private void begin() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Begin(_seqNum, _rndNumber, _state.getNodeId(), _value);
+        PaxosMessage myMessage = new Begin(_seqNum, _state.getRndNumber(), _state.getNodeId(), _value);
 
         startInteraction();
 
