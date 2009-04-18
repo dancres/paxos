@@ -2,9 +2,11 @@ package org.dancres.paxos.impl.core.messages;
 
 public class Fail implements PaxosMessage {
     private long _seqNum;
+    private int _reason;
 
-    public Fail(long aSeqNum) {
+    public Fail(long aSeqNum, int aReason) {
         _seqNum = aSeqNum;
+        _reason = aReason;
     }
 
     public int getType() {
@@ -13,6 +15,10 @@ public class Fail implements PaxosMessage {
 
     public long getSeqNum() {
         return _seqNum;
+    }
+
+    public int getReason() {
+        return _reason;
     }
 
     public String toString() {

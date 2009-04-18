@@ -8,10 +8,11 @@ class FailCodec implements Codec {
     public IoBuffer encode(Object anObject) {
         Fail myFail = (Fail) anObject;
 
-        IoBuffer myBuffer = IoBuffer.allocate(8 + 8);
-        myBuffer.putInt(4 + 8);
+        IoBuffer myBuffer = IoBuffer.allocate(8 + 8 + 4);
+        myBuffer.putInt(4 + 8 + 4);
         myBuffer.putInt(Operations.FAIL);
         myBuffer.putLong(myFail.getSeqNum());
+        myBuffer.putInt(myFail.getReason());
         myBuffer.flip();
         return myBuffer;
     }
@@ -22,7 +23,8 @@ class FailCodec implements Codec {
         aBuffer.getInt();
         aBuffer.getInt();
         long mySeqNum = aBuffer.getLong();
+        int myReason = aBuffer.getInt();
 
-        return new Fail(mySeqNum);
+        return new Fail(mySeqNum, myReason);
     }
 }

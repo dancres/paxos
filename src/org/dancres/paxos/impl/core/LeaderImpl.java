@@ -50,6 +50,11 @@ class LeaderImpl implements MembershipListener {
     private Membership _membership;
 
     private int _stage = COLLECT;
+    
+    /**
+     * In cases of ABORT, indicates the reason
+     */
+    private int _reason = 0;
 
     private List _messages = new ArrayList();
 
@@ -88,7 +93,7 @@ class LeaderImpl implements MembershipListener {
                 if (_stage == EXIT) {
                     _transport.send(new Ack(_seqNum), _clientAddress);
                 } else {
-                    _transport.send(new Fail(_seqNum), _clientAddress);
+                    _transport.send(new Fail(_seqNum, _reason), _clientAddress);
                 }
 
                 return;
@@ -183,7 +188,11 @@ class LeaderImpl implements MembershipListener {
          * Some other node is active, we should abort if they are the leader by virtue of a larger nodeId
          */
         if (myCompetingNodeId > _state.getNodeId()) {
+            _logger.info("Superior leader is active, backing down: " + Long.toHexString(myCompetingNodeId) + ", " +
+                    Long.toHexString(_state.getNodeId()));
+
             _stage = ABORT;
+            _reason = Reasons.OTHER_LEADER;
             process();
             return;
         }
@@ -247,6 +256,7 @@ class LeaderImpl implements MembershipListener {
 
         synchronized(this) {
             _stage = ABORT;
+            _reason = Reasons.BAD_MEMBERSHIP;
             process();
         }
     }
@@ -265,6 +275,7 @@ class LeaderImpl implements MembershipListener {
 
         synchronized(this) {
             _stage = ABORT;
+            _reason = Reasons.VOTE_TIMEOUT;
             process();
         }
     }

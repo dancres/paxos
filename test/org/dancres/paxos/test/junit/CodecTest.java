@@ -63,13 +63,14 @@ public class CodecTest {
     }
 
     @Test public void fail() throws Exception {
-        Fail myFail = new Fail(1);
+        Fail myFail = new Fail(1, 2);
 
         byte[] myBuffer = encode(myFail);
 
         Fail myFail2 = (Fail) decode(myBuffer, true);
 
         Assert.assertTrue(myFail.getSeqNum() == myFail2.getSeqNum());
+        Assert.assertTrue(myFail.getReason() == myFail2.getReason());
     }
 
     @Test public void begin() throws Exception {
