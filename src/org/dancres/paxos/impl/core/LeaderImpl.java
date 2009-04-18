@@ -137,7 +137,7 @@ class LeaderImpl implements MembershipListener {
 
             case SUCCESS : {
 
-                // Old round message, causes start at collect
+                // Old round message, causes start at collect or quit.
                 // If Accept messages total more than majority we're happy, send Success wait for all acks
                 // or redo collect
                 //
