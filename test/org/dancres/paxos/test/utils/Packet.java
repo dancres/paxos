@@ -16,7 +16,7 @@ public class Packet {
         return _msg;
     }
 
-    Address getSender() {
+    public Address getSender() {
         return _source;
     }
 }

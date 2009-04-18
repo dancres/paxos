@@ -58,4 +58,8 @@ public class ProposerImpl {
             default : throw new RuntimeException("Invalid message: " + aMessage.getType());
         }
     }
+
+    public ProposerState getState() {
+        return _state;
+    }
 }

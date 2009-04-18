@@ -86,4 +86,16 @@ public class Node implements PacketListener {
     public FailureDetector getFailureDetector() {
         return _fd;
     }
+
+    public AcceptorLearnerImpl getAcceptorLearner() {
+        return _al;
+    }
+
+    public Transport getTransport() {
+        return _tp;
+    }
+
+    public ProposerImpl getProposer() {
+        return _pi;
+    }
 }

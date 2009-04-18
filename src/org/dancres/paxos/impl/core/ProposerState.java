@@ -18,7 +18,7 @@ import org.dancres.paxos.impl.util.NodeId;
  * 
  * @author dan
  */
-class ProposerState {
+public class ProposerState {
     /**
      * The next entry in the ledgers we will try and fill - aka log number
      */
@@ -47,7 +47,7 @@ class ProposerState {
         return _nextSeqNum++;
     }
 
-    FailureDetector getFailureDetector() {
+    public FailureDetector getFailureDetector() {
         return _fd;
     }
 
@@ -75,13 +75,13 @@ class ProposerState {
         }
     }
 
-    long getRndNumber() {
+    public long getRndNumber() {
         synchronized(this) {
             return _rndNumber;
         }
     }
 
-    long getNodeId() {
+    public long getNodeId() {
         return _nodeId;
     }
 
