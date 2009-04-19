@@ -13,7 +13,6 @@ class Participant {
     private Logger _logger = LoggerFactory.getLogger(Participant.class);
     
     private long _seqNum;
-    private Collect _lastCollect = Collect.INITIAL;
     private byte[] _value = null;
 
     private AcceptorLearnerState _state;
@@ -24,6 +23,12 @@ class Participant {
     }
 
     /**
+     * Note that in multi-threaded situations the OLDROUND returned could be out of date as the COLLECT it uses for reference
+     * could already be replaced.  This is okay because the leader that receives the OLDROUND will retry and get another more
+     * up to date OLDROUND such that all we lose is a little efficiency.
+     * 
+     * @todo What to do with _seqNum?
+     * 
      * @todo When we process success and send ACK we cannot throw the participant away immediately
      * because other failures may cause the round to abort dictating a retry by the leader.
      * We must wait a settle time before clearing out.  We should be able to junk it when we see rounds for the next
@@ -39,18 +44,20 @@ class Participant {
      * @todo When we send Ack in response to Success we can inform listeners of the new value.
      */
     PaxosMessage process(PaxosMessage aMessage) {
+        _logger.info("Participant[ " + _seqNum + " ] got: " + aMessage);
+
         switch (aMessage.getType()) {
             case Operations.COLLECT : {
                 Collect myCollect = (Collect) aMessage;
-                if (myCollect.supercedes(_lastCollect)) {
-                    long myMostRecentRound = _lastCollect.getRndNumber();
+                Collect myOld = _state.supercedes(myCollect);
 
-                    _lastCollect = myCollect;
-                    return new Last(_seqNum, myMostRecentRound, _value);
+                if (myOld != null) {
+                    return new Last(_seqNum, myOld.getRndNumber(), _value);
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
-                    return new OldRound(_seqNum, _lastCollect.getNodeId(), _lastCollect.getRndNumber());
+                    Collect myLastCollect = _state.getLastCollect();
+                    return new OldRound(_seqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
                 }
             }
             case Operations.BEGIN : {
@@ -58,15 +65,16 @@ class Participant {
 
                 // If the begin matches the last round of a collect we're fine
                 //
-                if (myBegin.originates(_lastCollect)) {
+                if (_state.originates(myBegin)) {
                     _value = myBegin.getValue();
 
-                    return new Accept(_seqNum, _lastCollect.getRndNumber());
-                } else if (myBegin.precedes(_lastCollect)) {
+                    return new Accept(_seqNum, _state.getLastCollect().getRndNumber());
+                } else if (_state.precedes(myBegin)) {
 
                     // A new collect was received since the collect for this begin, tell the proposer it's got competition
                     //
-                    return new OldRound(_seqNum, _lastCollect.getNodeId(), _lastCollect.getRndNumber());
+                    Collect myLastCollect = _state.getLastCollect();
+                    return new OldRound(_seqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
                 } else {
                     // Be slient - we didn't see the collect, value hasn't take account of us
                     //

@@ -72,6 +72,11 @@ class LeaderImpl implements MembershipListener {
         _transport = aTransport;
         _clientAddress = aClientAddress;
         _watchdogTimeout = _state.getFailureDetector().getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
+
+        if (_state.isLeader())
+            _stage = BEGIN;
+        else
+            _stage = COLLECT;
     }
 
     /**
@@ -105,30 +110,32 @@ class LeaderImpl implements MembershipListener {
             }
 
             case BEGIN : {
-                // Process _messages to assess what we do next - might be to launch a new round or to give up
-                // We announced round 0, and so if responses are for round 0 we want our value to take precedent
-                // thus the minimum round that can be accepted to overrule our value is 1.
-                //
-                long myMaxRound = 0;
                 byte[] myValue = _value;
 
-                Iterator myMessages = _messages.iterator();
-                while (myMessages.hasNext()) {
-                    PaxosMessage myMessage = (PaxosMessage) myMessages.next();
+                if (! _state.isLeader()) {
+                    // Process _messages to assess what we do next - might be to launch a new round or to give up
+                    //
+                    long myMaxRound = 0;
+                    Iterator myMessages = _messages.iterator();
 
-                    if (myMessage.getType() == Operations.OLDROUND) {
-                        oldRound(myMessage);
-                        return;
-                    } else {
-                        Last myLast = (Last) myMessage;
+                    while (myMessages.hasNext()) {
+                        PaxosMessage myMessage = (PaxosMessage) myMessages.next();
 
-                        if (myLast.getRndNumber() > myMaxRound) {
-                            myMaxRound = myLast.getRndNumber();
-                            myValue = myLast.getValue();
+                        if (myMessage.getType() == Operations.OLDROUND) {
+                            oldRound(myMessage);
+                            return;
+                        } else {
+                            Last myLast = (Last) myMessage;
+
+                            if (myLast.getRndNumber() > myMaxRound) {
+                                myMaxRound = myLast.getRndNumber();
+                                myValue = myLast.getValue();
+                            }
                         }
                     }
                 }
 
+                _state.amLeader();
                 _value = myValue;
                 begin();
 
@@ -191,6 +198,7 @@ class LeaderImpl implements MembershipListener {
             _logger.info("Superior leader is active, backing down: " + Long.toHexString(myCompetingNodeId) + ", " +
                     Long.toHexString(_state.getNodeId()));
 
+            _state.notLeader();
             _stage = ABORT;
             _reason = Reasons.OTHER_LEADER;
             process();
@@ -199,6 +207,9 @@ class LeaderImpl implements MembershipListener {
 
         _state.updateRndNumber(myOldRound);
 
+        /*
+         * Some other leader is active but we are superior, restart negotiations with COLLECT
+         */
         _stage = COLLECT;
         collect();
     }

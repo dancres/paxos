@@ -34,6 +34,13 @@ public class ProposerState {
     private long _rndNumber = 0;
 
     /**
+     * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread establishes we're leader and
+     * a prior thread decides otherwise with the latter being last to update this variable we'll simply do an unnecessary COLLECT.  The
+     * protocol execution will still be correct.
+     */
+    private boolean _isLeader = false;
+
+    /**
      * @param aDetector to maintain for use by proposers
      */
     ProposerState(FailureDetector aDetector, long aNodeId) {
@@ -72,6 +79,24 @@ public class ProposerState {
     void updateRndNumber(OldRound anOldRound) {
         synchronized(this) {
             _rndNumber = anOldRound.getLastRound() + 1;
+        }
+    }
+
+    boolean isLeader() {
+        synchronized(this) {
+            return _isLeader;
+        }
+    }
+
+    void amLeader() {
+        synchronized(this) {
+            _isLeader = true;
+        }
+    }
+
+    void notLeader() {
+        synchronized(this) {
+            _isLeader = false;
         }
     }
 
