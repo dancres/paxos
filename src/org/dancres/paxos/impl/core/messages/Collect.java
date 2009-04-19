@@ -5,6 +5,8 @@ public class Collect implements PaxosMessage {
     private long _rndNumber;
     private long _nodeId;
 
+    public static final Collect INITIAL = new Collect(0, Long.MIN_VALUE, Long.MIN_VALUE);
+
     public Collect(long aSeqNum, long aRndNumber, long aNodeId) {
         _seqNum = aSeqNum;
         _rndNumber = aRndNumber;
@@ -32,7 +34,7 @@ public class Collect implements PaxosMessage {
                 Long.toHexString(_rndNumber) + ", " + Long.toHexString(_nodeId) + " ] ";
     }
 
-    public boolean supercedes(long aLastRound) {
-        return (_rndNumber > aLastRound);
+    public boolean supercedes(Collect aCollect) {
+        return (_rndNumber > aCollect.getRndNumber());
     }
 }

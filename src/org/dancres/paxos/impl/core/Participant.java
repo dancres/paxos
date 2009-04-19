@@ -13,8 +13,7 @@ class Participant {
     private Logger _logger = LoggerFactory.getLogger(Participant.class);
     
     private long _seqNum;
-    private long _lastRound = Long.MIN_VALUE;
-    private long _lastNodeId = Long.MIN_VALUE;
+    private Collect _lastCollect = Collect.INITIAL;
     private byte[] _value = null;
 
     private AcceptorLearnerState _state;
@@ -43,17 +42,15 @@ class Participant {
         switch (aMessage.getType()) {
             case Operations.COLLECT : {
                 Collect myCollect = (Collect) aMessage;
-                if (myCollect.supercedes(_lastRound)) {
-                    long myMostRecentRound = _lastRound;
+                if (myCollect.supercedes(_lastCollect)) {
+                    long myMostRecentRound = _lastCollect.getRndNumber();
 
-                    _lastRound = myCollect.getRndNumber();
-                    _lastNodeId = myCollect.getNodeId();
-
+                    _lastCollect = myCollect;
                     return new Last(_seqNum, myMostRecentRound, _value);
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
-                    return new OldRound(_seqNum, _lastNodeId, _lastRound);
+                    return new OldRound(_seqNum, _lastCollect.getNodeId(), _lastCollect.getRndNumber());
                 }
             }
             case Operations.BEGIN : {
@@ -61,15 +58,15 @@ class Participant {
 
                 // If the begin matches the last round of a collect we're fine
                 //
-                if (myBegin.originates(_lastRound, _lastNodeId)) {
+                if (myBegin.originates(_lastCollect)) {
                     _value = myBegin.getValue();
 
-                    return new Accept(_seqNum, _lastRound);
-                } else if (myBegin.precedes(_lastRound)) {
+                    return new Accept(_seqNum, _lastCollect.getRndNumber());
+                } else if (myBegin.precedes(_lastCollect)) {
 
                     // A new collect was received since the collect for this begin, tell the proposer it's got competition
                     //
-                    return new OldRound(_seqNum, _lastNodeId, _lastRound);
+                    return new OldRound(_seqNum, _lastCollect.getNodeId(), _lastCollect.getRndNumber());
                 } else {
                     // Be slient - we didn't see the collect, value hasn't take account of us
                     //

@@ -34,12 +34,12 @@ public class Begin implements PaxosMessage {
                 Long.toHexString(_rndNumber) + ", " + Long.toHexString(_nodeId) + " ] ";
     }
 
-    public boolean originates(long aRound, long aNodeId) {
-        return ((_rndNumber == aRound) && (_nodeId == aNodeId));
+    public boolean originates(Collect aCollect) {
+        return ((_rndNumber == aCollect.getRndNumber()) && (_nodeId == aCollect.getNodeId()));
     }
 
-    public boolean precedes(long aRound) {
-        return (_rndNumber < aRound);
+    public boolean precedes(Collect aCollect) {
+        return (_rndNumber < aCollect.getRndNumber());
     }
 
     public long getNodeId() {
