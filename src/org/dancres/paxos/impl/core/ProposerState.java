@@ -7,10 +7,8 @@ import org.dancres.paxos.impl.faildet.FailureDetector;
 
 import java.util.Map;
 import java.util.TreeMap;
-import java.net.InetSocketAddress;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.util.NodeId;
 
 /**
  * @todo Remove the need for _addr in this class - that's the transport leaking into the core library and we wish to avoid it.

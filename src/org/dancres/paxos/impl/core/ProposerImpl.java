@@ -1,13 +1,9 @@
 package org.dancres.paxos.impl.core;
 
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.faildet.FailureDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 
 public class ProposerImpl {
     private Logger _logger = LoggerFactory.getLogger(ProposerImpl.class);
