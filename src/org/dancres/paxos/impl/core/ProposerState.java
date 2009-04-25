@@ -11,11 +11,6 @@ import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 
 /**
- * @todo Remove the need for _addr in this class - that's the transport leaking into the core library and we wish to avoid it.
- * This is as the result of having the Leader construct the ProposerHeader however it's decoded and used inside of the
- * AcceptorLearnerAdaptor only.  Thus we should move the wrapping with a ProposerHeader into the transport implementation
- * which can consider the type of message and wrap it (with the port) as required.
- * 
  * @author dan
  */
 public class ProposerState {
