@@ -8,6 +8,8 @@ import org.dancres.paxos.impl.faildet.FailureDetector;
 import java.util.Map;
 import java.util.TreeMap;
 import java.net.InetSocketAddress;
+import org.dancres.paxos.impl.core.messages.Operations;
+import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.util.NodeId;
 
 /**
@@ -58,24 +60,6 @@ public class ProposerState {
         return _fd;
     }
 
-    /**
-     * Create a leader instance for this round
-     *
-     * @param aChannel is the broadcast channel the leader should use to communicate with acceptor/learners
-     * @param aClientChannel is the channel to send the outcome to when leader is done
-     * @return
-     */
-    LeaderImpl newLeader(Transport aTransport, Address aClientAddress) {
-        synchronized(this) {
-            long mySeqNum = getNextSeqNum();
-
-            LeaderImpl myLeader = new LeaderImpl(mySeqNum, this, aTransport, aClientAddress);
-            _activeRounds.put(new Long(mySeqNum), myLeader);
-
-            return myLeader;
-        }
-    }
-
     void updateRndNumber(OldRound anOldRound) {
         synchronized(this) {
             _rndNumber = anOldRound.getLastRound() + 1;
@@ -116,9 +100,61 @@ public class ProposerState {
         }
     }
 
-    LeaderImpl getLeader(long aSeqNum) {
+    /**
+     * Create a leader instance for this round
+     *
+     * @param aChannel is the broadcast channel the leader should use to communicate with acceptor/learners
+     * @param aClientChannel is the channel to send the outcome to when leader is done
+     * @return
+     */
+    private LeaderImpl newLeader(Transport aTransport, Address aClientAddress) {
+        synchronized(this) {
+            long mySeqNum = getNextSeqNum();
+
+            LeaderImpl myLeader = new LeaderImpl(mySeqNum, this, aTransport, aClientAddress);
+            _activeRounds.put(new Long(mySeqNum), myLeader);
+
+            return myLeader;
+        }
+    }
+
+    private LeaderImpl getLeader(long aSeqNum) {
         synchronized(this) {
             return (LeaderImpl) _activeRounds.get(new Long(aSeqNum));
+        }
+    }
+
+    /**
+     * @param aMessage to process
+     * @param aSenderAddress at which the sender of this message can be found
+     */
+    public void process(PaxosMessage aMessage, Address aSenderAddress, Transport aTransport) {
+        switch (aMessage.getType()) {
+            case Operations.POST : {
+                _logger.info("Received post - starting leader");
+
+                // Sender address will be the client
+                //
+                LeaderImpl myLeader = newLeader(aTransport, aSenderAddress);
+                myLeader.messageReceived(aMessage, aSenderAddress);
+                break;
+            }
+
+            case Operations.OLDROUND :
+            case Operations.LAST :
+            case Operations.ACCEPT :
+            case Operations.ACK: {
+                LeaderImpl myLeader = getLeader(aMessage.getSeqNum());
+
+                if (myLeader != null)
+                    myLeader.messageReceived(aMessage, aSenderAddress);
+                else {
+                    _logger.warn("Leader not present for: " + aMessage);
+                }
+
+                break;
+            }
+            default : throw new RuntimeException("Invalid message: " + aMessage.getType());
         }
     }
 }

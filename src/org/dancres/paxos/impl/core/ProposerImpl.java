@@ -30,33 +30,7 @@ public class ProposerImpl {
      * @param aSenderAddress at which the sender of this message can be found
      */
     public void process(PaxosMessage aMessage, Address aSenderAddress) {
-        switch (aMessage.getType()) {
-            case Operations.POST : {
-                _logger.info("Received post - starting leader");
-
-                // Sender address will be the client
-                //
-                LeaderImpl myLeader = _state.newLeader(_transport, aSenderAddress);
-                myLeader.messageReceived(aMessage, aSenderAddress);
-                break;
-            }
-            
-            case Operations.OLDROUND :
-            case Operations.LAST :
-            case Operations.ACCEPT :
-            case Operations.ACK: {
-                LeaderImpl myLeader = _state.getLeader(aMessage.getSeqNum());
-
-                if (myLeader != null)
-                    myLeader.messageReceived(aMessage, aSenderAddress);
-                else {
-                    _logger.warn("Leader not present for: " + aMessage);
-                }
-                
-                break;
-            }
-            default : throw new RuntimeException("Invalid message: " + aMessage.getType());
-        }
+        _state.process(aMessage, aSenderAddress, _transport);
     }
 
     public ProposerState getState() {

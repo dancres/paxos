@@ -10,28 +10,6 @@ public class AcceptorLearnerImpl {
     }
 
     public PaxosMessage process(PaxosMessage aMessage) {
-        switch (aMessage.getType()) {
-            case Operations.HEARTBEAT : {
-                return null; // Nothing to do
-            }
-            case Operations.COLLECT : {
-                Participant myPart = _state.newParticipant(aMessage.getSeqNum());
-                return myPart.process(aMessage);
-            }
-            case Operations.BEGIN : {
-                Participant myPart = _state.newParticipant(aMessage.getSeqNum());
-                assert(myPart != null);
-
-                return myPart.process(aMessage);
-            }
-
-            case Operations.SUCCESS : {
-                Participant myPart = _state.getParticipant(aMessage.getSeqNum());
-                assert(myPart != null);
-
-                return myPart.process(aMessage);
-            }
-            default : throw new RuntimeException("Invalid message: " + aMessage.getType());
-        }
+        return _state.process(aMessage);
     }
 }
