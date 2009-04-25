@@ -6,7 +6,8 @@ import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.Post;
-import org.dancres.paxos.impl.faildet.FailureDetector;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.Node;
@@ -80,7 +81,7 @@ public class PacketDropTest {
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
-        FailureDetector myFd = _node1.getFailureDetector();
+        FailureDetectorImpl myFd = _node1.getFailureDetector();
 
         int myChances = 0;
 
@@ -115,7 +116,7 @@ public class PacketDropTest {
         }
 
         public void send(PaxosMessage aMessage, Address anAddress) {
-            if (aMessage.getType() == Operations.HEARTBEAT)
+            if (aMessage.getType() == Heartbeat.TYPE)
                 super.send(aMessage, anAddress);
         }
     }

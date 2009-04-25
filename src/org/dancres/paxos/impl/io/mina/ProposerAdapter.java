@@ -7,17 +7,14 @@ package org.dancres.paxos.impl.io.mina;
 
 import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IoSession;
-import org.dancres.paxos.impl.core.Address;
-import org.dancres.paxos.impl.faildet.FailureDetector;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.ProposerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.ConcurrentHashMap;
-import org.dancres.paxos.impl.core.Transport;
-import org.dancres.paxos.impl.core.messages.Operations;
+import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.impl.util.NodeId;
 
@@ -39,7 +36,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
      * @param aDetector is the failure detector to use for membership management etc
      * @param anAddress is the endpoint (address and port) for this node
      */
-    public void init(IoSession aSession, FailureDetector aDetector, InetSocketAddress anAddress) {
+    public void init(IoSession aSession, FailureDetectorImpl aDetector, InetSocketAddress anAddress) {
         _transport = new TransportImpl(anAddress, aSession);
         _proposer = new ProposerImpl(_transport, aDetector, NodeId.from(anAddress));
     }
@@ -56,7 +53,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
 
         PaxosMessage myMessage = (PaxosMessage) anObject;
 
-        if (myMessage.getType() != Operations.HEARTBEAT)
+        if (myMessage.getType() != Heartbeat.TYPE)
                 _logger.info("serverMsgRx: s=" + aSession + " o=" + anObject);
 
         _proposer.process(myMessage, new AddressImpl(aSession.getRemoteAddress()));
@@ -67,7 +64,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
 
         PaxosMessage myMessage = (PaxosMessage) anObject;
 
-        if (myMessage.getType() != Operations.HEARTBEAT)
+        if (myMessage.getType() != Heartbeat.TYPE)
             _logger.info("serverMsgTx: s=" + aSession + " o=" + anObject);
     }
 }

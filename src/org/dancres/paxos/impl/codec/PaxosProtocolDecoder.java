@@ -4,7 +4,7 @@ import org.apache.mina.filter.codec.ProtocolDecoderOutput;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.common.IoSession;
 import org.apache.mina.common.IoBuffer;
-import org.dancres.paxos.impl.core.messages.Operations;
+import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +24,7 @@ class PaxosProtocolDecoder extends CumulativeProtocolDecoder {
             return false;
         }
 
-        if (aBuffer.getInt(4) != Operations.HEARTBEAT)
+        if (aBuffer.getInt(4) != Heartbeat.TYPE)
             _logger.info("Decoding: " + aBuffer.getInt(4));
 
         int myOp = aBuffer.getInt(4);

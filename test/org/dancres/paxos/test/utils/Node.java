@@ -7,7 +7,8 @@ import org.dancres.paxos.impl.core.Transport;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.ProposerPacket;
-import org.dancres.paxos.impl.faildet.FailureDetector;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.util.NodeId;
 import org.slf4j.Logger;
@@ -25,7 +26,7 @@ public class Node implements PacketListener {
     private InetSocketAddress _addr;
     private AcceptorLearnerImpl _al;
     private ProposerImpl _pi;
-    private FailureDetector _fd;
+    private FailureDetectorImpl _fd;
     private Heartbeater _hb;
     private PacketQueue _pq;
     private Transport _tp;
@@ -39,7 +40,7 @@ public class Node implements PacketListener {
         _addr = anAddr;
         _tp = aTransport;
         _hb = new Heartbeater(_tp);
-        _fd = new FailureDetector(anUnresponsivenessThreshold);
+        _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
         _al = new AcceptorLearnerImpl();
         _pi = new ProposerImpl(_tp, _fd, NodeId.from(_addr));
         _pq = new PacketQueueImpl(this);
@@ -59,7 +60,7 @@ public class Node implements PacketListener {
         PaxosMessage myMessage = aPacket.getMsg();
 
         switch (myMessage.getType()) {
-            case Operations.HEARTBEAT: {
+            case Heartbeat.TYPE: {
                 _fd.processMessage(myMessage, aPacket.getSender());
 
                 break;
@@ -83,7 +84,7 @@ public class Node implements PacketListener {
         }
     }
 
-    public FailureDetector getFailureDetector() {
+    public FailureDetectorImpl getFailureDetector() {
         return _fd;
     }
 

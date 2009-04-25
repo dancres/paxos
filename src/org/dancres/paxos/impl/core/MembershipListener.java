@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.faildet;
+package org.dancres.paxos.impl.core;
 
 public interface MembershipListener {
     /**

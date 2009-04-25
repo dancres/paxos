@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.Post;
-import org.dancres.paxos.impl.faildet.FailureDetector;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
@@ -73,7 +73,7 @@ public class SimpleSuccessTest {
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
-        FailureDetector myFd = _node1.getFailureDetector();
+        FailureDetectorImpl myFd = _node1.getFailureDetector();
 
         int myChances = 0;
 

@@ -1,5 +1,7 @@
 package org.dancres.paxos.impl.faildet;
 
+import org.dancres.paxos.impl.core.MembershipListener;
+import org.dancres.paxos.impl.core.Membership;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Iterator;
@@ -25,7 +27,7 @@ class MembershipImpl implements Membership, LivenessListener {
      */
     private Set _outstandingMemberAddresses;
 
-    private FailureDetector _parent;
+    private FailureDetectorImpl _parent;
     private boolean _populated = false;
     private MembershipListener _listener;
 
@@ -38,7 +40,7 @@ class MembershipImpl implements Membership, LivenessListener {
         return (aSize >= MAJORITY);
     }
 
-    MembershipImpl(FailureDetector aParent, MembershipListener aListener) {
+    MembershipImpl(FailureDetectorImpl aParent, MembershipListener aListener) {
         _listener = aListener;
         _parent = aParent;
     }

@@ -3,8 +3,8 @@ package org.dancres.paxos.impl.codec;
 import org.apache.mina.filter.codec.ProtocolEncoderOutput;
 import org.apache.mina.filter.codec.ProtocolEncoderAdapter;
 import org.apache.mina.common.IoSession;
-import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +19,7 @@ class PaxosProtocolEncoder extends ProtocolEncoderAdapter {
                        ProtocolEncoderOutput aProtocolEncoderOutput) throws Exception {
         PaxosMessage myMsg = (PaxosMessage) anObject;
 
-        if (myMsg.getType() != Operations.HEARTBEAT)
+        if (myMsg.getType() != Heartbeat.TYPE)
             _logger.info("Encoding: " + myMsg);
 
         int myType = myMsg.getType();

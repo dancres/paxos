@@ -8,7 +8,7 @@ import org.dancres.paxos.impl.core.messages.Ack;
 import org.dancres.paxos.impl.core.messages.Begin;
 import org.dancres.paxos.impl.core.messages.Collect;
 import org.dancres.paxos.impl.core.messages.Fail;
-import org.dancres.paxos.impl.core.messages.Heartbeat;
+import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.core.messages.Last;
 import org.dancres.paxos.impl.core.messages.OldRound;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;

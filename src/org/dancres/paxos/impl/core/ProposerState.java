@@ -3,7 +3,6 @@ package org.dancres.paxos.impl.core;
 import org.dancres.paxos.impl.core.messages.OldRound;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.dancres.paxos.impl.faildet.FailureDetector;
 
 import java.util.Map;
 import java.util.TreeMap;

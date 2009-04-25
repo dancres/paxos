@@ -2,7 +2,7 @@ package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.core.Transport;
-import org.dancres.paxos.impl.core.messages.Heartbeat;
+import org.dancres.paxos.impl.faildet.Heartbeat;
 
 public class Heartbeater implements Runnable {
     private Transport _transport;

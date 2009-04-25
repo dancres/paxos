@@ -2,24 +2,23 @@ package org.dancres.paxos.impl.io.mina;
 
 import org.apache.mina.common.IoFilterAdapter;
 import org.apache.mina.common.IoSession;
-import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.faildet.FailureDetector;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.LivenessListener;
-import org.dancres.paxos.impl.PaxosPeer;
+import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.util.AddressImpl;
 
 public class FailureDetectorAdapter extends IoFilterAdapter {
-    private FailureDetector _detector;
+    private FailureDetectorImpl _detector;
 
     public FailureDetectorAdapter(long anUnresponsivenessThreshold) {
-        _detector = new FailureDetector(anUnresponsivenessThreshold);
+        _detector = new FailureDetectorImpl(anUnresponsivenessThreshold);
     }
 
     public void messageReceived(NextFilter aNextFilter, IoSession aSession, Object anObject) throws Exception {
     	PaxosMessage myMessage = (PaxosMessage) anObject;
     	
-    	if (myMessage.getType() == Operations.HEARTBEAT)
+    	if (myMessage.getType() == Heartbeat.TYPE)
     		_detector.processMessage(myMessage, new AddressImpl(aSession.getRemoteAddress()));
     	else
     		super.messageReceived(aNextFilter, aSession, anObject);
@@ -29,7 +28,7 @@ public class FailureDetectorAdapter extends IoFilterAdapter {
         _detector.add(aListener);
     }
 
-    public FailureDetector getDetector() {
+    public FailureDetectorImpl getDetector() {
         return _detector;
     }
 }

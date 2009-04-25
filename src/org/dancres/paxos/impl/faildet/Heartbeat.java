@@ -1,14 +1,17 @@
-package org.dancres.paxos.impl.core.messages;
+package org.dancres.paxos.impl.faildet;
 
+import org.dancres.paxos.impl.core.messages.*;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 
 public class Heartbeat implements PaxosMessage {
+    public static final int TYPE = 0;
+
     public Heartbeat() {
     }
     
     public int getType() {
-        return Operations.HEARTBEAT;
+        return TYPE;
     }
 
     public long getSeqNum() {

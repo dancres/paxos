@@ -72,9 +72,6 @@ class AcceptorLearnerState {
 
     public PaxosMessage process(PaxosMessage aMessage) {
         switch (aMessage.getType()) {
-            case Operations.HEARTBEAT : {
-                return null; // Nothing to do
-            }
             case Operations.COLLECT : {
                 Participant myPart = newParticipant(aMessage.getSeqNum());
                 return myPart.process(aMessage);
