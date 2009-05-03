@@ -12,19 +12,21 @@ public class LastCodec implements Codec {
         IoBuffer myBuffer;
 
         if (myBytes == null)
-            myBuffer = IoBuffer.allocate(8 + 8 + 8);
+            myBuffer = IoBuffer.allocate(8 + 8 + 8 + 8 + 8);
         else
-            myBuffer = IoBuffer.allocate(8 + 8 + 8 + myBytes.length);
+            myBuffer = IoBuffer.allocate(8 + 8 + 8 + 8 + 8 + myBytes.length);
 
         // Length count does not include length bytes themselves
         //
         if (myBytes == null)
-            myBuffer.putInt(4 + 8 + 8);
+            myBuffer.putInt(4 + 8 + 8 + 8 + 8);
         else
-            myBuffer.putInt(4 + 8 + 8 + myBytes.length);
+            myBuffer.putInt(4 + 8 + 8 + 8 + 8 + myBytes.length);
 
         myBuffer.putInt(Operations.LAST);
         myBuffer.putLong(myLast.getSeqNum());
+        myBuffer.putLong(myLast.getLowWatermark());
+        myBuffer.putLong(myLast.getHighWatermark());
         myBuffer.putLong(myLast.getRndNumber());
 
         if (myBytes != null)
@@ -37,20 +39,22 @@ public class LastCodec implements Codec {
     public Object decode(IoBuffer aBuffer) {
         // Discard the length and operation so remaining data can be processed
         // separately
-        int myArrLength = aBuffer.getInt() - (4 + 8 + 8);
+        int myArrLength = aBuffer.getInt() - (4 + 8 + 8 + 8 + 8);
 
         // Discard type
         aBuffer.getInt();
 
         long mySeqNum = aBuffer.getLong();
+        long myLow = aBuffer.getLong();
+        long myHigh = aBuffer.getLong();
         long myRndNum = aBuffer.getLong();
         
         if (myArrLength != 0) {
             byte[] myBytes = new byte[myArrLength];
             aBuffer.get(myBytes);
 
-            return new Last(mySeqNum, myRndNum, myBytes);
+            return new Last(mySeqNum, myLow, myHigh, myRndNum, myBytes);
         } else
-            return new Last(mySeqNum, myRndNum, null);
+            return new Last(mySeqNum, myLow, myHigh, myRndNum, null);
     }
 }

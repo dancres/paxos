@@ -1,8 +1,5 @@
 package org.dancres.paxos.impl.core.messages;
 
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.Operations;
-
 public class OldRound implements PaxosMessage {
     private long _seqNum;
     private long _lastRound;

@@ -85,6 +85,7 @@ class LeaderImpl implements MembershipListener {
      *
      * @todo If we want to retry in face of ABORT we'd reacquire a membership, increment a retry count etc
      * @todo Send client a failure message
+     * @todo Check Last messages to compute minimum low and maximum high watermarks, then use them to perform recovery
      */
     private void process() {
         switch(_stage) {

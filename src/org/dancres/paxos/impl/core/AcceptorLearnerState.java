@@ -6,10 +6,32 @@ import org.dancres.paxos.impl.core.messages.Begin;
 import org.dancres.paxos.impl.core.messages.Collect;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * @todo Collapse participants out - recover seqNum/value pairs from the store.  Modify Last to return low water mark and max seen sequence number.
+ *
+ * @author dan
+ */
 class AcceptorLearnerState {
+    private Logger _logger = LoggerFactory.getLogger(AcceptorLearnerState.class);
+
     private Map<Long, Participant> _participants = new HashMap<Long, Participant>();
     private Collect _lastCollect = Collect.INITIAL;
+
+    /**
+     * When we receive a success, if it's seqNum is this field + 1, increment this field.  Acts as the low watermark for leader recovery, essentially
+     * we want to recover from the last contiguous sequence number in the stream of paxos instances.
+     */
+    private long _lowSeqNumWatermark = -1;
+
+    /**
+     * Records the most recent seqNum we've seen in a BEGIN or SUCCESS message.  We may see a SUCCESS without BEGIN but that's okay
+     * as the leader must have had sufficient majority to get agreement so we can just agree, update this count and update the
+     * value/seqNum store.
+     */
+    private long _highSeqNumWatermark = -1;
 
     private Participant newParticipant(long aSeqNum) {
         synchronized(_participants) {
@@ -32,6 +54,39 @@ class AcceptorLearnerState {
             Participant myPart = _participants.get(new Long(aSeqNum));
 
             return myPart;
+        }
+    }
+
+    void updateLowWatermark(long aSeqNum) {
+        synchronized(this) {
+            if ((_lowSeqNumWatermark + 1) == aSeqNum) {
+                _lowSeqNumWatermark = aSeqNum;
+
+                _logger.info("Low watermark:" + aSeqNum);
+            }
+
+        }
+    }
+
+    long getLowWatermark() {
+        synchronized(this) {
+            return _lowSeqNumWatermark;
+        }
+    }
+
+    void updateHighWatermark(long aSeqNum) {
+        synchronized(this) {
+            if (_highSeqNumWatermark < aSeqNum) {
+                _highSeqNumWatermark = aSeqNum;
+
+                _logger.info("High watermark:" + aSeqNum);
+            }
+        }
+    }
+
+    long getHighWatermark() {
+        synchronized(this) {
+            return _highSeqNumWatermark;
         }
     }
 

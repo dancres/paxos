@@ -96,7 +96,7 @@ public class CodecTest {
 
         Collect myCollect2 = (Collect) decode(myBuffer, false);
 
-        Assert.assertEquals(myCollect.getSeqNum(), myCollect2.getSeqNum());
+        Assert.assertEquals(myCollect.getSeqNum(), myCollect.getSeqNum());
         Assert.assertEquals(myCollect.getRndNumber(), myCollect2.getRndNumber());
         Assert.assertEquals(myCollect.getNodeId(), myCollect2.getNodeId());
     }
@@ -112,13 +112,15 @@ public class CodecTest {
     @Test public void last() throws Exception {
         byte[] myData = {55};
 
-        Last myLast = new Last(1, 2, myData);
+        Last myLast = new Last(0, 1, 2, 3, myData);
 
         byte[] myBuffer = encode(myLast);
 
         Last myLast2 = (Last) decode(myBuffer, true);
 
-        Assert.assertEquals(myLast.getSeqNum(), myLast2.getSeqNum());
+        Assert.assertEquals(myLast.getSeqNum(), myLast.getSeqNum());
+        Assert.assertEquals(myLast.getLowWatermark(), myLast2.getLowWatermark());
+        Assert.assertEquals(myLast.getHighWatermark(), myLast2.getHighWatermark());
         Assert.assertEquals(myLast.getRndNumber(), myLast2.getRndNumber());
         Assert.assertEquals(myLast.getValue().length, myLast2.getValue().length);
         Assert.assertEquals(myLast.getValue()[0], myLast2.getValue()[0]);

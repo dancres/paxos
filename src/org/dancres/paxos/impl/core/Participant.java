@@ -52,7 +52,7 @@ class Participant {
                 Collect myOld = _state.supercedes(myCollect);
 
                 if (myOld != null) {
-                    return new Last(_seqNum, myOld.getRndNumber(), _value);
+                    return new Last(_seqNum, _state.getLowWatermark(), _state.getHighWatermark(), myOld.getRndNumber(), _value);
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
@@ -67,7 +67,7 @@ class Participant {
                 //
                 if (_state.originates(myBegin)) {
                     _value = myBegin.getValue();
-
+                    _state.updateHighWatermark(myBegin.getSeqNum());
                     return new Accept(_seqNum, _state.getLastCollect().getRndNumber());
                 } else if (_state.precedes(myBegin)) {
 
@@ -86,6 +86,8 @@ class Participant {
 
                 _logger.info("Learnt value: " + mySuccess.getSeqNum());
 
+                _state.updateLowWatermark(mySuccess.getSeqNum());
+                _state.updateHighWatermark(mySuccess.getSeqNum());
                 return new Ack(mySuccess.getSeqNum());
             }
             default : throw new RuntimeException("Unexpected message");
