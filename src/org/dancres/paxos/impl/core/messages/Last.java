@@ -47,6 +47,7 @@ public class Last implements PaxosMessage {
     }
 
     public String toString() {
-        return "Last: " + Long.toHexString(_seqNum) + Long.toHexString(_low) + "->" + _high + " [ " + Long.toHexString(_rndNumber) + " ]";
+        return "Last: " + Long.toHexString(_seqNum) + " " + Long.toHexString(_low) + "->" + Long.toHexString(_high) +
+                " [ " + Long.toHexString(_rndNumber) + " ]";
     }
 }
