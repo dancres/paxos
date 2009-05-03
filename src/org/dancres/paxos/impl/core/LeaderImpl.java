@@ -112,6 +112,8 @@ class LeaderImpl implements MembershipListener {
             case BEGIN : {
                 byte[] myValue = _value;
 
+                // If we're not currently the leader, we'll have issued a collect and must process the responses
+                //
                 if (! _state.isLeader()) {
                     // Process _messages to assess what we do next - might be to launch a new round or to give up
                     //
@@ -144,10 +146,11 @@ class LeaderImpl implements MembershipListener {
 
             case SUCCESS : {
 
-                // Old round message, causes start at collect or quit.
-                // If Accept messages total more than majority we're happy, send Success wait for all acks
-                // or redo collect
-                //
+                /*
+                 * Old round message, causes start at collect or quit.
+                 * If Accept messages total more than majority we're happy, send Success wait for all acks
+                 * or redo collect
+                 */
                 int myAcceptCount = 0;
 
                 Iterator myMessages = _messages.iterator();
@@ -217,7 +220,7 @@ class LeaderImpl implements MembershipListener {
     private void collect() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Collect(_seqNum, _state.getRndNumber(), _state.getNodeId());
+        PaxosMessage myMessage = new Collect(_seqNum, _state.newRndNumber(), _state.getNodeId());
 
         startInteraction();
 

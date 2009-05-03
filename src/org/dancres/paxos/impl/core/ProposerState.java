@@ -44,6 +44,12 @@ public class ProposerState {
         _logger.info("Initialized state with id: " + Long.toHexString(_nodeId));
     }
 
+    long newRndNumber() {
+        synchronized(this) {
+            return ++_rndNumber;
+        }
+    }
+
     private long getNextSeqNum() {
         return _nextSeqNum++;
     }
