@@ -13,8 +13,6 @@ class Participant {
     private Logger _logger = LoggerFactory.getLogger(Participant.class);
     
     private long _seqNum;
-    private byte[] _value = null;
-
     private AcceptorLearnerState _state;
 
     Participant(long aSeqNum, AcceptorLearnerState aState) {
@@ -52,7 +50,8 @@ class Participant {
                 Collect myOld = _state.supercedes(myCollect);
 
                 if (myOld != null) {
-                    return new Last(_seqNum, _state.getLowWatermark(), _state.getHighWatermark(), myOld.getRndNumber(), _value);
+                    return new Last(_seqNum, _state.getLowWatermark(), _state.getHighWatermark(), myOld.getRndNumber(), 
+                            _state.getStorage().get(_seqNum));
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
@@ -66,17 +65,16 @@ class Participant {
                 // If the begin matches the last round of a collect we're fine
                 //
                 if (_state.originates(myBegin)) {
-                    _value = myBegin.getValue();
+                    _state.getStorage().put(_seqNum, myBegin.getValue());
                     _state.updateHighWatermark(myBegin.getSeqNum());
                     return new Accept(_seqNum, _state.getLastCollect().getRndNumber());
                 } else if (_state.precedes(myBegin)) {
-
                     // A new collect was received since the collect for this begin, tell the proposer it's got competition
                     //
                     Collect myLastCollect = _state.getLastCollect();
                     return new OldRound(_seqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
                 } else {
-                    // Be slient - we didn't see the collect, value hasn't take account of us
+                    // Be slient - we didn't see the collect, leader hasn't taken account of our value because it hasn't seen our last
                     //
                     _logger.info("Missed collect, going silent: " + _seqNum + " [ " + myBegin.getRndNumber() + " ]");
                 }
@@ -86,6 +84,7 @@ class Participant {
 
                 _logger.info("Learnt value: " + mySuccess.getSeqNum());
 
+                _state.getStorage().put(_seqNum, mySuccess.getValue());
                 _state.updateLowWatermark(mySuccess.getSeqNum());
                 _state.updateHighWatermark(mySuccess.getSeqNum());
                 return new Ack(mySuccess.getSeqNum());

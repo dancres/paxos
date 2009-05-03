@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import org.dancres.paxos.impl.util.MemoryLogStorage;
 
 public class AcceptorLearnerAdapter implements IoHandler {
     private Logger _logger = LoggerFactory.getLogger(AcceptorLearnerAdapter.class);
@@ -17,7 +18,7 @@ public class AcceptorLearnerAdapter implements IoHandler {
 
     public AcceptorLearnerAdapter(DatagramConnector aPropUnicast) {
         _propUnicast = aPropUnicast;
-        _acceptorLearner = new AcceptorLearnerImpl();
+        _acceptorLearner = new AcceptorLearnerImpl(new MemoryLogStorage());
     }
 
     public void sessionCreated(IoSession ioSession) throws Exception {

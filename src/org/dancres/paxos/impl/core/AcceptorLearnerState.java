@@ -20,6 +20,8 @@ class AcceptorLearnerState {
     private Map<Long, Participant> _participants = new HashMap<Long, Participant>();
     private Collect _lastCollect = Collect.INITIAL;
 
+    private LogStorage _storage;
+
     /**
      * When we receive a success, if it's seqNum is this field + 1, increment this field.  Acts as the low watermark for leader recovery, essentially
      * we want to recover from the last contiguous sequence number in the stream of paxos instances.
@@ -32,6 +34,10 @@ class AcceptorLearnerState {
      * value/seqNum store.
      */
     private long _highSeqNumWatermark = -1;
+
+    AcceptorLearnerState(LogStorage aStore) {
+        _storage = aStore;
+    }
 
     private Participant newParticipant(long aSeqNum) {
         synchronized(_participants) {
@@ -55,6 +61,10 @@ class AcceptorLearnerState {
 
             return myPart;
         }
+    }
+
+    LogStorage getStorage() {
+        return _storage;
     }
 
     void updateLowWatermark(long aSeqNum) {

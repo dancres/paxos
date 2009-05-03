@@ -10,6 +10,7 @@ import org.dancres.paxos.impl.core.messages.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.faildet.Heartbeater;
+import org.dancres.paxos.impl.util.MemoryLogStorage;
 import org.dancres.paxos.impl.util.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public class Node implements PacketListener {
         _tp = aTransport;
         _hb = new Heartbeater(_tp);
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
-        _al = new AcceptorLearnerImpl();
+        _al = new AcceptorLearnerImpl(new MemoryLogStorage());
         _pi = new ProposerImpl(_tp, _fd, NodeId.from(_addr));
         _pq = new PacketQueueImpl(this);
     }
