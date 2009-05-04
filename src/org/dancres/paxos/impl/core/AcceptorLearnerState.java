@@ -2,24 +2,25 @@ package org.dancres.paxos.impl.core;
 
 import java.util.Map;
 import java.util.HashMap;
+import org.dancres.paxos.impl.core.messages.Accept;
+import org.dancres.paxos.impl.core.messages.Ack;
 import org.dancres.paxos.impl.core.messages.Begin;
 import org.dancres.paxos.impl.core.messages.Collect;
+import org.dancres.paxos.impl.core.messages.Last;
+import org.dancres.paxos.impl.core.messages.OldRound;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.impl.core.messages.Success;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @todo Collapse participants out - recover seqNum/value pairs from the store.  Modify Last to return low water mark and max seen sequence number.
- *
  * @author dan
  */
 class AcceptorLearnerState {
-    private Logger _logger = LoggerFactory.getLogger(AcceptorLearnerState.class);
+    private static Logger _logger = LoggerFactory.getLogger(AcceptorLearnerState.class);
 
-    private Map<Long, Participant> _participants = new HashMap<Long, Participant>();
     private Collect _lastCollect = Collect.INITIAL;
-
     private LogStorage _storage;
 
     /**
@@ -39,35 +40,11 @@ class AcceptorLearnerState {
         _storage = aStore;
     }
 
-    private Participant newParticipant(long aSeqNum) {
-        synchronized(_participants) {
-            Participant myPart = getParticipant(aSeqNum);
-
-            if (myPart == null) {
-                myPart = new Participant(aSeqNum, this);
-                _participants.put(new Long(aSeqNum), myPart);
-            }
-
-            return myPart;
-        }
-    }
-
-    /**
-     * @todo Decide what to do if we don't find a participant
-     */
-    private Participant getParticipant(long aSeqNum) {
-        synchronized(_participants) {
-            Participant myPart = _participants.get(new Long(aSeqNum));
-
-            return myPart;
-        }
-    }
-
-    LogStorage getStorage() {
+    private LogStorage getStorage() {
         return _storage;
     }
 
-    void updateLowWatermark(long aSeqNum) {
+    private void updateLowWatermark(long aSeqNum) {
         synchronized(this) {
             if ((_lowSeqNumWatermark + 1) == aSeqNum) {
                 _lowSeqNumWatermark = aSeqNum;
@@ -78,13 +55,13 @@ class AcceptorLearnerState {
         }
     }
 
-    long getLowWatermark() {
+    private long getLowWatermark() {
         synchronized(this) {
             return _lowSeqNumWatermark;
         }
     }
 
-    void updateHighWatermark(long aSeqNum) {
+    private void updateHighWatermark(long aSeqNum) {
         synchronized(this) {
             if (_highSeqNumWatermark < aSeqNum) {
                 _highSeqNumWatermark = aSeqNum;
@@ -94,7 +71,7 @@ class AcceptorLearnerState {
         }
     }
 
-    long getHighWatermark() {
+    private long getHighWatermark() {
         synchronized(this) {
             return _highSeqNumWatermark;
         }
@@ -104,7 +81,7 @@ class AcceptorLearnerState {
      * @param aCollect should be tested to see if it supercedes the current COLLECT
      * @return the old collect if it's superceded or null
      */
-    Collect supercedes(Collect aCollect) {
+    private Collect supercedes(Collect aCollect) {
         synchronized(this) {
             if (aCollect.supercedes(_lastCollect)) {
                 Collect myOld = _lastCollect;
@@ -117,44 +94,76 @@ class AcceptorLearnerState {
         }
     }
 
-    Collect getLastCollect() {
+    private Collect getLastCollect() {
         synchronized(this) {
             return _lastCollect;
         }
     }
 
-    boolean originates(Begin aBegin) {
+    private boolean originates(Begin aBegin) {
         synchronized(this) {
             return aBegin.originates(_lastCollect);
         }
     }
 
-    boolean precedes(Begin aBegin) {
+    private boolean precedes(Begin aBegin) {
         synchronized(this) {
             return aBegin.precedes(_lastCollect);
         }
     }
 
-    public PaxosMessage process(PaxosMessage aMessage) {
+    PaxosMessage process(PaxosMessage aMessage) {
+        long mySeqNum = aMessage.getSeqNum();
+
+        _logger.info("AcceptorLearnerState got [ " + mySeqNum + " ] : " + aMessage);
+
         switch (aMessage.getType()) {
             case Operations.COLLECT : {
-                Participant myPart = newParticipant(aMessage.getSeqNum());
-                return myPart.process(aMessage);
+                Collect myCollect = (Collect) aMessage;
+                Collect myOld = supercedes(myCollect);
+
+                if (myOld != null) {
+                    return new Last(mySeqNum, getLowWatermark(), getHighWatermark(), myOld.getRndNumber(),
+                            getStorage().get(mySeqNum));
+                } else {
+                    // Another collect has already arrived with a higher priority, tell the proposer it has competition
+                    //
+                    Collect myLastCollect = getLastCollect();
+                    return new OldRound(mySeqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
+                }
             }
             case Operations.BEGIN : {
-                Participant myPart = newParticipant(aMessage.getSeqNum());
-                assert(myPart != null);
+                Begin myBegin = (Begin) aMessage;
 
-                return myPart.process(aMessage);
+                // If the begin matches the last round of a collect we're fine
+                //
+                if (originates(myBegin)) {
+                    getStorage().put(mySeqNum, myBegin.getValue());
+                    updateHighWatermark(myBegin.getSeqNum());
+                    return new Accept(mySeqNum, getLastCollect().getRndNumber());
+                } else if (precedes(myBegin)) {
+                    // A new collect was received since the collect for this begin, tell the proposer it's got competition
+                    //
+                    Collect myLastCollect = getLastCollect();
+                    return new OldRound(mySeqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
+                } else {
+                    // Be slient - we didn't see the collect, leader hasn't taken account of our value because it hasn't seen our last
+                    //
+                    _logger.info("Missed collect, going silent: " + mySeqNum + " [ " + myBegin.getRndNumber() + " ]");
+                }
             }
-
             case Operations.SUCCESS : {
-                Participant myPart = getParticipant(aMessage.getSeqNum());
-                assert(myPart != null);
+                Success mySuccess = (Success) aMessage;
 
-                return myPart.process(aMessage);
+                _logger.info("Learnt value: " + mySuccess.getSeqNum());
+
+                getStorage().put(mySeqNum, mySuccess.getValue());
+                updateLowWatermark(mySuccess.getSeqNum());
+                updateHighWatermark(mySuccess.getSeqNum());
+                return new Ack(mySuccess.getSeqNum());
             }
-            default : throw new RuntimeException("Invalid message: " + aMessage.getType());
+
+            default : throw new RuntimeException("Unexpected message");
         }
     }
 }
