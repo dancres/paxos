@@ -36,11 +36,6 @@ class LeaderImpl implements MembershipListener {
     private long _seqNum;
     private byte[] _value;
 
-    // Broadcast channel for all acceptor/learners
-    //
-    // private Channel _channel;
-    // private Channel _clientChannel;
-
     private Transport _transport;
     private Address _clientAddress;
 
@@ -83,8 +78,6 @@ class LeaderImpl implements MembershipListener {
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we process the
      * result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state we expect ACCEPT or OLDROUND
      *
-     * @todo If we want to retry in face of ABORT we'd reacquire a membership, increment a retry count etc
-     * @todo Send client a failure message
      * @todo Check Last messages to compute minimum low and maximum high watermarks, then use them to perform recovery
      */
     private void process() {
@@ -185,9 +178,6 @@ class LeaderImpl implements MembershipListener {
     }
 
     /**
-     * @todo Check the failure detector before deciding to abort - if the other leader is dead, we'll continue
-     * in spite of the OLDROUND which is potentially out-of-date.
-     *
      * @param aMessage is an OldRound message received from some other node
      */
     private void oldRound(PaxosMessage aMessage) {
