@@ -4,7 +4,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.Post;
+import org.dancres.paxos.impl.io.mina.Post;
 import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;

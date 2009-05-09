@@ -1,5 +1,6 @@
-package org.dancres.paxos.impl.core.messages;
+package org.dancres.paxos.impl.io.mina;
 
+import org.dancres.paxos.impl.core.messages.*;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.Operations;
 

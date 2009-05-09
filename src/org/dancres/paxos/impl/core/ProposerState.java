@@ -6,8 +6,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.TreeMap;
+import org.dancres.paxos.impl.core.messages.Motion;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.impl.io.mina.Post;
 
 /**
  * @author dan
@@ -98,24 +100,6 @@ public class ProposerState {
         }
     }
 
-    /**
-     * Create a leader instance for this round
-     *
-     * @param aChannel is the broadcast channel the leader should use to communicate with acceptor/learners
-     * @param aClientChannel is the channel to send the outcome to when leader is done
-     * @return
-     */
-    private LeaderImpl newLeader(Transport aTransport, Address aClientAddress) {
-        synchronized(this) {
-            long mySeqNum = getNextSeqNum();
-
-            LeaderImpl myLeader = new LeaderImpl(mySeqNum, this, aTransport, aClientAddress);
-            _activeRounds.put(new Long(mySeqNum), myLeader);
-
-            return myLeader;
-        }
-    }
-
     private LeaderImpl getLeader(long aSeqNum) {
         synchronized(this) {
             return (LeaderImpl) _activeRounds.get(new Long(aSeqNum));
@@ -131,10 +115,21 @@ public class ProposerState {
             case Operations.POST : {
                 _logger.info("Received post - starting leader");
 
-                // Sender address will be the client
-                //
-                LeaderImpl myLeader = newLeader(aTransport, aSenderAddress);
-                myLeader.messageReceived(aMessage, aSenderAddress);
+                LeaderImpl myLeader;
+                long mySeqNum;
+
+                synchronized (this) {
+                    mySeqNum = getNextSeqNum();
+
+                    // Sender address will be the client
+                    //
+                    myLeader = new LeaderImpl(this, aTransport);
+                    _activeRounds.put(new Long(mySeqNum), myLeader);
+                }
+
+                Post myPost = (Post) aMessage;
+                myLeader.messageReceived(new Motion(mySeqNum, myPost.getValue()), aSenderAddress);
+
                 break;
             }
 

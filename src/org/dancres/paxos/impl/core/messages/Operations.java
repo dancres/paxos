@@ -11,4 +11,5 @@ public interface Operations {
     public static final int OLDROUND = 9;
     public static final int PROPOSER_REQ = 10;
     public static final int FAIL = 11;
+    public static final int MOTION = 12;
 }

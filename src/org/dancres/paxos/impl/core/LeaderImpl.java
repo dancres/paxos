@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl.core;
 
+import org.dancres.paxos.impl.io.mina.Post;
 import org.dancres.paxos.impl.core.Membership;
 import org.dancres.paxos.impl.core.MembershipListener;
 import org.dancres.paxos.impl.core.messages.*;
@@ -61,11 +62,9 @@ class LeaderImpl implements MembershipListener {
      * @param aTransport is the transport to use for messages
      * @param aClientAddress is the endpoint for the client
      */
-    LeaderImpl(long aSeqNum, ProposerState aProposerState, Transport aTransport, Address aClientAddress) {
-        _seqNum = aSeqNum;
+    LeaderImpl(ProposerState aProposerState, Transport aTransport) {
         _state = aProposerState;
         _transport = aTransport;
-        _clientAddress = aClientAddress;
         _watchdogTimeout = _state.getFailureDetector().getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
 
         if (_state.isLeader())
@@ -292,13 +291,17 @@ class LeaderImpl implements MembershipListener {
     void messageReceived(PaxosMessage aMessage, Address anAddress) {
         _logger.info("Leader received message: " + aMessage);
 
-        if (aMessage.getType() == Operations.POST) {
+        if (aMessage.getType() == Operations.MOTION) {
+            Motion myMotion = (Motion) aMessage;
+
+            _value = myMotion.getValue();
+            _seqNum = myMotion.getSeqNum();
+            _clientAddress = anAddress;
+
             _logger.info("Initialising leader: " + _seqNum);
 
             // Send a collect message
             _membership = _state.getFailureDetector().getMembers(this);
-
-            _value = ((Post) aMessage).getValue();
 
             _logger.info("Got membership for leader: " + _seqNum + ", (" + _membership.getSize() + ")");
 
