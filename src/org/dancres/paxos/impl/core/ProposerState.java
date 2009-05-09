@@ -9,7 +9,7 @@ import java.util.TreeMap;
 import org.dancres.paxos.impl.core.messages.Motion;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.io.mina.Post;
+import org.dancres.paxos.impl.core.messages.Post;
 
 /**
  * @author dan

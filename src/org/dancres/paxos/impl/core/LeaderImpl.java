@@ -1,8 +1,5 @@
 package org.dancres.paxos.impl.core;
 
-import org.dancres.paxos.impl.io.mina.Post;
-import org.dancres.paxos.impl.core.Membership;
-import org.dancres.paxos.impl.core.MembershipListener;
 import org.dancres.paxos.impl.core.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

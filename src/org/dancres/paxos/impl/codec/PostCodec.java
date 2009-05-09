@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl.codec;
 
 import org.apache.mina.common.IoBuffer;
-import org.dancres.paxos.impl.io.mina.Post;
+import org.dancres.paxos.impl.core.messages.Post;
 import org.dancres.paxos.impl.core.messages.Operations;
 
 public class PostCodec implements Codec {

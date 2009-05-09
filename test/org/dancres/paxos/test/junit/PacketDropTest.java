@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.io.mina.Post;
+import org.dancres.paxos.impl.core.messages.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.util.AddressImpl;
