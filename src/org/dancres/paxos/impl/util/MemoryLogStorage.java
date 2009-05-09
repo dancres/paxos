@@ -12,11 +12,17 @@ public class MemoryLogStorage implements LogStorage {
     private ConcurrentHashMap<Long, byte[]> _log = new ConcurrentHashMap<Long, byte[]>();
 
     public byte[] get(long aSeqNum) {
-        return _log.get(new Long(aSeqNum));
+        if (aSeqNum == LogStorage.EMPTY_LOG)
+            return new byte[0];
+        else
+            return _log.get(new Long(aSeqNum));
     }
 
     public void put(long aSeqNum, byte[] aValue) {
         _logger.info("Storing: " + aSeqNum + " = " + Arrays.toString(aValue));
+
+        if (aSeqNum < 0)
+            throw new IllegalArgumentException("Sequence number must be non-negative");
 
         _log.put(new Long(aSeqNum), aValue);
     }

@@ -15,12 +15,6 @@ import org.dancres.paxos.impl.core.messages.Post;
  * @author dan
  */
 public class ProposerState {
-    /**
-     * The next entry in the ledgers we will try and fill - aka log number
-     */
-    private long _nextSeqNum = 0;
-    private Map _activeRounds = new TreeMap();
-
     private long _nodeId;
 
     private Logger _logger = LoggerFactory.getLogger(ProposerState.class);
@@ -28,6 +22,8 @@ public class ProposerState {
     private FailureDetector _fd;
 
     private long _rndNumber = 0;
+
+    private LeaderImpl _leader;
 
     /**
      * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread establishes we're leader and
@@ -39,9 +35,10 @@ public class ProposerState {
     /**
      * @param aDetector to maintain for use by proposers
      */
-    ProposerState(FailureDetector aDetector, long aNodeId) {
+    ProposerState(FailureDetector aDetector, long aNodeId, Transport aTransport) {
         _fd = aDetector;
         _nodeId = aNodeId;
+        _leader = new LeaderImpl(this, aTransport);
 
         _logger.info("Initialized state with id: " + Long.toHexString(_nodeId));
     }
@@ -50,10 +47,6 @@ public class ProposerState {
         synchronized(this) {
             return ++_rndNumber;
         }
-    }
-
-    private long getNextSeqNum() {
-        return _nextSeqNum++;
     }
 
     public FailureDetector getFailureDetector() {
@@ -94,41 +87,17 @@ public class ProposerState {
         return _nodeId;
     }
 
-    void dispose(long aSeqNum) {
-        synchronized(this) {
-            _activeRounds.remove(new Long(aSeqNum));
-        }
-    }
-
-    private LeaderImpl getLeader(long aSeqNum) {
-        synchronized(this) {
-            return (LeaderImpl) _activeRounds.get(new Long(aSeqNum));
-        }
-    }
-
     /**
      * @param aMessage to process
      * @param aSenderAddress at which the sender of this message can be found
      */
-    public void process(PaxosMessage aMessage, Address aSenderAddress, Transport aTransport) {
+    public void process(PaxosMessage aMessage, Address aSenderAddress) {
         switch (aMessage.getType()) {
             case Operations.POST : {
                 _logger.info("Received post - starting leader");
 
-                LeaderImpl myLeader;
-                long mySeqNum;
-
-                synchronized (this) {
-                    mySeqNum = getNextSeqNum();
-
-                    // Sender address will be the client
-                    //
-                    myLeader = new LeaderImpl(this, aTransport);
-                    _activeRounds.put(new Long(mySeqNum), myLeader);
-                }
-
                 Post myPost = (Post) aMessage;
-                myLeader.messageReceived(new Motion(mySeqNum, myPost.getValue()), aSenderAddress);
+                _leader.messageReceived(new Motion(myPost.getValue()), aSenderAddress);
 
                 break;
             }
@@ -137,14 +106,7 @@ public class ProposerState {
             case Operations.LAST :
             case Operations.ACCEPT :
             case Operations.ACK: {
-                LeaderImpl myLeader = getLeader(aMessage.getSeqNum());
-
-                if (myLeader != null)
-                    myLeader.messageReceived(aMessage, aSenderAddress);
-                else {
-                    _logger.warn("Leader not present for: " + aMessage);
-                }
-
+                _leader.messageReceived(aMessage, aSenderAddress);
                 break;
             }
             default : throw new RuntimeException("Invalid message: " + aMessage.getType());

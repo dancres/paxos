@@ -5,10 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ProposerImpl {
-    private Logger _logger = LoggerFactory.getLogger(ProposerImpl.class);
-
     private ProposerState _state;
-    private Transport _transport;
 
     /**
      * @param aTransport to send messages over
@@ -16,8 +13,7 @@ public class ProposerImpl {
      * @param anAddress with which to generate an id for this node
      */
     public ProposerImpl(Transport aTransport, FailureDetector aDetector, long aNodeId) {
-        _state = new ProposerState(aDetector, aNodeId);
-        _transport = aTransport;
+        _state = new ProposerState(aDetector, aNodeId, aTransport);
     }
 
     /**
@@ -25,7 +21,7 @@ public class ProposerImpl {
      * @param aSenderAddress at which the sender of this message can be found
      */
     public void process(PaxosMessage aMessage, Address aSenderAddress) {
-        _state.process(aMessage, aSenderAddress, _transport);
+        _state.process(aMessage, aSenderAddress);
     }
 
     public ProposerState getState() {
