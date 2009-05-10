@@ -132,7 +132,7 @@ public class SuperiorLeaderTest {
                         Collect myCollect = (Collect) myIn;
 
                         getTransport().send(
-                                new OldRound(myCollect.getSeqNum(), getProposer().getState().getNodeId(), myCollect.getRndNumber() + 1),
+                                new OldRound(myCollect.getSeqNum(), getProposer().getNodeId(), myCollect.getRndNumber() + 1),
                                 aPacket.getSender());
                     }
 

@@ -1,7 +1,5 @@
 package org.dancres.paxos.impl.core;
 
-import java.util.Map;
-import java.util.HashMap;
 import org.dancres.paxos.impl.core.messages.Accept;
 import org.dancres.paxos.impl.core.messages.Ack;
 import org.dancres.paxos.impl.core.messages.Begin;
@@ -17,7 +15,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @author dan
  */
-class AcceptorLearnerState {
+public class AcceptorLearnerState {
     private static Logger _logger = LoggerFactory.getLogger(AcceptorLearnerState.class);
 
     private Collect _lastCollect = Collect.INITIAL;
@@ -36,7 +34,7 @@ class AcceptorLearnerState {
      */
     private long _highSeqNumWatermark = LogStorage.EMPTY_LOG;
 
-    AcceptorLearnerState(LogStorage aStore) {
+    public AcceptorLearnerState(LogStorage aStore) {
         _storage = aStore;
     }
 
@@ -112,7 +110,7 @@ class AcceptorLearnerState {
         }
     }
 
-    PaxosMessage process(PaxosMessage aMessage) {
+    public PaxosMessage process(PaxosMessage aMessage) {
         long mySeqNum = aMessage.getSeqNum();
 
         _logger.info("AcceptorLearnerState got [ " + mySeqNum + " ] : " + aMessage);

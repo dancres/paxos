@@ -31,7 +31,7 @@ public class ProposerState {
     /**
      * @param aDetector to maintain for use by proposers
      */
-    ProposerState(FailureDetector aDetector, long aNodeId, Transport aTransport) {
+    public ProposerState(FailureDetector aDetector, long aNodeId, Transport aTransport) {
         _fd = aDetector;
         _nodeId = aNodeId;
         _leader = new LeaderImpl(this, aTransport);

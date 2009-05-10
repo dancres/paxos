@@ -9,7 +9,7 @@ import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.ProposerImpl;
+import org.dancres.paxos.impl.core.ProposerState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +23,7 @@ import org.dancres.paxos.impl.util.NodeId;
  * @author dan
  */
 public class ProposerAdapter extends IoHandlerAdapter {
-    private ProposerImpl _proposer;
+    private ProposerState _proposer;
     private TransportImpl _transport;
 
     private Logger _logger = LoggerFactory.getLogger(ProposerAdapter.class);
@@ -38,7 +38,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
      */
     public void init(IoSession aSession, FailureDetectorImpl aDetector, InetSocketAddress anAddress) {
         _transport = new TransportImpl(anAddress, aSession);
-        _proposer = new ProposerImpl(_transport, aDetector, NodeId.from(anAddress));
+        _proposer = new ProposerState(aDetector, NodeId.from(anAddress), _transport);
     }
 
     public void exceptionCaught(org.apache.mina.common.IoSession aSession,

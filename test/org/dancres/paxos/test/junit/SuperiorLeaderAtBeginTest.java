@@ -132,7 +132,7 @@ public class SuperiorLeaderAtBeginTest {
                         Begin myBegin = (Begin) myIn;
 
                         getTransport().send(
-                                new OldRound(myBegin.getSeqNum(), getProposer().getState().getNodeId(), myBegin.getRndNumber() + 1),
+                                new OldRound(myBegin.getSeqNum(), getProposer().getNodeId(), myBegin.getRndNumber() + 1),
                                 aPacket.getSender());
                     } else {
                         PaxosMessage myResponse = getAcceptorLearner().process(myPropPkt.getOperation());

@@ -1,8 +1,8 @@
 package org.dancres.paxos.test.utils;
 
 import java.net.InetSocketAddress;
-import org.dancres.paxos.impl.core.AcceptorLearnerImpl;
-import org.dancres.paxos.impl.core.ProposerImpl;
+import org.dancres.paxos.impl.core.AcceptorLearnerState;
+import org.dancres.paxos.impl.core.ProposerState;
 import org.dancres.paxos.impl.core.Transport;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
@@ -25,8 +25,8 @@ public class Node implements PacketListener {
     private static Logger _logger = LoggerFactory.getLogger(Node.class);
 
     private InetSocketAddress _addr;
-    private AcceptorLearnerImpl _al;
-    private ProposerImpl _pi;
+    private AcceptorLearnerState _al;
+    private ProposerState _ps;
     private FailureDetectorImpl _fd;
     private Heartbeater _hb;
     private PacketQueue _pq;
@@ -42,8 +42,8 @@ public class Node implements PacketListener {
         _tp = aTransport;
         _hb = new Heartbeater(_tp);
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
-        _al = new AcceptorLearnerImpl(new MemoryLogStorage());
-        _pi = new ProposerImpl(_tp, _fd, NodeId.from(_addr));
+        _al = new AcceptorLearnerState(new MemoryLogStorage());
+        _ps = new ProposerState(_fd, NodeId.from(_addr), _tp);
         _pq = new PacketQueueImpl(this);
     }
 
@@ -79,7 +79,7 @@ public class Node implements PacketListener {
             }
 
             default: {
-                _pi.process(myMessage, aPacket.getSender());
+                _ps.process(myMessage, aPacket.getSender());
                 break;
             }
         }
@@ -89,7 +89,7 @@ public class Node implements PacketListener {
         return _fd;
     }
 
-    public AcceptorLearnerImpl getAcceptorLearner() {
+    public AcceptorLearnerState getAcceptorLearner() {
         return _al;
     }
 
@@ -97,7 +97,7 @@ public class Node implements PacketListener {
         return _tp;
     }
 
-    public ProposerImpl getProposer() {
-        return _pi;
+    public ProposerState getProposer() {
+        return _ps;
     }
 }
