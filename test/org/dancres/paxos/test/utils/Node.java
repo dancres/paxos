@@ -1,8 +1,8 @@
 package org.dancres.paxos.test.utils;
 
 import java.net.InetSocketAddress;
-import org.dancres.paxos.impl.core.AcceptorLearnerState;
-import org.dancres.paxos.impl.core.LeaderImpl;
+import org.dancres.paxos.impl.core.AcceptorLearner;
+import org.dancres.paxos.impl.core.Leader;
 import org.dancres.paxos.impl.core.Transport;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
@@ -25,8 +25,8 @@ public class Node implements PacketListener {
     private static Logger _logger = LoggerFactory.getLogger(Node.class);
 
     private InetSocketAddress _addr;
-    private AcceptorLearnerState _al;
-    private LeaderImpl _ld;
+    private AcceptorLearner _al;
+    private Leader _ld;
     private FailureDetectorImpl _fd;
     private Heartbeater _hb;
     private PacketQueue _pq;
@@ -42,8 +42,8 @@ public class Node implements PacketListener {
         _tp = aTransport;
         _hb = new Heartbeater(_tp);
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
-        _al = new AcceptorLearnerState(new MemoryLogStorage());
-        _ld = new LeaderImpl(_fd, NodeId.from(_addr), _tp);
+        _al = new AcceptorLearner(new MemoryLogStorage());
+        _ld = new Leader(_fd, NodeId.from(_addr), _tp);
         _pq = new PacketQueueImpl(this);
     }
 
@@ -89,7 +89,7 @@ public class Node implements PacketListener {
         return _fd;
     }
 
-    public AcceptorLearnerState getAcceptorLearner() {
+    public AcceptorLearner getAcceptorLearner() {
         return _al;
     }
 
@@ -97,7 +97,7 @@ public class Node implements PacketListener {
         return _tp;
     }
 
-    public LeaderImpl getLeader() {
+    public Leader getLeader() {
         return _ld;
     }
 }

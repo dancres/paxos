@@ -14,7 +14,7 @@ import java.util.TimerTask;
  * Responsible for attempting to drive consensus for a particular entry in the paxos ledger (as identified by a sequence number)
  * @author dan
  */
-public class LeaderImpl implements MembershipListener {
+public class Leader implements MembershipListener {
     /*
      * Used to compute the timeout period for watchdog tasks.  In order to behave sanely we want the failure detector to be given
      * the best possible chance of detecting problems with the members.  Thus the timeout for the watchdog is computed as the
@@ -64,7 +64,7 @@ public class LeaderImpl implements MembershipListener {
 
     private List _messages = new ArrayList();
 
-    private Logger _logger = LoggerFactory.getLogger(LeaderImpl.class);
+    private Logger _logger = LoggerFactory.getLogger(Leader.class);
 
     /**
      * @param aSeqNum is the sequence number for the proposal this leader instance is responsible for
@@ -72,7 +72,7 @@ public class LeaderImpl implements MembershipListener {
      * @param aTransport is the transport to use for messages
      * @param aClientAddress is the endpoint for the client
      */
-    public LeaderImpl(FailureDetector aDetector, long aNodeId, Transport aTransport) {
+    public Leader(FailureDetector aDetector, long aNodeId, Transport aTransport) {
         _nodeId = aNodeId;
         _detector = aDetector;
         _transport = aTransport;

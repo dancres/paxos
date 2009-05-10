@@ -3,7 +3,7 @@ package org.dancres.paxos.impl.io.mina;
 import org.apache.mina.common.*;
 import org.apache.mina.transport.socket.DatagramConnector;
 import org.dancres.paxos.impl.core.messages.*;
-import org.dancres.paxos.impl.core.AcceptorLearnerState;
+import org.dancres.paxos.impl.core.AcceptorLearner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,11 +14,11 @@ public class AcceptorLearnerAdapter implements IoHandler {
     private Logger _logger = LoggerFactory.getLogger(AcceptorLearnerAdapter.class);
 
     private DatagramConnector _propUnicast;
-    private AcceptorLearnerState _acceptorLearner;
+    private AcceptorLearner _acceptorLearner;
 
     public AcceptorLearnerAdapter(DatagramConnector aPropUnicast) {
         _propUnicast = aPropUnicast;
-        _acceptorLearner = new AcceptorLearnerState(new MemoryLogStorage());
+        _acceptorLearner = new AcceptorLearner(new MemoryLogStorage());
     }
 
     public void sessionCreated(IoSession ioSession) throws Exception {

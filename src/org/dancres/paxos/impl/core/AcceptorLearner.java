@@ -15,8 +15,8 @@ import org.slf4j.LoggerFactory;
 /**
  * @author dan
  */
-public class AcceptorLearnerState {
-    private static Logger _logger = LoggerFactory.getLogger(AcceptorLearnerState.class);
+public class AcceptorLearner {
+    private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
     private Collect _lastCollect = Collect.INITIAL;
     private LogStorage _storage;
@@ -34,7 +34,7 @@ public class AcceptorLearnerState {
      */
     private long _highSeqNumWatermark = LogStorage.EMPTY_LOG;
 
-    public AcceptorLearnerState(LogStorage aStore) {
+    public AcceptorLearner(LogStorage aStore) {
         _storage = aStore;
     }
 
