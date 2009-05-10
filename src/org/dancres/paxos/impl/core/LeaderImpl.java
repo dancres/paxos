@@ -289,19 +289,21 @@ class LeaderImpl implements MembershipListener {
      * @todo If we timeout and the client wants to retry, what to do with the sequence number?  It'll have been potentially incremented by the
      * previous BEGIN and thus we'll have left a gap.
      * @todo Modify collect to complete recovery leaving _seqNum at the last recovered sequence number because begin will need to increment it
+     * 
+     * @return BUSY if the state machine is already executing a client request otherwise CONTINUE.
      */
     int messageReceived(PaxosMessage aMessage, Address anAddress) {
         _logger.info("Leader received message: " + aMessage);
 
-        if (aMessage.getType() == Operations.MOTION) {
-            Motion myMotion = (Motion) aMessage;
+        if (aMessage.getType() == Operations.POST) {
+            Post myPost = (Post) aMessage;
 
             synchronized(this) {
                 if ((_stage != ABORT) && (_stage != EXIT)) {
                     return BUSY;
                 }
 
-                _value = myMotion.getValue();
+                _value = myPost.getValue();
                 _clientAddress = anAddress;
 
                 _logger.info("Initialising leader: " + _seqNum);

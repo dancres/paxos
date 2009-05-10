@@ -4,12 +4,8 @@ import org.dancres.paxos.impl.core.messages.OldRound;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-import java.util.TreeMap;
-import org.dancres.paxos.impl.core.messages.Motion;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.Post;
 
 /**
  * @author dan
@@ -93,15 +89,7 @@ public class ProposerState {
      */
     public void process(PaxosMessage aMessage, Address aSenderAddress) {
         switch (aMessage.getType()) {
-            case Operations.POST : {
-                _logger.info("Received post - starting leader");
-
-                Post myPost = (Post) aMessage;
-                _leader.messageReceived(new Motion(myPost.getValue()), aSenderAddress);
-
-                break;
-            }
-
+            case Operations.POST :
             case Operations.OLDROUND :
             case Operations.LAST :
             case Operations.ACCEPT :
