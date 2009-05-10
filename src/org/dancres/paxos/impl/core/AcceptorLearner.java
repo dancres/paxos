@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Implements the Acceptor/Learner state machine.
+ *
  * @author dan
  */
 public class AcceptorLearner {

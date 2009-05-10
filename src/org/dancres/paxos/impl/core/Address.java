@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl.core;
 
 /**
- * Standard abstraction for the address of a member
+ * Standard abstraction for the address of a member in the Paxos co-operative.
  *
  * @author dan
  */

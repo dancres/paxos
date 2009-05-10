@@ -11,6 +11,12 @@ import org.dancres.paxos.impl.core.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A snapshot of the membership at some point in time, updated by the <code>FailureDetectorImpl</code> over time.  Note the snapshot only
+ * reduces in size, it cannot grow so as to allow correct behaviour in cases where majorities are required.
+ *
+ * @author dan
+ */
 class MembershipImpl implements Membership, LivenessListener {
     /**
      * @todo Fix up this majority to be more dynamic

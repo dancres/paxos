@@ -11,7 +11,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * Responsible for attempting to drive consensus for a particular entry in the paxos ledger (as identified by a sequence number)
+ * Implements the leader state machine.
+ *
  * @author dan
  */
 public class Leader implements MembershipListener {
@@ -30,7 +31,14 @@ public class Leader implements MembershipListener {
     private static final int EXIT = 3;
     private static final int ABORT = 4;
 
+    /**
+     * Indicates the Leader is not ready to process the passed message and the caller should retry.
+     */
     public static final int BUSY = 256;
+
+    /**
+     * Indicates the Leader has accepted the message and is waiting for further messages.
+     */
     public static final int CONTINUE = 257;
 
     private final Timer _watchdog = new Timer("Leader watchdog");

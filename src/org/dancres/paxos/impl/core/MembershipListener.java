@@ -1,5 +1,10 @@
 package org.dancres.paxos.impl.core;
 
+/**
+ * Registered with a <code>FailureDetector</code> instance to track critical membership lifecycle events.
+ *
+ * @author dan
+ */
 public interface MembershipListener {
     /**
      * Invoked if the membership service determines that correct progress cannot be made

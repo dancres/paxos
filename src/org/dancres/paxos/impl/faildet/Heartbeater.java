@@ -2,8 +2,12 @@ package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.core.Transport;
-import org.dancres.paxos.impl.faildet.Heartbeat;
 
+/**
+ * Broadcasts <code>Heartbeat</code> messages at an appropriate rate for <code>FailureDetectorImpl</code>'s in other nodes.
+ *
+ * @author dan
+ */
 public class Heartbeater implements Runnable {
     private Transport _transport;
 

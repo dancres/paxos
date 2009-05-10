@@ -1,9 +1,12 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.dancres.paxos.impl.core.messages.*;
-import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 
+/**
+ * Message produced by <code>HeartbeaterImpl</code> for consumption and processing by <code>FailureDetectorImpl</code>
+ *
+ * @author dan
+ */
 public class Heartbeat implements PaxosMessage {
     public static final int TYPE = 0;
 
