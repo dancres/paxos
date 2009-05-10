@@ -132,7 +132,7 @@ public class SuperiorLeaderTest {
                         Collect myCollect = (Collect) myIn;
 
                         getTransport().send(
-                                new OldRound(myCollect.getSeqNum(), getProposer().getNodeId(), myCollect.getRndNumber() + 1),
+                                new OldRound(myCollect.getSeqNum(), getLeader().getNodeId(), myCollect.getRndNumber() + 1),
                                 aPacket.getSender());
                     }
 
@@ -140,7 +140,7 @@ public class SuperiorLeaderTest {
                 }
 
                 default: {
-                    getProposer().process(myMessage, aPacket.getSender());
+                    getLeader().messageReceived(myMessage, aPacket.getSender());
                     break;
                 }
             }

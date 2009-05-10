@@ -9,7 +9,7 @@ import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.ProposerState;
+import org.dancres.paxos.impl.core.LeaderImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +23,7 @@ import org.dancres.paxos.impl.util.NodeId;
  * @author dan
  */
 public class ProposerAdapter extends IoHandlerAdapter {
-    private ProposerState _proposer;
+    private LeaderImpl _leader;
     private TransportImpl _transport;
 
     private Logger _logger = LoggerFactory.getLogger(ProposerAdapter.class);
@@ -38,7 +38,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
      */
     public void init(IoSession aSession, FailureDetectorImpl aDetector, InetSocketAddress anAddress) {
         _transport = new TransportImpl(anAddress, aSession);
-        _proposer = new ProposerState(aDetector, NodeId.from(anAddress), _transport);
+        _leader = new LeaderImpl(aDetector, NodeId.from(anAddress), _transport);
     }
 
     public void exceptionCaught(org.apache.mina.common.IoSession aSession,
@@ -56,7 +56,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
         if (myMessage.getType() != Heartbeat.TYPE)
                 _logger.info("serverMsgRx: s=" + aSession + " o=" + anObject);
 
-        _proposer.process(myMessage, new AddressImpl(aSession.getRemoteAddress()));
+        _leader.messageReceived(myMessage, new AddressImpl(aSession.getRemoteAddress()));
     }
 
     public void messageSent(org.apache.mina.common.IoSession aSession,

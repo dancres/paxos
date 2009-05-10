@@ -14,7 +14,7 @@ import java.util.TimerTask;
  * Responsible for attempting to drive consensus for a particular entry in the paxos ledger (as identified by a sequence number)
  * @author dan
  */
-class LeaderImpl implements MembershipListener {
+public class LeaderImpl implements MembershipListener {
     /*
      * Used to compute the timeout period for watchdog tasks.  In order to behave sanely we want the failure detector to be given
      * the best possible chance of detecting problems with the members.  Thus the timeout for the watchdog is computed as the
@@ -31,18 +31,28 @@ class LeaderImpl implements MembershipListener {
     static final int BUSY = 256;
     static final int CONTINUE = 257;
 
-    private static Timer _watchdog = new Timer("Leader watchdog");
+    private Timer _watchdog = new Timer("Leader watchdog");
+
+    private final FailureDetector _detector;
+    private final long _nodeId;
+    private final Transport _transport;
 
     private long _watchdogTimeout;
     private long _seqNum = LogStorage.EMPTY_LOG;
-    private byte[] _value;
+    private long _rndNumber = 0;
 
-    private Transport _transport;
+    /**
+     * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread establishes we're leader and
+     * a prior thread decides otherwise with the latter being last to update this variable we'll simply do an unnecessary COLLECT.  The
+     * protocol execution will still be correct.
+     */
+    private boolean _isLeader = false;
+
+    private byte[] _value;
     private Address _clientAddress;
 
     private TimerTask _activeAlarm;
 
-    private ProposerState _state;
     private Membership _membership;
 
     private int _stage = EXIT;
@@ -62,10 +72,51 @@ class LeaderImpl implements MembershipListener {
      * @param aTransport is the transport to use for messages
      * @param aClientAddress is the endpoint for the client
      */
-    LeaderImpl(ProposerState aProposerState, Transport aTransport) {
-        _state = aProposerState;
+    public LeaderImpl(FailureDetector aDetector, long aNodeId, Transport aTransport) {
+        _nodeId = aNodeId;
+        _detector = aDetector;
         _transport = aTransport;
-        _watchdogTimeout = _state.getFailureDetector().getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
+        _watchdogTimeout = _detector.getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
+    }
+
+    private long newRndNumber() {
+        synchronized(this) {
+            return ++_rndNumber;
+        }
+    }
+
+    private void updateRndNumber(OldRound anOldRound) {
+        synchronized(this) {
+            _rndNumber = anOldRound.getLastRound() + 1;
+        }
+    }
+
+    private boolean isLeader() {
+        synchronized(this) {
+            return _isLeader;
+        }
+    }
+
+    private void amLeader() {
+        synchronized(this) {
+            _isLeader = true;
+        }
+    }
+
+    private void notLeader() {
+        synchronized(this) {
+            _isLeader = false;
+        }
+    }
+
+    private long getRndNumber() {
+        synchronized(this) {
+            return _rndNumber;
+        }
+    }
+
+    public long getNodeId() {
+        return _nodeId;
     }
 
     /**
@@ -101,7 +152,7 @@ class LeaderImpl implements MembershipListener {
 
                 // If we're not currently the leader, we'll have issued a collect and must process the responses
                 //
-                if (! _state.isLeader()) {
+                if (! isLeader()) {
                     // Process _messages to assess what we do next - might be to launch a new round or to give up
                     //
                     long myMaxRound = 0;
@@ -124,7 +175,7 @@ class LeaderImpl implements MembershipListener {
                     }
                 }
 
-                _state.amLeader();
+                amLeader();
                 _value = myValue;
 
                 if (_seqNum == LogStorage.EMPTY_LOG) {
@@ -188,18 +239,18 @@ class LeaderImpl implements MembershipListener {
         /*
          * Some other node is active, we should abort if they are the leader by virtue of a larger nodeId
          */
-        if (myCompetingNodeId > _state.getNodeId()) {
+        if (myCompetingNodeId > _nodeId) {
             _logger.info("Superior leader is active, backing down: " + Long.toHexString(myCompetingNodeId) + ", " +
-                    Long.toHexString(_state.getNodeId()));
+                    Long.toHexString(_nodeId));
 
-            _state.notLeader();
+            notLeader();
             _stage = ABORT;
             _reason = Reasons.OTHER_LEADER;
             process();
             return;
         }
 
-        _state.updateRndNumber(myOldRound);
+        updateRndNumber(myOldRound);
 
         /*
          * Some other leader is active but we are superior, restart negotiations with COLLECT
@@ -211,7 +262,7 @@ class LeaderImpl implements MembershipListener {
     private void collect() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Collect(_seqNum, _state.newRndNumber(), _state.getNodeId());
+        PaxosMessage myMessage = new Collect(_seqNum, newRndNumber(), _nodeId);
 
         startInteraction();
 
@@ -223,7 +274,7 @@ class LeaderImpl implements MembershipListener {
     private void begin() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Begin(++_seqNum, _state.getRndNumber(), _state.getNodeId(), _value);
+        PaxosMessage myMessage = new Begin(++_seqNum, getRndNumber(), _nodeId, _value);
 
         startInteraction();
 
@@ -292,7 +343,7 @@ class LeaderImpl implements MembershipListener {
      * 
      * @return BUSY if the state machine is already executing a client request otherwise CONTINUE.
      */
-    int messageReceived(PaxosMessage aMessage, Address anAddress) {
+    public int messageReceived(PaxosMessage aMessage, Address anAddress) {
         _logger.info("Leader received message: " + aMessage);
 
         if (aMessage.getType() == Operations.POST) {
@@ -308,14 +359,14 @@ class LeaderImpl implements MembershipListener {
 
                 _logger.info("Initialising leader: " + _seqNum);
 
-                if (_state.isLeader()) {
+                if (isLeader()) {
                     _stage = BEGIN;
                 } else {
                     _stage = COLLECT;
                 }
 
                 // Send a collect message
-                _membership = _state.getFailureDetector().getMembers(this);
+                _membership = _detector.getMembers(this);
 
                 _logger.info("Got membership for leader: " + _seqNum + ", (" + _membership.getSize() + ")");
 
