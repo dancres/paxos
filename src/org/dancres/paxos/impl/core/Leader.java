@@ -15,6 +15,8 @@ import java.util.TimerTask;
  * @author dan
  */
 public class Leader implements MembershipListener {
+    private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
+
     /*
      * Used to compute the timeout period for watchdog tasks.  In order to behave sanely we want the failure detector to be given
      * the best possible chance of detecting problems with the members.  Thus the timeout for the watchdog is computed as the
@@ -28,16 +30,17 @@ public class Leader implements MembershipListener {
     private static final int EXIT = 3;
     private static final int ABORT = 4;
 
-    static final int BUSY = 256;
-    static final int CONTINUE = 257;
+    public static final int BUSY = 256;
+    public static final int CONTINUE = 257;
 
-    private Timer _watchdog = new Timer("Leader watchdog");
-
+    private final Timer _watchdog = new Timer("Leader watchdog");
+    private final long _watchdogTimeout;
     private final FailureDetector _detector;
     private final long _nodeId;
     private final Transport _transport;
 
-    private long _watchdogTimeout;
+    private final List<LeaderListener> _listeners = new ArrayList<LeaderListener>();
+
     private long _seqNum = LogStorage.EMPTY_LOG;
     private long _rndNumber = 0;
 
@@ -62,9 +65,7 @@ public class Leader implements MembershipListener {
      */
     private int _reason = 0;
 
-    private List _messages = new ArrayList();
-
-    private Logger _logger = LoggerFactory.getLogger(Leader.class);
+    private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
     /**
      * @param aSeqNum is the sequence number for the proposal this leader instance is responsible for
@@ -77,6 +78,18 @@ public class Leader implements MembershipListener {
         _detector = aDetector;
         _transport = aTransport;
         _watchdogTimeout = _detector.getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
+    }
+
+    public void add(LeaderListener aListener) {
+        synchronized(_listeners) {
+            _listeners.add(aListener);
+        }
+    }
+
+    public void remove(LeaderListener aListener) {
+        synchronized(_listeners) {
+            _listeners.remove(aListener);
+        }
     }
 
     private long newRndNumber() {
@@ -139,6 +152,8 @@ public class Leader implements MembershipListener {
                     _transport.send(new Fail(_seqNum, _reason), _clientAddress);
                 }
 
+                signalListeners();
+
                 return;
             }
 
@@ -156,10 +171,10 @@ public class Leader implements MembershipListener {
                     // Process _messages to assess what we do next - might be to launch a new round or to give up
                     //
                     long myMaxRound = 0;
-                    Iterator myMessages = _messages.iterator();
+                    Iterator<PaxosMessage> myMessages = _messages.iterator();
 
                     while (myMessages.hasNext()) {
-                        PaxosMessage myMessage = (PaxosMessage) myMessages.next();
+                        PaxosMessage myMessage = myMessages.next();
 
                         if (myMessage.getType() == Operations.OLDROUND) {
                             oldRound(myMessage);
@@ -198,9 +213,9 @@ public class Leader implements MembershipListener {
                  */
                 int myAcceptCount = 0;
 
-                Iterator myMessages = _messages.iterator();
+                Iterator<PaxosMessage> myMessages = _messages.iterator();
                 while (myMessages.hasNext()) {
-                    PaxosMessage myMessage = (PaxosMessage) myMessages.next();
+                    PaxosMessage myMessage = myMessages.next();
 
                     if (myMessage.getType() == Operations.OLDROUND) {
                         oldRound(myMessage);
@@ -391,6 +406,20 @@ public class Leader implements MembershipListener {
     private class Alarm extends TimerTask {
         public void run() {
             expired();
+        }
+    }
+
+    private void signalListeners() {
+        List myListeners;
+
+        synchronized(_listeners) {
+            myListeners = new ArrayList(_listeners);
+        }
+
+        Iterator<LeaderListener> myTargets = myListeners.iterator();
+
+        while (myTargets.hasNext()) {
+            myTargets.next().ready();
         }
     }
 }
