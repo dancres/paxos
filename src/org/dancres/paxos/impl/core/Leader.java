@@ -145,6 +145,9 @@ public class Leader implements MembershipListener {
      * result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state we expect ACCEPT or OLDROUND
      *
      * @todo Check Last messages to compute minimum low and maximum high watermarks, then use them to perform recovery
+     * @todo Ensure during recovery that BEGIN doesn't screw up the sequence number - perhaps during recovery prevent BEGIN from doing
+     * sequence number increments
+     * @todo Handle all cases in SUCCEESS e.g. we don't properly process/wait for all Acks
      */
     private void process() {
         switch(_stage) {
@@ -167,6 +170,7 @@ public class Leader implements MembershipListener {
 
             case COLLECT : {
                 collect();
+                _stage = BEGIN;
                 break;
             }
 
@@ -208,6 +212,7 @@ public class Leader implements MembershipListener {
                 }
 
                 begin();
+                _stage = SUCCESS;
 
                 break;
             }
@@ -237,11 +242,12 @@ public class Leader implements MembershipListener {
                     // Send success, wait for acks
                     //
                     success();
+                    _stage = EXIT;
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    _stage = BEGIN;
                     begin();
+                    _stage = SUCCESS;
                 }
 
                 break;
@@ -344,7 +350,6 @@ public class Leader implements MembershipListener {
         _activeAlarm.cancel();
 
         synchronized(this) {
-            _stage++;
             process();
         }
     }
