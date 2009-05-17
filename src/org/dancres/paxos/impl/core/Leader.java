@@ -51,6 +51,7 @@ public class Leader implements MembershipListener {
 
     private long _seqNum = LogStorage.EMPTY_LOG;
     private long _rndNumber = 0;
+    private byte[] _value;
 
     /**
      * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread establishes we're leader and
@@ -59,8 +60,12 @@ public class Leader implements MembershipListener {
      */
     private boolean _isLeader = false;
 
+    /**
+     * Maintains the current client request. The actual sequence number and value the state machine operates on are held in
+     * <code>_seqNum</code> and <code>_value</code> and during recovery will not be the same as the client request.  Thus we cache
+     * the client request and move it into the operating variables once recovery is complete.
+     */
     private Post _clientPost;
-    private byte[] _value;
     private Address _clientAddress;
 
     private TimerTask _activeAlarm;
@@ -171,6 +176,12 @@ public class Leader implements MembershipListener {
             case COLLECT : {
                 _value = _clientPost.getValue();
 
+                if (_seqNum == LogStorage.EMPTY_LOG) {
+                    _seqNum = 0;
+                } else {
+                    ++_seqNum;
+                }
+
                 if (isLeader()) {
                     _logger.info("Skipping collect phase - we're leader already");
                     _stage = BEGIN;
@@ -213,12 +224,6 @@ public class Leader implements MembershipListener {
 
                 amLeader();
                 _value = myValue;
-
-                if (_seqNum == LogStorage.EMPTY_LOG) {
-                    // Setup for begin() (which always increments _seqNum) to start at sequence = 0
-                    //
-                    _seqNum = -1;
-                }
 
                 begin();
                 _stage = SUCCESS;
@@ -312,7 +317,7 @@ public class Leader implements MembershipListener {
     private void begin() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Begin(++_seqNum, getRndNumber(), _nodeId, _value);
+        PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _nodeId, _value);
 
         startInteraction();
 
