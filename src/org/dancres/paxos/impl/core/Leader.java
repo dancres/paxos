@@ -272,12 +272,22 @@ public class Leader implements MembershipListener {
     }
 
     /**
+     * @todo We may get oldround after we've sent begin and got some accepts, in such a case we need collect to know that we
+     * were interrupted and the client value has already been submitted and thus doesn't need to be re-run post recovery. Note that any
+     * competing leader will first do a collect to increment the round number, it will not yet have proposed a value for a sequence number.
+     * Thus if we've received an accept from some node, it has yet to see the new leader and when it does see the leader will return the value
+     * we've proposed together with our round number.  Further if we've reached acceptance with our round number, ultimately our value will
+     * be used as recovery dictates the value from the highest previous round for a sequence number will be used by the leader.  We have one issue
+     * where some acceptor/learner did accept but we didn't get the message and thus can't tell the client value was processed.  What to do?
+     * 
      * @param aMessage is an OldRound message received from some other node
      */
     private void oldRound(PaxosMessage aMessage) {
         OldRound myOldRound = (OldRound) aMessage;
 
         long myCompetingNodeId = myOldRound.getNodeId();
+
+        notLeader();
 
         /*
          * Some other node is active, we should abort if they are the leader by virtue of a larger nodeId
@@ -286,7 +296,6 @@ public class Leader implements MembershipListener {
             _logger.info("Superior leader is active, backing down: " + Long.toHexString(myCompetingNodeId) + ", " +
                     Long.toHexString(_nodeId));
 
-            notLeader();
             _stage = ABORT;
             _reason = Reasons.OTHER_LEADER;
             process();
@@ -296,10 +305,12 @@ public class Leader implements MembershipListener {
         updateRndNumber(myOldRound);
 
         /*
-         * Some other leader is active but we are superior, restart negotiations with COLLECT
+         * Some other leader is active but we are superior, restart negotiations with COLLECT, note we must mark ourselves as
+         * not the leader (as has been done above) because having re-established leadership we must perform recovery and
+         * then attempt to submit the client's value (if any) again.
          */
         _stage = COLLECT;
-        collect();
+        process();
     }
 
     private void collect() {
