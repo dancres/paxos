@@ -46,6 +46,9 @@ public class AcceptorLearner {
 
     private void updateLowWatermark(long aSeqNum) {
         synchronized(this) {
+            if (_lowSeqNumWatermark == LogStorage.EMPTY_LOG)
+                _lowSeqNumWatermark = -1;
+
             if ((_lowSeqNumWatermark + 1) == aSeqNum) {
                 _lowSeqNumWatermark = aSeqNum;
 
