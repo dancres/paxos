@@ -155,14 +155,13 @@ public class Leader implements MembershipListener {
             case EXIT : {
                 _logger.info("Exiting leader: " + _seqNum + " " + (_stage == EXIT));
 
-                _membership.dispose();
-
                 if (_stage == EXIT) {
                     _transport.send(new Ack(_seqNum), _clientAddress);
                 } else {
                     _transport.send(new Fail(_seqNum, _reason), _clientAddress);
                 }
 
+                _membership.dispose();
                 signalListeners();
 
                 return;

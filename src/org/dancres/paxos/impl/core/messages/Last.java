@@ -7,6 +7,13 @@ public class Last implements PaxosMessage {
     private long _rndNumber;
     private byte[] _value;
 
+    /**
+     * @param aSeqNum is the sequence number received in the related collect
+     * @param aLowWatermark is the last contiguous sequence number seen
+     * @param aHighWatermark is the most recent sequence number seen
+     * @param aMostRecentRound is the most recent leader round seen
+     * @param aValue is the value, if any, associated with the sequence number of the related collect
+     */
     public Last(long aSeqNum, long aLowWatermark, long aHighWatermark, long aMostRecentRound, byte[] aValue) {
         _seqNum = aSeqNum;
         _low = aLowWatermark;
@@ -19,22 +26,37 @@ public class Last implements PaxosMessage {
         return Operations.LAST;
     }
 
+    /**
+     * @return the value associated with the sequence number returned by <code>getSeqNum</code>
+     */
     public byte[] getValue() {
         return _value;
     }
 
+    /**
+     * @return the most recent leader round seen
+     */
     public long getRndNumber() {
         return _rndNumber;
     }
 
+    /**
+     * @return the most recent sequence number seen
+     */
     public long getHighWatermark() {
         return _high;
     }
 
+    /**
+     * @return the last contiguous sequence number seen
+     */
     public long getLowWatermark() {
         return _low;
     }
 
+    /**
+     * @return the sequence number received in the related collect
+     */
     public long getSeqNum() {
         return _seqNum;
     }
