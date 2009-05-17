@@ -59,6 +59,7 @@ public class Leader implements MembershipListener {
      */
     private boolean _isLeader = false;
 
+    private Post _clientPost;
     private byte[] _value;
     private Address _clientAddress;
 
@@ -153,7 +154,7 @@ public class Leader implements MembershipListener {
         switch(_stage) {
             case ABORT :
             case EXIT : {
-                _logger.info("Exiting leader: " + _seqNum + " " + (_stage == EXIT));
+                _logger.info("Exiting leader: " + Long.toHexString(_seqNum) + " " + (_stage == EXIT));
 
                 if (_stage == EXIT) {
                     _transport.send(new Ack(_seqNum), _clientAddress);
@@ -168,8 +169,17 @@ public class Leader implements MembershipListener {
             }
 
             case COLLECT : {
-                collect();
-                _stage = BEGIN;
+                _value = _clientPost.getValue();
+
+                if (isLeader()) {
+                    _logger.info("Skipping collect phase - we're leader already");
+                    _stage = BEGIN;
+                    process();
+                } else {
+                    collect();
+                    _stage = BEGIN;
+                }
+
                 break;
             }
 
@@ -205,7 +215,7 @@ public class Leader implements MembershipListener {
                 _value = myValue;
 
                 if (_seqNum == LogStorage.EMPTY_LOG) {
-                    // Setup BEGIN (which always increments _seqNum) to start at sequence = 0
+                    // Setup for begin() (which always increments _seqNum) to start at sequence = 0
                     //
                     _seqNum = -1;
                 }
@@ -294,7 +304,7 @@ public class Leader implements MembershipListener {
 
         startInteraction();
 
-        _logger.info("Leader sending collect: " + _seqNum);
+        _logger.info("Leader sending collect: " + Long.toHexString(_seqNum));
 
         _transport.send(myMessage, Address.BROADCAST);
     }
@@ -306,7 +316,7 @@ public class Leader implements MembershipListener {
 
         startInteraction();
 
-        _logger.info("Leader sending begin: " + _seqNum);
+        _logger.info("Leader sending begin: " + Long.toHexString(_seqNum));
 
         _transport.send(myMessage, Address.BROADCAST);
     }
@@ -318,7 +328,7 @@ public class Leader implements MembershipListener {
 
         startInteraction();
 
-        _logger.info("Leader sending success: " + _seqNum);
+        _logger.info("Leader sending success: " + Long.toHexString(_seqNum));
 
         _transport.send(myMessage, Address.BROADCAST);
     }
@@ -334,7 +344,7 @@ public class Leader implements MembershipListener {
      * @todo If we get ABORT, we could try a new round from scratch or make the client re-submit or .....
      */
     public void abort() {
-        _logger.info("Membership requested abort: " + _seqNum);
+        _logger.info("Membership requested abort: " + Long.toHexString(_seqNum));
 
         _activeAlarm.cancel();
 
@@ -354,7 +364,7 @@ public class Leader implements MembershipListener {
     }
 
     private void expired() {
-        _logger.info("Watchdog requested abort: " + _seqNum);
+        _logger.info("Watchdog requested abort: " + Long.toHexString(_seqNum));
 
         synchronized(this) {
             _stage = ABORT;
@@ -368,7 +378,7 @@ public class Leader implements MembershipListener {
      * previous BEGIN and thus we'll have left a gap.
      * @todo Modify collect to complete recovery leaving _seqNum at the last recovered sequence number because begin will need to increment it
      * 
-     * @return BUSY if the state machine is already executing a client request otherwise CONTINUE.
+     * @return BUSY if the state machine is not ready to process a request.
      */
     public int messageReceived(PaxosMessage aMessage, Address anAddress) {
         _logger.info("Leader received message: " + aMessage);
@@ -381,21 +391,18 @@ public class Leader implements MembershipListener {
                     return BUSY;
                 }
 
-                _value = myPost.getValue();
+                _clientPost = myPost;
                 _clientAddress = anAddress;
 
-                _logger.info("Initialising leader: " + _seqNum);
+                _logger.info("Initialising leader: " + Long.toHexString(_seqNum));
 
-                if (isLeader()) {
-                    _stage = BEGIN;
-                } else {
-                    _stage = COLLECT;
-                }
+                // Collect will decide if it can skip straight to a begin
+                //
+                _stage = COLLECT;
 
-                // Send a collect message
                 _membership = _detector.getMembers(this);
 
-                _logger.info("Got membership for leader: " + _seqNum + ", (" + _membership.getSize() + ")");
+                _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" + _membership.getSize() + ")");
 
                 process();
             }
@@ -405,7 +412,7 @@ public class Leader implements MembershipListener {
                     _messages.add(aMessage);
                     _membership.receivedResponse(anAddress);
                 } else {
-                    _logger.warn("Out of date message received: " + aMessage.getSeqNum() + " (" + _seqNum + ")");
+                    _logger.warn("Out of date message received: " + aMessage.getSeqNum() + " (" + Long.toHexString(_seqNum) + ")");
                 }
             }
         }
