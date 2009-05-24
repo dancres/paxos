@@ -30,6 +30,7 @@ public class Leader implements MembershipListener {
     private static final int SUCCESS = 2;
     private static final int EXIT = 3;
     private static final int ABORT = 4;
+    private static final int RECOVER = 5;
 
     /**
      * Indicates the Leader is not ready to process the passed message and the caller should retry.
@@ -59,6 +60,14 @@ public class Leader implements MembershipListener {
      * protocol execution will still be correct.
      */
     private boolean _isLeader = false;
+
+    /**
+     * When in recovery mode we perform collect for each sequence number in the recovery range
+     */
+    private boolean _isRecovery = false;
+
+    private long _lowWatermark;
+    private long _highWatermark;
 
     /**
      * Maintains the current client request. The actual sequence number and value the state machine operates on are held in
@@ -118,6 +127,24 @@ public class Leader implements MembershipListener {
         }
     }
 
+    private boolean isRecovery() {
+        synchronized(this) {
+            return _isRecovery;
+        }
+    }
+
+    private void amRecovery() {
+        synchronized(this) {
+            _isRecovery = true;
+        }
+    }
+
+    private void notRecovery() {
+        synchronized(this) {
+            _isRecovery = false;
+        }
+    }
+
     private boolean isLeader() {
         synchronized(this) {
             return _isLeader;
@@ -150,9 +177,7 @@ public class Leader implements MembershipListener {
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we process the
      * result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state we expect ACCEPT or OLDROUND
      *
-     * @todo Check Last messages to compute minimum low and maximum high watermarks, then use them to perform recovery
-     * @todo Ensure during recovery that BEGIN doesn't screw up the sequence number - perhaps during recovery prevent BEGIN from doing
-     * sequence number increments
+     * @todo Leader at point of recovery ought to source its initial sequence number from the acceptor learner
      * @todo Handle all cases in SUCCEESS e.g. we don't properly process/wait for all Acks
      */
     private void process() {
@@ -174,22 +199,98 @@ public class Leader implements MembershipListener {
             }
 
             case COLLECT : {
-                _value = _clientPost.getValue();
+                if ((! isLeader()) && (! isRecovery())) {
+                    // Possibility we're starting from scratch
+                    //
+                    if (_seqNum == LogStorage.EMPTY_LOG)
+                        _seqNum = 0;
 
-                if (_seqNum == LogStorage.EMPTY_LOG) {
-                    _seqNum = 0;
-                } else {
+                    _stage = RECOVER;
+                    collect();
+
+                } else if (isRecovery()) {
+                    _value = LogStorage.NO_VALUE;
                     ++_seqNum;
-                }
 
-                if (isLeader()) {
+                    if (_seqNum > _highWatermark) {
+                        // Recovery is complete
+                        //
+                        notRecovery();
+                        amLeader();
+
+                        _logger.info("Recovery complete - we're leader doing begin with client value");
+
+                        _value = _clientPost.getValue();
+                        _stage = BEGIN;
+                        process();
+
+                    } else {
+                        _stage = BEGIN;
+                        collect();
+                    }
+
+                } else if (isLeader()) {
                     _logger.info("Skipping collect phase - we're leader already");
+
+                    _value = _clientPost.getValue();
+                    ++_seqNum;
+
                     _stage = BEGIN;
                     process();
-                } else {
-                    collect();
-                    _stage = BEGIN;
                 }
+
+                break;
+            }
+
+            case RECOVER : {
+                // Compute low and high watermarks
+                //
+                long myMinSeq = -1;
+                long myMaxSeq = -1;
+
+                Iterator<PaxosMessage> myMessages = _messages.iterator();
+
+                while (myMessages.hasNext()) {
+                    PaxosMessage myMessage = myMessages.next();
+
+                    if (myMessage.getType() == Operations.OLDROUND) {
+                        oldRound(myMessage);
+                        return;
+                    } else {
+                        Last myLast = (Last) myMessage;
+
+                        long myLow = myLast.getLowWatermark();
+                        long myHigh = myLast.getHighWatermark();
+
+                        if (myLow != LogStorage.EMPTY_LOG) {
+                            if (myLow < myMinSeq)
+                                myMinSeq = myLow;
+                        }
+
+                        if (myHigh != LogStorage.EMPTY_LOG) {
+                            if (myHigh > myMaxSeq) {
+                                myMaxSeq = myHigh;
+                            }
+                        }
+                    }
+                }
+
+                amRecovery();
+
+                _lowWatermark = myMinSeq;
+                _highWatermark = myMaxSeq;
+
+                // Collect always increments the sequence number so we must allow for that when figuring out where to start from low watermark
+                //
+                if (_lowWatermark == -1)
+                    _seqNum = -1;
+                else
+                    _seqNum = _lowWatermark - 1;
+
+                _logger.info("Recovery started: " + _lowWatermark + " ->" + _highWatermark + " (" + _seqNum + ") ");
+
+                _stage = COLLECT;
+                process();
 
                 break;
             }
@@ -222,7 +323,6 @@ public class Leader implements MembershipListener {
                     }
                 }
 
-                amLeader();
                 _value = myValue;
 
                 begin();
@@ -272,22 +372,14 @@ public class Leader implements MembershipListener {
     }
 
     /**
-     * @todo We may get oldround after we've sent begin and got some accepts, in such a case we need collect to know that we
-     * were interrupted and the client value has already been submitted and thus doesn't need to be re-run post recovery. Note that any
-     * competing leader will first do a collect to increment the round number, it will not yet have proposed a value for a sequence number.
-     * Thus if we've received an accept from some node, it has yet to see the new leader and when it does see the leader will return the value
-     * we've proposed together with our round number.  Further if we've reached acceptance with our round number, ultimately our value will
-     * be used as recovery dictates the value from the highest previous round for a sequence number will be used by the leader.  We have one issue
-     * where some acceptor/learner did accept but we didn't get the message and thus can't tell the client value was processed.  What to do?
-     * 
      * @param aMessage is an OldRound message received from some other node
      */
     private void oldRound(PaxosMessage aMessage) {
+        failed();
+
         OldRound myOldRound = (OldRound) aMessage;
 
         long myCompetingNodeId = myOldRound.getNodeId();
-
-        notLeader();
 
         /*
          * Some other node is active, we should abort if they are the leader by virtue of a larger nodeId
@@ -311,6 +403,15 @@ public class Leader implements MembershipListener {
          */
         _stage = COLLECT;
         process();
+    }
+
+    /**
+     * If we timed out or lost membership, we're potentially no longer leader and need to run recovery to get back to the right
+     * sequence number.
+     */
+    private void failed() {
+        notLeader();
+        notRecovery();
     }
 
     private void collect() {
@@ -363,10 +464,23 @@ public class Leader implements MembershipListener {
         _logger.info("Membership requested abort: " + Long.toHexString(_seqNum));
 
         _activeAlarm.cancel();
+        failed();
 
         synchronized(this) {
             _stage = ABORT;
             _reason = Reasons.BAD_MEMBERSHIP;
+            process();
+        }
+    }
+
+    private void expired() {
+        _logger.info("Watchdog requested abort: " + Long.toHexString(_seqNum));
+
+        failed();
+
+        synchronized(this) {
+            _stage = ABORT;
+            _reason = Reasons.VOTE_TIMEOUT;
             process();
         }
     }
@@ -379,21 +493,7 @@ public class Leader implements MembershipListener {
         }
     }
 
-    private void expired() {
-        _logger.info("Watchdog requested abort: " + Long.toHexString(_seqNum));
-
-        synchronized(this) {
-            _stage = ABORT;
-            _reason = Reasons.VOTE_TIMEOUT;
-            process();
-        }
-    }
-
     /**
-     * @todo If we timeout and the client wants to retry, what to do with the sequence number?  It'll have been potentially incremented by the
-     * previous BEGIN and thus we'll have left a gap.
-     * @todo Modify collect to complete recovery leaving _seqNum at the last recovered sequence number because begin will need to increment it
-     * 
      * @return BUSY if the state machine is not ready to process a request.
      */
     public int messageReceived(PaxosMessage aMessage, Address anAddress) {

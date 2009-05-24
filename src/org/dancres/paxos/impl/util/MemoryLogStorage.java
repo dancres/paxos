@@ -13,9 +13,14 @@ public class MemoryLogStorage implements LogStorage {
 
     public byte[] get(long aSeqNum) {
         if (aSeqNum == LogStorage.EMPTY_LOG)
-            return new byte[0];
-        else
-            return _log.get(new Long(aSeqNum));
+            return LogStorage.NO_VALUE;
+        else {
+            byte[] myResult = _log.get(new Long(aSeqNum));
+            if (myResult == null)
+                return LogStorage.NO_VALUE;
+            else
+                return myResult;
+        }
     }
 
     public void put(long aSeqNum, byte[] aValue) {
