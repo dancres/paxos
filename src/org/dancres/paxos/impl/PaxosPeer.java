@@ -22,8 +22,10 @@ import org.slf4j.Logger;
 
 import java.net.InetSocketAddress;
 
+import org.dancres.paxos.impl.core.AcceptorLearner;
 import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.io.mina.TransportImpl;
+import org.dancres.paxos.impl.util.MemoryLogStorage;
 
 public class PaxosPeer {
     private static Logger _logger = LoggerFactory.getLogger(PaxosPeer.class);
@@ -54,7 +56,9 @@ public class PaxosPeer {
         myPropUnicast.getFilterChain().addLast("protocol",
                 new ProtocolCodecFilter(new PaxosCodecFactory()));
 
-        AcceptorLearnerAdapter myAccLearn = new AcceptorLearnerAdapter(myPropUnicast);
+        AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage());
+
+        AcceptorLearnerAdapter myAccLearn = new AcceptorLearnerAdapter(myPropUnicast, myAl);
         myPropUnicast.setHandler(myAccLearn);
         DatagramAcceptor myPropBcast = new NioDatagramAcceptor();
         myPropBcast.setHandler(myAccLearn);
@@ -101,7 +105,7 @@ public class PaxosPeer {
         myUnicastChannel.bind(myAddr);
         _logger.info("PaxosPeer bound on port: " + myUnicastChannel.getLocalAddress());
 
-        myProposer.init(myBroadcastSession, myDetectorAdapter.getDetector(), myUnicastChannel.getLocalAddress());
+        myProposer.init(myBroadcastSession, myDetectorAdapter.getDetector(), myUnicastChannel.getLocalAddress(), myAl);
 
         /*
         _logger.info("Paxos Name: " + flatten(myClientUnicast.getLocalAddress().getAddress()));

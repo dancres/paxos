@@ -1,5 +1,8 @@
 package org.dancres.paxos.impl.core;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import org.dancres.paxos.impl.core.messages.Accept;
 import org.dancres.paxos.impl.core.messages.Ack;
 import org.dancres.paxos.impl.core.messages.Begin;
@@ -36,8 +39,23 @@ public class AcceptorLearner {
      */
     private long _highSeqNumWatermark = LogStorage.EMPTY_LOG;
 
+    private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
+
+
     public AcceptorLearner(LogStorage aStore) {
         _storage = aStore;
+    }
+
+    public void add(AcceptorLearnerListener aListener) {
+        synchronized(_listeners) {
+            _listeners.add(aListener);
+        }
+    }
+
+    public void remove(AcceptorLearnerListener aListener) {
+        synchronized(_listeners) {
+            _listeners.remove(aListener);
+        }
     }
 
     private LogStorage getStorage() {
@@ -163,10 +181,27 @@ public class AcceptorLearner {
                 getStorage().put(mySeqNum, mySuccess.getValue());
                 updateLowWatermark(mySuccess.getSeqNum());
                 updateHighWatermark(mySuccess.getSeqNum());
+
+                signal(new Completion(Reasons.OK, mySuccess.getSeqNum(), mySuccess.getValue()));
+
                 return new Ack(mySuccess.getSeqNum());
             }
 
             default : throw new RuntimeException("Unexpected message");
+        }
+    }
+
+    void signal(Completion aStatus) {
+        List myListeners;
+
+        synchronized(_listeners) {
+            myListeners = new ArrayList(_listeners);
+        }
+
+        Iterator<AcceptorLearnerListener> myTargets = myListeners.iterator();
+
+        while (myTargets.hasNext()) {
+            myTargets.next().done(aStatus);
         }
     }
 }

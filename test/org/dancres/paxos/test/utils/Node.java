@@ -2,8 +2,14 @@ package org.dancres.paxos.test.utils;
 
 import java.net.InetSocketAddress;
 import org.dancres.paxos.impl.core.AcceptorLearner;
+import org.dancres.paxos.impl.core.AcceptorLearnerListener;
+import org.dancres.paxos.impl.core.Address;
+import org.dancres.paxos.impl.core.Completion;
 import org.dancres.paxos.impl.core.Leader;
+import org.dancres.paxos.impl.core.Reasons;
 import org.dancres.paxos.impl.core.Transport;
+import org.dancres.paxos.impl.core.messages.Ack;
+import org.dancres.paxos.impl.core.messages.Fail;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.ProposerPacket;
@@ -24,6 +30,7 @@ public class Node implements PacketListener {
 
     private static Logger _logger = LoggerFactory.getLogger(Node.class);
 
+    private Address _clientAddress;
     private InetSocketAddress _addr;
     private AcceptorLearner _al;
     private Leader _ld;
@@ -43,8 +50,9 @@ public class Node implements PacketListener {
         _hb = new Heartbeater(_tp);
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
         _al = new AcceptorLearner(new MemoryLogStorage());
-        _ld = new Leader(_fd, NodeId.from(_addr), _tp);
+        _ld = new Leader(_fd, NodeId.from(_addr), _tp, _al);
         _pq = new PacketQueueImpl(this);
+        _al.add(new PacketBridge());
     }
 
     public void startup() {
@@ -57,6 +65,9 @@ public class Node implements PacketListener {
         return _pq;
     }
 
+    /**
+     * @todo Remove the ugly hack
+     */
     public void deliver(Packet aPacket) throws Exception {
         PaxosMessage myMessage = aPacket.getMsg();
 
@@ -64,6 +75,14 @@ public class Node implements PacketListener {
             case Heartbeat.TYPE: {
                 _fd.processMessage(myMessage, aPacket.getSender());
 
+                break;
+            }
+
+            // UGLY HACK!!!
+            //
+            case Operations.POST : {
+                _clientAddress = aPacket.getSender();
+                _ld.messageReceived(myMessage, aPacket.getSender());
                 break;
             }
 
@@ -99,5 +118,19 @@ public class Node implements PacketListener {
 
     public Leader getLeader() {
         return _ld;
+    }
+
+    /**
+     * @todo Remove this ugly hack once we do handbacks etc
+     */
+    class PacketBridge implements AcceptorLearnerListener {
+
+        public void done(Completion aCompletion) {
+            if (aCompletion.getResult() == Reasons.OK) {
+                _tp.send(new Ack(aCompletion.getSeqNum()), _clientAddress);
+            } else {
+                _tp.send(new Fail(aCompletion.getSeqNum(), aCompletion.getResult()), _clientAddress);
+            }
+        }
     }
 }

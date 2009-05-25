@@ -47,8 +47,7 @@ public class Leader implements MembershipListener {
     private final FailureDetector _detector;
     private final long _nodeId;
     private final Transport _transport;
-
-    private final List<LeaderListener> _listeners = new ArrayList<LeaderListener>();
+    private final AcceptorLearner _al;
 
     private long _seqNum = LogStorage.EMPTY_LOG;
     private long _rndNumber = 0;
@@ -96,23 +95,12 @@ public class Leader implements MembershipListener {
      * @param aTransport is the transport to use for messages
      * @param aClientAddress is the endpoint for the client
      */
-    public Leader(FailureDetector aDetector, long aNodeId, Transport aTransport) {
+    public Leader(FailureDetector aDetector, long aNodeId, Transport aTransport, AcceptorLearner anAcceptorLearner) {
         _nodeId = aNodeId;
         _detector = aDetector;
         _transport = aTransport;
         _watchdogTimeout = _detector.getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
-    }
-
-    public void add(LeaderListener aListener) {
-        synchronized(_listeners) {
-            _listeners.add(aListener);
-        }
-    }
-
-    public void remove(LeaderListener aListener) {
-        synchronized(_listeners) {
-            _listeners.remove(aListener);
-        }
+        _al = anAcceptorLearner;
     }
 
     private long newRndNumber() {
@@ -186,14 +174,13 @@ public class Leader implements MembershipListener {
             case EXIT : {
                 _logger.info("Exiting leader: " + Long.toHexString(_seqNum) + " " + (_stage == EXIT));
 
-                if (_stage == EXIT) {
-                    _transport.send(new Ack(_seqNum), _clientAddress);
-                } else {
-                    _transport.send(new Fail(_seqNum, _reason), _clientAddress);
-                }
-
                 _membership.dispose();
-                signalListeners();
+
+                // Acceptor/learner generates events for successful negotiation itself, we generate failures
+                //
+                if (_stage != EXIT) {
+                    _al.signal(new Completion(_reason, _seqNum, _value));
+                }
 
                 return;
             }
@@ -545,16 +532,5 @@ public class Leader implements MembershipListener {
     }
 
     private void signalListeners() {
-        List myListeners;
-
-        synchronized(_listeners) {
-            myListeners = new ArrayList(_listeners);
-        }
-
-        Iterator<LeaderListener> myTargets = myListeners.iterator();
-
-        while (myTargets.hasNext()) {
-            myTargets.next().ready();
-        }
     }
 }

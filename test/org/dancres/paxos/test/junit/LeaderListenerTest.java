@@ -2,7 +2,8 @@ package org.dancres.paxos.test.junit;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import org.dancres.paxos.impl.core.LeaderListener;
+import org.dancres.paxos.impl.core.AcceptorLearnerListener;
+import org.dancres.paxos.impl.core.Completion;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.core.messages.Post;
@@ -73,7 +74,7 @@ public class LeaderListenerTest {
 
         FailureDetectorImpl myFd = _node1.getFailureDetector();
         ListenerImpl myListener = new ListenerImpl();
-        _node1.getLeader().add(myListener);
+        _node1.getAcceptorLearner().add(myListener);
 
         int myChances = 0;
 
@@ -107,18 +108,18 @@ public class LeaderListenerTest {
         Assert.assertTrue(myListener.testCount(5));
     }
 
-    private class ListenerImpl implements LeaderListener {
+    private class ListenerImpl implements AcceptorLearnerListener {
         private int _readyCount = 0;
-
-        public void ready() {
-            synchronized(this) {
-                ++_readyCount;
-            }
-        }
 
         boolean testCount(int aCount) {
             synchronized(this) {
                 return _readyCount == aCount;
+            }
+        }
+
+        public void done(Completion aCompletion) {
+            synchronized(this) {
+                ++_readyCount;
             }
         }
     }

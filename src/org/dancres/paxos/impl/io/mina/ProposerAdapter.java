@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import org.dancres.paxos.impl.core.AcceptorLearner;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.impl.util.NodeId;
@@ -36,9 +37,9 @@ public class ProposerAdapter extends IoHandlerAdapter {
      * @param aDetector is the failure detector to use for membership management etc
      * @param anAddress is the endpoint (address and port) for this node
      */
-    public void init(IoSession aSession, FailureDetectorImpl aDetector, InetSocketAddress anAddress) {
+    public void init(IoSession aSession, FailureDetectorImpl aDetector, InetSocketAddress anAddress, AcceptorLearner anAl) {
         _transport = new TransportImpl(anAddress, aSession);
-        _leader = new Leader(aDetector, NodeId.from(anAddress), _transport);
+        _leader = new Leader(aDetector, NodeId.from(anAddress), _transport, anAl);
     }
 
     public void exceptionCaught(org.apache.mina.common.IoSession aSession,

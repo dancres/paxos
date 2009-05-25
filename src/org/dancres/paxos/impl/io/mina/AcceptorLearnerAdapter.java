@@ -16,9 +16,9 @@ public class AcceptorLearnerAdapter implements IoHandler {
     private DatagramConnector _propUnicast;
     private AcceptorLearner _acceptorLearner;
 
-    public AcceptorLearnerAdapter(DatagramConnector aPropUnicast) {
+    public AcceptorLearnerAdapter(DatagramConnector aPropUnicast, AcceptorLearner anAl) {
         _propUnicast = aPropUnicast;
-        _acceptorLearner = new AcceptorLearner(new MemoryLogStorage());
+        _acceptorLearner = anAl;
     }
 
     public void sessionCreated(IoSession ioSession) throws Exception {
