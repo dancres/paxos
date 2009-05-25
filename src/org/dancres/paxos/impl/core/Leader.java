@@ -74,7 +74,6 @@ public class Leader implements MembershipListener {
      * the client request and move it into the operating variables once recovery is complete.
      */
     private Post _clientPost;
-    private Address _clientAddress;
 
     private TimerTask _activeAlarm;
 
@@ -172,7 +171,10 @@ public class Leader implements MembershipListener {
         switch(_stage) {
             case ABORT :
             case EXIT : {
-                _logger.info("Exiting leader: " + Long.toHexString(_seqNum) + " " + (_stage == EXIT));
+                if (_stage == EXIT)
+                    _logger.info("Leader reached good completion: " + Long.toHexString(_seqNum));
+                else
+                    _logger.info("Leader reached bad completion: " + Long.toHexString(_seqNum) + " " + _reason);
 
                 _membership.dispose();
 
@@ -495,7 +497,6 @@ public class Leader implements MembershipListener {
                 }
 
                 _clientPost = myPost;
-                _clientAddress = anAddress;
 
                 _logger.info("Initialising leader: " + Long.toHexString(_seqNum));
 
