@@ -1,5 +1,6 @@
-package org.dancres.paxos.impl;
+package org.dancres.paxos.impl.io.mina;
 
+import org.dancres.paxos.impl.*;
 import org.apache.mina.transport.socket.DatagramAcceptor;
 import org.apache.mina.transport.socket.DatagramSessionConfig;
 import org.apache.mina.transport.socket.DatagramConnector;
