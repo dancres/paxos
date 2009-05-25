@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.io.mina;
+package org.dancres.paxos.impl.mina.io;
 
 public interface ClientMessage {
     public int getType();

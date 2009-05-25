@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.codec;
+package org.dancres.paxos.impl.mina.codec;
 
 import org.apache.mina.filter.codec.ProtocolCodecFactory;
 import org.apache.mina.filter.codec.ProtocolEncoder;

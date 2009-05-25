@@ -5,8 +5,8 @@ import org.apache.mina.transport.socket.nio.NioDatagramConnector;
 import org.apache.mina.common.*;
 import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
-import org.dancres.paxos.impl.codec.PaxosCodecFactory;
-import org.dancres.paxos.impl.io.mina.Post;
+import org.dancres.paxos.impl.mina.codec.PaxosCodecFactory;
+import org.dancres.paxos.impl.mina.io.Post;
 
 import java.net.InetSocketAddress;
 

@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.codec;
+package org.dancres.paxos.impl.mina.codec;
 
 import org.apache.mina.common.IoBuffer;
 import org.dancres.paxos.impl.core.messages.Fail;

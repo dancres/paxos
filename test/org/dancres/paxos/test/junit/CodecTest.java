@@ -1,8 +1,8 @@
 package org.dancres.paxos.test.junit;
 
 import org.apache.mina.common.IoBuffer;
-import org.dancres.paxos.impl.codec.Codec;
-import org.dancres.paxos.impl.codec.Codecs;
+import org.dancres.paxos.impl.mina.codec.Codec;
+import org.dancres.paxos.impl.mina.codec.Codecs;
 import org.dancres.paxos.impl.core.messages.Accept;
 import org.dancres.paxos.impl.core.messages.Ack;
 import org.dancres.paxos.impl.core.messages.Begin;
@@ -12,10 +12,10 @@ import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.core.messages.Last;
 import org.dancres.paxos.impl.core.messages.OldRound;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.io.mina.Post;
-import org.dancres.paxos.impl.io.mina.ProposerHeader;
+import org.dancres.paxos.impl.mina.io.Post;
+import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.impl.core.messages.Success;
-import org.dancres.paxos.impl.io.mina.ClientMessage;
+import org.dancres.paxos.impl.mina.io.ClientMessage;
 import org.junit.*;
 import org.junit.Assert.*;
 

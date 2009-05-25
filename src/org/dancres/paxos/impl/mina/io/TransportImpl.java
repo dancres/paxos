@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.io.mina;
+package org.dancres.paxos.impl.mina.io;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
@@ -7,7 +7,7 @@ import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.core.Transport;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.io.mina.ProposerHeader;
+import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.impl.util.AddressImpl;
 
 public class TransportImpl implements Transport {

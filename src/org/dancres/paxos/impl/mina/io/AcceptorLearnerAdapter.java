@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.io.mina;
+package org.dancres.paxos.impl.mina.io;
 
 import org.apache.mina.common.*;
 import org.apache.mina.transport.socket.DatagramConnector;

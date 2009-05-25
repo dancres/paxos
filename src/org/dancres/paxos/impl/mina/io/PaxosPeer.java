@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.io.mina;
+package org.dancres.paxos.impl.mina.io;
 
 import org.dancres.paxos.impl.*;
 import org.apache.mina.transport.socket.DatagramAcceptor;
@@ -12,10 +12,10 @@ import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.common.ConnectFuture;
 import org.apache.mina.common.IoEventType;
 import org.apache.mina.common.IoSession;
-import org.dancres.paxos.impl.io.mina.AcceptorLearnerAdapter;
-import org.dancres.paxos.impl.codec.PaxosCodecFactory;
-import org.dancres.paxos.impl.io.mina.ProposerAdapter;
-import org.dancres.paxos.impl.io.mina.FailureDetectorAdapter;
+import org.dancres.paxos.impl.mina.io.AcceptorLearnerAdapter;
+import org.dancres.paxos.impl.mina.codec.PaxosCodecFactory;
+import org.dancres.paxos.impl.mina.io.ProposerAdapter;
+import org.dancres.paxos.impl.mina.io.FailureDetectorAdapter;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.faildet.LivenessListener;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,7 @@ import java.net.InetSocketAddress;
 
 import org.dancres.paxos.impl.core.AcceptorLearner;
 import org.dancres.paxos.impl.core.Address;
-import org.dancres.paxos.impl.io.mina.TransportImpl;
+import org.dancres.paxos.impl.mina.io.TransportImpl;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 
 public class PaxosPeer {

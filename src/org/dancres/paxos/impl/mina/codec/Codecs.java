@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.codec;
+package org.dancres.paxos.impl.mina.codec;
 
 public class Codecs {
     public static final Codec[] CODECS = new Codec[] {
