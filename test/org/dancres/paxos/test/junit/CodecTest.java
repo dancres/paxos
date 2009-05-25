@@ -15,20 +15,12 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.Post;
 import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.messages.Success;
-import org.dancres.paxos.impl.mina.io.ClientMessage;
 import org.junit.*;
 import org.junit.Assert.*;
 
 public class CodecTest {
 
     private byte[] encode(PaxosMessage aMessage) {
-        int myType = aMessage.getType();
-        Codec myCodec = Codecs.CODECS[myType];
-
-        return myCodec.encode(aMessage).array();
-    }
-
-    private byte[] encode(ClientMessage aMessage) {
         int myType = aMessage.getType();
         Codec myCodec = Codecs.CODECS[myType];
 
