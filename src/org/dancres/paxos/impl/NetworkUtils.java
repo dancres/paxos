@@ -2,7 +2,6 @@ package org.dancres.paxos.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.mina.common.IoBuffer;
 
 import java.net.*;
 import java.util.*;
@@ -145,17 +144,5 @@ public class NetworkUtils {
 
     public static int getAddressSize() {
         return 4;
-    }
-
-    public static IoBuffer encode(InetSocketAddress anAddress, IoBuffer aBuffer) {
-        aBuffer.putInt(anAddress.getPort());
-
-        return aBuffer;
-    }
-
-    public static InetSocketAddress decode(IoBuffer aBuffer) throws UnknownHostException {
-        int myPort = aBuffer.getInt();
-
-        return new InetSocketAddress(_workableAddress, myPort);
     }
 }
