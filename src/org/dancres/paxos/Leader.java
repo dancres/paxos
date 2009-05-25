@@ -25,6 +25,9 @@ public class Leader implements MembershipListener {
      */
     private static final long FAILURE_DETECTOR_GRACE_PERIOD = 2000;
 
+    /*
+     * Internal states
+     */
     private static final int COLLECT = 0;
     private static final int BEGIN = 1;
     private static final int SUCCESS = 2;
@@ -482,6 +485,12 @@ public class Leader implements MembershipListener {
         }
     }
 
+    /**
+     * Request a vote on a value.
+     *
+     * @param anOp is the value to attempt to agree upon
+     * @return BUSY if the state machine is already attempting to get a decision on some vote other ACCEPTED.
+     */
     public int submit(Operation anOp) {
         synchronized (this) {
             if ((_stage != ABORT) && (_stage != EXIT)) {
@@ -506,6 +515,12 @@ public class Leader implements MembershipListener {
         return ACCEPTED;
     }
 
+    /**
+     * Used to process all core paxos protocol messages.
+     *
+     * @param aMessage is a message from some acceptor/learner
+     * @param anAddress is the address from which the message was sent
+     */
     public void messageReceived(PaxosMessage aMessage, Address anAddress) {
         _logger.info("Leader received message: " + aMessage);
 
