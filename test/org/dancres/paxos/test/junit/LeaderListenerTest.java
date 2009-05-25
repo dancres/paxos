@@ -6,7 +6,7 @@ import org.dancres.paxos.impl.core.AcceptorLearnerListener;
 import org.dancres.paxos.impl.core.Completion;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.Post;
+import org.dancres.paxos.impl.io.mina.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.test.utils.AddressGenerator;

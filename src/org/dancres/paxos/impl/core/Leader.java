@@ -40,7 +40,7 @@ public class Leader implements MembershipListener {
     /**
      * Indicates the Leader has accepted the message and is waiting for further messages.
      */
-    public static final int CONTINUE = 257;
+    public static final int ACCEPTED = 257;
 
     private final Timer _watchdog = new Timer("Leader watchdog");
     private final long _watchdogTimeout;
@@ -73,7 +73,7 @@ public class Leader implements MembershipListener {
      * <code>_seqNum</code> and <code>_value</code> and during recovery will not be the same as the client request.  Thus we cache
      * the client request and move it into the operating variables once recovery is complete.
      */
-    private Post _clientPost;
+    private Operation _clientOp;
 
     private TimerTask _activeAlarm;
 
@@ -209,7 +209,7 @@ public class Leader implements MembershipListener {
 
                         _logger.info("Recovery complete - we're leader doing begin with client value");
 
-                        _value = _clientPost.getValue();
+                        _value = _clientOp.getValue();
                         _stage = BEGIN;
                         process();
 
@@ -221,7 +221,7 @@ public class Leader implements MembershipListener {
                 } else if (isLeader()) {
                     _logger.info("Skipping collect phase - we're leader already");
 
-                    _value = _clientPost.getValue();
+                    _value = _clientOp.getValue();
                     ++_seqNum;
 
                     _stage = BEGIN;
@@ -482,56 +482,48 @@ public class Leader implements MembershipListener {
         }
     }
 
-    /**
-     * @return BUSY if the state machine is not ready to process a request.
-     */
-    public int messageReceived(PaxosMessage aMessage, Address anAddress) {
+    public int submit(Operation anOp) {
+        synchronized (this) {
+            if ((_stage != ABORT) && (_stage != EXIT)) {
+                return BUSY;
+            }
+
+            _clientOp = anOp;
+
+            _logger.info("Initialising leader: " + Long.toHexString(_seqNum));
+
+            // Collect will decide if it can skip straight to a begin
+            //
+            _stage = COLLECT;
+
+            _membership = _detector.getMembers(this);
+
+            _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" + _membership.getSize() + ")");
+
+            process();
+        }
+
+        return ACCEPTED;
+    }
+
+    public void messageReceived(PaxosMessage aMessage, Address anAddress) {
         _logger.info("Leader received message: " + aMessage);
 
-        if (aMessage.getType() == Operations.POST) {
-            Post myPost = (Post) aMessage;
-
-            synchronized(this) {
-                if ((_stage != ABORT) && (_stage != EXIT)) {
-                    return BUSY;
-                }
-
-                _clientPost = myPost;
-
-                _logger.info("Initialising leader: " + Long.toHexString(_seqNum));
-
-                // Collect will decide if it can skip straight to a begin
-                //
-                _stage = COLLECT;
-
-                _membership = _detector.getMembers(this);
-
-                _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" + _membership.getSize() + ")");
-
-                process();
-            }
-        } else {
-            synchronized(this) {
-                if (aMessage.getSeqNum() == _seqNum) {
-                    _messages.add(aMessage);
-                    _membership.receivedResponse(anAddress);
-                } else {
-                    _logger.warn("Out of date message received: " + aMessage.getSeqNum() + " (" + Long.toHexString(_seqNum) + ")");
-                }
+        synchronized (this) {
+            if (aMessage.getSeqNum() == _seqNum) {
+                _messages.add(aMessage);
+                _membership.receivedResponse(anAddress);
+            } else {
+                _logger.warn("Unexpected message received: " + aMessage.getSeqNum() + " (" + Long.toHexString(_seqNum) + ")");
             }
         }
 
         _logger.info("Leader processed message: " + aMessage);
-
-        return CONTINUE;
     }
 
     private class Alarm extends TimerTask {
         public void run() {
             expired();
         }
-    }
-
-    private void signalListeners() {
     }
 }

@@ -6,6 +6,7 @@ import org.dancres.paxos.impl.core.AcceptorLearnerListener;
 import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.core.Completion;
 import org.dancres.paxos.impl.core.Leader;
+import org.dancres.paxos.impl.core.Operation;
 import org.dancres.paxos.impl.core.Reasons;
 import org.dancres.paxos.impl.core.Transport;
 import org.dancres.paxos.impl.core.messages.Ack;
@@ -16,6 +17,7 @@ import org.dancres.paxos.impl.core.messages.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.faildet.Heartbeater;
+import org.dancres.paxos.impl.io.mina.Post;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 import org.dancres.paxos.impl.util.NodeId;
 import org.slf4j.Logger;
@@ -82,7 +84,7 @@ public class Node implements PacketListener {
             //
             case Operations.POST : {
                 _clientAddress = aPacket.getSender();
-                _ld.messageReceived(myMessage, aPacket.getSender());
+                _ld.submit(new Operation(((Post) myMessage).getValue()));
                 break;
             }
 

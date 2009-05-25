@@ -1,6 +1,16 @@
-package org.dancres.paxos.impl.core.messages;
+package org.dancres.paxos.impl.io.mina;
 
+import org.dancres.paxos.impl.core.messages.*;
+
+/**
+ * Post is passed across transports as a client request but is not a valid message for the leader state machine.  It is thus an instance of
+ * PaxosMessage to keep the comms stack clean and simple but cannot be considered a state machine message.
+ * 
+ * @author dan
+ */
 public class Post implements PaxosMessage {
+    public static final int TYPE = Operations.POST;
+
     private byte[] _value;
 
     public Post(byte[] aValue) {

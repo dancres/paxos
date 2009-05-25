@@ -9,7 +9,7 @@ import org.dancres.paxos.impl.core.messages.Fail;
 import org.dancres.paxos.impl.core.messages.OldRound;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.Post;
+import org.dancres.paxos.impl.io.mina.Post;
 import org.dancres.paxos.impl.core.messages.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;

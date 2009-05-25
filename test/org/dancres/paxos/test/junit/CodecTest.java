@@ -12,15 +12,23 @@ import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.core.messages.Last;
 import org.dancres.paxos.impl.core.messages.OldRound;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.Post;
+import org.dancres.paxos.impl.io.mina.Post;
 import org.dancres.paxos.impl.core.messages.ProposerHeader;
 import org.dancres.paxos.impl.core.messages.Success;
+import org.dancres.paxos.impl.io.mina.ClientMessage;
 import org.junit.*;
 import org.junit.Assert.*;
 
 public class CodecTest {
 
     private byte[] encode(PaxosMessage aMessage) {
+        int myType = aMessage.getType();
+        Codec myCodec = Codecs.CODECS[myType];
+
+        return myCodec.encode(aMessage).array();
+    }
+
+    private byte[] encode(ClientMessage aMessage) {
         int myType = aMessage.getType();
         Codec myCodec = Codecs.CODECS[myType];
 
