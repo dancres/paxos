@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
 public class Operation {
     private byte[] _value;

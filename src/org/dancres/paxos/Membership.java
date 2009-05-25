@@ -1,6 +1,6 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
-import org.dancres.paxos.impl.core.Address;
+import org.dancres.paxos.Address;
 
 /**
  * Represents a membership snapshot from a particular point in time which will be updated

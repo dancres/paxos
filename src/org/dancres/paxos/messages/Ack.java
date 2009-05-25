@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.core.messages;
+package org.dancres.paxos.messages;
 
 public class Ack implements PaxosMessage {
     private long _seqNum;

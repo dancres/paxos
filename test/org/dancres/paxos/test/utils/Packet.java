@@ -1,7 +1,7 @@
 package org.dancres.paxos.test.utils;
 
-import org.dancres.paxos.impl.core.Address;
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.Address;
+import org.dancres.paxos.messages.PaxosMessage;
 
 public class Packet {
     private Address _source;

@@ -1,17 +1,17 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import org.dancres.paxos.impl.core.messages.Accept;
-import org.dancres.paxos.impl.core.messages.Ack;
-import org.dancres.paxos.impl.core.messages.Begin;
-import org.dancres.paxos.impl.core.messages.Collect;
-import org.dancres.paxos.impl.core.messages.Last;
-import org.dancres.paxos.impl.core.messages.OldRound;
-import org.dancres.paxos.impl.core.messages.Operations;
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.Success;
+import org.dancres.paxos.messages.Accept;
+import org.dancres.paxos.messages.Ack;
+import org.dancres.paxos.messages.Begin;
+import org.dancres.paxos.messages.Collect;
+import org.dancres.paxos.messages.Last;
+import org.dancres.paxos.messages.OldRound;
+import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.messages.Success;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

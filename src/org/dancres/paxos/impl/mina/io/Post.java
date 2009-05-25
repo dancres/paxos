@@ -1,6 +1,6 @@
 package org.dancres.paxos.impl.mina.io;
 
-import org.dancres.paxos.impl.core.messages.*;
+import org.dancres.paxos.messages.*;
 
 /**
  * Post is passed across transports as a client request but is not a valid message for the leader state machine.  It is thus an instance of

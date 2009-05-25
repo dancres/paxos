@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
 /**
  * Implement this interface to receive signals from the acceptor learner about current state.

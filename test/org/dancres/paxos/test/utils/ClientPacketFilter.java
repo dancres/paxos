@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.utils;
 
-import org.dancres.paxos.impl.core.messages.Operations;
+import org.dancres.paxos.messages.Operations;
 
 /**
  * Real clients would not see anything other than ACK or FAIL but the local test network simulations will generate additional

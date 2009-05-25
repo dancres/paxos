@@ -23,8 +23,8 @@ import org.slf4j.Logger;
 
 import java.net.InetSocketAddress;
 
-import org.dancres.paxos.impl.core.AcceptorLearner;
-import org.dancres.paxos.impl.core.Address;
+import org.dancres.paxos.AcceptorLearner;
+import org.dancres.paxos.Address;
 import org.dancres.paxos.impl.mina.io.TransportImpl;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 

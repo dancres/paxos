@@ -2,7 +2,7 @@ package org.dancres.paxos.impl.mina.io;
 
 import org.apache.mina.common.IoFilterAdapter;
 import org.apache.mina.common.IoSession;
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.LivenessListener;
 import org.dancres.paxos.impl.faildet.Heartbeat;

@@ -1,6 +1,6 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.messages.PaxosMessage;
 
 /**
  * Message produced by <code>HeartbeaterImpl</code> for consumption and processing by <code>FailureDetectorImpl</code>

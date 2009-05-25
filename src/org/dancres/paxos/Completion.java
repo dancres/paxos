@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
 public class Completion {
     private int _result;

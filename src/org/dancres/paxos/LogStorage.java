@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
 /**
  * Standard abstraction for the log required to maintain essential paxos state to ensure appropriate recovery.

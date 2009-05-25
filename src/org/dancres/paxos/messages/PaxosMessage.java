@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.core.messages;
+package org.dancres.paxos.messages;
 
 public interface PaxosMessage {
     public int getType();

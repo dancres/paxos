@@ -2,7 +2,7 @@ package org.dancres.paxos.impl.util;
 
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
-import org.dancres.paxos.impl.core.LogStorage;
+import org.dancres.paxos.LogStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

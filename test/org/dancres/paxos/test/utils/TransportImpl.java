@@ -3,10 +3,10 @@ package org.dancres.paxos.test.utils;
 import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
-import org.dancres.paxos.impl.core.Address;
-import org.dancres.paxos.impl.core.Transport;
-import org.dancres.paxos.impl.core.messages.Operations;
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.Address;
+import org.dancres.paxos.Transport;
+import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.impl.util.AddressImpl;
 

@@ -1,6 +1,6 @@
 package org.dancres.paxos.impl.mina.io;
 
-import org.dancres.paxos.impl.core.messages.*;
+import org.dancres.paxos.messages.*;
 
 /**
  * ProposerPacket is passed across transports but is not a valid message for the acceptor state machine.  It is thus an instance of

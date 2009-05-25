@@ -1,7 +1,7 @@
 package org.dancres.paxos.test.junit;
 
 import java.net.SocketAddress;
-import org.dancres.paxos.impl.core.Address;
+import org.dancres.paxos.Address;
 import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.junit.*;

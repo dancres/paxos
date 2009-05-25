@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
 /**
  * Base interface for failure detector implementations.  For more on failure detectors read: Unreliable Failure Detectors for

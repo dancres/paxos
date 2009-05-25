@@ -8,14 +8,14 @@ package org.dancres.paxos.impl.mina.io;
 import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.Leader;
+import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.Leader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import org.dancres.paxos.impl.core.AcceptorLearner;
-import org.dancres.paxos.impl.core.Operation;
+import org.dancres.paxos.AcceptorLearner;
+import org.dancres.paxos.Operation;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.impl.util.NodeId;

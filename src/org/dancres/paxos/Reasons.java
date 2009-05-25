@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
 /**
  * Possible status reports returned to the client as part of a <code>Fail</code> message.

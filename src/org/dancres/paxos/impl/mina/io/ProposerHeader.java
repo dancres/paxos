@@ -1,6 +1,6 @@
 package org.dancres.paxos.impl.mina.io;
 
-import org.dancres.paxos.impl.core.messages.*;
+import org.dancres.paxos.messages.*;
 
 public class ProposerHeader implements ProposerPacket {
 	private int _port;

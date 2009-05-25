@@ -3,7 +3,7 @@ package org.dancres.paxos.impl.mina.codec;
 import org.apache.mina.filter.codec.ProtocolEncoderOutput;
 import org.apache.mina.filter.codec.ProtocolEncoderAdapter;
 import org.apache.mina.common.IoSession;
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

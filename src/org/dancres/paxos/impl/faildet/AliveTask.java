@@ -2,7 +2,7 @@ package org.dancres.paxos.impl.faildet;
 
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.Iterator;
-import org.dancres.paxos.impl.core.Address;
+import org.dancres.paxos.Address;
 
 class AliveTask implements Runnable {
     private Address _address;

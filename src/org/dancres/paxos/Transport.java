@@ -1,6 +1,6 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.messages.PaxosMessage;
 
 /**
  * Standard communications abstraction for all communication between leaders, acceptor/learners and clients.

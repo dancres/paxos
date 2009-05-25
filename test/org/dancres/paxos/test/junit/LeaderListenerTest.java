@@ -2,10 +2,10 @@ package org.dancres.paxos.test.junit;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import org.dancres.paxos.impl.core.AcceptorLearnerListener;
-import org.dancres.paxos.impl.core.Completion;
-import org.dancres.paxos.impl.core.messages.Operations;
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
+import org.dancres.paxos.AcceptorLearnerListener;
+import org.dancres.paxos.Completion;
+import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.util.AddressImpl;

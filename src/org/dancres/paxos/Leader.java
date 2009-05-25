@@ -1,6 +1,6 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
-import org.dancres.paxos.impl.core.messages.*;
+import org.dancres.paxos.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

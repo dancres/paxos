@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.core;
+package org.dancres.paxos;
 
 /**
  * Standard abstraction for the address of a member in the Paxos co-operative.

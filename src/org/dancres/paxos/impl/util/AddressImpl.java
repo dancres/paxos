@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl.util;
 
 import java.net.SocketAddress;
-import org.dancres.paxos.impl.core.Address;
+import org.dancres.paxos.Address;
 
 public class AddressImpl implements Address {
     private SocketAddress _address;
