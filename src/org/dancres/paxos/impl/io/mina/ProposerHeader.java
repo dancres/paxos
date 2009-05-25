@@ -1,4 +1,6 @@
-package org.dancres.paxos.impl.core.messages;
+package org.dancres.paxos.impl.io.mina;
+
+import org.dancres.paxos.impl.core.messages.*;
 
 public class ProposerHeader implements ProposerPacket {
 	private int _port;
@@ -18,7 +20,7 @@ public class ProposerHeader implements ProposerPacket {
 	}
 
 	public long getSeqNum() {
-		return _operation.getSeqNum();
+        throw new RuntimeException("No sequence number on a proposerheader - you didn't submit this to the state machine did you?");
 	}
 
 	public int getType() {

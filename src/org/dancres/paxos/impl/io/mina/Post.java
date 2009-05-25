@@ -18,7 +18,7 @@ public class Post implements PaxosMessage {
     }
     
     public long getSeqNum() {
-        throw new RuntimeException("No sequence number on a post");
+        throw new RuntimeException("No sequence number on a post - you didn't submit this to the state machine did you?");
     }
 
     public int getType() {

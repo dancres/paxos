@@ -7,7 +7,7 @@ import org.dancres.paxos.impl.core.Address;
 import org.dancres.paxos.impl.core.Transport;
 import org.dancres.paxos.impl.core.messages.Operations;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.ProposerHeader;
+import org.dancres.paxos.impl.io.mina.ProposerHeader;
 import org.dancres.paxos.impl.util.AddressImpl;
 
 public class TransportImpl implements Transport {

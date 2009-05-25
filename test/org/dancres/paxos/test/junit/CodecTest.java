@@ -13,7 +13,7 @@ import org.dancres.paxos.impl.core.messages.Last;
 import org.dancres.paxos.impl.core.messages.OldRound;
 import org.dancres.paxos.impl.core.messages.PaxosMessage;
 import org.dancres.paxos.impl.io.mina.Post;
-import org.dancres.paxos.impl.core.messages.ProposerHeader;
+import org.dancres.paxos.impl.io.mina.ProposerHeader;
 import org.dancres.paxos.impl.core.messages.Success;
 import org.dancres.paxos.impl.io.mina.ClientMessage;
 import org.junit.*;
