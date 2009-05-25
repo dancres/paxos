@@ -1,8 +1,5 @@
 package org.dancres.paxos.impl.core.messages;
 
-import org.dancres.paxos.impl.core.messages.Operations;
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
-
 public class Ack implements PaxosMessage {
     private long _seqNum;
 

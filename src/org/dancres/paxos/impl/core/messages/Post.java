@@ -1,9 +1,5 @@
 package org.dancres.paxos.impl.core.messages;
 
-import org.dancres.paxos.impl.core.messages.*;
-import org.dancres.paxos.impl.core.messages.PaxosMessage;
-import org.dancres.paxos.impl.core.messages.Operations;
-
 public class Post implements PaxosMessage {
     private byte[] _value;
 
