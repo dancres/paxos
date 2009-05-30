@@ -4,7 +4,13 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 public class NodeId {
-    public static long from(InetSocketAddress anAddr) {
+    private long _flattenedAddress;
+
+    private NodeId(long aFlattenedAddress) {
+        _flattenedAddress = aFlattenedAddress;
+    }
+
+    public static NodeId from(InetSocketAddress anAddr) {
         byte[] myAddress = anAddr.getAddress().getAddress();
         long myNodeId = 0;
 
@@ -20,14 +26,18 @@ public class NodeId {
         myNodeId = myNodeId << 32;
         myNodeId |= anAddr.getPort();
 
-        return myNodeId;
+        return new NodeId(myNodeId);
     }
 
-    public static InetSocketAddress toAddress(long aNodeId) throws Exception {
-        byte[] myAddrBytes = new byte[4];
-        int myPort = (int) aNodeId & 0xFFFFFFFF;
+    public static NodeId from(long aFlattenedNodeId) {
+        return new NodeId(aFlattenedNodeId);
+    }
 
-        long myAddr = (aNodeId >> 32) & 0xFFFFFFFF;
+    public static InetSocketAddress toAddress(NodeId aNodeId) throws Exception {
+        byte[] myAddrBytes = new byte[4];
+        int myPort = (int) aNodeId.getFlattenedAddress() & 0xFFFFFFFF;
+
+        long myAddr = (aNodeId.getFlattenedAddress() >> 32) & 0xFFFFFFFF;
 
         for (int i = 3; i > -1; i--) {
             myAddrBytes[i] = (byte) (myAddr & 0xFF);
@@ -35,5 +45,21 @@ public class NodeId {
         }
 
         return new InetSocketAddress(InetAddress.getByAddress(myAddrBytes), myPort);
+    }
+
+    private long getFlattenedAddress() {
+        return _flattenedAddress;
+    }
+
+    public long asLong() {
+        return getFlattenedAddress();
+    }
+
+    public String toString() {
+        return Long.toHexString(_flattenedAddress);
+    }
+
+    public boolean leads(NodeId aNodeId) {
+        return _flattenedAddress > aNodeId.getFlattenedAddress();
     }
 }

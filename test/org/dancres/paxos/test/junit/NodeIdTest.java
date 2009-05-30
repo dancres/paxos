@@ -11,10 +11,7 @@ public class NodeIdTest {
         AddressGenerator myGen = new AddressGenerator();
         InetSocketAddress myAddr = myGen.allocate();
 
-        long myId = NodeId.from(myAddr);
-
-        System.err.println(Long.toHexString(myId));
-        System.err.println(NodeId.toAddress(myId));
+        NodeId myId = NodeId.from(myAddr);
 
         Assert.assertEquals(myAddr, NodeId.toAddress(myId));
     }

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
+import org.dancres.paxos.impl.util.NodeId;
 
 /**
  * Implements the leader state machine.
@@ -48,7 +49,7 @@ public class Leader implements MembershipListener {
     private final Timer _watchdog = new Timer("Leader watchdog");
     private final long _watchdogTimeout;
     private final FailureDetector _detector;
-    private final long _nodeId;
+    private final NodeId _nodeId;
     private final Transport _transport;
     private final AcceptorLearner _al;
 
@@ -97,7 +98,7 @@ public class Leader implements MembershipListener {
      * @param aTransport is the transport to use for messages
      * @param aClientAddress is the endpoint for the client
      */
-    public Leader(FailureDetector aDetector, long aNodeId, Transport aTransport, AcceptorLearner anAcceptorLearner) {
+    public Leader(FailureDetector aDetector, NodeId aNodeId, Transport aTransport, AcceptorLearner anAcceptorLearner) {
         _nodeId = aNodeId;
         _detector = aDetector;
         _transport = aTransport;
@@ -159,7 +160,7 @@ public class Leader implements MembershipListener {
         }
     }
 
-    public long getNodeId() {
+    public NodeId getNodeId() {
         return _nodeId;
     }
 
@@ -374,14 +375,14 @@ public class Leader implements MembershipListener {
 
         OldRound myOldRound = (OldRound) aMessage;
 
-        long myCompetingNodeId = myOldRound.getNodeId();
+        NodeId myCompetingNodeId = NodeId.from(myOldRound.getNodeId());
 
         /*
          * Some other node is active, we should abort if they are the leader by virtue of a larger nodeId
          */
-        if (myCompetingNodeId > _nodeId) {
-            _logger.info("Superior leader is active, backing down: " + Long.toHexString(myCompetingNodeId) + ", " +
-                    Long.toHexString(_nodeId));
+        if (myCompetingNodeId.leads(_nodeId)) {
+            _logger.info("Superior leader is active, backing down: " + myCompetingNodeId + ", " +
+                    _nodeId);
 
             _stage = ABORT;
             _reason = Reasons.OTHER_LEADER;
@@ -412,7 +413,7 @@ public class Leader implements MembershipListener {
     private void collect() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Collect(_seqNum, newRndNumber(), _nodeId);
+        PaxosMessage myMessage = new Collect(_seqNum, newRndNumber(), _nodeId.asLong());
 
         startInteraction();
 
@@ -424,7 +425,7 @@ public class Leader implements MembershipListener {
     private void begin() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _nodeId);
+        PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _nodeId.asLong());
 
         startInteraction();
 
