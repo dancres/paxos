@@ -24,7 +24,7 @@ import org.dancres.paxos.FailureDetector;
  * other messages sent by a node for a suitable period of time.
  */
 public class FailureDetectorImpl implements FailureDetector, Runnable {
-    private Map _lastHeartbeats = new HashMap();
+    private Map<Address, Long> _lastHeartbeats = new HashMap<Address, Long>();
     private ExecutorService _executor = Executors.newFixedThreadPool(1);
     private Thread _scanner;
     private CopyOnWriteArraySet _listeners;
@@ -66,7 +66,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
             Long myLast;
 
             synchronized (this) {
-                myLast = (Long) _lastHeartbeats.put(anAddress,
+                myLast = _lastHeartbeats.put(anAddress,
                         new Long(System.currentTimeMillis()));
             }
 
@@ -114,12 +114,12 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
             }
 
             synchronized(this) {
-                Iterator myProcesses = _lastHeartbeats.keySet().iterator();
+                Iterator<Address> myProcesses = _lastHeartbeats.keySet().iterator();
                 long myMinTime = System.currentTimeMillis() - _maximumPeriodOfUnresponsiveness;
 
                 while (myProcesses.hasNext()) {
-                    Address myAddress = (Address) myProcesses.next();
-                    Long myTimeout = (Long) _lastHeartbeats.get(myAddress);
+                    Address myAddress = myProcesses.next();
+                    Long myTimeout = _lastHeartbeats.get(myAddress);
 
                     // No heartbeat since myMinTime means we assume dead
                     //
