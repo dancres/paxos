@@ -162,7 +162,6 @@ public class AcceptorLearner {
                 // If the begin matches the last round of a collect we're fine
                 //
                 if (originates(myBegin)) {
-                    getStorage().put(mySeqNum, myBegin.getValue());
                     updateHighWatermark(myBegin.getSeqNum());
                     return new Accept(mySeqNum, getLastCollect().getRndNumber());
                 } else if (precedes(myBegin)) {

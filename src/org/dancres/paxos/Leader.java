@@ -201,7 +201,6 @@ public class Leader implements MembershipListener {
                     collect();
 
                 } else if (isRecovery()) {
-                    _value = LogStorage.NO_VALUE;
                     ++_seqNum;
 
                     if (_seqNum > _highWatermark) {
@@ -217,6 +216,7 @@ public class Leader implements MembershipListener {
                         process();
 
                     } else {
+                        _value = LogStorage.NO_VALUE;
                         _stage = BEGIN;
                         collect();
                     }
@@ -290,8 +290,11 @@ public class Leader implements MembershipListener {
             case BEGIN : {
                 byte[] myValue = _value;
 
-                // If we're not currently the leader, we'll have issued a collect and must process the responses
-                //
+                /* 
+                 * If we're not currently the leader, we'll have issued a collect and must process the responses.
+                 * We'll be in recovery so we're interested in resolving any outstanding sequence numbers thus our
+                 * proposal must be constrained by whatever values the acceptor/learners already know about
+                 */
                 if (! isLeader()) {
                     // Process _messages to assess what we do next - might be to launch a new round or to give up
                     //
@@ -421,7 +424,7 @@ public class Leader implements MembershipListener {
     private void begin() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _nodeId, _value);
+        PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _nodeId);
 
         startInteraction();
 

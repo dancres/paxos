@@ -74,9 +74,7 @@ public class CodecTest {
     }
 
     @Test public void begin() throws Exception {
-        byte[] myData = {55};
-
-        Begin myBegin = new Begin(1, 2, 3, myData);
+        Begin myBegin = new Begin(1, 2, 3);
 
         byte[] myBuffer = encode(myBegin);
 
@@ -85,8 +83,6 @@ public class CodecTest {
         Assert.assertEquals(myBegin.getSeqNum(), myBegin2.getSeqNum());
         Assert.assertEquals(myBegin.getRndNumber(), myBegin2.getRndNumber());
         Assert.assertEquals(myBegin.getNodeId(), myBegin2.getNodeId());
-        Assert.assertEquals(myBegin.getValue().length, myBegin2.getValue().length);
-        Assert.assertEquals(myBegin.getValue()[0], myBegin2.getValue()[0]);
     }
 
     @Test public void collect() throws Exception {

@@ -4,12 +4,10 @@ public class Begin implements PaxosMessage {
     private long _seqNum;
     private long _rndNumber;
     private long _nodeId;
-    private byte[] _value;
 
-    public Begin(long aSeqNum, long aRndNumber, long aNodeId, byte[] aValue) {
+    public Begin(long aSeqNum, long aRndNumber, long aNodeId) {
         _seqNum = aSeqNum;
         _rndNumber = aRndNumber;
-        _value = aValue;
         _nodeId = aNodeId;
     }
 
@@ -19,10 +17,6 @@ public class Begin implements PaxosMessage {
 
     public long getSeqNum() {
         return _seqNum;
-    }
-
-    public byte[] getValue() {
-        return _value;
     }
 
     public long getRndNumber() {
