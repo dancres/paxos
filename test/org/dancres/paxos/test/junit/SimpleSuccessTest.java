@@ -6,7 +6,7 @@ import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.impl.util.AddressImpl;
+import org.dancres.paxos.impl.util.NodeId;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
 import org.dancres.paxos.test.utils.Node;
@@ -85,7 +85,7 @@ public class SimpleSuccessTest {
             Thread.sleep(5000);
         }
 
-        _node1.getQueue().add(new Packet(new AddressImpl(myAddr), new Post(myBuffer.array())));
+        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array())));
 
         Packet myPacket = myQueue.getNext(10000);
 

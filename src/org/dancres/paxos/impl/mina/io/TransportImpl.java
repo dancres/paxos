@@ -5,10 +5,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.Address;
 import org.dancres.paxos.Transport;
+import org.dancres.paxos.impl.util.NodeId;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.impl.mina.io.ProposerHeader;
-import org.dancres.paxos.impl.util.AddressImpl;
 
 public class TransportImpl implements Transport {
 
@@ -43,6 +42,6 @@ public class TransportImpl implements Transport {
     }
 
     public void register(IoSession aSession) {
-        _sessions.putIfAbsent(new AddressImpl(aSession.getRemoteAddress()), aSession);
+        _sessions.putIfAbsent(NodeId.from(aSession.getRemoteAddress()), aSession);
     }
 }

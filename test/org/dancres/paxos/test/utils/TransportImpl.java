@@ -8,7 +8,7 @@ import org.dancres.paxos.Transport;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.ProposerHeader;
-import org.dancres.paxos.impl.util.AddressImpl;
+import org.dancres.paxos.impl.util.NodeId;
 
 public class TransportImpl implements Transport {
     private ConcurrentHashMap<Address, PacketQueue> _queues = new ConcurrentHashMap<Address, PacketQueue>();
@@ -16,12 +16,12 @@ public class TransportImpl implements Transport {
     private int _port;
 
     public TransportImpl(InetSocketAddress anAddress) {
-        _address = new AddressImpl(anAddress);
+        _address = NodeId.from(anAddress);
         _port = anAddress.getPort();
     }
 
     public void add(InetSocketAddress anAddress, PacketQueue aQueue) {
-        _queues.put(new AddressImpl(anAddress), aQueue);
+        _queues.put((Address) NodeId.from(anAddress), aQueue);
     }
 
     public void send(PaxosMessage aMessage, Address anAddress) {

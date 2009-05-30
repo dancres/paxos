@@ -6,7 +6,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.LivenessListener;
 import org.dancres.paxos.impl.faildet.Heartbeat;
-import org.dancres.paxos.impl.util.AddressImpl;
+import org.dancres.paxos.impl.util.NodeId;
 
 public class FailureDetectorAdapter extends IoFilterAdapter {
     private FailureDetectorImpl _detector;
@@ -19,7 +19,7 @@ public class FailureDetectorAdapter extends IoFilterAdapter {
     	PaxosMessage myMessage = (PaxosMessage) anObject;
     	
     	if (myMessage.getType() == Heartbeat.TYPE)
-    		_detector.processMessage(myMessage, new AddressImpl(aSession.getRemoteAddress()));
+    		_detector.processMessage(myMessage, NodeId.from(aSession.getRemoteAddress()));
     	else
     		super.messageReceived(aNextFilter, aSession, anObject);
     }

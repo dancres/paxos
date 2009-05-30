@@ -17,7 +17,6 @@ import java.net.InetSocketAddress;
 import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.Operation;
 import org.dancres.paxos.impl.faildet.Heartbeat;
-import org.dancres.paxos.impl.util.AddressImpl;
 import org.dancres.paxos.impl.util.NodeId;
 
 /**
@@ -61,7 +60,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
         if (myMessage.getType() == Post.TYPE)
             _leader.submit(new Operation(((Post) myMessage).getValue()));
         else
-            _leader.messageReceived(myMessage, new AddressImpl(aSession.getRemoteAddress()));
+            _leader.messageReceived(myMessage, NodeId.from(aSession.getRemoteAddress()));
     }
 
     public void messageSent(org.apache.mina.common.IoSession aSession,

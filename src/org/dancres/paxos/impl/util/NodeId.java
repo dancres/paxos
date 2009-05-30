@@ -2,16 +2,20 @@ package org.dancres.paxos.impl.util;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import org.dancres.paxos.Address;
 
-public class NodeId {
-    private long _flattenedAddress;
+public class NodeId implements Address {
+    private Long _flattenedAddress;
 
     private NodeId(long aFlattenedAddress) {
-        _flattenedAddress = aFlattenedAddress;
+        _flattenedAddress = new Long(aFlattenedAddress);
     }
 
-    public static NodeId from(InetSocketAddress anAddr) {
-        byte[] myAddress = anAddr.getAddress().getAddress();
+    public static NodeId from(SocketAddress anAddr) {
+        InetSocketAddress myAddr = (InetSocketAddress) anAddr;
+
+        byte[] myAddress = myAddr.getAddress().getAddress();
         long myNodeId = 0;
 
         // Only cope with IPv4 right now
@@ -24,7 +28,7 @@ public class NodeId {
         }
 
         myNodeId = myNodeId << 32;
-        myNodeId |= anAddr.getPort();
+        myNodeId |= myAddr.getPort();
 
         return new NodeId(myNodeId);
     }
@@ -48,7 +52,7 @@ public class NodeId {
     }
 
     private long getFlattenedAddress() {
-        return _flattenedAddress;
+        return _flattenedAddress.longValue();
     }
 
     public long asLong() {
@@ -56,10 +60,24 @@ public class NodeId {
     }
 
     public String toString() {
-        return Long.toHexString(_flattenedAddress);
+        return Long.toHexString(_flattenedAddress.longValue());
     }
 
     public boolean leads(NodeId aNodeId) {
-        return _flattenedAddress > aNodeId.getFlattenedAddress();
+        return getFlattenedAddress() > aNodeId.getFlattenedAddress();
+    }
+
+    public int hashCode() {
+        return _flattenedAddress.hashCode();
+    }
+
+    public boolean equals(Object anObject) {
+        if (anObject instanceof NodeId) {
+            NodeId myOther = (NodeId) anObject;
+
+            return (myOther.getFlattenedAddress() == getFlattenedAddress());
+        }
+
+        return false;
     }
 }
