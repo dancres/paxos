@@ -7,6 +7,8 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.NodeId;
+import org.dancres.paxos.Reasons;
+import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.Node;
 import org.dancres.paxos.test.utils.Packet;
@@ -42,6 +44,7 @@ public class DeadNodeTest {
         _tport2 = new DroppingTransportImpl(_addr2);
 
         _node1 = new Node(_addr1, _tport1, 5000);
+        _node1.getLeader().setLeaderCheck(false);
         _node2 = new Node(_addr2, _tport2, 5000);
 
         /*
@@ -105,6 +108,10 @@ public class DeadNodeTest {
         PaxosMessage myMsg = myPacket.getMsg();
 
         Assert.assertTrue(myMsg.getType() == Operations.FAIL);
+
+        Fail myFail = (Fail) myMsg;
+
+        Assert.assertTrue(myFail.getReason() == Reasons.BAD_MEMBERSHIP);
     }
 
     static class DroppingTransportImpl extends TransportImpl {

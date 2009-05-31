@@ -56,6 +56,8 @@ public class Leader implements MembershipListener {
     private long _rndNumber = 0;
     private byte[] _value;
 
+    private boolean _checkLeader = true;
+
     /**
      * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread establishes we're leader and
      * a prior thread decides otherwise with the latter being last to update this variable we'll simply do an unnecessary COLLECT.  The
@@ -103,6 +105,14 @@ public class Leader implements MembershipListener {
         _transport = aTransport;
         _watchdogTimeout = _detector.getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
         _al = anAcceptorLearner;
+    }
+
+    public void setLeaderCheck(boolean aCheck) {
+        _logger.warn("Setting leader check: " + aCheck);
+
+        synchronized(this) {
+            _checkLeader = aCheck;
+        }
     }
 
     private long newRndNumber() {
@@ -179,7 +189,8 @@ public class Leader implements MembershipListener {
                 else
                     _logger.info("Leader reached bad completion: " + Long.toHexString(_seqNum) + " " + _reason);
 
-                _membership.dispose();
+                if (_membership != null)
+                    _membership.dispose();
 
                 // Acceptor/learner generates events for successful negotiation itself, we generate failures
                 //
@@ -500,9 +511,7 @@ public class Leader implements MembershipListener {
                 return BUSY;
             }
 
-            _membership = _detector.getMembers(this);
-
-            if (! _detector.amLeader(_nodeId)) {
+            if (_checkLeader && ! _detector.amLeader(_nodeId)) {
                 failed();
                 _stage = ABORT;
                 _reason = Reasons.OTHER_LEADER;
@@ -514,6 +523,8 @@ public class Leader implements MembershipListener {
             _clientOp = anOp;
 
             _logger.info("Initialising leader: " + Long.toHexString(_seqNum));
+
+            _membership = _detector.getMembers(this);
 
             // Collect will decide if it can skip straight to a begin
             //

@@ -14,6 +14,7 @@ import org.dancres.paxos.impl.mina.io.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.NodeId;
+import org.dancres.paxos.Operation;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
 import org.dancres.paxos.test.utils.Node;
@@ -46,6 +47,7 @@ public class SuperiorLeaderAtBeginTest {
         _tport2 = new TransportImpl(_addr2);
 
         _node1 = new Node(_addr1, _tport1, 5000);
+        _node1.getLeader().setLeaderCheck(false);
         _node2 = new OldRoundNode(_addr2, _tport2, 5000);
 
         /*

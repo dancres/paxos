@@ -90,7 +90,7 @@ public class LeaderListenerTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
 
-            _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array())));
+            _node2.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array())));
 
             Packet myPacket = myQueue.getNext(10000);
 
