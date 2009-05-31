@@ -138,4 +138,19 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
             myListener.dead(aProcess);
         }
     }
+
+    public boolean amLeader(NodeId aNodeId) {
+        synchronized (this) {
+            Iterator<NodeId> myProcesses = _lastHeartbeats.keySet().iterator();
+
+            while (myProcesses.hasNext()) {
+                NodeId myAddress = myProcesses.next();
+
+                if (myAddress.asLong() > aNodeId.asLong())
+                    return false;
+            }
+
+            return true;
+        }
+    }
 }

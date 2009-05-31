@@ -8,5 +8,6 @@ package org.dancres.paxos;
  */
 public interface FailureDetector {
     public long getUnresponsivenessThreshold();
+    public boolean amLeader(NodeId aNodeId);
     public Membership getMembers(MembershipListener aListener);
 }

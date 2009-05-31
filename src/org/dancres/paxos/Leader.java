@@ -500,6 +500,17 @@ public class Leader implements MembershipListener {
                 return BUSY;
             }
 
+            _membership = _detector.getMembers(this);
+
+            if (! _detector.amLeader(_nodeId)) {
+                failed();
+                _stage = ABORT;
+                _reason = Reasons.OTHER_LEADER;
+                process();
+
+                return ACCEPTED;
+            }
+
             _clientOp = anOp;
 
             _logger.info("Initialising leader: " + Long.toHexString(_seqNum));
@@ -507,8 +518,6 @@ public class Leader implements MembershipListener {
             // Collect will decide if it can skip straight to a begin
             //
             _stage = COLLECT;
-
-            _membership = _detector.getMembers(this);
 
             _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" + _membership.getSize() + ")");
 
