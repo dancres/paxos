@@ -4,7 +4,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.Transport;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 

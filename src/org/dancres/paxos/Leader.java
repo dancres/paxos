@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
-import org.dancres.paxos.impl.util.NodeId;
 
 /**
  * Implements the leader state machine.

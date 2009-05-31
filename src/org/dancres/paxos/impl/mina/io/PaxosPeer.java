@@ -22,7 +22,7 @@ import java.net.InetSocketAddress;
 
 import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 
 public class PaxosPeer {
     private static Logger _logger = LoggerFactory.getLogger(PaxosPeer.class);

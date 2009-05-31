@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.Post;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
 import org.dancres.paxos.test.utils.Node;

@@ -1,6 +1,5 @@
 package org.dancres.paxos;
 
-import org.dancres.paxos.impl.util.NodeId;
 import org.dancres.paxos.messages.PaxosMessage;
 
 /**

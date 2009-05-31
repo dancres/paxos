@@ -18,7 +18,7 @@ import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.mina.io.Post;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

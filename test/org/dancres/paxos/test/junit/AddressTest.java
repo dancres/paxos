@@ -1,7 +1,7 @@
 package org.dancres.paxos.test.junit;
 
 import java.net.SocketAddress;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.junit.*;
 import org.junit.Assert.*;

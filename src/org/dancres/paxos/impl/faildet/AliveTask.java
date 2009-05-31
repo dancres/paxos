@@ -2,7 +2,7 @@ package org.dancres.paxos.impl.faildet;
 
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.Iterator;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 
 class AliveTask implements Runnable {
     private NodeId _nodeId;

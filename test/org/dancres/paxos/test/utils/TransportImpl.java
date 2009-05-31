@@ -7,7 +7,7 @@ import org.dancres.paxos.Transport;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.ProposerHeader;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 
 public class TransportImpl implements Transport {
     private ConcurrentHashMap<NodeId, PacketQueue> _queues = new ConcurrentHashMap<NodeId, PacketQueue>();

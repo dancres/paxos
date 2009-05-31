@@ -17,7 +17,7 @@ import java.net.InetSocketAddress;
 import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.Operation;
 import org.dancres.paxos.impl.faildet.Heartbeat;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 
 /**
  *

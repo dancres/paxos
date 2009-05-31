@@ -6,7 +6,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.LivenessListener;
 import org.dancres.paxos.impl.faildet.Heartbeat;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 
 public class FailureDetectorAdapter extends IoFilterAdapter {
     private FailureDetectorImpl _detector;

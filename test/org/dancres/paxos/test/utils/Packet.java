@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.utils;
 
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 import org.dancres.paxos.messages.PaxosMessage;
 
 public class Packet {

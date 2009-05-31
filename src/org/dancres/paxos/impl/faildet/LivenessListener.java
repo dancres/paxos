@@ -1,6 +1,6 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 
 /**
  * Register one of these with a {@link FailureDetector} to track reports of nodes being detected or lost

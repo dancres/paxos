@@ -5,7 +5,7 @@ import org.dancres.paxos.Membership;
 import java.util.Set;
 import java.util.HashSet;
 
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

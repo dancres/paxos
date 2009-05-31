@@ -13,7 +13,7 @@ import org.dancres.paxos.impl.mina.io.Post;
 import org.dancres.paxos.impl.mina.io.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
-import org.dancres.paxos.impl.util.NodeId;
+import org.dancres.paxos.NodeId;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
 import org.dancres.paxos.test.utils.Node;
