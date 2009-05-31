@@ -127,6 +127,11 @@ public class Node implements PacketListener {
     class PacketBridge implements AcceptorLearnerListener {
 
         public void done(Completion aCompletion) {
+            // If we're not the originating node for the post, because we're not leader, we won't have an addressed stored up
+            //
+            if (_clientAddress == null)
+                return;
+
             if (aCompletion.getResult() == Reasons.OK) {
                 _tp.send(new Ack(aCompletion.getSeqNum()), _clientAddress);
             } else {
