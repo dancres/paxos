@@ -419,7 +419,7 @@ public class Leader implements MembershipListener {
 
         _logger.info("Leader sending collect: " + Long.toHexString(_seqNum));
 
-        _transport.send(myMessage, Address.BROADCAST);
+        _transport.send(myMessage, NodeId.BROADCAST);
     }
 
     private void begin() {
@@ -431,7 +431,7 @@ public class Leader implements MembershipListener {
 
         _logger.info("Leader sending begin: " + Long.toHexString(_seqNum));
 
-        _transport.send(myMessage, Address.BROADCAST);
+        _transport.send(myMessage, NodeId.BROADCAST);
     }
 
     private void success() {
@@ -443,7 +443,7 @@ public class Leader implements MembershipListener {
 
         _logger.info("Leader sending success: " + Long.toHexString(_seqNum));
 
-        _transport.send(myMessage, Address.BROADCAST);
+        _transport.send(myMessage, NodeId.BROADCAST);
     }
 
     private void startInteraction() {
@@ -525,13 +525,13 @@ public class Leader implements MembershipListener {
      * @param aMessage is a message from some acceptor/learner
      * @param anAddress is the address from which the message was sent
      */
-    public void messageReceived(PaxosMessage aMessage, Address anAddress) {
+    public void messageReceived(PaxosMessage aMessage, NodeId aNodeId) {
         _logger.info("Leader received message: " + aMessage);
 
         synchronized (this) {
             if (aMessage.getSeqNum() == _seqNum) {
                 _messages.add(aMessage);
-                _membership.receivedResponse(anAddress);
+                _membership.receivedResponse(aNodeId);
             } else {
                 _logger.warn("Unexpected message received: " + aMessage.getSeqNum() + " (" + Long.toHexString(_seqNum) + ")");
             }

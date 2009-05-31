@@ -3,7 +3,6 @@ package org.dancres.paxos.test.utils;
 import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
-import org.dancres.paxos.Address;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -11,8 +10,8 @@ import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.impl.util.NodeId;
 
 public class TransportImpl implements Transport {
-    private ConcurrentHashMap<Address, PacketQueue> _queues = new ConcurrentHashMap<Address, PacketQueue>();
-    private Address _address;
+    private ConcurrentHashMap<NodeId, PacketQueue> _queues = new ConcurrentHashMap<NodeId, PacketQueue>();
+    private NodeId _address;
     private int _port;
 
     public TransportImpl(InetSocketAddress anAddress) {
@@ -21,10 +20,10 @@ public class TransportImpl implements Transport {
     }
 
     public void add(InetSocketAddress anAddress, PacketQueue aQueue) {
-        _queues.put((Address) NodeId.from(anAddress), aQueue);
+        _queues.put((NodeId) NodeId.from(anAddress), aQueue);
     }
 
-    public void send(PaxosMessage aMessage, Address anAddress) {
+    public void send(PaxosMessage aMessage, NodeId anAddress) {
         PaxosMessage myMessage;
 
         switch (aMessage.getType()) {
@@ -41,7 +40,7 @@ public class TransportImpl implements Transport {
             }
         }
 
-        if (anAddress.equals(Address.BROADCAST)) {
+        if (anAddress.equals(NodeId.BROADCAST)) {
             Iterator<PacketQueue> myQueues = _queues.values().iterator();
 
             while (myQueues.hasNext())

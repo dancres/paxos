@@ -1,7 +1,6 @@
 package org.dancres.paxos.test.junit;
 
 import java.net.SocketAddress;
-import org.dancres.paxos.Address;
 import org.dancres.paxos.impl.util.NodeId;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.junit.*;
@@ -28,7 +27,7 @@ public class AddressTest {
 
     @Test public void produceString() throws Exception {
         SocketAddress myAddr1 = _registry.allocate();
-        Address myAddr = NodeId.from(myAddr1);
+        NodeId myAddr = NodeId.from(myAddr1);
 
         String myResult = myAddr.toString();
 
@@ -37,16 +36,16 @@ public class AddressTest {
 
     @Test public void checkBroadcast() throws Exception {
         SocketAddress myAddr1 = _registry.allocate();
-        Address myAddr = NodeId.from(myAddr1);
+        NodeId myAddr = NodeId.from(myAddr1);
 
-        Assert.assertTrue(Address.BROADCAST.equals(Address.BROADCAST));
-        Assert.assertFalse(Address.BROADCAST.equals(myAddr));
+        Assert.assertTrue(NodeId.BROADCAST.equals(NodeId.BROADCAST));
+        Assert.assertFalse(NodeId.BROADCAST.equals(myAddr));
     }
 
     @Test public void hashWorks() throws Exception {
         SocketAddress myAddr1 = _registry.allocate();
-        Address myAddr = NodeId.from(myAddr1);
-        Address myOtherAddr = NodeId.from(myAddr1);
+        NodeId myAddr = NodeId.from(myAddr1);
+        NodeId myOtherAddr = NodeId.from(myAddr1);
 
         // Two wrappers around the same address should have the same hashcode
         //

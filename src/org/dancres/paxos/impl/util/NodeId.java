@@ -3,9 +3,10 @@ package org.dancres.paxos.impl.util;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import org.dancres.paxos.Address;
 
-public class NodeId implements Address {
+public class NodeId {
+    public static final NodeId BROADCAST = new NodeId(Long.MAX_VALUE);
+
     private Long _flattenedAddress;
 
     private NodeId(long aFlattenedAddress) {

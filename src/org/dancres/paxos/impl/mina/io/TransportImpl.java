@@ -3,7 +3,6 @@ package org.dancres.paxos.impl.mina.io;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.mina.common.IoSession;
-import org.dancres.paxos.Address;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.util.NodeId;
 import org.dancres.paxos.messages.Operations;
@@ -11,16 +10,16 @@ import org.dancres.paxos.messages.PaxosMessage;
 
 public class TransportImpl implements Transport {
 
-    private ConcurrentHashMap<Address, IoSession> _sessions = new ConcurrentHashMap<Address, IoSession>();
+    private ConcurrentHashMap<NodeId, IoSession> _sessions = new ConcurrentHashMap<NodeId, IoSession>();
     private InetSocketAddress _addr;
 
     public TransportImpl(InetSocketAddress aNodeAddr, IoSession aBroadcastSession) {
         super();
-        _sessions.put(Address.BROADCAST, aBroadcastSession);
+        _sessions.put(NodeId.BROADCAST, aBroadcastSession);
         _addr = aNodeAddr;
     }
 
-    public void send(PaxosMessage aMessage, Address anAddress) {
+    public void send(PaxosMessage aMessage, NodeId anAddress) {
         PaxosMessage myMessage;
 
         switch (aMessage.getType()) {

@@ -2,7 +2,6 @@ package org.dancres.paxos.test.junit;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import org.dancres.paxos.Address;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.Post;
@@ -115,7 +114,7 @@ public class DeadNodeTest {
             super(anAddr);
         }
 
-        public void send(PaxosMessage aMessage, Address anAddress) {
+        public void send(PaxosMessage aMessage, NodeId anAddress) {
             if (canSend())
                 super.send(aMessage, anAddress);
         }

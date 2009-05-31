@@ -1,6 +1,6 @@
 package org.dancres.paxos;
 
-import org.dancres.paxos.Address;
+import org.dancres.paxos.impl.util.NodeId;
 
 /**
  * Represents a membership snapshot from a particular point in time which will be updated
@@ -21,7 +21,7 @@ public interface Membership {
     /**
      * Invoke this for each response received (duplicates should be filtered before making this call)
      */
-    public void receivedResponse(Address anAddress);
+    public void receivedResponse(NodeId aNodeId);
 
     /**
      * Indicate this membership will be used no more

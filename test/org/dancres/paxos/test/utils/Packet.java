@@ -1,13 +1,13 @@
 package org.dancres.paxos.test.utils;
 
-import org.dancres.paxos.Address;
+import org.dancres.paxos.impl.util.NodeId;
 import org.dancres.paxos.messages.PaxosMessage;
 
 public class Packet {
-    private Address _source;
+    private NodeId _source;
     private PaxosMessage _msg;
 
-    public Packet(Address aSource, PaxosMessage aMsg) {
+    public Packet(NodeId aSource, PaxosMessage aMsg) {
         _source = aSource;
         _msg = aMsg;
     }
@@ -16,7 +16,7 @@ public class Packet {
         return _msg;
     }
 
-    public Address getSender() {
+    public NodeId getSender() {
         return _source;
     }
 }

@@ -3,11 +3,9 @@ package org.dancres.paxos.impl.faildet;
 import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.Membership;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.Iterator;
 import java.util.HashSet;
 
-import org.dancres.paxos.Address;
+import org.dancres.paxos.impl.util.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +59,7 @@ class MembershipImpl implements Membership, LivenessListener {
         }
     }
 
-    public void receivedResponse(Address anAddress) {
+    public void receivedResponse(NodeId anAddress) {
         synchronized(this) {
             if (_outstandingMemberAddresses.remove(anAddress)) {
                 ++_receivedResponses;
@@ -72,11 +70,11 @@ class MembershipImpl implements Membership, LivenessListener {
         }
     }
 
-    public void alive(Address aProcess) {
+    public void alive(NodeId aProcess) {
         // Not interested in new arrivals
     }
 
-    public void dead(Address aProcess) {
+    public void dead(NodeId aProcess) {
         _logger.warn("Death detected: " + aProcess);
 
         synchronized(this) {

@@ -3,7 +3,6 @@ package org.dancres.paxos.test.utils;
 import java.net.InetSocketAddress;
 import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.AcceptorLearnerListener;
-import org.dancres.paxos.Address;
 import org.dancres.paxos.Completion;
 import org.dancres.paxos.Leader;
 import org.dancres.paxos.Operation;
@@ -32,7 +31,7 @@ public class Node implements PacketListener {
 
     private static Logger _logger = LoggerFactory.getLogger(Node.class);
 
-    private Address _clientAddress;
+    private NodeId _clientAddress;
     private InetSocketAddress _addr;
     private AcceptorLearner _al;
     private Leader _ld;
