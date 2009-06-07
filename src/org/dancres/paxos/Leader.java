@@ -100,7 +100,7 @@ public class Leader implements MembershipListener {
     /**
      * In cases of ABORT, indicates the reason
      */
-    private int _reason = 0;
+    private int _reason = Reasons.OK;
 
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
@@ -127,57 +127,39 @@ public class Leader implements MembershipListener {
     }
 
     private long getRndNumber() {
-        synchronized(this) {
-            return _rndNumber;
-        }
+        return _rndNumber;
     }
 
     private long newRndNumber() {
-        synchronized(this) {
-            return ++_rndNumber;
-        }
+        return ++_rndNumber;
     }
 
     private void updateRndNumber(OldRound anOldRound) {
-        synchronized(this) {
-            _rndNumber = anOldRound.getLastRound() + 1;
-        }
+        _rndNumber = anOldRound.getLastRound() + 1;
     }
 
     private boolean isRecovery() {
-        synchronized(this) {
-            return _isRecovery;
-        }
+        return _isRecovery;
     }
 
     private void amRecovery() {
-        synchronized(this) {
-            _isRecovery = true;
-        }
+        _isRecovery = true;
     }
 
     private void notRecovery() {
-        synchronized(this) {
-            _isRecovery = false;
-        }
+        _isRecovery = false;
     }
 
     private boolean isLeader() {
-        synchronized(this) {
-            return _isLeader;
-        }
+        return _isLeader;
     }
 
     private void amLeader() {
-        synchronized(this) {
-            _isLeader = true;
-        }
+        _isLeader = true;
     }
 
     private void notLeader() {
-        synchronized(this) {
-            _isLeader = false;
-        }
+        _isLeader = false;
     }
 
     public NodeId getNodeId() {
@@ -408,9 +390,7 @@ public class Leader implements MembershipListener {
             _logger.info("Superior leader is active, backing down: " + myCompetingNodeId + ", " +
                     _nodeId);
 
-            _stage = ABORT;
-            _reason = Reasons.OTHER_LEADER;
-            process();
+            error(Reasons.OTHER_LEADER);
             return;
         }
 
@@ -422,6 +402,12 @@ public class Leader implements MembershipListener {
          * then attempt to submit the client's value (if any) again.
          */
         _stage = COLLECT;
+        process();
+    }
+
+    private void error(int aReason) {
+        _stage = ABORT;
+        _reason = aReason;
         process();
     }
 
@@ -484,24 +470,19 @@ public class Leader implements MembershipListener {
         _logger.info("Membership requested abort: " + Long.toHexString(_seqNum));
 
         _activeAlarm.cancel();
-        failed();
-
+        
         synchronized(this) {
-            _stage = ABORT;
-            _reason = Reasons.BAD_MEMBERSHIP;
-            process();
+            failed();
+            error(Reasons.BAD_MEMBERSHIP);
         }
     }
 
     private void expired() {
         _logger.info("Watchdog requested abort: " + Long.toHexString(_seqNum));
 
-        failed();
-
         synchronized(this) {
-            _stage = ABORT;
-            _reason = Reasons.VOTE_TIMEOUT;
-            process();
+            failed();
+            error(Reasons.VOTE_TIMEOUT);
         }
     }
 
@@ -527,9 +508,7 @@ public class Leader implements MembershipListener {
 
             if (_checkLeader && ! _detector.amLeader(_nodeId)) {
                 failed();
-                _stage = ABORT;
-                _reason = Reasons.OTHER_LEADER;
-                process();
+                error(Reasons.OTHER_LEADER);
 
                 return ACCEPTED;
             }
