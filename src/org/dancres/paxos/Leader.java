@@ -170,7 +170,8 @@ public class Leader implements MembershipListener {
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we process the
      * result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state we expect ACCEPT or OLDROUND
      *
-     * @todo Handle all cases in SUCCEESS e.g. we don't properly process/wait for all Acks
+     * @todo Handle all cases in SUCCEESS e.g. we don't properly process/wait for all Acks which can be done by adding another state before EXIT to check
+     * through responses and validate we got enough with no OldRounds
      */
     private void process() {
         switch(_stage) {
@@ -205,7 +206,7 @@ public class Leader implements MembershipListener {
                         _seqNum = 0;
 
                     _stage = RECOVER;
-                    collect();
+                    emitCollect();
 
                 } else if (isRecovery()) {
                     ++_seqNum;
@@ -225,7 +226,7 @@ public class Leader implements MembershipListener {
                     } else {
                         _value = LogStorage.NO_VALUE;
                         _stage = BEGIN;
-                        collect();
+                        emitCollect();
                     }
 
                 } else if (isLeader()) {
@@ -327,7 +328,7 @@ public class Leader implements MembershipListener {
 
                 _value = myValue;
 
-                begin();
+                emitBegin();
                 _stage = SUCCESS;
 
                 break;
@@ -357,12 +358,12 @@ public class Leader implements MembershipListener {
                 if (myAcceptCount >= _membership.getMajority()) {
                     // Send success, wait for acks
                     //
-                    success();
+                    emitSuccess();
                     _stage = EXIT;
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    begin();
+                    emitBegin();
                     _stage = SUCCESS;
                 }
 
@@ -420,7 +421,7 @@ public class Leader implements MembershipListener {
         notRecovery();
     }
 
-    private void collect() {
+    private void emitCollect() {
         _messages.clear();
 
         PaxosMessage myMessage = new Collect(_seqNum, newRndNumber(), _nodeId.asLong());
@@ -432,7 +433,7 @@ public class Leader implements MembershipListener {
         _transport.send(myMessage, NodeId.BROADCAST);
     }
 
-    private void begin() {
+    private void emitBegin() {
         _messages.clear();
 
         PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _nodeId.asLong());
@@ -444,7 +445,7 @@ public class Leader implements MembershipListener {
         _transport.send(myMessage, NodeId.BROADCAST);
     }
 
-    private void success() {
+    private void emitSuccess() {
         _messages.clear();
 
         PaxosMessage myMessage = new Success(_seqNum, _value);
