@@ -35,6 +35,7 @@ public class Leader implements MembershipListener {
     private static final int ABORT = 4;
     private static final int RECOVER = 5;
     private static final int COMMITTED = 6;
+    private static final int SUBMITTED = 7;
 
     /**
      * Indicates the Leader is not ready to process the passed message and the caller should retry.
@@ -190,6 +191,25 @@ public class Leader implements MembershipListener {
                 }
 
                 return;
+            }
+
+            case SUBMITTED : {
+                if (_checkLeader && !_detector.amLeader(_nodeId)) {
+                    failed();
+                    error(Reasons.OTHER_LEADER);
+                    return ;
+                }
+
+                _membership = _detector.getMembers(this);
+
+                _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" + _membership.getSize() + ")");
+
+                // Collect will decide if it can skip straight to a begin
+                //
+                _stage = COLLECT;
+                process();
+
+                break;
             }
 
             case COLLECT : {
@@ -537,24 +557,11 @@ public class Leader implements MembershipListener {
                 return BUSY;
             }
 
-            if (_checkLeader && ! _detector.amLeader(_nodeId)) {
-                failed();
-                error(Reasons.OTHER_LEADER);
-
-                return ACCEPTED;
-            }
-
             _clientOp = anOp;
 
             _logger.info("Initialising leader: " + Long.toHexString(_seqNum));
 
-            _membership = _detector.getMembers(this);
-
-            // Collect will decide if it can skip straight to a begin
-            //
-            _stage = COLLECT;
-
-            _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" + _membership.getSize() + ")");
+            _stage = SUBMITTED;
 
             process();
         }
