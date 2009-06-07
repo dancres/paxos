@@ -105,12 +105,24 @@ public class LeaderListenerTest {
             Assert.assertTrue(myMsg.getSeqNum() == i);
         }
 
-        Assert.assertTrue(myListener.testCount(5));
+        /*
+         * Packets are delivered in one or more separate threads and can actually arrive (due to scheduling vagaries and multiple processors) before the
+         * listener get's a signal which can mean our count can be inaccurate.  We must wait just a small amount of settling time.
+         */
+        Thread.sleep(2000);
+        
+        Assert.assertTrue("Listener count should be 5 but is: " + myListener.getCount(), myListener.testCount(5));
     }
 
     private class ListenerImpl implements AcceptorLearnerListener {
         private int _readyCount = 0;
 
+        int getCount() {
+            synchronized(this) {
+                return _readyCount;
+            }
+        }
+        
         boolean testCount(int aCount) {
             synchronized(this) {
                 return _readyCount == aCount;
