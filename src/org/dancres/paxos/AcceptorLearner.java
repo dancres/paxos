@@ -79,7 +79,7 @@ public class AcceptorLearner {
         }
     }
 
-    private long getLowWatermark() {
+    long getLowWatermark() {
         synchronized(this) {
             return _lowSeqNumWatermark;
         }

@@ -203,6 +203,10 @@ public class Leader implements MembershipListener {
 
             case COLLECT : {
                 if ((! isLeader()) && (! isRecovery())) {
+                    // Best guess for starting sequence number is the acceptor/learner
+                    //
+                    _seqNum = _al.getLowWatermark();
+
                     // Possibility we're starting from scratch
                     //
                     if (_seqNum == LogStorage.EMPTY_LOG)
