@@ -30,6 +30,8 @@ public class SuccessfulSequenceTest {
     private TransportImpl _tport2;
 
     @Before public void init() throws Exception {
+        Runtime.getRuntime().runFinalizersOnExit(true);
+
         _allocator = new AddressGenerator();
 
         _addr1 = _allocator.allocate();
