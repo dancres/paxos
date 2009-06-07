@@ -4,7 +4,7 @@ import org.apache.mina.common.IoFilterAdapter;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.impl.faildet.LivenessListener;
+import org.dancres.paxos.LivenessListener;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.NodeId;
 

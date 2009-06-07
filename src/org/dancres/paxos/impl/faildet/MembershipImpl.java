@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl.faildet;
 
+import org.dancres.paxos.LivenessListener;
 import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.Membership;
 import java.util.Set;

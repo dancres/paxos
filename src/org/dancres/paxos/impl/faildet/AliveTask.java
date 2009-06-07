@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl.faildet;
 
+import org.dancres.paxos.LivenessListener;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.Iterator;
 import org.dancres.paxos.NodeId;

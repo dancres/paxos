@@ -10,7 +10,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 public interface Transport {
     /**
      * @param aMessage is the message to send
-     * @param anAddress is the abstract address of the target for the message which might be <code>Address.BROADCAST</code>.
+     * @param aNodeId is the abstract address of the target for the message which might be <code>Address.BROADCAST</code>.
      */
     public void send(PaxosMessage aMessage, NodeId aNodeId);
 }

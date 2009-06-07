@@ -14,7 +14,7 @@ import org.apache.mina.common.IoEventType;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.impl.mina.codec.PaxosCodecFactory;
 import org.dancres.paxos.impl.faildet.Heartbeater;
-import org.dancres.paxos.impl.faildet.LivenessListener;
+import org.dancres.paxos.LivenessListener;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 

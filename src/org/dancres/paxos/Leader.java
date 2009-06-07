@@ -106,12 +106,6 @@ public class Leader implements MembershipListener {
 
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
-    /**
-     * @param aSeqNum is the sequence number for the proposal this leader instance is responsible for
-     * @param aProposerState is the proposer state to use for this proposal
-     * @param aTransport is the transport to use for messages
-     * @param aClientAddress is the endpoint for the client
-     */
     public Leader(FailureDetector aDetector, NodeId aNodeId, Transport aTransport, AcceptorLearner anAcceptorLearner) {
         _nodeId = aNodeId;
         _detector = aDetector;
@@ -573,7 +567,7 @@ public class Leader implements MembershipListener {
      * Used to process all core paxos protocol messages.
      *
      * @param aMessage is a message from some acceptor/learner
-     * @param anAddress is the address from which the message was sent
+     * @param aNodeId is the address from which the message was sent
      */
     public void messageReceived(PaxosMessage aMessage, NodeId aNodeId) {
         _logger.info("Leader received message: " + aMessage);
