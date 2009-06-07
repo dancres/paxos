@@ -53,7 +53,18 @@ public class Leader implements MembershipListener {
     private final AcceptorLearner _al;
 
     private long _seqNum = LogStorage.EMPTY_LOG;
+
+    /**
+     * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without risking breaking
+     * the collect protocol (the al could suddenly believe it's seen a collect it hasn't and become noisy when it should be silent).
+     * This field can be updated as the result of OldRound messages.
+     */
     private long _rndNumber = 0;
+
+    /**
+     * The current value the leader is using for a proposal. Might be sourced from _clientOp but can also come from Last messages as part
+     * of recovery.
+     */
     private byte[] _value;
 
     private boolean _checkLeader = true;
@@ -115,6 +126,12 @@ public class Leader implements MembershipListener {
         }
     }
 
+    private long getRndNumber() {
+        synchronized(this) {
+            return _rndNumber;
+        }
+    }
+
     private long newRndNumber() {
         synchronized(this) {
             return ++_rndNumber;
@@ -163,12 +180,6 @@ public class Leader implements MembershipListener {
         }
     }
 
-    private long getRndNumber() {
-        synchronized(this) {
-            return _rndNumber;
-        }
-    }
-
     public NodeId getNodeId() {
         return _nodeId;
     }
@@ -177,7 +188,6 @@ public class Leader implements MembershipListener {
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we process the
      * result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state we expect ACCEPT or OLDROUND
      *
-     * @todo Leader at point of recovery ought to source its initial sequence number from the acceptor learner
      * @todo Handle all cases in SUCCEESS e.g. we don't properly process/wait for all Acks
      */
     private void process() {
