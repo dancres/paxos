@@ -34,6 +34,7 @@ public class Leader implements MembershipListener {
     private static final int EXIT = 3;
     private static final int ABORT = 4;
     private static final int RECOVER = 5;
+    private static final int COMMITTED = 6;
 
     /**
      * Indicates the Leader is not ready to process the passed message and the caller should retry.
@@ -169,9 +170,6 @@ public class Leader implements MembershipListener {
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we process the
      * result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state we expect ACCEPT or OLDROUND
-     *
-     * @todo Handle all cases in SUCCEESS e.g. we don't properly process/wait for all Acks which can be done by adding another state before EXIT to check
-     * through responses and validate we got enough with no OldRounds
      */
     private void process() {
         switch(_stage) {
@@ -335,7 +333,6 @@ public class Leader implements MembershipListener {
             }
 
             case SUCCESS : {
-
                 /*
                  * Old round message, causes start at collect or quit.
                  * If Accept messages total more than majority we're happy, send Success wait for all acks
@@ -359,12 +356,45 @@ public class Leader implements MembershipListener {
                     // Send success, wait for acks
                     //
                     emitSuccess();
-                    _stage = EXIT;
+                    _stage = COMMITTED;
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
                     emitBegin();
                     _stage = SUCCESS;
+                }
+
+                break;
+            }
+
+            case COMMITTED : {
+
+                /*
+                 * Old round message, causes start at collect or quit.
+                 * If ACK messages total more than majority we're happy, send Success wait for all acks
+                 * or redo collect
+                 */
+                int myAckCount = 0;
+
+                Iterator<PaxosMessage> myMessages = _messages.iterator();
+                while (myMessages.hasNext()) {
+                    PaxosMessage myMessage = myMessages.next();
+
+                    if (myMessage.getType() == Operations.OLDROUND) {
+                        oldRound(myMessage);
+                        return;
+                    } else {
+                        myAckCount++;
+                    }
+                }
+
+                if (myAckCount >= _membership.getMajority()) {
+                    _stage = EXIT;
+                } else {
+                    // Need another try, didn't get enough accepts but didn't get leader conflict
+                    //
+                    emitSuccess();
+                    _stage = COMMITTED;
                 }
 
                 break;
