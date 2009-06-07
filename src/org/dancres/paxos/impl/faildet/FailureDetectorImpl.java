@@ -154,4 +154,22 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
             return true;
         }
     }
+
+    public NodeId getLeader() {
+        NodeId myLeader = NodeId.MOST_SUBORDINATE;
+
+        synchronized(this) {
+            Iterator<NodeId> myProcesses = _lastHeartbeats.keySet().iterator();
+
+            while (myProcesses.hasNext()) {
+                NodeId myAddress = myProcesses.next();
+
+                if (myAddress.asLong() > myLeader.asLong())
+                    myLeader = myAddress;
+            }
+
+        }
+
+        return myLeader;
+    }
 }

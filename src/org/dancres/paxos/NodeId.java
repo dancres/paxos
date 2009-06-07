@@ -6,6 +6,7 @@ import java.net.SocketAddress;
 
 public class NodeId {
     public static final NodeId BROADCAST = new NodeId(Long.MAX_VALUE);
+    public static final NodeId MOST_SUBORDINATE = new NodeId(Long.MIN_VALUE);
 
     private Long _flattenedAddress;
 
