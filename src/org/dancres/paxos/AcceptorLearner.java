@@ -156,6 +156,7 @@ public class AcceptorLearner {
                     return new OldRound(mySeqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
                 }
             }
+
             case Operations.BEGIN : {
                 Begin myBegin = (Begin) aMessage;
 
@@ -170,11 +171,12 @@ public class AcceptorLearner {
                     Collect myLastCollect = getLastCollect();
                     return new OldRound(mySeqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
                 } else {
-                    // Be slient - we didn't see the collect, leader hasn't taken account of our value because it hasn't seen our last
+                    // Be slient - we didn't see the collect, leader hasn't taken account of our values because it hasn't seen our last
                     //
                     _logger.info("Missed collect, going silent: " + mySeqNum + " [ " + myBegin.getRndNumber() + " ]");
                 }
             }
+            
             case Operations.SUCCESS : {
                 Success mySuccess = (Success) aMessage;
 
