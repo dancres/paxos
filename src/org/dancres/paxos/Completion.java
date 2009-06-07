@@ -47,4 +47,8 @@ public class Completion {
     public Object getContext() {
         return _context;
     }
+
+    public String toString() {
+        return "Completion: " + _result + ", " + Long.toHexString(_seqNum) + ", " + _context;
+    }
 }
