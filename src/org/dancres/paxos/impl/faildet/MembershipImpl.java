@@ -41,6 +41,8 @@ class MembershipImpl implements Membership, LivenessListener {
 
     private Logger _logger = LoggerFactory.getLogger(MembershipImpl.class);
 
+    private boolean _disposed = false;
+
     static boolean haveMajority(int aSize) {
         return (aSize >= MAJORITY);
     }
@@ -123,6 +125,10 @@ class MembershipImpl implements Membership, LivenessListener {
 
     public void dispose() {
         _parent.remove(this);
+
+        synchronized(this) {
+            _disposed = true;
+        }
     }
 
     public int getMajority() {
@@ -145,5 +151,15 @@ class MembershipImpl implements Membership, LivenessListener {
         }
 
         return false;
+    }
+
+    protected void finalize() throws Throwable {
+        synchronized(this) {
+            if (_disposed)
+                return;
+        }
+
+        System.err.println("Membership was not disposed");
+        System.err.flush();
     }
 }
