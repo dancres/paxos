@@ -37,4 +37,8 @@ public class Collect implements PaxosMessage {
     public boolean supercedes(Collect aCollect) {
         return (_rndNumber > aCollect.getRndNumber());
     }
+
+    public boolean isInitial() {
+        return (_nodeId == 0);
+    }
 }

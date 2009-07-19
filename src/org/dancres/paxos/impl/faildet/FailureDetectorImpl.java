@@ -43,6 +43,33 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
     }
 
+    public void run() {
+        while(true) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                continue;
+            }
+
+            synchronized(this) {
+                Iterator<NodeId> myProcesses = _lastHeartbeats.keySet().iterator();
+                long myMinTime = System.currentTimeMillis() - _maximumPeriodOfUnresponsiveness;
+
+                while (myProcesses.hasNext()) {
+                    NodeId myAddress = myProcesses.next();
+                    Long myTimeout = _lastHeartbeats.get(myAddress);
+
+                    // No heartbeat since myMinTime means we assume dead
+                    //
+                    if (myTimeout < myMinTime) {
+                        myProcesses.remove();
+                        sendDead(myAddress);
+                    }
+                }
+            }
+        }
+    }
+
     public void add(LivenessListener aListener) {
         _listeners.add(aListener);
     }
@@ -105,33 +132,6 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         return myMembership;
     }
 
-    public void run() {
-        while(true) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                continue;
-            }
-
-            synchronized(this) {
-                Iterator<NodeId> myProcesses = _lastHeartbeats.keySet().iterator();
-                long myMinTime = System.currentTimeMillis() - _maximumPeriodOfUnresponsiveness;
-
-                while (myProcesses.hasNext()) {
-                    NodeId myAddress = myProcesses.next();
-                    Long myTimeout = _lastHeartbeats.get(myAddress);
-
-                    // No heartbeat since myMinTime means we assume dead
-                    //
-                    if (myTimeout < myMinTime) {
-                        myProcesses.remove();
-                        sendDead(myAddress);
-                    }
-                }
-            }
-        }
-    }
-
     private void sendDead(NodeId aProcess) {
         Iterator myListeners = _listeners.iterator();
         while (myListeners.hasNext()) {
@@ -171,5 +171,11 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         }
 
         return myLeader;
+    }
+
+    public boolean isLive(NodeId aNodeId) {
+        synchronized(this) {
+            return (_lastHeartbeats.containsKey(aNodeId));
+        }
     }
 }

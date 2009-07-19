@@ -47,7 +47,7 @@ public class SuperiorLeaderAtBeginTest {
         _tport2 = new TransportImpl(_addr2);
 
         _node1 = new Node(_addr1, _tport1, 5000);
-        _node1.getLeader().setLeaderCheck(false);
+        // _node1.getLeader().setLeaderCheck(false);
         _node2 = new OldRoundNode(_addr2, _tport2, 5000);
 
         /*

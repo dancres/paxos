@@ -69,7 +69,9 @@ public class Leader implements MembershipListener {
      */
     private byte[] _value;
 
+    /*
     private boolean _checkLeader = true;
+     */
 
     /**
      * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread establishes we're leader and
@@ -114,6 +116,7 @@ public class Leader implements MembershipListener {
         _al = anAcceptorLearner;
     }
 
+    /*
     public void setLeaderCheck(boolean aCheck) {
         _logger.warn("Setting leader check: " + aCheck);
 
@@ -121,6 +124,7 @@ public class Leader implements MembershipListener {
             _checkLeader = aCheck;
         }
     }
+     */
 
     private long getRndNumber() {
         return _rndNumber;
@@ -185,11 +189,13 @@ public class Leader implements MembershipListener {
             }
 
             case SUBMITTED : {
+                /*
                 if (_checkLeader && !_detector.amLeader(_nodeId)) {
                     failed();
                     error(Reasons.OTHER_LEADER, _detector.getLeader());
                     return ;
                 }
+                */
 
                 _membership = _detector.getMembers(this);
 
@@ -205,6 +211,22 @@ public class Leader implements MembershipListener {
 
             case COLLECT : {
                 if ((! isLeader()) && (! isRecovery())) {
+                    /*
+                     * If the Acceptor/Learner thinks there's a valid leader and the failure detector confirms
+                     * liveness, cancel the request
+                     */
+                    Collect myLastCollect = _al.getLastCollect();
+
+                    // Collect is initial means no leader known so try to become leader
+                    //
+                    if (! myLastCollect.isInitial()) {
+                      NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
+
+                      if (_detector.isLive(myOtherLeader)) {
+                          error(Reasons.OTHER_LEADER, myOtherLeader);
+                      }
+                    }
+
                     // Best guess for starting sequence number is the acceptor/learner
                     //
                     _seqNum = _al.getLowWatermark();
@@ -432,7 +454,7 @@ public class Leader implements MembershipListener {
             _logger.info("Superior leader is active, backing down: " + myCompetingNodeId + ", " +
                     _nodeId);
 
-            error(Reasons.OTHER_LEADER, new Long(myCompetingNodeId.asLong()));
+            error(Reasons.OTHER_LEADER, myCompetingNodeId);
             return;
         }
 

@@ -118,7 +118,7 @@ public class AcceptorLearner {
         }
     }
 
-    private Collect getLastCollect() {
+    Collect getLastCollect() {
         synchronized(this) {
             return _lastCollect;
         }
