@@ -24,9 +24,12 @@ import org.slf4j.LoggerFactory;
  * @author dan
  */
 public class AcceptorLearner {
+    private static long DEFAULT_LEASE = 30 * 1000;
     private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
     private Collect _lastCollect = Collect.INITIAL;
+    private long _lastLeaderActionTime = 0;
+
     private LogStorage _storage;
 
     /**
@@ -136,7 +139,33 @@ public class AcceptorLearner {
         }
     }
 
+    /**
+     * @return <code>true</code> if the collect is either from the existing leader, or there is no leader or there's
+     * been nothing heard from the current leader within DEFAULT_LEASE milliseconds else <code>false</code>
+     */
+    private boolean amAccepting(Collect aCollect, long aCurrentTime) {
+        synchronized(this) {
+            if (_lastCollect.isInitial()) {
+                return true;
+            } else {
+                if (aCollect.getNodeId() == _lastCollect.getNodeId())
+                    return true;
+                else
+                    return (aCurrentTime > _lastLeaderActionTime + DEFAULT_LEASE);
+            }
+        }
+    }
+
+    private void updateLastActionTime(long aTime) {
+        _logger.info("Updating last action time: " + aTime);
+
+        synchronized(this) {
+            _lastLeaderActionTime = aTime;
+        }
+    }
+    
     public PaxosMessage process(PaxosMessage aMessage) {
+        long myCurrentTime = System.currentTimeMillis();
         long mySeqNum = aMessage.getSeqNum();
 
         _logger.info("AcceptorLearnerState got [ " + mySeqNum + " ] : " + aMessage);
@@ -144,15 +173,24 @@ public class AcceptorLearner {
         switch (aMessage.getType()) {
             case Operations.COLLECT : {
                 Collect myCollect = (Collect) aMessage;
+
+                if (! amAccepting(myCollect, myCurrentTime)) {
+                    _logger.info("Not accepting: " + myCollect);
+                    return null;
+                }
+
                 Collect myOld = supercedes(myCollect);
 
                 if (myOld != null) {
+                    updateLastActionTime(myCurrentTime);
+
                     return new Last(mySeqNum, getLowWatermark(), getHighWatermark(), myOld.getRndNumber(),
                             getStorage().get(mySeqNum));
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
                     Collect myLastCollect = getLastCollect();
+
                     return new OldRound(mySeqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
                 }
             }
@@ -163,12 +201,15 @@ public class AcceptorLearner {
                 // If the begin matches the last round of a collect we're fine
                 //
                 if (originates(myBegin)) {
+                    updateLastActionTime(myCurrentTime);
                     updateHighWatermark(myBegin.getSeqNum());
+
                     return new Accept(mySeqNum, getLastCollect().getRndNumber());
                 } else if (precedes(myBegin)) {
                     // A new collect was received since the collect for this begin, tell the proposer it's got competition
                     //
                     Collect myLastCollect = getLastCollect();
+
                     return new OldRound(mySeqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
                 } else {
                     // Be slient - we didn't see the collect, leader hasn't taken account of our values because it hasn't seen our last
@@ -183,6 +224,7 @@ public class AcceptorLearner {
                 _logger.info("Learnt value: " + mySuccess.getSeqNum());
 
                 getStorage().put(mySeqNum, mySuccess.getValue());
+                updateLastActionTime(myCurrentTime);
                 updateLowWatermark(mySuccess.getSeqNum());
                 updateHighWatermark(mySuccess.getSeqNum());
 
