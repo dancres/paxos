@@ -287,6 +287,10 @@ public class Leader implements MembershipListener {
                     PaxosMessage myMessage = myMessages.next();
 
                     if (myMessage.getType() == Operations.OLDROUND) {
+                        /*
+                         * An OldRound here indicates some other leader is present and we're only computing the
+                         * range for recovery thus we just give up and exit
+                         */
                         oldRound(myMessage);
                         return;
                     } else {
@@ -371,9 +375,12 @@ public class Leader implements MembershipListener {
 
             case SUCCESS : {
                 /*
-                 * Old round message, causes start at collect or quit.
-                 * If Accept messages total more than majority we're happy, send Success wait for all acks
-                 * or redo collect
+                 * Old round message, causes start at collect or quit. If Accept messages total more than majority
+                 * we're happy, send Success wait for all acks or redo collect. Note that if we receive OldRound
+                 * here we haven't proposed a value (we do that when we emit success) thus if we die after this point
+                 * the worst case would be an empty entry in the log with no filled in value. If we succeed here
+                 * we've essentially reserved a slot in the log for the specified sequence number and it's up to us
+                 * to fill it with the value we want.
                  */
                 int myAcceptCount = 0;
 
@@ -405,27 +412,10 @@ public class Leader implements MembershipListener {
             }
 
             case COMMITTED : {
-
                 /*
-                 * Old round message, causes start at collect or quit.
-                 * If ACK messages total more than majority we're happy, send Success wait for all acks
-                 * or redo collect
+                 * If ACK messages total more than majority we're happy otherwise try again.
                  */
-                int myAckCount = 0;
-
-                Iterator<PaxosMessage> myMessages = _messages.iterator();
-                while (myMessages.hasNext()) {
-                    PaxosMessage myMessage = myMessages.next();
-
-                    if (myMessage.getType() == Operations.OLDROUND) {
-                        oldRound(myMessage);
-                        return;
-                    } else {
-                        myAckCount++;
-                    }
-                }
-
-                if (myAckCount >= _membership.getMajority()) {
+                if (_messages.size() >= _membership.getMajority()) {
                     successful(Reasons.OK, null);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
