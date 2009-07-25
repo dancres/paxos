@@ -134,8 +134,22 @@ public class Leader implements MembershipListener {
         return ++_rndNumber;
     }
 
+    /**
+     * @param anOldRound is the instance to update from
+     */
     private void updateRndNumber(OldRound anOldRound) {
-        _rndNumber = anOldRound.getLastRound() + 1;
+        updateRndNumber(anOldRound.getLastRound());
+    }
+
+    /**
+     * Updates the leader's view of what the current round number is. We don't increment it here, that's done when
+     * we attempt to become leader. We're only concerned here with having as up-to-date view as possible of what
+     * the current view is.
+     *
+     * @param aNumber the round number we wish to update to
+     */
+    private void updateRndNumber(long aNumber) {
+        _rndNumber = aNumber;
     }
 
     private boolean isRecovery() {
@@ -228,6 +242,10 @@ public class Leader implements MembershipListener {
                           error(Reasons.OTHER_LEADER, myOtherLeader);
                       }
                     }
+
+                    // Best guess for a round number is the acceptor/learner
+                    //
+                    updateRndNumber(myLastCollect.getRndNumber());
 
                     // Best guess for starting sequence number is the acceptor/learner
                     //
@@ -441,6 +459,8 @@ public class Leader implements MembershipListener {
 
         NodeId myCompetingNodeId = NodeId.from(myOldRound.getNodeId());
 
+        updateRndNumber(myOldRound);
+
         /*
          * Some other node is active, we should abort if they are the leader by virtue of a larger nodeId
          */
@@ -451,8 +471,6 @@ public class Leader implements MembershipListener {
             error(Reasons.OTHER_LEADER, myCompetingNodeId);
             return;
         }
-
-        updateRndNumber(myOldRound);
 
         /*
          * Some other leader is active but we are superior, restart negotiations with COLLECT, note we must mark 
