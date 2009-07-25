@@ -19,9 +19,9 @@ public class Leader implements MembershipListener {
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
 
     /*
-     * Used to compute the timeout period for watchdog tasks.  In order to behave sanely we want the failure detector to be given
-     * the best possible chance of detecting problems with the members.  Thus the timeout for the watchdog is computed as the
-     * unresponsiveness threshold of the failure detector plus a grace period.
+     * Used to compute the timeout period for watchdog tasks.  In order to behave sanely we want the failure 
+     * detector to be given the best possible chance of detecting problems with the members.  Thus the timeout for the
+     * watchdog is computed as the unresponsiveness threshold of the failure detector plus a grace period.
      */
     private static final long FAILURE_DETECTOR_GRACE_PERIOD = 2000;
 
@@ -57,15 +57,15 @@ public class Leader implements MembershipListener {
     private long _seqNum = LogStorage.EMPTY_LOG;
 
     /**
-     * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without risking breaking
-     * the collect protocol (the al could suddenly believe it's seen a collect it hasn't and become noisy when it should be silent).
-     * This field can be updated as the result of OldRound messages.
+     * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without 
+     * risking breaking the collect protocol (the al could suddenly believe it's seen a collect it hasn't and become
+     * noisy when it should be silent). This field can be updated as the result of OldRound messages.
      */
     private long _rndNumber = 0;
 
     /**
-     * The current value the leader is using for a proposal. Might be sourced from _clientOp but can also come from Last messages as part
-     * of recovery.
+     * The current value the leader is using for a proposal. Might be sourced from _clientOp but can also come from 
+     * Last messages as part of recovery.
      */
     private byte[] _value;
 
@@ -74,9 +74,9 @@ public class Leader implements MembershipListener {
      */
 
     /**
-     * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread establishes we're leader and
-     * a prior thread decides otherwise with the latter being last to update this variable we'll simply do an unnecessary COLLECT.  The
-     * protocol execution will still be correct.
+     * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread 
+     * establishes we're leader and a prior thread decides otherwise with the latter being last to update this variable
+     * we'll simply do an unnecessary COLLECT.  The protocol execution will still be correct.
      */
     private boolean _isLeader = false;
 
@@ -89,9 +89,9 @@ public class Leader implements MembershipListener {
     private long _highWatermark;
 
     /**
-     * Maintains the current client request. The actual sequence number and value the state machine operates on are held in
-     * <code>_seqNum</code> and <code>_value</code> and during recovery will not be the same as the client request.  Thus we cache
-     * the client request and move it into the operating variables once recovery is complete.
+     * Maintains the current client request. The actual sequence number and value the state machine operates on are
+     * held in <code>_seqNum</code> and <code>_value</code> and during recovery will not be the same as the client
+     * request.  Thus we cache the client request and move it into the operating variables once recovery is complete.
      */
     private Operation _clientOp;
 
@@ -167,8 +167,9 @@ public class Leader implements MembershipListener {
     }
 
     /**
-     * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we process the
-     * result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state we expect ACCEPT or OLDROUND
+     * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
+     * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
+     * we expect ACCEPT or OLDROUND
      */
     private void process() {
         switch(_stage) {
@@ -199,7 +200,8 @@ public class Leader implements MembershipListener {
 
                 _membership = _detector.getMembers(this);
 
-                _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" + _membership.getSize() + ")");
+                _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" +
+                        _membership.getSize() + ")");
 
                 // Collect will decide if it can skip straight to a begin
                 //
@@ -213,11 +215,11 @@ public class Leader implements MembershipListener {
                 if ((! isLeader()) && (! isRecovery())) {
                     /*
                      * If the Acceptor/Learner thinks there's a valid leader and the failure detector confirms
-                     * liveness, cancel the request
+                     * liveness, reject the request
                      */
                     Collect myLastCollect = _al.getLastCollect();
 
-                    // Collect is initial means no leader known so try to become leader
+                    // Collect is INITIAL means no leader known so try to become leader
                     //
                     if (! myLastCollect.isInitial()) {
                       NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
@@ -311,8 +313,10 @@ public class Leader implements MembershipListener {
                 _lowWatermark = myMinSeq;
                 _highWatermark = myMaxSeq;
 
-                // Collect always increments the sequence number so we must allow for that when figuring out where to start from low watermark
-                //
+                /*
+                 * Collect always increments the sequence number so we must allow for that when figuring out where to
+                 * start from low watermark
+                 */
                 if (_lowWatermark == -1)
                     _seqNum = -1;
                 else
@@ -461,9 +465,9 @@ public class Leader implements MembershipListener {
         updateRndNumber(myOldRound);
 
         /*
-         * Some other leader is active but we are superior, restart negotiations with COLLECT, note we must mark ourselves as
-         * not the leader (as has been done above) because having re-established leadership we must perform recovery and
-         * then attempt to submit the client's value (if any) again.
+         * Some other leader is active but we are superior, restart negotiations with COLLECT, note we must mark 
+         * ourselves as not the leader (as has been done above) because having re-established leadership we must
+         * perform recovery and then attempt to submit the client's value (if any) again.
          */
         _stage = COLLECT;
         process();
@@ -484,8 +488,8 @@ public class Leader implements MembershipListener {
     }
 
     /**
-     * If we timed out or lost membership, we're potentially no longer leader and need to run recovery to get back to the right
-     * sequence number.
+     * If we timed out or lost membership, we're potentially no longer leader and need to run recovery to get back to
+     * the right sequence number.
      */
     private void failed() {
         notLeader();
@@ -604,7 +608,8 @@ public class Leader implements MembershipListener {
                 _messages.add(aMessage);
                 _membership.receivedResponse(aNodeId);
             } else {
-                _logger.warn("Unexpected message received: " + aMessage.getSeqNum() + " (" + Long.toHexString(_seqNum) + ")");
+                _logger.warn("Unexpected message received: " + aMessage.getSeqNum() + " (" +
+                        Long.toHexString(_seqNum) + ")");
             }
         }
 
