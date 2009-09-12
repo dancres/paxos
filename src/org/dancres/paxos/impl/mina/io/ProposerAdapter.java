@@ -58,7 +58,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
                 _logger.info("serverMsgRx: s=" + aSession + " o=" + anObject);
 
         if (myMessage.getType() == Post.TYPE)
-            _leader.submit(new Operation(((Post) myMessage).getValue()));
+            _leader.submit(new Operation(((Post) myMessage).getValue(), new byte[0]));
         else
             _leader.messageReceived(myMessage, NodeId.from(aSession.getRemoteAddress()));
     }

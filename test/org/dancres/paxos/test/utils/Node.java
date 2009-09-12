@@ -40,6 +40,8 @@ public class Node implements PacketListener {
     private PacketQueue _pq;
     private Transport _tp;
 
+    private static byte[] HANDBACK = new byte[] {1, 2, 3, 4};
+
     /**
      * @param anAddr is the address this node should use
      * @param aTransport to use for sending messages
@@ -83,7 +85,7 @@ public class Node implements PacketListener {
             //
             case Operations.POST : {
                 _clientAddress = aPacket.getSender();
-                _ld.submit(new Operation(((Post) myMessage).getValue()));
+                _ld.submit(new Operation(((Post) myMessage).getValue(), HANDBACK));
                 break;
             }
 
@@ -133,10 +135,23 @@ public class Node implements PacketListener {
                 return;
 
             if (aCompletion.getResult() == Reasons.OK) {
+                assert (check(aCompletion.getHandback())) : "Handback not intact";
                 _tp.send(new Ack(aCompletion.getSeqNum()), _clientAddress);
             } else {
                 _tp.send(new Fail(aCompletion.getSeqNum(), aCompletion.getResult()), _clientAddress);
             }
+        }
+
+        private boolean check(byte[] aHandback) {
+            if (aHandback.length != HANDBACK.length)
+                return false;
+
+            for (int i = 0; i < aHandback.length; i++) {
+                if (aHandback[i] != HANDBACK[i])
+                    return false;
+            }
+
+            return true;
         }
     }
 }

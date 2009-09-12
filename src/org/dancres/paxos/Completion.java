@@ -1,5 +1,7 @@
 package org.dancres.paxos;
 
+import java.nio.ByteBuffer;
+
 /**
  * Status indication returned from the state machine for each vote requested
  */
@@ -7,12 +9,22 @@ public class Completion {
     private int _result;
     private long _seqNum;
     private byte[] _value;
+    private byte[] _handback;
     private Object _context;
 
     Completion(int aResult, long aSeqNum, byte[] aValue) {
         _result = aResult;
         _seqNum = aSeqNum;
-        _value = aValue;
+
+        if (aValue != null) {
+            ByteBuffer myBuffer = ByteBuffer.wrap(aValue);
+            int myValueSize = myBuffer.getInt();
+
+            _value = new byte[myValueSize];
+            _handback = new byte[aValue.length - 4 - myValueSize];
+            myBuffer.get(_value);
+            myBuffer.get(_handback);
+        }
     }
 
     Completion(int aResult, long aSeqNum, byte[] aValue, Object aContext) {
@@ -25,6 +37,10 @@ public class Completion {
      */
     public byte[] getValue() {
         return _value;
+    }
+
+    public byte[] getHandback() {
+        return _handback;
     }
 
     /**

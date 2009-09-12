@@ -14,6 +14,8 @@ import java.util.TimerTask;
  * Implements the leader state machine.
  *
  * @author dan
+ *
+ * @todo Heartbeating via Paxos round
  */
 public class Leader implements MembershipListener {
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
@@ -270,7 +272,7 @@ public class Leader implements MembershipListener {
 
                         _logger.info("Recovery complete - we're leader doing begin with client value");
 
-                        _value = _clientOp.getValue();
+                        _value = _clientOp.getConsolidatedValue();
                         _stage = BEGIN;
                         process();
 
@@ -283,7 +285,7 @@ public class Leader implements MembershipListener {
                 } else if (isLeader()) {
                     _logger.info("Skipping collect phase - we're leader already");
 
-                    _value = _clientOp.getValue();
+                    _value = _clientOp.getConsolidatedValue();
                     ++_seqNum;
 
                     _stage = BEGIN;
@@ -565,8 +567,20 @@ public class Leader implements MembershipListener {
         _logger.info("Watchdog requested abort: " + Long.toHexString(_seqNum));
 
         synchronized(this) {
-            failed();
-            error(Reasons.VOTE_TIMEOUT, null);
+            // If there are enough messages we might get a majority continue
+            //
+            if (_messages.size() >= _membership.getMajority())
+                process();
+            else {
+                failed();
+                error(Reasons.VOTE_TIMEOUT, null);
+            }
+        }
+    }
+
+    private class Alarm extends TimerTask {
+        public void run() {
+            expired();
         }
     }
 
@@ -622,11 +636,5 @@ public class Leader implements MembershipListener {
         }
 
         _logger.info("Leader processed message: " + aMessage);
-    }
-
-    private class Alarm extends TimerTask {
-        public void run() {
-            expired();
-        }
     }
 }
