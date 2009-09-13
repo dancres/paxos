@@ -3,6 +3,7 @@ package org.dancres.paxos;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Ack;
 import org.dancres.paxos.messages.Begin;
@@ -21,13 +22,17 @@ import org.slf4j.LoggerFactory;
  * then the local instance will receive those packets.  This can be useful for processing client requests correctly and signalling interested
  * parties as necessary.
  *
- * @todo Test additional collects from a second leader that should be ignored for the DEFAULT_LEASE
- *
  * @author dan
  */
 public class AcceptorLearner {
     private static long DEFAULT_LEASE = 30 * 1000;
     private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
+
+    /**
+     * Statistic that tracks the number of Collects this AcceptorLearner ignored from competing leaders within
+     * DEFAULT_LEASE ms of activity from the current leader.
+     */
+    private AtomicLong _ignoredCollects = new AtomicLong();
 
     private Collect _lastCollect = Collect.INITIAL;
     private long _lastLeaderActionTime = 0;
@@ -66,6 +71,10 @@ public class AcceptorLearner {
         }
     }
 
+    public long getIgnoredCollectsCount() {
+        return _ignoredCollects.longValue();
+    }
+
     private LogStorage getStorage() {
         return _storage;
     }
@@ -84,7 +93,7 @@ public class AcceptorLearner {
         }
     }
 
-    long getLowWatermark() {
+    public long getLowWatermark() {
         synchronized(this) {
             return _lowSeqNumWatermark;
         }
@@ -100,7 +109,7 @@ public class AcceptorLearner {
         }
     }
 
-    private long getHighWatermark() {
+    public long getHighWatermark() {
         synchronized(this) {
             return _highSeqNumWatermark;
         }
@@ -123,7 +132,7 @@ public class AcceptorLearner {
         }
     }
 
-    Collect getLastCollect() {
+    public Collect getLastCollect() {
         synchronized(this) {
             return _lastCollect;
         }
@@ -177,7 +186,9 @@ public class AcceptorLearner {
                 Collect myCollect = (Collect) aMessage;
 
                 if (! amAccepting(myCollect, myCurrentTime)) {
-                    _logger.info("Not accepting: " + myCollect);
+                    _ignoredCollects.incrementAndGet();
+
+                    _logger.info("Not accepting: " + myCollect + ", " + getIgnoredCollectsCount());
                     return null;
                 }
 
@@ -243,7 +254,7 @@ public class AcceptorLearner {
         List myListeners;
 
         synchronized(_listeners) {
-            myListeners = new ArrayList(_listeners);
+            myListeners = new ArrayList<AcceptorLearnerListener>(_listeners);
         }
 
         Iterator<AcceptorLearnerListener> myTargets = myListeners.iterator();

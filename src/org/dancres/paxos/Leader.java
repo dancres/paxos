@@ -128,6 +128,12 @@ public class Leader implements MembershipListener {
     }
      */
 
+    public long getCurrentRound() {
+        synchronized(this) {
+            return _rndNumber;
+        }
+    }
+
     private long getRndNumber() {
         return _rndNumber;
     }
