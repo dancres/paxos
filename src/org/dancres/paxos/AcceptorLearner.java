@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory;
  * @author dan
  */
 public class AcceptorLearner {
+    public static final byte[] HEARTBEAT = "DCC:Paxos Heartbeat".getBytes();
+
     private static long DEFAULT_LEASE = 30 * 1000;
     private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
@@ -33,6 +35,7 @@ public class AcceptorLearner {
      * DEFAULT_LEASE ms of activity from the current leader.
      */
     private AtomicLong _ignoredCollects = new AtomicLong();
+    private AtomicLong _receivedHeartbeats = new AtomicLong();
 
     private Collect _lastCollect = Collect.INITIAL;
     private long _lastLeaderActionTime = 0;
@@ -55,6 +58,10 @@ public class AcceptorLearner {
     private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 
 
+    public long getLeaderLeaseDuration() {
+        return DEFAULT_LEASE;
+    }
+
     public AcceptorLearner(LogStorage aStore) {
         _storage = aStore;
     }
@@ -69,6 +76,10 @@ public class AcceptorLearner {
         synchronized(_listeners) {
             _listeners.remove(aListener);
         }
+    }
+
+    public long getHeartbeatCount() {
+        return _receivedHeartbeats.longValue();
     }
 
     public long getIgnoredCollectsCount() {
@@ -236,18 +247,41 @@ public class AcceptorLearner {
 
                 _logger.info("Learnt value: " + mySuccess.getSeqNum());
 
-                getStorage().put(mySeqNum, mySuccess.getValue());
                 updateLastActionTime(myCurrentTime);
                 updateLowWatermark(mySuccess.getSeqNum());
                 updateHighWatermark(mySuccess.getSeqNum());
 
-                signal(new Completion(Reasons.OK, mySuccess.getSeqNum(), mySuccess.getValue()));
+                Completion myCompletion = new Completion(Reasons.OK, mySuccess.getSeqNum(), mySuccess.getValue());
+
+                if (notHeartbeat(myCompletion.getValue())) {
+                    getStorage().put(mySeqNum, mySuccess.getValue());
+                    signal(myCompletion);
+                } else {
+                    _receivedHeartbeats.incrementAndGet();
+
+                    _logger.info("AcceptorLearner discarded heartbeat: " + System.currentTimeMillis() + ", " +
+                            getHeartbeatCount());
+                }
 
                 return new Ack(mySuccess.getSeqNum());
             }
 
             default : throw new RuntimeException("Unexpected message");
         }
+    }
+
+    private boolean notHeartbeat(byte[] aValue) {
+        if (aValue.length != HEARTBEAT.length) {
+            return true;
+        }
+
+        for (int i = 0; i < aValue.length; i++) {
+            if (aValue[i] != HEARTBEAT[i]) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     void signal(Completion aStatus) {

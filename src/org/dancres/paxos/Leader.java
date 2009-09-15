@@ -13,9 +13,21 @@ import java.util.TimerTask;
 /**
  * Implements the leader state machine.
  *
+ * @todo State recovery - basic model will be to resolve memory state from the last checkpoint and then replay the log
+ * to bring that memory state up-to-date (possibly by re-announcing completions via the AcceptorLearner).  Once that
+ * is done, we could become the leader.
+ * @todo If some other leader failed, we need to resolve any previous slots outstanding. It's possible the old leader
+ * secured a slot and declared a value but didn't report back to the client. In that case, the client would see it's
+ * leader fail to respond and have to either submit an operation to determine whether it's previous attempt succeeded
+ * or submit an idempotent operation that could be retried safely multiple times. Other cases include the leader
+ * reserving a slot but not filling in a value in which case we need to fill it with a null value (which AcceptorLearner
+ * would need to drop silently rather than deliver it to a listener). It's also possible the leader proposed a value
+ * but didn't reach a majority due to network issues and then died. In such a case, the new leader will have to settle
+ * that round with the partially agreed value.  It's likely that will be done with the originating client absent so
+ * as per the leader failed to report case, the client will need to retry with the appropriate protocol.
+ * @todo Add a test for validating multiple sequence number recovery.
+ * 
  * @author dan
- *
- * @todo Heartbeating via Paxos round
  */
 public class Leader implements MembershipListener {
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
@@ -30,13 +42,48 @@ public class Leader implements MembershipListener {
     /*
      * Internal states
      */
+
+    /**
+     * Leader reaches this state after SUBMITTED. If already leader, a transition to BEGIN will be immediate.
+     * If not leader and recovery is not active, move to state RECOVER otherwise leader is in recovery and must now
+     * settle low to high watermark (as set by RECOVER) before processing any submitted value by repeatedly executing
+     * full instances of paxos (including a COLLECT to recover any previous value that was proposed).
+     */
     private static final int COLLECT = 0;
+
+    /**
+     * Attempt to reserve a slot in the sequence of operations. Transition to SUCCESS after emitting begin to see
+     * if the slot was granted.
+     */
     private static final int BEGIN = 1;
+
+    /**
+     * Leader has sent a BEGIN and now determines if it has secured the slot associated with the sequence number.
+     * If the slot was secured, a value will be sent to all members of the current instance after which there will
+     * be a transition to COMMITTED.
+     */
     private static final int SUCCESS = 2;
+
+    /**
+     * A paxos instance was completed successfully, clean up is all that remains.
+     */
     private static final int EXIT = 3;
+
+    /**
+     * A paxos isntance failed for some reason (which will be found in </code>_completion</code>).
+     */
     private static final int ABORT = 4;
     private static final int RECOVER = 5;
+
+    /**
+     * Leader has completed the necessary steps to secure an entry in storage for a particular sequence number
+     * and is now processing ACKs to ensure enough nodes have seen the committed value.
+     */
     private static final int COMMITTED = 6;
+
+    /**
+     * Leader has been given a value and should attempt to complete a paxos instance.
+     */
     private static final int SUBMITTED = 7;
 
     /**
@@ -49,7 +96,7 @@ public class Leader implements MembershipListener {
      */
     public static final int ACCEPTED = 257;
 
-    private final Timer _watchdog = new Timer("Leader watchdog");
+    private final Timer _watchdog = new Timer("Leader timers");
     private final long _watchdogTimeout;
     private final FailureDetector _detector;
     private final NodeId _nodeId;
@@ -97,8 +144,21 @@ public class Leader implements MembershipListener {
      */
     private Operation _clientOp;
 
-    private TimerTask _activeAlarm;
+    /**
+     * This alarm is used to limit the amount of time the leader will wait for responses from all apparently live
+     * members in a round of communication.
+     */
+    private TimerTask _interactionAlarm;
 
+    /**
+     * This alarm is used to ensure the leader sends regular heartbeats in the face of inactivity so as to extend
+     * its lease with AcceptorLearners.
+     */
+    private TimerTask _heartbeatAlarm;
+
+    /**
+     * Tracks membership for an entire paxos instance.
+     */
     private Membership _membership;
 
     private int _stage = EXIT;
@@ -127,6 +187,11 @@ public class Leader implements MembershipListener {
         }
     }
      */
+
+    private long calculateLeaderRefresh() {
+        long myExpiry = _al.getLeaderLeaseDuration();
+        return myExpiry - (myExpiry * 20 / 100);
+    }
 
     public long getCurrentRound() {
         synchronized(this) {
@@ -195,17 +260,38 @@ public class Leader implements MembershipListener {
      */
     private void process() {
         switch(_stage) {
-            case ABORT :
-            case EXIT : {
-                _logger.info("Leader reached " + _completion);
+            case ABORT : {
+                _logger.info("Leader::ABORT " + _completion);
 
                 if (_membership != null)
                     _membership.dispose();
 
-                // Acceptor/learner generates events for successful negotiation itself, we generate failures
-                //
-                if (_stage != EXIT) {
-                    _al.signal(_completion);
+                _al.signal(_completion);
+
+                return;
+            }
+
+            case EXIT : {
+                _logger.info("Leader::EXIT " + _completion);
+
+                if (_membership != null)
+                    _membership.dispose();
+
+                /*
+                 * @todo If we get to here an isRecovery() we need to perform all the steps for SUBMITTED and get
+                 * back into COLLECT.
+                 */
+                if (isRecovery()) {
+                    /*
+                     * We've completed a paxos instance as part of recovery, we must return to COLLECT via SUBMITTED
+                     * (which sets up membership etc) to continue recovery of process the original request that
+                     * triggered us to assume leadership and recover.
+                     */
+                    _stage = SUBMITTED;
+                    process();
+                } else {
+                    _heartbeatAlarm = new HeartbeatTask();
+                    _watchdog.schedule(_heartbeatAlarm, calculateLeaderRefresh());
                 }
 
                 return;
@@ -235,6 +321,8 @@ public class Leader implements MembershipListener {
 
             case COLLECT : {
                 if ((! isLeader()) && (! isRecovery())) {
+                    _logger.info("Not currently leader, recovering");
+
                     /*
                      * If the Acceptor/Learner thinks there's a valid leader and the failure detector confirms
                      * liveness, reject the request
@@ -251,6 +339,8 @@ public class Leader implements MembershipListener {
                       }
                     }
 
+                    _logger.info("Trying to become leader and computing high and low watermarks");
+                    
                     // Best guess for a round number is the acceptor/learner
                     //
                     updateRndNumber(myLastCollect.getRndNumber());
@@ -325,6 +415,10 @@ public class Leader implements MembershipListener {
                         long myLow = myLast.getLowWatermark();
                         long myHigh = myLast.getHighWatermark();
 
+                        /*
+                         * Ignore EMPTY_LOG which means the participant has no valid watermarks
+                         * as it's state is initial.
+                         */
                         if (myLow != LogStorage.EMPTY_LOG) {
                             if (myLow < myMinSeq)
                                 myMinSeq = myLow;
@@ -457,6 +551,20 @@ public class Leader implements MembershipListener {
         }
     }
 
+    private class HeartbeatTask extends TimerTask {
+        public void run() {
+            _logger.info("Sending heartbeat: " + System.currentTimeMillis());
+
+            /*
+             * Don't have to check the return value - if it's accepted we weren't active, otherwise we are and
+             * no heartbeat is required. Note that a heartbeat could cause us to decide we're no longer leader
+             * although that's unlikely if things are stable as no other node can become leader whilst we hold the
+             * lease
+             */
+            submit(new Operation(AcceptorLearner.HEARTBEAT, new byte[0]));
+        }
+    }
+
     /**
      * @param aMessage is an OldRound message received from some other node
      */
@@ -549,10 +657,16 @@ public class Leader implements MembershipListener {
     }
 
     private void startInteraction() {
-        _activeAlarm = new Alarm();
-        _watchdog.schedule(_activeAlarm, _watchdogTimeout);
+        _interactionAlarm = new InteractionAlarm();
+        _watchdog.schedule(_interactionAlarm, _watchdogTimeout);
 
         _membership.startInteraction();
+    }
+
+    private class InteractionAlarm extends TimerTask {
+        public void run() {
+            expired();
+        }
     }
 
     /**
@@ -561,7 +675,7 @@ public class Leader implements MembershipListener {
     public void abort() {
         _logger.info("Membership requested abort: " + Long.toHexString(_seqNum));
 
-        _activeAlarm.cancel();
+        _interactionAlarm.cancel();
         
         synchronized(this) {
             failed();
@@ -584,14 +698,8 @@ public class Leader implements MembershipListener {
         }
     }
 
-    private class Alarm extends TimerTask {
-        public void run() {
-            expired();
-        }
-    }
-
     public void allReceived() {
-        _activeAlarm.cancel();
+        _interactionAlarm.cancel();
 
         synchronized(this) {
             process();
