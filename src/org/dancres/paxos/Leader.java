@@ -277,10 +277,6 @@ public class Leader implements MembershipListener {
                 if (_membership != null)
                     _membership.dispose();
 
-                /*
-                 * @todo If we get to here an isRecovery() we need to perform all the steps for SUBMITTED and get
-                 * back into COLLECT.
-                 */
                 if (isRecovery()) {
                     /*
                      * We've completed a paxos instance as part of recovery, we must return to COLLECT via SUBMITTED
