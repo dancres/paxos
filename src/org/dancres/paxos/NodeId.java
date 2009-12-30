@@ -14,6 +14,12 @@ public class NodeId {
         _flattenedAddress = new Long(aFlattenedAddress);
     }
 
+    public static NodeId from(SocketAddress anAddr, int aPort) {
+    	InetSocketAddress myAddr = (InetSocketAddress) anAddr;
+    	
+    	return from(new InetSocketAddress(myAddr.getAddress(), aPort));
+    }
+    
     public static NodeId from(SocketAddress anAddr) {
         InetSocketAddress myAddr = (InetSocketAddress) anAddr;
 
