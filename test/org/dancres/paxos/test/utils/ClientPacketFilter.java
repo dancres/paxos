@@ -16,7 +16,7 @@ public class ClientPacketFilter implements PacketQueue {
 
     public void add(Packet aPacket) {
         switch (aPacket.getMsg().getType()) {
-            case Operations.ACK :
+            case Operations.COMPLETE :
             case Operations.FAIL : {
                 _queue.add(aPacket);
                 break;

@@ -9,12 +9,11 @@ import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.OldRound;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.impl.mina.io.Post;
+import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.mina.io.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.NodeId;
-import org.dancres.paxos.Operation;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
 import org.dancres.paxos.test.utils.Node;
@@ -26,6 +25,8 @@ import org.junit.*;
 import org.junit.Assert.*;
 
 public class SuperiorLeaderAtBeginTest {
+	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
+
     private AddressGenerator _allocator;
 
     private InetSocketAddress _addr1;
@@ -94,7 +95,7 @@ public class SuperiorLeaderAtBeginTest {
             Thread.sleep(5000);
         }
 
-        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array())));
+        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK)));
 
         Packet myPacket = myQueue.getNext(10000);
 

@@ -5,10 +5,9 @@ import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.AcceptorLearnerListener;
 import org.dancres.paxos.Completion;
 import org.dancres.paxos.Leader;
-import org.dancres.paxos.Operation;
 import org.dancres.paxos.Reasons;
 import org.dancres.paxos.Transport;
-import org.dancres.paxos.messages.Ack;
+import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -16,7 +15,6 @@ import org.dancres.paxos.impl.mina.io.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.faildet.Heartbeater;
-import org.dancres.paxos.impl.mina.io.Post;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 import org.dancres.paxos.NodeId;
 import org.slf4j.Logger;
@@ -39,8 +37,6 @@ public class Node implements PacketListener {
     private Heartbeater _hb;
     private PacketQueue _pq;
     private Transport _tp;
-
-    private static byte[] HANDBACK = new byte[] {1, 2, 3, 4};
 
     /**
      * @param anAddr is the address this node should use
@@ -72,10 +68,12 @@ public class Node implements PacketListener {
      * @todo Remove the ugly hack
      */
     public void deliver(Packet aPacket) throws Exception {
+        _logger.info("Got packet: " + aPacket.getMsg());
+        
         PaxosMessage myMessage = aPacket.getMsg();
 
-        switch (myMessage.getType()) {
-            case Heartbeat.TYPE: {
+        switch (myMessage.getClassification()) {
+            case PaxosMessage.FAILURE_DETECTOR : {
                 _fd.processMessage(myMessage, aPacket.getSender());
 
                 break;
@@ -83,13 +81,13 @@ public class Node implements PacketListener {
 
             // UGLY HACK!!!
             //
-            case Operations.POST : {
+            case PaxosMessage.CLIENT : {
                 _clientAddress = aPacket.getSender();
-                _ld.submit(new Operation(((Post) myMessage).getValue(), HANDBACK));
+                _ld.messageReceived(myMessage, _clientAddress);
                 break;
             }
 
-            case Operations.PROPOSER_REQ: {
+            case PaxosMessage.LEADER: {
                 ProposerPacket myPropPkt = (ProposerPacket) myMessage;
                 PaxosMessage myResponse = _al.process(myPropPkt.getOperation());
 
@@ -100,9 +98,13 @@ public class Node implements PacketListener {
                 break;
             }
 
-            default: {
+            case PaxosMessage.ACCEPTOR_LEARNER: {
                 _ld.messageReceived(myMessage, aPacket.getSender());
                 break;
+            }
+            
+            default : {
+            	_logger.error("Unrecognised message:" + myMessage);
             }
         }
     }
@@ -135,23 +137,10 @@ public class Node implements PacketListener {
                 return;
 
             if (aCompletion.getResult() == Reasons.OK) {
-                assert (check(aCompletion.getHandback())) : "Handback not intact";
-                _tp.send(new Ack(aCompletion.getSeqNum()), _clientAddress);
+                _tp.send(new Complete(aCompletion.getSeqNum()), _clientAddress);
             } else {
                 _tp.send(new Fail(aCompletion.getSeqNum(), aCompletion.getResult()), _clientAddress);
             }
-        }
-
-        private boolean check(byte[] aHandback) {
-            if (aHandback.length != HANDBACK.length)
-                return false;
-
-            for (int i = 0; i < aHandback.length; i++) {
-                if (aHandback[i] != HANDBACK[i])
-                    return false;
-            }
-
-            return true;
         }
     }
 }

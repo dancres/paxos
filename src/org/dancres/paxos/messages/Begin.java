@@ -15,6 +15,10 @@ public class Begin implements PaxosMessage {
         return Operations.BEGIN;
     }
 
+    public short getClassification() {
+    	return LEADER;
+    }
+        
     public long getSeqNum() {
         return _seqNum;
     }

@@ -13,6 +13,10 @@ public class Success implements PaxosMessage {
         return Operations.SUCCESS;
     }
 
+    public short getClassification() {
+    	return LEADER;
+    }
+    
     public long getSeqNum() {
         return _seqNum;
     }

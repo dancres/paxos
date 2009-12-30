@@ -6,11 +6,13 @@ import org.apache.mina.common.*;
 import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.dancres.paxos.impl.mina.codec.PaxosCodecFactory;
-import org.dancres.paxos.impl.mina.io.Post;
+import org.dancres.paxos.messages.Post;
 
 import java.net.InetSocketAddress;
 
 public class PaxosClient implements IoHandler {
+	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
+	
     private PaxosClient() {
 
     }
@@ -31,7 +33,7 @@ public class PaxosClient implements IoHandler {
             buffer.putInt(i);
             buffer.flip();
 
-            mySession.write(new Post(buffer.array()));
+            mySession.write(new Post(buffer.array(), HANDBACK));
 
             try {
                 Thread.sleep(1000);

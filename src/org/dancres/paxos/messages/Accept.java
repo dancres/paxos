@@ -13,6 +13,10 @@ public class Accept implements PaxosMessage {
         return Operations.ACCEPT;
     }
 
+    public short getClassification() {
+    	return ACCEPTOR_LEARNER;
+    }
+    
     public long getRndNumber() {
         return _rndNumber;
     }

@@ -17,9 +17,12 @@ public interface Membership {
     public void startInteraction();
 
     /**
-     * Invoke this for each response received (duplicates should be filtered before making this call)
+     * Leader of a round invokes this for each response received. As each node is expected to return a single message, any additions
+     * are duplicates or not expected and thus should be discarded.
+     * 
+     * @return <code>true</code> if this response was expected, <code>false</code> otherwise.
      */
-    public void receivedResponse(NodeId aNodeId);
+    public boolean receivedResponse(NodeId aNodeId);
 
     /**
      * Indicate this membership will be used no more

@@ -7,12 +7,13 @@ import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Ack;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
+import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.messages.Last;
 import org.dancres.paxos.messages.OldRound;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.impl.mina.io.Post;
+import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.messages.Success;
 import org.junit.*;
@@ -52,6 +53,16 @@ public class CodecTest {
         Assert.assertTrue(myAccept.getSeqNum() == myAccept2.getSeqNum());
     }
 
+    @Test public void complete() throws Exception {    
+        Complete myComp = new Complete(1);
+
+        byte[] myBuffer = encode(myComp);
+
+        Complete myComp2 = (Complete) decode(myBuffer, true);
+
+        Assert.assertTrue(myComp.getSeqNum() == myComp2.getSeqNum());
+    }
+    
     @Test public void ack() throws Exception {
         Ack myAck = new Ack(1);
 
@@ -136,8 +147,9 @@ public class CodecTest {
 
     @Test public void post() throws Exception {
         byte[] myData = {55};
+        byte[] myOther = {65};
 
-        Post myPost = new Post(myData);
+        Post myPost = new Post(myData, myOther);
 
         byte[] myBuffer = encode(myPost);
 
@@ -145,6 +157,8 @@ public class CodecTest {
 
         Assert.assertEquals(myPost.getValue().length, myPost2.getValue().length);
         Assert.assertEquals(myPost.getValue()[0], myPost2.getValue()[0]);
+        Assert.assertEquals(myPost.getHandback().length, myPost2.getHandback().length);
+        Assert.assertEquals(myPost.getHandback()[0], myPost2.getHandback()[0]);
     }
 
     @Test public void success() throws Exception {

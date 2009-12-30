@@ -1,18 +1,18 @@
 package org.dancres.paxos.messages;
 
-public class Ack implements PaxosMessage {
+public class Complete implements PaxosMessage {
     private long _seqNum;
 
-    public Ack(long aSeqNum) {
+    public Complete(long aSeqNum) {
         _seqNum = aSeqNum;
     }
 
     public int getType() {
-        return Operations.ACK;
+        return Operations.COMPLETE;
     }
 
     public short getClassification() {
-    	return ACCEPTOR_LEARNER;
+    	return CLIENT;
     }
 
    public long getSeqNum() {
@@ -20,6 +20,6 @@ public class Ack implements PaxosMessage {
     }
 
     public String toString() {
-        return "Ack: " + _seqNum;
+        return "Complete: " + _seqNum;
     }
 }

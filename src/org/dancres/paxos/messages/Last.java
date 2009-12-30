@@ -26,6 +26,10 @@ public class Last implements PaxosMessage {
         return Operations.LAST;
     }
 
+    public short getClassification() {
+    	return ACCEPTOR_LEARNER;
+    }
+    
     /**
      * @return the value associated with the sequence number returned by <code>getSeqNum</code>
      */

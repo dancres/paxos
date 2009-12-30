@@ -4,7 +4,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.impl.mina.io.Post;
+import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.NodeId;
 import org.dancres.paxos.test.utils.AddressGenerator;
@@ -18,6 +18,8 @@ import org.junit.*;
 import org.junit.Assert.*;
 
 public class SuccessfulSequenceTest {
+	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
+	
     private AddressGenerator _allocator;
 
     private InetSocketAddress _addr1;
@@ -88,7 +90,7 @@ public class SuccessfulSequenceTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
 
-            _node2.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array())));
+            _node2.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK)));
 
             Packet myPacket = myQueue.getNext(10000);
 
@@ -98,7 +100,7 @@ public class SuccessfulSequenceTest {
 
             System.err.println("Got message: " + myMsg.getType());
 
-            Assert.assertTrue(myMsg.getType() == Operations.ACK);
+            Assert.assertTrue(myMsg.getType() == Operations.COMPLETE);
 
             Assert.assertTrue(myMsg.getSeqNum() == i);
         }

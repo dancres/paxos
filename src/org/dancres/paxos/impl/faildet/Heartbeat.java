@@ -17,11 +17,19 @@ public class Heartbeat implements PaxosMessage {
         return TYPE;
     }
 
+    public short getClassification() {
+    	return FAILURE_DETECTOR;
+    }
+        
     public long getSeqNum() {
         throw new RuntimeException("No sequence number on a heartbeat");
     }
 
     public String toString() {
         return "Hbeat";
+    }
+    
+    public boolean isResponse() {
+    	return false;
     }
 }

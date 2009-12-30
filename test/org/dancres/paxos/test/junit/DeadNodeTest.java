@@ -4,7 +4,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.impl.mina.io.Post;
+import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.NodeId;
 import org.dancres.paxos.Reasons;
@@ -23,6 +23,8 @@ import org.junit.Assert.*;
  * Simulate a node dying during an attempt to get consensus.
  */
 public class DeadNodeTest {
+	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
+	
     private AddressGenerator _allocator;
 
     private InetSocketAddress _addr1;
@@ -100,7 +102,7 @@ public class DeadNodeTest {
 
         // And perform the test
         //
-        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array())));
+        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK)));
         Packet myPacket = myQueue.getNext(10000);
 
         Assert.assertFalse((myPacket == null));

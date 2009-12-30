@@ -16,6 +16,10 @@ public class Collect implements PaxosMessage {
     public int getType() {
         return Operations.COLLECT;
     }
+    
+    public short getClassification() {
+    	return LEADER;
+    }
 
     public long getSeqNum() {
         return _seqNum;

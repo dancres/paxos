@@ -62,13 +62,15 @@ class MembershipImpl implements Membership, LivenessListener {
         }
     }
 
-    public void receivedResponse(NodeId anAddress) {
+    public boolean receivedResponse(NodeId anAddress) {
         synchronized(this) {
             if (_outstandingMemberAddresses.remove(anAddress)) {
                 ++_receivedResponses;
                 interactionComplete();
+                return true;
             } else {
                 _logger.warn("Not an expected response: " + anAddress);
+                return false;
             }
         }
     }

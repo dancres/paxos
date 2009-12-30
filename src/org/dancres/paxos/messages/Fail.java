@@ -13,6 +13,10 @@ public class Fail implements PaxosMessage {
         return Operations.FAIL;
     }
 
+    public short getClassification() {
+    	return CLIENT;
+    }
+    
     public long getSeqNum() {
         return _seqNum;
     }

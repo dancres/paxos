@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -118,10 +119,6 @@ public class Leader implements MembershipListener {
      */
     private byte[] _value;
 
-    /*
-    private boolean _checkLeader = true;
-     */
-
     /**
      * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread 
      * establishes we're leader and a prior thread decides otherwise with the latter being last to update this variable
@@ -142,7 +139,7 @@ public class Leader implements MembershipListener {
      * held in <code>_seqNum</code> and <code>_value</code> and during recovery will not be the same as the client
      * request.  Thus we cache the client request and move it into the operating variables once recovery is complete.
      */
-    private Operation _clientOp;
+    private Post _clientOp;
 
     /**
      * This alarm is used to limit the amount of time the leader will wait for responses from all apparently live
@@ -170,6 +167,8 @@ public class Leader implements MembershipListener {
 
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
+    private List<Post> _queue = new LinkedList<Post>();
+
     public Leader(FailureDetector aDetector, NodeId aNodeId, Transport aTransport, AcceptorLearner anAcceptorLearner) {
         _nodeId = aNodeId;
         _detector = aDetector;
@@ -177,16 +176,6 @@ public class Leader implements MembershipListener {
         _watchdogTimeout = _detector.getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
         _al = anAcceptorLearner;
     }
-
-    /*
-    public void setLeaderCheck(boolean aCheck) {
-        _logger.warn("Setting leader check: " + aCheck);
-
-        synchronized(this) {
-            _checkLeader = aCheck;
-        }
-    }
-     */
 
     private long calculateLeaderRefresh() {
         long myExpiry = _al.getLeaderLeaseDuration();
@@ -253,6 +242,12 @@ public class Leader implements MembershipListener {
         return _nodeId;
     }
 
+    public boolean isReady() {
+        synchronized(this) {
+            return (_stage == EXIT) || (_stage == ABORT);
+        }
+    }
+
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
@@ -267,6 +262,15 @@ public class Leader implements MembershipListener {
                     _membership.dispose();
 
                 _al.signal(_completion);
+
+                /*
+                 * If there are any queued operations we must fail those also - use the same completion code...
+                 */
+                while (_queue.size() > 0) {
+                    Post myOp = (Post) _queue.remove(0);
+                    _al.signal(new Completion(_completion.getResult(), _completion.getSeqNum(),
+                            myOp.getConsolidatedValue()));
+                }
 
                 return;
             }
@@ -285,6 +289,15 @@ public class Leader implements MembershipListener {
                      */
                     _stage = SUBMITTED;
                     process();
+
+                } else if (_queue.size() > 0) {
+                    _clientOp = _queue.remove(0);
+
+                    _logger.info("Processing op from queue: " + _clientOp);
+
+                    _stage = SUBMITTED;
+                    process();
+
                 } else {
                     _heartbeatAlarm = new HeartbeatTask();
                     _watchdog.schedule(_heartbeatAlarm, calculateLeaderRefresh());
@@ -294,14 +307,6 @@ public class Leader implements MembershipListener {
             }
 
             case SUBMITTED : {
-                /*
-                if (_checkLeader && !_detector.amLeader(_nodeId)) {
-                    failed();
-                    error(Reasons.OTHER_LEADER, _detector.getLeader());
-                    return ;
-                }
-                */
-
                 _membership = _detector.getMembers(this);
 
                 _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" +
@@ -557,7 +562,7 @@ public class Leader implements MembershipListener {
              * although that's unlikely if things are stable as no other node can become leader whilst we hold the
              * lease
              */
-            submit(new Operation(AcceptorLearner.HEARTBEAT, new byte[0]));
+            submit(new Post(AcceptorLearner.HEARTBEAT, new byte[0]));
         }
     }
 
@@ -706,12 +711,13 @@ public class Leader implements MembershipListener {
      * Request a vote on a value.
      *
      * @param anOp is the value to attempt to agree upon
-     * @return BUSY if the state machine is already attempting to get a decision on some vote other ACCEPTED.
      */
-    public int submit(Operation anOp) {
+    private void submit(Post anOp) {
         synchronized (this) {
-            if ((_stage != ABORT) && (_stage != EXIT)) {
-                return BUSY;
+            if (! isReady()) {
+                _logger.info("Queued operation: " + anOp);
+                _queue.add(anOp);
+                return;
             }
 
             _clientOp = anOp;
@@ -722,8 +728,6 @@ public class Leader implements MembershipListener {
 
             process();
         }
-
-        return ACCEPTED;
     }
 
     /**
@@ -733,8 +737,17 @@ public class Leader implements MembershipListener {
      * @param aNodeId is the address from which the message was sent
      */
     public void messageReceived(PaxosMessage aMessage, NodeId aNodeId) {
-        _logger.info("Leader received message: " + aMessage);
-
+    	if (aMessage.getClassification() == PaxosMessage.CLIENT) {
+    		submit((Post) aMessage);
+    		return;
+    	}
+    	
+        if (! isLeader()) {
+        	_logger.info("This leader is not active - dumping message: " + aMessage);
+        } else {
+            _logger.info("Leader received message: " + aMessage);        	
+        }
+        
         synchronized (this) {
             if (aMessage.getSeqNum() == _seqNum) {
                 _messages.add(aMessage);

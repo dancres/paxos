@@ -27,6 +27,10 @@ public class ProposerHeader implements ProposerPacket {
 		return Operations.PROPOSER_REQ;
 	}
 	
+    public short getClassification() {
+    	return LEADER;
+    }
+    	
 	public String toString() {
 		return "PH: " + _port + " -> " + _operation;
 	}

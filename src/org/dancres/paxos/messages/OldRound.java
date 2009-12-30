@@ -15,6 +15,10 @@ public class OldRound implements PaxosMessage {
         return Operations.OLDROUND;
     }
 
+    public short getClassification() {
+    	return ACCEPTOR_LEARNER;
+    }
+    
     public long getSeqNum() {
         return _seqNum;
     }

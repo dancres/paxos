@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import org.dancres.paxos.AcceptorLearner;
-import org.dancres.paxos.Operation;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.NodeId;
 
@@ -57,10 +56,7 @@ public class ProposerAdapter extends IoHandlerAdapter {
         if (myMessage.getType() != Heartbeat.TYPE)
                 _logger.info("serverMsgRx: s=" + aSession + " o=" + anObject);
 
-        if (myMessage.getType() == Post.TYPE)
-            _leader.submit(new Operation(((Post) myMessage).getValue(), new byte[0]));
-        else
-            _leader.messageReceived(myMessage, NodeId.from(aSession.getRemoteAddress()));
+		_leader.messageReceived(myMessage, NodeId.from(aSession.getRemoteAddress()));
     }
 
     public void messageSent(org.apache.mina.common.IoSession aSession,
