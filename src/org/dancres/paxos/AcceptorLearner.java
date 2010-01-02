@@ -17,10 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements the Acceptor/Learner state machine.  Note that the instance running in the same JVM as the current leader is to all intents and
- * purposes (bar very strange hardware or operating system failures) guaranteed to receive packets from the leader.  Thus if a leader declares SUCCESS
- * then the local instance will receive those packets.  This can be useful for processing client requests correctly and signalling interested
- * parties as necessary.
+ * Implements the Acceptor/Learner state machine.  Note that the instance running in the same JVM as the current leader
+ * is to all intents and purposes (bar very strange hardware or operating system failures) guaranteed to receive packets
+ * from the leader.  Thus if a leader declares SUCCESS then the local instance will receive those packets.  This can be
+ * useful for processing client requests correctly and signalling interested parties as necessary.
  *
  * @author dan
  */
@@ -43,15 +43,16 @@ public class AcceptorLearner {
     private LogStorage _storage;
 
     /**
-     * When we receive a success, if it's seqNum is this field + 1, increment this field.  Acts as the low watermark for leader recovery, essentially
-     * we want to recover from the last contiguous sequence number in the stream of paxos instances.
+     * When we receive a success, if it's seqNum is this field + 1, increment this field.  Acts as the low watermark for
+     * leader recovery, essentially we want to recover from the last contiguous sequence number in the stream of paxos
+     * instances.
      */
     private long _lowSeqNumWatermark = LogStorage.EMPTY_LOG;
 
     /**
-     * Records the most recent seqNum we've seen in a BEGIN or SUCCESS message.  We may see a SUCCESS without BEGIN but that's okay
-     * as the leader must have had sufficient majority to get agreement so we can just agree, update this count and update the
-     * value/seqNum store.
+     * Records the most recent seqNum we've seen in a BEGIN or SUCCESS message.  We may see a SUCCESS without BEGIN but
+     * that's okay as the leader must have had sufficient majority to get agreement so we can just agree, update this
+     * count and update the value/seqNum store.
      */
     private long _highSeqNumWatermark = LogStorage.EMPTY_LOG;
 
@@ -230,13 +231,13 @@ public class AcceptorLearner {
 
                     return new Accept(mySeqNum, getLastCollect().getRndNumber());
                 } else if (precedes(myBegin)) {
-                    // A new collect was received since the collect for this begin, tell the proposer it's got competition
+                    // New collect was received since the collect for this begin, tell the proposer it's got competition
                     //
                     Collect myLastCollect = getLastCollect();
 
                     return new OldRound(mySeqNum, myLastCollect.getNodeId(), myLastCollect.getRndNumber());
                 } else {
-                    // Be slient - we didn't see the collect, leader hasn't taken account of our values because it hasn't seen our last
+                    // Quiet, didn't see the collect, leader hasn't accounted for our values, it hasn't seen our last
                     //
                     _logger.info("Missed collect, going silent: " + mySeqNum + " [ " + myBegin.getRndNumber() + " ]");
                 }
@@ -288,7 +289,7 @@ public class AcceptorLearner {
     }
 
     void signal(Completion aStatus) {
-        List myListeners;
+        List<AcceptorLearnerListener> myListeners;
 
         synchronized(_listeners) {
             myListeners = new ArrayList<AcceptorLearnerListener>(_listeners);
