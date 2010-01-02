@@ -1,14 +1,15 @@
-package org.dancres.paxos.impl.mina.codec;
+package org.dancres.paxos.messages.codec;
 
-import org.apache.mina.common.IoBuffer;
+import java.nio.ByteBuffer;
+
 import org.dancres.paxos.messages.Ack;
 import org.dancres.paxos.messages.Operations;
 
 public class AckCodec implements Codec {
-    public IoBuffer encode(Object anObject) {
+    public ByteBuffer encode(Object anObject) {
         Ack myAck = (Ack) anObject;
 
-        IoBuffer myBuffer = IoBuffer.allocate(8 + 8);
+        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8);
         myBuffer.putInt(4 + 8);
         myBuffer.putInt(Operations.ACK);
         myBuffer.putLong(myAck.getSeqNum());
@@ -16,7 +17,7 @@ public class AckCodec implements Codec {
         return myBuffer;
     }
 
-    public Object decode(IoBuffer aBuffer) {
+    public Object decode(ByteBuffer aBuffer) {
         // Discard the length and operation so remaining data can be processed
         // separately
         aBuffer.getInt();

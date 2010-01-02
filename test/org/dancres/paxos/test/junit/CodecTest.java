@@ -1,8 +1,9 @@
 package org.dancres.paxos.test.junit;
 
-import org.apache.mina.common.IoBuffer;
-import org.dancres.paxos.impl.mina.codec.Codec;
-import org.dancres.paxos.impl.mina.codec.Codecs;
+import java.nio.ByteBuffer;
+
+import org.dancres.paxos.messages.codec.Codec;
+import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Ack;
 import org.dancres.paxos.messages.Begin;
@@ -17,7 +18,6 @@ import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.messages.Success;
 import org.junit.*;
-import org.junit.Assert.*;
 
 public class CodecTest {
 
@@ -29,7 +29,7 @@ public class CodecTest {
     }
 
     private Object decode(byte[] aBuffer, boolean hasLength) {
-        IoBuffer myBuffer = IoBuffer.wrap(aBuffer);
+        ByteBuffer myBuffer = ByteBuffer.wrap(aBuffer);
         int myOp;
         
         if (hasLength)

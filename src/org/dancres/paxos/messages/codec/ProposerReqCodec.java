@@ -1,6 +1,7 @@
-package org.dancres.paxos.impl.mina.codec;
+package org.dancres.paxos.messages.codec;
 
-import org.apache.mina.common.IoBuffer;
+import java.nio.ByteBuffer;
+
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.ProposerHeader;
@@ -8,7 +9,7 @@ import org.dancres.paxos.impl.mina.io.ProposerPacket;
 
 class ProposerReqCodec implements Codec {
 
-	public Object decode(IoBuffer aBuffer) {
+	public Object decode(ByteBuffer aBuffer) {
 		int myLength = aBuffer.getInt();
 		
 		// System.err.println("Length: " + myLength);
@@ -32,12 +33,12 @@ class ProposerReqCodec implements Codec {
         return new ProposerHeader(myMsg, myPort);
 	}
 
-	public IoBuffer encode(Object anObject) {
+	public ByteBuffer encode(Object anObject) {
 		ProposerPacket myMsg = (ProposerPacket) anObject;
 		PaxosMessage myOperation = myMsg.getOperation();
 		
-		IoBuffer myBuffer = encode(myOperation);
-		IoBuffer myPacket = IoBuffer.allocate(4 + 4 + 4 + myBuffer.capacity());
+		ByteBuffer myBuffer = encode(myOperation);
+		ByteBuffer myPacket = ByteBuffer.allocate(4 + 4 + 4 + myBuffer.capacity());
 		
 		myPacket.putInt(4 + 4 + myBuffer.capacity());
 		myPacket.putInt(Operations.PROPOSER_REQ);
@@ -49,7 +50,7 @@ class ProposerReqCodec implements Codec {
 		return myPacket;
 	}
 	
-	private IoBuffer encode(PaxosMessage aMessage) {
+	private ByteBuffer encode(PaxosMessage aMessage) {
         int myType = aMessage.getType();
         Codec myCodec = Codecs.CODECS[myType];
         

@@ -1,13 +1,13 @@
-package org.dancres.paxos.impl.mina.codec;
+package org.dancres.paxos.messages.codec;
 
-import org.apache.mina.common.IoBuffer;
+import java.nio.ByteBuffer;
 
 public class EmptyCodec implements Codec {
-    public IoBuffer encode(Object anObject) {
+    public ByteBuffer encode(Object anObject) {
         throw new RuntimeException("Undefined codec: " + anObject);
     }
 
-    public Object decode(IoBuffer aBuffer) {
+    public Object decode(ByteBuffer aBuffer) {
         throw new RuntimeException("Undefined codec: " + aBuffer.getInt(4));
     }
 }

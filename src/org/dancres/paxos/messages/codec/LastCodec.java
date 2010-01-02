@@ -1,20 +1,21 @@
-package org.dancres.paxos.impl.mina.codec;
+package org.dancres.paxos.messages.codec;
 
-import org.apache.mina.common.IoBuffer;
+import java.nio.ByteBuffer;
+
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.Last;
 
 public class LastCodec implements Codec {
-    public IoBuffer encode(Object anObject) {
+    public ByteBuffer encode(Object anObject) {
         Last myLast = (Last) anObject;
         byte[] myBytes = myLast.getValue();
 
-        IoBuffer myBuffer;
+        ByteBuffer myBuffer;
 
         if (myBytes == null)
-            myBuffer = IoBuffer.allocate(8 + 8 + 8 + 8 + 8);
+            myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + 8);
         else
-            myBuffer = IoBuffer.allocate(8 + 8 + 8 + 8 + 8 + myBytes.length);
+            myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + 8 + myBytes.length);
 
         // Length count does not include length bytes themselves
         //
@@ -36,7 +37,7 @@ public class LastCodec implements Codec {
         return myBuffer;
     }
 
-    public Object decode(IoBuffer aBuffer) {
+    public Object decode(ByteBuffer aBuffer) {
         // Discard the length and operation so remaining data can be processed
         // separately
         int myArrLength = aBuffer.getInt() - (4 + 8 + 8 + 8 + 8);

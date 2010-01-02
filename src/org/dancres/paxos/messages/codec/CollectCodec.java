@@ -1,14 +1,15 @@
-package org.dancres.paxos.impl.mina.codec;
+package org.dancres.paxos.messages.codec;
 
-import org.apache.mina.common.IoBuffer;
+import java.nio.ByteBuffer;
+
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Operations;
 
 public class CollectCodec implements Codec {
-    public IoBuffer encode(Object anObject) {
+    public ByteBuffer encode(Object anObject) {
         Collect myCollect = (Collect) anObject;
 
-        IoBuffer myBuffer = IoBuffer.allocate(4 + 8 + 8 + 8);
+        ByteBuffer myBuffer = ByteBuffer.allocate(4 + 8 + 8 + 8);
 
         myBuffer.putInt(Operations.COLLECT);
         myBuffer.putLong(myCollect.getSeqNum());
@@ -19,7 +20,7 @@ public class CollectCodec implements Codec {
         return myBuffer;
     }
 
-    public Object decode(IoBuffer aBuffer) {
+    public Object decode(ByteBuffer aBuffer) {
     	// Discard type
         aBuffer.getInt();
 

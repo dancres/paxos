@@ -5,6 +5,8 @@ import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.common.IoSession;
 import org.apache.mina.common.IoBuffer;
 import org.dancres.paxos.impl.faildet.Heartbeat;
+import org.dancres.paxos.messages.codec.Codec;
+import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +31,7 @@ class PaxosProtocolDecoder extends CumulativeProtocolDecoder {
 
         int myOp = aBuffer.getInt(4);
         Codec myCodec = Codecs.CODECS[myOp];
-        aProtocolDecoderOutput.write(myCodec.decode(aBuffer));
+        aProtocolDecoderOutput.write(myCodec.decode(aBuffer.buf()));
         return true;
     }
 }

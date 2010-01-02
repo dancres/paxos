@@ -1,16 +1,17 @@
-package org.dancres.paxos.impl.mina.codec;
+package org.dancres.paxos.messages.codec;
 
-import org.apache.mina.common.IoBuffer;
+import java.nio.ByteBuffer;
+
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.Begin;
 
 class BeginCodec implements Codec {
-    public IoBuffer encode(Object anObject) {
+    public ByteBuffer encode(Object anObject) {
         Begin myBegin = (Begin) anObject;
 
-        IoBuffer myBuffer;
+        ByteBuffer myBuffer;
 
-        myBuffer = IoBuffer.allocate(4 + 4 + 8 + 8 + 8);
+        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + 8);
 
         myBuffer.putInt(Operations.BEGIN);
         myBuffer.putLong(myBegin.getSeqNum());
@@ -21,7 +22,7 @@ class BeginCodec implements Codec {
         return myBuffer;
     }
 
-    public Object decode(IoBuffer aBuffer) {
+    public Object decode(ByteBuffer aBuffer) {
         // Discard type
         aBuffer.getInt();
 

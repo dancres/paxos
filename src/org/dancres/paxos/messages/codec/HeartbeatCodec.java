@@ -1,11 +1,12 @@
-package org.dancres.paxos.impl.mina.codec;
+package org.dancres.paxos.messages.codec;
 
-import org.apache.mina.common.IoBuffer;
+import java.nio.ByteBuffer;
+
 import org.dancres.paxos.impl.faildet.Heartbeat;
 
 public class HeartbeatCodec implements Codec {
-    public IoBuffer encode(Object anObject) {
-        IoBuffer myBuffer = IoBuffer.allocate(8);
+    public ByteBuffer encode(Object anObject) {
+        ByteBuffer myBuffer = ByteBuffer.allocate(8);
 
         myBuffer.putInt(4);
         myBuffer.putInt(Heartbeat.TYPE);
@@ -14,7 +15,7 @@ public class HeartbeatCodec implements Codec {
         return myBuffer;
     }
 
-    public Object decode(IoBuffer aBuffer) {
+    public Object decode(ByteBuffer aBuffer) {
         // Discard the length and operation so remaining data can be processed
         // separately
         aBuffer.getInt();

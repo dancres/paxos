@@ -1,16 +1,16 @@
-package org.dancres.paxos.impl.mina.codec;
+package org.dancres.paxos.messages.codec;
 
-import org.apache.mina.common.IoBuffer;
+import java.nio.ByteBuffer;
+
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.messages.Collect;
 
 public class AcceptCodec implements Codec {
-    public IoBuffer encode(Object anObject) {
+    public ByteBuffer encode(Object anObject) {
         Accept myAccept = (Accept) anObject;
 
         // 4-byte length, 4-byte op, 2 * 8 bytes for Accept
-        IoBuffer myBuffer = IoBuffer.allocate(8 + 8 + 8);
+        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + 8);
 
         // Length count does not include length bytes themselves
         //
@@ -23,7 +23,7 @@ public class AcceptCodec implements Codec {
         return myBuffer;
     }
 
-    public Object decode(IoBuffer aBuffer) {
+    public Object decode(ByteBuffer aBuffer) {
         // Discard the length and operation so remaining data can be processed
         // separately
         aBuffer.getInt();

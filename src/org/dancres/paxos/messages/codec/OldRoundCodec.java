@@ -1,15 +1,16 @@
-package org.dancres.paxos.impl.mina.codec;
+package org.dancres.paxos.messages.codec;
 
-import org.apache.mina.common.IoBuffer;
+import java.nio.ByteBuffer;
+
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.OldRound;
 
 public class OldRoundCodec implements Codec {
-    public IoBuffer encode(Object anObject) {
+    public ByteBuffer encode(Object anObject) {
         OldRound myOldRound = (OldRound) anObject;
 
         // 4-byte length, 4-byte op, 3 * 8 bytes for OldRound
-        IoBuffer myBuffer = IoBuffer.allocate(8 + 8 + 8 + 8);
+        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8);
 
         // Length count does not include length bytes themselves
         //
@@ -23,7 +24,7 @@ public class OldRoundCodec implements Codec {
         return myBuffer;
     }
 
-    public Object decode(IoBuffer aBuffer) {
+    public Object decode(ByteBuffer aBuffer) {
         // Discard the length and operation so remaining data can be processed
         // separately
         aBuffer.getInt();
