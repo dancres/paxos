@@ -43,6 +43,9 @@ public class AcceptorLearner {
     private LogStorage _storage;
 
     /**
+     * Tracks the last contiguous sequence number for which we have a value. A value of -1 indicates we have yet
+     * to see a proposals.
+     * 
      * When we receive a success, if it's seqNum is this field + 1, increment this field.  Acts as the low watermark for
      * leader recovery, essentially we want to recover from the last contiguous sequence number in the stream of paxos
      * instances.
@@ -52,7 +55,7 @@ public class AcceptorLearner {
     /**
      * Records the most recent seqNum we've seen in a BEGIN or SUCCESS message.  We may see a SUCCESS without BEGIN but
      * that's okay as the leader must have had sufficient majority to get agreement so we can just agree, update this
-     * count and update the value/seqNum store.
+     * count and update the value/seqNum store. A value of -1 indicates we have yet to see a proposal.
      */
     private long _highSeqNumWatermark = LogStorage.EMPTY_LOG;
 
@@ -96,7 +99,7 @@ public class AcceptorLearner {
             if (_lowSeqNumWatermark == LogStorage.EMPTY_LOG)
                 _lowSeqNumWatermark = -1;
 
-            if ((_lowSeqNumWatermark + 1) == aSeqNum) {
+            if (_lowSeqNumWatermark == (aSeqNum - 1)) {
                 _lowSeqNumWatermark = aSeqNum;
 
                 _logger.info("Low watermark:" + aSeqNum);
