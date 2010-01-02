@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * @author dan
  */
 public class AcceptorLearner {
-    public static final byte[] HEARTBEAT = "DCC:Paxos Heartbeat".getBytes();
+    public static final byte[] HEARTBEAT = "org.dancres.paxos.Heartbeat".getBytes();
 
     private static long DEFAULT_LEASE = 30 * 1000;
     private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
