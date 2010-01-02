@@ -253,8 +253,11 @@ public class AcceptorLearner {
 
                 Completion myCompletion = new Completion(Reasons.OK, mySuccess.getSeqNum(), mySuccess.getValue());
 
+                // Always record the value even if it's the heartbeat so there are no gaps in the Paxos sequence
+                //
+                getStorage().put(mySeqNum, mySuccess.getValue());
+                
                 if (notHeartbeat(myCompletion.getValue())) {
-                    getStorage().put(mySeqNum, mySuccess.getValue());
                     signal(myCompletion);
                 } else {
                     _receivedHeartbeats.incrementAndGet();
