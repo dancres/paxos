@@ -73,6 +73,11 @@ public class SuperiorLeaderAtBeginTest {
         _node2.startup();
     }
 
+    @After public void stop() throws Exception {
+    	_node1.stop();
+    	_node2.stop();
+    }
+    
     @Test public void post() throws Exception {
         PacketQueue myQueue = new ClientPacketFilter(new PacketQueueImpl());
         InetSocketAddress myAddr = _allocator.allocate();

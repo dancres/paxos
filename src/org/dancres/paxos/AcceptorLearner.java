@@ -60,6 +60,13 @@ public class AcceptorLearner {
      */
     private long _highSeqNumWatermark = LogStorage.EMPTY_LOG;
 
+    /**
+     * PacketBuffer is used to maintain a limited amount of past Paxos history that can be used to catch-up
+     * recovering nodes without the cost of a full transfer of logs etc. This is useful in cases where nodes
+     * temporarily fail due to loss of a network connection or reboots.
+     */
+    private PacketBuffer _buffer = new PacketBuffer(512);
+    
     private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 
     public AcceptorLearner(LogStorage aStore) {
@@ -73,6 +80,16 @@ public class AcceptorLearner {
         }
     }
 
+    public void close() {
+        try {
+        	_storage.close();
+        	_buffer.dump(_logger);
+        } catch (Exception anE) {
+        	_logger.error("Failed to close logger", anE);
+        	throw new RuntimeException(anE);
+        }    	
+    }
+    
     public long getLeaderLeaseDuration() {
         return DEFAULT_LEASE;
     }
@@ -221,7 +238,8 @@ public class AcceptorLearner {
 
                 if (myOld != null) {
                     updateLastActionTime(myCurrentTime);
-
+                    write(aMessage, true);
+                    
                     // @TODO FIX THIS!!!!
                     //
                     return new Last(mySeqNum, getLowWatermark(), getHighWatermark(), myOld.getRndNumber(),
@@ -271,11 +289,7 @@ public class AcceptorLearner {
 
                 // Always record the value even if it's the heartbeat so there are no gaps in the Paxos sequence
                 //
-                try {
-                	getStorage().put(Codecs.encode(aMessage), true);
-                } catch (Exception anE) {
-                	_logger.error("Acceptor cannot log: " + System.currentTimeMillis(), anE);
-                }
+                write(aMessage, true);
                 
                 if (notHeartbeat(myCompletion.getValue())) {
                     signal(myCompletion);
@@ -293,6 +307,16 @@ public class AcceptorLearner {
         }
     }
 
+    private long write(PaxosMessage aMessage, boolean aForceRequired) {
+        try {
+        	_buffer.add(aMessage);
+        	return getStorage().put(Codecs.encode(aMessage), aForceRequired);
+        } catch (Exception anE) {
+        	_logger.error("Acceptor cannot log: " + System.currentTimeMillis(), anE);
+        	throw new RuntimeException(anE);
+        }    	
+    }
+    
     private boolean notHeartbeat(byte[] aValue) {
         if (aValue.length != HEARTBEAT.length) {
             return true;

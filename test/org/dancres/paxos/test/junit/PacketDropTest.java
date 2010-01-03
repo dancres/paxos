@@ -69,6 +69,11 @@ public class PacketDropTest {
         _node2.startup();
     }
 
+    @After public void stop() throws Exception {
+    	_node1.stop();
+    	_node2.stop();
+    }
+    
     /**
      * @todo Decide if timing out the leader and returning fail is appropriate.  It might be better to keep trying, unless
      * a suitable method for patching up half-agreed operations in the global order (gaps in the sequence numbers).

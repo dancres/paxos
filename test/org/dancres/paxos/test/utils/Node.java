@@ -60,6 +60,10 @@ public class Node implements PacketListener {
         myHeartbeater.start();
     }
 
+    public void stop() {
+    	_al.close();
+    }
+    
     public PacketQueue getQueue() {
         return _pq;
     }

@@ -48,6 +48,10 @@ public class NoMajorityTest {
         _node1.startup();
     }
 
+    @After public void stop() throws Exception {
+    	_node1.stop();
+    }
+    
     @Test public void post() throws Exception {
         PacketQueue myQueue = new ClientPacketFilter(new PacketQueueImpl());
         InetSocketAddress myAddr = _allocator.allocate();
