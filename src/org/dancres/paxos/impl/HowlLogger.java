@@ -1,0 +1,74 @@
+package org.dancres.paxos.impl;
+
+import org.dancres.paxos.LogStorage;
+import org.dancres.paxos.RecordListener;
+import org.objectweb.howl.log.Configuration;
+import org.objectweb.howl.log.LogException;
+import org.objectweb.howl.log.LogRecord;
+import org.objectweb.howl.log.Logger;
+import org.objectweb.howl.log.ReplayListener;
+
+public class HowlLogger implements LogStorage {
+	private static final int DEFAULT_RECORD_SIZE = 512;
+	
+	private Logger _logger;
+	private String _dir;
+	
+	public HowlLogger(String aDirectory) {
+		_dir = aDirectory;
+	}
+	
+	public void close() throws Exception {
+		assert (_logger != null);
+		
+		_logger.close();
+	}
+
+	public byte[] get(long mark) throws Exception {
+		LogRecord myRecord = new LogRecord(DEFAULT_RECORD_SIZE);
+		
+		return _logger.get(myRecord, mark).data;
+	}
+
+	public void mark(long key, boolean force) throws Exception {
+		_logger.mark(key, force);
+	}
+
+	/**
+	 * @todo Set a filename/directory
+	 */
+	public void open() throws Exception {
+		Configuration myConfig = new Configuration();
+		myConfig.setLogFileDir(_dir);
+		_logger = new Logger(myConfig);
+		_logger.open();
+	}
+
+	public long put(byte[] data, boolean sync) throws Exception {
+		return _logger.put(data, sync);
+	}
+
+	public void replay(RecordListener listener, long mark) throws Exception {
+		_logger.replay(new ListenerAdapter(listener), mark);
+	}
+	
+	private static class ListenerAdapter implements ReplayListener {
+		private RecordListener _listener;
+		
+		ListenerAdapter(RecordListener aListener) {
+			_listener = aListener;
+		}
+
+		public LogRecord getLogRecord() {
+			return new LogRecord(DEFAULT_RECORD_SIZE);
+		}
+
+		public void onError(LogException anError) {
+			throw new RuntimeException("Logger failed: " + anError);
+		}
+
+		public void onRecord(LogRecord aRecord) {
+			_listener.onRecord(aRecord.data);
+		}
+	}
+}

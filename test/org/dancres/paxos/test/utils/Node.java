@@ -5,6 +5,7 @@ import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.AcceptorLearnerListener;
 import org.dancres.paxos.Completion;
 import org.dancres.paxos.Leader;
+import org.dancres.paxos.LogStorage;
 import org.dancres.paxos.Reasons;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.messages.Complete;
@@ -44,16 +45,20 @@ public class Node implements PacketListener {
      * @param anUnresponsivenessThreshold is the time after which the failure detector may declare a node dead
      */
     public Node(InetSocketAddress anAddr, Transport aTransport, long anUnresponsivenessThreshold) {
+    	this(anAddr, aTransport, anUnresponsivenessThreshold, new MemoryLogStorage());
+    }
+
+    public Node(InetSocketAddress anAddr, Transport aTransport, long anUnresponsivenessThreshold, LogStorage aLogger) {
         _addr = anAddr;
         _tp = aTransport;
         _hb = new Heartbeater(_tp);
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
-        _al = new AcceptorLearner(new MemoryLogStorage());
+        _al = new AcceptorLearner(aLogger);
         _ld = new Leader(_fd, NodeId.from(_addr), _tp, _al);
         _pq = new PacketQueueImpl(this);
-        _al.add(new PacketBridge());
+        _al.add(new PacketBridge());    	
     }
-
+    
     public void startup() {
         Thread myHeartbeater = new Thread(_hb);
         myHeartbeater.setDaemon(true);
