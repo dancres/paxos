@@ -13,6 +13,7 @@ import org.dancres.paxos.messages.OldRound;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Success;
+import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,13 +62,19 @@ public class AcceptorLearner {
 
     private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 
+    public AcceptorLearner(LogStorage aStore) {
+        _storage = aStore;
+        
+        try {
+        	_storage.open();
+        } catch (Exception anE) {
+        	_logger.error("Failed to open logger", anE);
+        	throw new RuntimeException(anE);
+        }
+    }
 
     public long getLeaderLeaseDuration() {
         return DEFAULT_LEASE;
-    }
-
-    public AcceptorLearner(LogStorage aStore) {
-        _storage = aStore;
     }
 
     public void add(AcceptorLearnerListener aListener) {
@@ -189,7 +196,10 @@ public class AcceptorLearner {
             _lastLeaderActionTime = aTime;
         }
     }
-    
+
+    /**
+     * @todo FIX THIS - we need to return a value in a LAST not just a default!
+     */
     public PaxosMessage process(PaxosMessage aMessage) {
         long myCurrentTime = System.currentTimeMillis();
         long mySeqNum = aMessage.getSeqNum();
@@ -212,8 +222,10 @@ public class AcceptorLearner {
                 if (myOld != null) {
                     updateLastActionTime(myCurrentTime);
 
+                    // @TODO FIX THIS!!!!
+                    //
                     return new Last(mySeqNum, getLowWatermark(), getHighWatermark(), myOld.getRndNumber(),
-                            getStorage().get(mySeqNum));
+                            LogStorage.NO_VALUE);
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
@@ -259,7 +271,11 @@ public class AcceptorLearner {
 
                 // Always record the value even if it's the heartbeat so there are no gaps in the Paxos sequence
                 //
-                getStorage().put(mySeqNum, mySuccess.getValue());
+                try {
+                	getStorage().put(Codecs.encode(aMessage), true);
+                } catch (Exception anE) {
+                	_logger.error("Acceptor cannot log: " + System.currentTimeMillis(), anE);
+                }
                 
                 if (notHeartbeat(myCompletion.getValue())) {
                     signal(myCompletion);

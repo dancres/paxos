@@ -1,34 +1,90 @@
 package org.dancres.paxos.impl.util;
 
-import java.util.Arrays;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Iterator;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
 import org.dancres.paxos.LogStorage;
+import org.dancres.paxos.RecordListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.sun.tools.javac.util.Log;
 
 public class MemoryLogStorage implements LogStorage {
     private Logger _logger = LoggerFactory.getLogger(MemoryLogStorage.class);
 
-    private ConcurrentHashMap<Long, byte[]> _log = new ConcurrentHashMap<Long, byte[]>();
+    private long _nextKey = 0;    
+    private SortedMap<Long, byte[]> _log = new TreeMap<Long, byte[]>();
 
-    public byte[] get(long aSeqNum) {
-        if (aSeqNum == LogStorage.EMPTY_LOG)
-            return LogStorage.NO_VALUE;
-        else {
-            byte[] myResult = _log.get(new Long(aSeqNum));
-            if (myResult == null)
-                return LogStorage.NO_VALUE;
-            else
-                return myResult;
-        }
-    }
+    private boolean isClosed = false;
+    private boolean isOpened = false;
+    
+	public void close() throws Exception {
+		synchronized(this) {
+			assert (isOpened == true);
+			assert (isClosed == false);
 
-    public void put(long aSeqNum, byte[] aValue) {
-        _logger.info("Storing: " + aSeqNum + " = " + Arrays.toString(aValue));
+			isClosed = true;
+		}
+	}
 
-        if (aSeqNum < 0)
-            throw new IllegalArgumentException("Sequence number must be non-negative");
+	public void mark(long key, boolean force) throws Exception {
+		synchronized(this) {
+			Iterator<Long> myKeys = _log.keySet().iterator();
+			while (myKeys.hasNext()) {
+				Long myKey = myKeys.next();
+				if (myKey.longValue() < key)
+					myKeys.remove();
+			}
+		}
+	}
 
-        _log.put(new Long(aSeqNum), aValue);
-    }
+	public void open() throws Exception {
+		synchronized(this) {
+			assert (isOpened == false);
+			assert (isClosed == false);
+			
+			isOpened = true;
+		}
+	}
+
+	public long put(byte[] data, boolean sync) throws Exception {
+		synchronized(this) {
+			assert (isOpened == true);
+			assert (isClosed == false);
+			
+			long myKey = _nextKey;
+			
+			++_nextKey;			
+			_log.put(new Long(myKey), data);
+			
+			return myKey;
+		}
+	}
+
+	public byte[] get(long position) throws Exception {
+		synchronized(this) {
+			assert (isOpened == true);
+			assert (isClosed == false);
+			
+			return _log.get(new Long(position));
+		}
+	}
+	
+	public void replay(RecordListener listener, long mark) throws Exception {
+		synchronized(this) {
+			assert (isOpened == true);
+			assert (isClosed == false);
+			
+			Iterator<Long> myKeys = _log.keySet().iterator();
+			while (myKeys.hasNext()) {
+				Long myKey = myKeys.next();
+				
+				if (myKey.longValue() >= mark) {
+					listener.onRecord(_log.get(myKey));
+				}
+			}
+		}
+	}
 }

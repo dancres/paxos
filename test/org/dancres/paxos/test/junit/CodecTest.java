@@ -1,8 +1,5 @@
 package org.dancres.paxos.test.junit;
 
-import java.nio.ByteBuffer;
-
-import org.dancres.paxos.messages.codec.Codec;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Ack;
@@ -13,41 +10,18 @@ import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.messages.Last;
 import org.dancres.paxos.messages.OldRound;
-import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.messages.Success;
 import org.junit.*;
 
 public class CodecTest {
-
-    private byte[] encode(PaxosMessage aMessage) {
-        int myType = aMessage.getType();
-        Codec myCodec = Codecs.CODECS[myType];
-
-        return myCodec.encode(aMessage).array();
-    }
-
-    private Object decode(byte[] aBuffer, boolean hasLength) {
-        ByteBuffer myBuffer = ByteBuffer.wrap(aBuffer);
-        int myOp;
-        
-        if (hasLength)
-            myOp = myBuffer.getInt(4);
-        else
-            myOp = myBuffer.getInt(0);
-
-        Codec myCodec = Codecs.CODECS[myOp];
-
-        return myCodec.decode(myBuffer);
-    }
-
     @Test public void accept() throws Exception {
         Accept myAccept = new Accept(1, 2);
 
-        byte[] myBuffer = encode(myAccept);
+        byte[] myBuffer = Codecs.encode(myAccept);
 
-        Accept myAccept2 = (Accept) decode(myBuffer, true);
+        Accept myAccept2 = (Accept) Codecs.decode(myBuffer, true);
 
         Assert.assertTrue(myAccept.getRndNumber() == myAccept2.getRndNumber());
         Assert.assertTrue(myAccept.getSeqNum() == myAccept2.getSeqNum());
@@ -56,9 +30,9 @@ public class CodecTest {
     @Test public void complete() throws Exception {    
         Complete myComp = new Complete(1);
 
-        byte[] myBuffer = encode(myComp);
+        byte[] myBuffer = Codecs.encode(myComp);
 
-        Complete myComp2 = (Complete) decode(myBuffer, true);
+        Complete myComp2 = (Complete) Codecs.decode(myBuffer, true);
 
         Assert.assertTrue(myComp.getSeqNum() == myComp2.getSeqNum());
     }
@@ -66,9 +40,9 @@ public class CodecTest {
     @Test public void ack() throws Exception {
         Ack myAck = new Ack(1);
 
-        byte[] myBuffer = encode(myAck);
+        byte[] myBuffer = Codecs.encode(myAck);
 
-        Ack myAck2 = (Ack) decode(myBuffer, true);
+        Ack myAck2 = (Ack) Codecs.decode(myBuffer, true);
 
         Assert.assertTrue(myAck.getSeqNum() == myAck2.getSeqNum());
     }
@@ -76,9 +50,9 @@ public class CodecTest {
     @Test public void fail() throws Exception {
         Fail myFail = new Fail(1, 2);
 
-        byte[] myBuffer = encode(myFail);
+        byte[] myBuffer = Codecs.encode(myFail);
 
-        Fail myFail2 = (Fail) decode(myBuffer, true);
+        Fail myFail2 = (Fail) Codecs.decode(myBuffer, true);
 
         Assert.assertTrue(myFail.getSeqNum() == myFail2.getSeqNum());
         Assert.assertTrue(myFail.getReason() == myFail2.getReason());
@@ -87,9 +61,9 @@ public class CodecTest {
     @Test public void begin() throws Exception {
         Begin myBegin = new Begin(1, 2, 3);
 
-        byte[] myBuffer = encode(myBegin);
+        byte[] myBuffer = Codecs.encode(myBegin);
 
-        Begin myBegin2 = (Begin) decode(myBuffer, false);
+        Begin myBegin2 = (Begin) Codecs.decode(myBuffer, false);
 
         Assert.assertEquals(myBegin.getSeqNum(), myBegin2.getSeqNum());
         Assert.assertEquals(myBegin.getRndNumber(), myBegin2.getRndNumber());
@@ -99,9 +73,9 @@ public class CodecTest {
     @Test public void collect() throws Exception {
         Collect myCollect = new Collect(1, 2, 3);
 
-        byte[] myBuffer = encode(myCollect);
+        byte[] myBuffer = Codecs.encode(myCollect);
 
-        Collect myCollect2 = (Collect) decode(myBuffer, false);
+        Collect myCollect2 = (Collect) Codecs.decode(myBuffer, false);
 
         Assert.assertEquals(myCollect.getSeqNum(), myCollect.getSeqNum());
         Assert.assertEquals(myCollect.getRndNumber(), myCollect2.getRndNumber());
@@ -111,9 +85,9 @@ public class CodecTest {
     @Test public void heartbeat() throws Exception {
         Heartbeat myHeartbeat = new Heartbeat();
 
-        byte[] myBuffer = encode(myHeartbeat);
+        byte[] myBuffer = Codecs.encode(myHeartbeat);
 
-        Heartbeat myHeartbeat2 = (Heartbeat) decode(myBuffer, true);
+        Heartbeat myHeartbeat2 = (Heartbeat) Codecs.decode(myBuffer, true);
     }
 
     @Test public void last() throws Exception {
@@ -121,9 +95,9 @@ public class CodecTest {
 
         Last myLast = new Last(0, 1, 2, 3, myData);
 
-        byte[] myBuffer = encode(myLast);
+        byte[] myBuffer = Codecs.encode(myLast);
 
-        Last myLast2 = (Last) decode(myBuffer, true);
+        Last myLast2 = (Last) Codecs.decode(myBuffer, true);
 
         Assert.assertEquals(myLast.getSeqNum(), myLast.getSeqNum());
         Assert.assertEquals(myLast.getLowWatermark(), myLast2.getLowWatermark());
@@ -136,9 +110,9 @@ public class CodecTest {
     @Test public void oldRound() throws Exception {
         OldRound myOldRound = new OldRound(1, 2, 3);
 
-        byte[] myBuffer = encode(myOldRound);
+        byte[] myBuffer = Codecs.encode(myOldRound);
 
-        OldRound myOldRound2 = (OldRound) decode(myBuffer, true);
+        OldRound myOldRound2 = (OldRound) Codecs.decode(myBuffer, true);
 
         Assert.assertEquals(myOldRound.getSeqNum(), myOldRound2.getSeqNum());
         Assert.assertEquals(myOldRound.getNodeId(), myOldRound2.getNodeId());
@@ -151,9 +125,9 @@ public class CodecTest {
 
         Post myPost = new Post(myData, myOther);
 
-        byte[] myBuffer = encode(myPost);
+        byte[] myBuffer = Codecs.encode(myPost);
 
-        Post myPost2 = (Post) decode(myBuffer, true);
+        Post myPost2 = (Post) Codecs.decode(myBuffer, true);
 
         Assert.assertEquals(myPost.getValue().length, myPost2.getValue().length);
         Assert.assertEquals(myPost.getValue()[0], myPost2.getValue()[0]);
@@ -166,9 +140,9 @@ public class CodecTest {
 
         Success mySuccess = new Success(1, myData);
 
-        byte[] myBuffer = encode(mySuccess);
+        byte[] myBuffer = Codecs.encode(mySuccess);
 
-        Success mySuccess2 = (Success) decode(myBuffer, false);
+        Success mySuccess2 = (Success) Codecs.decode(myBuffer, false);
 
         Assert.assertEquals(mySuccess.getSeqNum(), mySuccess2.getSeqNum());
         Assert.assertEquals(mySuccess.getValue().length, mySuccess2.getValue().length);
@@ -178,9 +152,9 @@ public class CodecTest {
     @Test public void proposerHeader() throws Exception {
         ProposerHeader myHeader = new ProposerHeader(new Collect(1, 2, 3), 1);
 
-        byte[] myBuffer = encode(myHeader);
+        byte[] myBuffer = Codecs.encode(myHeader);
 
-        ProposerHeader myHeader2 = (ProposerHeader) decode(myBuffer, true);
+        ProposerHeader myHeader2 = (ProposerHeader) Codecs.decode(myBuffer, true);
 
         Assert.assertEquals(myHeader.getPort(), myHeader2.getPort());
         Assert.assertEquals(myHeader.getOperation().getType(), myHeader2.getOperation().getType());
