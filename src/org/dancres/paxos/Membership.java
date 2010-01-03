@@ -13,8 +13,10 @@ public interface Membership {
 
     /**
      * Invoke this before starting a round of interaction for Paxos
+     * 
+     * @return <code>true</code> if membership is sufficient for a vote, <code>false</code> otherwise.
      */
-    public void startInteraction();
+    public boolean startInteraction();
 
     /**
      * Leader of a round invokes this for each response received. As each node is expected to return a single message, any additions

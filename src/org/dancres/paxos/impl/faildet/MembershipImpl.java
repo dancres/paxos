@@ -52,12 +52,15 @@ class MembershipImpl implements Membership, LivenessListener {
         _parent = aParent;
     }
 
-    public void startInteraction() {
+    public boolean startInteraction() {
         synchronized(this) {
             if (!abort()) {
                 _receivedResponses = 0;
                 _expectedResponses = _initialMemberAddresses.size();
                 _outstandingMemberAddresses = new HashSet(_initialMemberAddresses);
+                return true;
+            } else {
+            	return false;
             }
         }
     }

@@ -258,6 +258,8 @@ public class Leader implements MembershipListener {
             case ABORT : {
                 _logger.info("Leader::ABORT " + _completion);
 
+                _messages.clear();
+                
                 if (_membership != null)
                     _membership.dispose();
 
@@ -278,6 +280,8 @@ public class Leader implements MembershipListener {
             case EXIT : {
                 _logger.info("Leader::EXIT " + _completion);
 
+                _messages.clear();
+                
                 if (_membership != null)
                     _membership.dispose();
 
@@ -626,7 +630,8 @@ public class Leader implements MembershipListener {
 
         PaxosMessage myMessage = new Collect(_seqNum, newRndNumber(), _nodeId.asLong());
 
-        startInteraction();
+        if (!startInteraction())
+        	return;
 
         _logger.info("Leader sending collect: " + Long.toHexString(_seqNum));
 
@@ -638,7 +643,8 @@ public class Leader implements MembershipListener {
 
         PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _nodeId.asLong());
 
-        startInteraction();
+        if (!startInteraction())
+        	return;
 
         _logger.info("Leader sending begin: " + Long.toHexString(_seqNum));
 
@@ -650,18 +656,19 @@ public class Leader implements MembershipListener {
 
         PaxosMessage myMessage = new Success(_seqNum, _value);
 
-        startInteraction();
+        if (!startInteraction())
+        	return;
 
         _logger.info("Leader sending success: " + Long.toHexString(_seqNum));
 
         _transport.send(myMessage, NodeId.BROADCAST);
     }
 
-    private void startInteraction() {
+    private boolean startInteraction() {
         _interactionAlarm = new InteractionAlarm();
         _watchdog.schedule(_interactionAlarm, _watchdogTimeout);
 
-        _membership.startInteraction();
+        return _membership.startInteraction();
     }
 
     private class InteractionAlarm extends TimerTask {
