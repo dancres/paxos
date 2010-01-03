@@ -1,6 +1,6 @@
-<project name="Paxos Impl" default="init">
+<project name="Paxos Implementation" default="init">
     <description>
-        Main build file for Blitz space implementation running on Db-Java
+        Main build file for Paxos Implementation
     </description>
   <!-- set global properties for this build -->
   <property name="src" location="src"/>
@@ -46,6 +46,7 @@
         <pathelement location="${otherlib}/slf4j-jdk14-1.5.0.jar"/>
     	<pathelement location="${otherlib}/jmdns-2.0/lib/jmdns.jar"/>
     	<pathelement location="${otherlib}/junit-4.5.jar"/>
+    	<pathelement location="${otherlib}/howl-1.0.2.jar"/>
     </path>
 
   <target name="compile" depends="init"
