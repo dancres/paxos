@@ -7,7 +7,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.NodeId;
-import org.dancres.paxos.Reasons;
+import org.dancres.paxos.Event;
 import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.Node;
@@ -118,7 +118,7 @@ public class DeadNodeTest {
 
         Fail myFail = (Fail) myMsg;
 
-        Assert.assertTrue(myFail.getReason() == Reasons.BAD_MEMBERSHIP);
+        Assert.assertTrue(myFail.getReason() == Event.Reason.BAD_MEMBERSHIP);
     }
 
     static class DroppingTransportImpl extends TransportImpl {

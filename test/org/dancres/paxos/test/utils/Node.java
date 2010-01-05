@@ -3,10 +3,9 @@ package org.dancres.paxos.test.utils;
 import java.net.InetSocketAddress;
 import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.AcceptorLearnerListener;
-import org.dancres.paxos.Completion;
+import org.dancres.paxos.Event;
 import org.dancres.paxos.Leader;
 import org.dancres.paxos.LogStorage;
-import org.dancres.paxos.Reasons;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Fail;
@@ -139,16 +138,16 @@ public class Node implements PacketListener {
      */
     class PacketBridge implements AcceptorLearnerListener {
 
-        public void done(Completion aCompletion) {
+        public void done(Event anEvent) {
             // If we're not the originating node for the post, because we're not leader, we won't have an addressed stored up
             //
             if (_clientAddress == null)
                 return;
 
-            if (aCompletion.getResult() == Reasons.OK) {
-                _tp.send(new Complete(aCompletion.getSeqNum()), _clientAddress);
+            if (anEvent.getResult() == Event.Reason.DECISION) {
+                _tp.send(new Complete(anEvent.getSeqNum()), _clientAddress);
             } else {
-                _tp.send(new Fail(aCompletion.getSeqNum(), aCompletion.getResult()), _clientAddress);
+                _tp.send(new Fail(anEvent.getSeqNum(), anEvent.getResult()), _clientAddress);
             }
         }
     }

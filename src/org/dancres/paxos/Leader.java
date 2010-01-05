@@ -163,7 +163,7 @@ public class Leader implements MembershipListener {
     /**
      * In cases of ABORT, indicates the reason
      */
-    private Completion _completion;
+    private Event _event;
 
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
@@ -256,21 +256,21 @@ public class Leader implements MembershipListener {
     private void process() {
         switch(_stage) {
             case ABORT : {
-                _logger.info("Leader::ABORT " + _completion);
+                _logger.info("Leader::ABORT " + _event);
 
                 _messages.clear();
                 
                 if (_membership != null)
                     _membership.dispose();
 
-                _al.signal(_completion);
+                _al.signal(_event);
 
                 /*
                  * If there are any queued operations we must fail those also - use the same completion code...
                  */
                 while (_queue.size() > 0) {
                     Post myOp = (Post) _queue.remove(0);
-                    _al.signal(new Completion(_completion.getResult(), _completion.getSeqNum(),
+                    _al.signal(new Event(_event.getResult(), _event.getSeqNum(),
                             myOp.getConsolidatedValue()));
                 }
 
@@ -278,7 +278,7 @@ public class Leader implements MembershipListener {
             }
 
             case EXIT : {
-                _logger.info("Leader::EXIT " + _completion);
+                _logger.info("Leader::EXIT " + _event);
 
                 _messages.clear();
                 
@@ -340,7 +340,7 @@ public class Leader implements MembershipListener {
                       NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
 
                       if (_detector.isLive(myOtherLeader)) {
-                          error(Reasons.OTHER_LEADER, myOtherLeader);
+                          error(Event.Reason.OTHER_LEADER, myOtherLeader);
                       }
                     }
 
@@ -541,7 +541,7 @@ public class Leader implements MembershipListener {
                  * If ACK messages total more than majority we're happy otherwise try again.
                  */
                 if (_messages.size() >= _membership.getMajority()) {
-                    successful(Reasons.OK, null);
+                    successful(Event.Reason.DECISION, null);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
@@ -589,7 +589,7 @@ public class Leader implements MembershipListener {
             _logger.info("Superior leader is active, backing down: " + myCompetingNodeId + ", " +
                     _nodeId);
 
-            error(Reasons.OTHER_LEADER, myCompetingNodeId);
+            error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
             return;
         }
 
@@ -604,14 +604,14 @@ public class Leader implements MembershipListener {
 
     private void successful(int aReason, Object aContext) {
         _stage = EXIT;
-        _completion = new Completion(aReason, _seqNum, _value, aContext);
+        _event = new Event(aReason, _seqNum, _value, aContext);
 
         process();
     }
 
     private void error(int aReason, Object aContext) {
         _stage = ABORT;
-        _completion = new Completion(aReason, _seqNum, _value, aContext);
+        _event = new Event(aReason, _seqNum, _value, aContext);
 
         process();
     }
@@ -687,7 +687,7 @@ public class Leader implements MembershipListener {
         
         synchronized(this) {
             failed();
-            error(Reasons.BAD_MEMBERSHIP, null);
+            error(Event.Reason.BAD_MEMBERSHIP, null);
         }
     }
 
@@ -701,7 +701,7 @@ public class Leader implements MembershipListener {
                 process();
             else {
                 failed();
-                error(Reasons.VOTE_TIMEOUT, null);
+                error(Event.Reason.VOTE_TIMEOUT, null);
             }
         }
     }

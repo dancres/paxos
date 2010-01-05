@@ -5,14 +5,21 @@ import java.nio.ByteBuffer;
 /**
  * Status indication returned from the state machine for each vote requested
  */
-public class Completion {
+public class Event {
+	public interface Reason {
+		public static final int DECISION = 0;
+		public static final int OTHER_LEADER = -1;
+		public static final int VOTE_TIMEOUT = -2;
+		public static final int BAD_MEMBERSHIP = -3;
+	}
+	
     private int _result;
     private long _seqNum;
     private byte[] _value;
     private byte[] _handback;
     private Object _context;
 
-    Completion(int aResult, long aSeqNum, byte[] aValue) {
+    Event(int aResult, long aSeqNum, byte[] aValue) {
         _result = aResult;
         _seqNum = aSeqNum;
 
@@ -27,7 +34,7 @@ public class Completion {
         }
     }
 
-    Completion(int aResult, long aSeqNum, byte[] aValue, Object aContext) {
+    Event(int aResult, long aSeqNum, byte[] aValue, Object aContext) {
         this(aResult, aSeqNum, aValue);
         _context = aContext;
     }
@@ -44,7 +51,7 @@ public class Completion {
     }
 
     /**
-     * @return the completion code for a requested vote, one of {@link Reasons}
+     * @return the completion code for a requested vote, one of {@link Reason}
      */
     public int getResult() {
         return _result;

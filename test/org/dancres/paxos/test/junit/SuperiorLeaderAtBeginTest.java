@@ -2,7 +2,7 @@ package org.dancres.paxos.test.junit;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import org.dancres.paxos.Reasons;
+import org.dancres.paxos.Event;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Fail;
@@ -114,7 +114,7 @@ public class SuperiorLeaderAtBeginTest {
 
         Fail myFail = (Fail) myMsg;
 
-        Assert.assertTrue(myFail.getReason() == Reasons.OTHER_LEADER);
+        Assert.assertTrue(myFail.getReason() == Event.Reason.OTHER_LEADER);
     }
 
     private static class OldRoundNode extends Node {

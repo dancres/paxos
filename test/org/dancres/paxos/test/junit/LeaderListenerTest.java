@@ -3,7 +3,7 @@ package org.dancres.paxos.test.junit;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.dancres.paxos.AcceptorLearnerListener;
-import org.dancres.paxos.Completion;
+import org.dancres.paxos.Event;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
@@ -136,7 +136,7 @@ public class LeaderListenerTest {
             }
         }
 
-        public void done(Completion aCompletion) {
+        public void done(Event anEvent) {
             synchronized(this) {
                 ++_readyCount;
             }

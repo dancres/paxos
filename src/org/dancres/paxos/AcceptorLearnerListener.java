@@ -6,5 +6,5 @@ package org.dancres.paxos;
  * @author dan
  */
 public interface AcceptorLearnerListener {
-    public void done(Completion aCompletion);
+    public void done(Event anEvent);
 }

@@ -285,7 +285,8 @@ public class AcceptorLearner {
                 updateLowWatermark(mySuccess.getSeqNum());
                 updateHighWatermark(mySuccess.getSeqNum());
 
-                Completion myCompletion = new Completion(Reasons.OK, mySuccess.getSeqNum(), mySuccess.getValue());
+                Event myCompletion = new Event(Event.Reason.DECISION, 
+                		mySuccess.getSeqNum(), mySuccess.getValue());
 
                 // Always record the value even if it's the heartbeat so there are no gaps in the Paxos sequence
                 //
@@ -330,7 +331,7 @@ public class AcceptorLearner {
         return false;
     }
 
-    void signal(Completion aStatus) {
+    void signal(Event aStatus) {
         List<AcceptorLearnerListener> myListeners;
 
         synchronized(_listeners) {

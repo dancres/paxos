@@ -8,7 +8,7 @@ import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.NodeId;
-import org.dancres.paxos.Reasons;
+import org.dancres.paxos.Event;
 import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.Node;
@@ -120,7 +120,7 @@ public class PacketDropTest {
 
         System.err.println("Failure was: " + myFail.getReason());
 
-        Assert.assertTrue(myFail.getReason() == Reasons.VOTE_TIMEOUT);
+        Assert.assertTrue(myFail.getReason() == Event.Reason.VOTE_TIMEOUT);
     }
 
     static class DroppingTransportImpl extends TransportImpl {

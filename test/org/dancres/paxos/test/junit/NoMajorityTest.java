@@ -6,7 +6,7 @@ import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.NodeId;
-import org.dancres.paxos.Reasons;
+import org.dancres.paxos.Event;
 import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
@@ -74,6 +74,6 @@ public class NoMajorityTest {
 
         Fail myFail = (Fail) myMsg;
 
-        Assert.assertTrue(myFail.getReason() == Reasons.BAD_MEMBERSHIP);
+        Assert.assertTrue(myFail.getReason() == Event.Reason.BAD_MEMBERSHIP);
     }
 }
