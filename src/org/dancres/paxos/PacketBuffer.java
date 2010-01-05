@@ -14,27 +14,41 @@ import org.slf4j.Logger;
  * by order of arrival. 
  */
 class PacketBuffer {
-	private SortedMap<Long, List<PaxosMessage>> _packets = new TreeMap<Long, List<PaxosMessage>>();
+	private static class LoggedMessage {
+		private PaxosMessage _message;
+		private long _logOffset;		
+		
+		LoggedMessage(PaxosMessage aMsg, long anOffset) {
+			_message = aMsg;
+			_logOffset = anOffset;
+		}
+		
+		public String toString() {
+			return Long.toHexString(_logOffset) + ": " + _message.toString();
+		}
+	}
+	
+	private SortedMap<Long, List<LoggedMessage>> _packets = new TreeMap<Long, List<LoggedMessage>>();
 	private long _capacity;
 	
 	PacketBuffer(long aCapacity) {
 		_capacity = aCapacity;
 	}
 	
-	void add(PaxosMessage aMessage) {
+	void add(PaxosMessage aMessage, long aLogOffset) {
 		synchronized(this) {
-			List<PaxosMessage> myBuffer = _packets.get(new Long(aMessage.getSeqNum()));
+			List<LoggedMessage> myBuffer = _packets.get(new Long(aMessage.getSeqNum()));
 			
 			if (myBuffer == null) {
 				if (_packets.size() == _capacity) {
 					_packets.remove(_packets.firstKey());
 				}
 				
-				myBuffer = new LinkedList<PaxosMessage>();
-				myBuffer.add(aMessage);
+				myBuffer = new LinkedList<LoggedMessage>();
+				myBuffer.add(new LoggedMessage(aMessage, aLogOffset));
 				_packets.put(new Long(aMessage.getSeqNum()), myBuffer);
 			} else {
-				myBuffer.add(aMessage);
+				myBuffer.add(new LoggedMessage(aMessage, aLogOffset));
 			}
 		}
 	}
@@ -45,7 +59,7 @@ class PacketBuffer {
 			while (mySeqs.hasNext()) {
 				Long mySeq = mySeqs.next();
 				
-				Iterator<PaxosMessage> myPackets = _packets.get(mySeq).iterator();
+				Iterator<LoggedMessage> myPackets = _packets.get(mySeq).iterator();
 				while (myPackets.hasNext()) {
 					aLogger.info(myPackets.next().toString());
 				}

@@ -307,10 +307,9 @@ public class AcceptorLearner {
         }
     }
 
-    private long write(PaxosMessage aMessage, boolean aForceRequired) {
+    private void write(PaxosMessage aMessage, boolean aForceRequired) {
         try {
-        	_buffer.add(aMessage);
-        	return getStorage().put(Codecs.encode(aMessage), aForceRequired);
+        	_buffer.add(aMessage, getStorage().put(Codecs.encode(aMessage), aForceRequired));
         } catch (Exception anE) {
         	_logger.error("Acceptor cannot log: " + System.currentTimeMillis(), anE);
         	throw new RuntimeException(anE);
