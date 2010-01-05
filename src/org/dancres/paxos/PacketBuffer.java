@@ -11,7 +11,8 @@ import org.slf4j.Logger;
 
 /**
  * PacketBuffer tracks a collection of PaxosMessages. The collection is ordered by sequence number and secondarily
- * by order of arrival. 
+ * by order of arrival. PacketBuffer also tracks log offset for each message which is used to compute appropriate
+ * checkpoints in log files.
  */
 class PacketBuffer {
 	private static class LoggedMessage {
