@@ -81,7 +81,8 @@ public class LeaderListenerTest {
 
         FailureDetectorImpl myFd = _node1.getFailureDetector();
         ListenerImpl myListener = new ListenerImpl();
-        _node1.getAcceptorLearner().add(myListener);
+        
+        _node2.getAcceptorLearner().add(myListener);
 
         int myChances = 0;
 

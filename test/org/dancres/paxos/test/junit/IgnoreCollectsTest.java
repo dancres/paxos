@@ -111,7 +111,8 @@ public class IgnoreCollectsTest {
         // Now we have an active leader, make sure acceptor learners ignore contenders
         AcceptorLearner myAl = _node2.getAcceptorLearner();
         Leader myL = _node2.getLeader();
-        Collect myCollect = new Collect(myAl.getHighWatermark(), myL.getCurrentRound(), NodeId.from(myAddr).asLong());
+        Collect myCollect = new Collect(myAl.getLowWatermark() + 1, 
+        		myL.getCurrentRound(), NodeId.from(myAddr).asLong());
 
         _node2.getQueue().add(new Packet(NodeId.from(myAddr), new ProposerHeader(myCollect, 8081)));
 

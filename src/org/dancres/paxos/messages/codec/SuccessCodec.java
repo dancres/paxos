@@ -2,13 +2,14 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.ConsolidatedValue;
 import org.dancres.paxos.messages.Success;
 import org.dancres.paxos.messages.Operations;
 
 public class SuccessCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
         Success mySuccess = (Success) anObject;
-        byte[] myBytes = mySuccess.getValue();
+        byte[] myBytes = mySuccess.getConsolidatedValue().marshall();
 
         ByteBuffer myBuffer;
 
@@ -33,6 +34,6 @@ public class SuccessCodec implements Codec {
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
 
-        return new Success(mySeqNum, myBytes);
+        return new Success(mySeqNum, new ConsolidatedValue(myBytes));
     }
 }

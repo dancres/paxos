@@ -1,23 +1,22 @@
 package org.dancres.paxos.messages;
 
+import org.dancres.paxos.ConsolidatedValue;
+
 public class Last implements PaxosMessage {
     private long _seqNum;
     private long _low;
-    private long _high;
     private long _rndNumber;
-    private byte[] _value;
+    private ConsolidatedValue _value;
 
     /**
      * @param aSeqNum is the sequence number received in the related collect
-     * @param aLowWatermark is the last contiguous sequence number seen
-     * @param aHighWatermark is the most recent sequence number seen
+     * @param aLowWatermark is the last contiguous sequence completed
      * @param aMostRecentRound is the most recent leader round seen
      * @param aValue is the value, if any, associated with the sequence number of the related collect
      */
-    public Last(long aSeqNum, long aLowWatermark, long aHighWatermark, long aMostRecentRound, byte[] aValue) {
+    public Last(long aSeqNum, long aLowWatermark, long aMostRecentRound, ConsolidatedValue aValue) {
         _seqNum = aSeqNum;
         _low = aLowWatermark;
-        _high = aHighWatermark;
         _rndNumber = aMostRecentRound;
         _value = aValue;
     }
@@ -33,7 +32,7 @@ public class Last implements PaxosMessage {
     /**
      * @return the value associated with the sequence number returned by <code>getSeqNum</code>
      */
-    public byte[] getValue() {
+    public ConsolidatedValue getConsolidatedValue() {
         return _value;
     }
 
@@ -42,13 +41,6 @@ public class Last implements PaxosMessage {
      */
     public long getRndNumber() {
         return _rndNumber;
-    }
-
-    /**
-     * @return the most recent sequence number seen
-     */
-    public long getHighWatermark() {
-        return _high;
     }
 
     /**
@@ -66,7 +58,7 @@ public class Last implements PaxosMessage {
     }
 
     public String toString() {
-        return "Last: " + Long.toHexString(_seqNum) + " " + Long.toHexString(_low) + "->" + Long.toHexString(_high) +
+        return "Last: " + Long.toHexString(_seqNum) + " " + Long.toHexString(_low) + 
                 " [ " + Long.toHexString(_rndNumber) + " ]";
     }
 }

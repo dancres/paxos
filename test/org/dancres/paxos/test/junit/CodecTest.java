@@ -1,5 +1,6 @@
 package org.dancres.paxos.test.junit;
 
+import org.dancres.paxos.ConsolidatedValue;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Ack;
@@ -59,7 +60,10 @@ public class CodecTest {
     }
 
     @Test public void begin() throws Exception {
-        Begin myBegin = new Begin(1, 2, 3);
+        byte[] myData = {55};
+        byte[] myHandback = {56};
+        
+        Begin myBegin = new Begin(1, 2, new ConsolidatedValue(myData, myHandback), 3);
 
         byte[] myBuffer = Codecs.encode(myBegin);
 
@@ -68,6 +72,7 @@ public class CodecTest {
         Assert.assertEquals(myBegin.getSeqNum(), myBegin2.getSeqNum());
         Assert.assertEquals(myBegin.getRndNumber(), myBegin2.getRndNumber());
         Assert.assertEquals(myBegin.getNodeId(), myBegin2.getNodeId());
+        Assert.assertEquals(myBegin.getConsolidatedValue(), myBegin2.getConsolidatedValue());
     }
 
     @Test public void collect() throws Exception {
@@ -92,8 +97,9 @@ public class CodecTest {
 
     @Test public void last() throws Exception {
         byte[] myData = {55};
+        byte[] myHandback = {56};
 
-        Last myLast = new Last(0, 1, 2, 3, myData);
+        Last myLast = new Last(0, 1, 2, new ConsolidatedValue(myData, myHandback));
 
         byte[] myBuffer = Codecs.encode(myLast);
 
@@ -101,10 +107,8 @@ public class CodecTest {
 
         Assert.assertEquals(myLast.getSeqNum(), myLast.getSeqNum());
         Assert.assertEquals(myLast.getLowWatermark(), myLast2.getLowWatermark());
-        Assert.assertEquals(myLast.getHighWatermark(), myLast2.getHighWatermark());
         Assert.assertEquals(myLast.getRndNumber(), myLast2.getRndNumber());
-        Assert.assertEquals(myLast.getValue().length, myLast2.getValue().length);
-        Assert.assertEquals(myLast.getValue()[0], myLast2.getValue()[0]);
+        Assert.assertEquals(myLast.getConsolidatedValue(), myLast2.getConsolidatedValue());
     }
 
     @Test public void oldRound() throws Exception {
@@ -137,16 +141,16 @@ public class CodecTest {
 
     @Test public void success() throws Exception {
         byte[] myData = {55};
+        byte[] myHandback = {56};
 
-        Success mySuccess = new Success(1, myData);
+        Success mySuccess = new Success(1, new ConsolidatedValue(myData, myHandback));
 
         byte[] myBuffer = Codecs.encode(mySuccess);
 
         Success mySuccess2 = (Success) Codecs.decode(myBuffer, false);
 
         Assert.assertEquals(mySuccess.getSeqNum(), mySuccess2.getSeqNum());
-        Assert.assertEquals(mySuccess.getValue().length, mySuccess2.getValue().length);
-        Assert.assertEquals(mySuccess.getValue()[0], mySuccess2.getValue()[0]);
+        Assert.assertEquals(mySuccess.getConsolidatedValue(), mySuccess2.getConsolidatedValue());
     }
 
     @Test public void proposerHeader() throws Exception {

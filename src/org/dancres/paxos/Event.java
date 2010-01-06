@@ -15,26 +15,16 @@ public class Event {
 	
     private int _result;
     private long _seqNum;
-    private byte[] _value;
-    private byte[] _handback;
+    private ConsolidatedValue _consolidatedValue;
     private Object _context;
 
-    Event(int aResult, long aSeqNum, byte[] aValue) {
+    Event(int aResult, long aSeqNum, ConsolidatedValue aValue) {
         _result = aResult;
         _seqNum = aSeqNum;
-
-        if (aValue != null) {
-            ByteBuffer myBuffer = ByteBuffer.wrap(aValue);
-            int myValueSize = myBuffer.getInt();
-
-            _value = new byte[myValueSize];
-            _handback = new byte[aValue.length - 4 - myValueSize];
-            myBuffer.get(_value);
-            myBuffer.get(_handback);
-        }
+        _consolidatedValue = aValue;
     }
 
-    Event(int aResult, long aSeqNum, byte[] aValue, Object aContext) {
+    Event(int aResult, long aSeqNum, ConsolidatedValue aValue, Object aContext) {
         this(aResult, aSeqNum, aValue);
         _context = aContext;
     }
@@ -43,11 +33,11 @@ public class Event {
      * @return the value submitted to the vote
      */
     public byte[] getValue() {
-        return _value;
+        return _consolidatedValue.getValue();
     }
 
     public byte[] getHandback() {
-        return _handback;
+        return _consolidatedValue.getHandback();
     }
 
     /**

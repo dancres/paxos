@@ -1,8 +1,6 @@
 package org.dancres.paxos.messages;
 
-import java.nio.ByteBuffer;
-
-import org.dancres.paxos.messages.*;
+import org.dancres.paxos.ConsolidatedValue;
 
 public class Post implements PaxosMessage {
     public static final int TYPE = Operations.POST;
@@ -15,14 +13,9 @@ public class Post implements PaxosMessage {
         _handback = aHandback;
     }
     
-    public Post(byte[] aConsolidatedValue) {
-        ByteBuffer myBuffer = ByteBuffer.wrap(aConsolidatedValue);
-        int myValueSize = myBuffer.getInt();
-
-        _value = new byte[myValueSize];
-        _handback = new byte[aConsolidatedValue.length - 4 - myValueSize];
-        myBuffer.get(_value);
-        myBuffer.get(_handback);    	
+    public Post(ConsolidatedValue aValue) {
+    	_value = aValue.getValue();
+    	_handback = aValue.getHandback();
     }
     
     public long getSeqNum() {
@@ -49,12 +42,7 @@ public class Post implements PaxosMessage {
         return _handback;
     }
 
-    public byte[] getConsolidatedValue() {
-        ByteBuffer myBuffer = ByteBuffer.allocate(4 + _handback.length + _value.length);
-        myBuffer.putInt(_value.length);
-        myBuffer.put(_value);
-        myBuffer.put(_handback);
-
-        return myBuffer.array();
+    public ConsolidatedValue getConsolidatedValue() {
+    	return new ConsolidatedValue(_value, _handback);
     }
 }

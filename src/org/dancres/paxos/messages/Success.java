@@ -1,10 +1,12 @@
 package org.dancres.paxos.messages;
 
+import org.dancres.paxos.ConsolidatedValue;
+
 public class Success implements PaxosMessage {
     private long _seqNum;
-    private byte[] _value;
+    private ConsolidatedValue _value;
 
-    public Success(long aSeqNum, byte[] aValue) {
+    public Success(long aSeqNum, ConsolidatedValue aValue) {
         _seqNum = aSeqNum;
         _value = aValue;
     }
@@ -21,7 +23,7 @@ public class Success implements PaxosMessage {
         return _seqNum;
     }
 
-    public byte[] getValue() {
+    public ConsolidatedValue getConsolidatedValue() {
         return _value;
     }
     

@@ -40,7 +40,8 @@ import org.slf4j.LoggerFactory;
  * @author dan
  */
 public class AcceptorLearner {
-    public static final byte[] HEARTBEAT = "org.dancres.paxos.Heartbeat".getBytes();
+    public static final ConsolidatedValue HEARTBEAT = 
+    	new ConsolidatedValue("org.dancres.paxos.Heartbeat".getBytes(), new byte[]{});
 
     private static long DEFAULT_LEASE = 30 * 1000;
     private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
@@ -66,13 +67,6 @@ public class AcceptorLearner {
      * instances.
      */
     private long _lowSeqNumWatermark = LogStorage.NO_SEQ;
-
-    /**
-     * Records the most recent seqNum we've seen in a BEGIN or SUCCESS message.  We may see a SUCCESS without BEGIN but
-     * that's okay as the leader must have had sufficient majority to get agreement so we can just agree, update this
-     * count and update the value/seqNum store. A value of -1 indicates we have yet to see a proposal.
-     */
-    private long _highSeqNumWatermark = LogStorage.NO_SEQ;
 
     /**
      * PacketBuffer is used to maintain a limited amount of past Paxos history that can be used to catch-up
@@ -204,22 +198,6 @@ public class AcceptorLearner {
         }
     }
 
-    private void updateHighWatermark(long aSeqNum) {
-        synchronized(this) {
-            if (_highSeqNumWatermark < aSeqNum) {
-                _highSeqNumWatermark = aSeqNum;
-
-                _logger.info("High watermark:" + aSeqNum);
-            }
-        }
-    }
-
-    public long getHighWatermark() {
-        synchronized(this) {
-            return _highSeqNumWatermark;
-        }
-    }
-
     /**
      * @param aCollect should be tested to see if it supercedes the current COLLECT
      * @return the old collect if it's superceded or null
@@ -308,7 +286,7 @@ public class AcceptorLearner {
                     
                     // @TODO FIX THIS!!!!
                     //
-                    return new Last(mySeqNum, getLowWatermark(), getHighWatermark(), myOld.getRndNumber(),
+                    return new Last(mySeqNum, getLowWatermark(), myOld.getRndNumber(),
                             LogStorage.NO_VALUE);
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
@@ -326,8 +304,8 @@ public class AcceptorLearner {
                 //
                 if (originates(myBegin)) {
                     updateLastActionTime(myCurrentTime);
-                    updateHighWatermark(myBegin.getSeqNum());
-
+                    write(aMessage,true);
+                    
                     return new Accept(mySeqNum, getLastCollect().getRndNumber());
                 } else if (precedes(myBegin)) {
                     // New collect was received since the collect for this begin, tell the proposer it's got competition
@@ -349,18 +327,12 @@ public class AcceptorLearner {
 
                 updateLastActionTime(myCurrentTime);
                 updateLowWatermark(mySuccess.getSeqNum());
-                updateHighWatermark(mySuccess.getSeqNum());
-
-                Event myCompletion = new Event(Event.Reason.DECISION, 
-                		mySuccess.getSeqNum(), mySuccess.getValue());
 
                 // Always record the value even if it's the heartbeat so there are no gaps in the Paxos sequence
                 //
                 write(aMessage, true);
                 
-                if (notHeartbeat(myCompletion.getValue())) {
-                    signal(myCompletion);
-                } else {
+                if (mySuccess.getConsolidatedValue().equals(HEARTBEAT)) {
                     _receivedHeartbeats.incrementAndGet();
 
                     _logger.info("AcceptorLearner discarded heartbeat: " + System.currentTimeMillis() + ", " +
@@ -383,20 +355,6 @@ public class AcceptorLearner {
         }    	
     }
     
-    private boolean notHeartbeat(byte[] aValue) {
-        if (aValue.length != HEARTBEAT.length) {
-            return true;
-        }
-
-        for (int i = 0; i < aValue.length; i++) {
-            if (aValue[i] != HEARTBEAT[i]) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     void signal(Event aStatus) {
         List<AcceptorLearnerListener> myListeners;
 
@@ -407,7 +365,7 @@ public class AcceptorLearner {
         Iterator<AcceptorLearnerListener> myTargets = myListeners.iterator();
 
         while (myTargets.hasNext()) {
-            myTargets.next().done(aStatus);
+        	myTargets.next().done(aStatus);
         }
     }
 }

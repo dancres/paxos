@@ -74,7 +74,6 @@ public class Leader implements MembershipListener {
      * A paxos isntance failed for some reason (which will be found in </code>_completion</code>).
      */
     private static final int ABORT = 4;
-    private static final int RECOVER = 5;
 
     /**
      * Leader has completed the necessary steps to secure an entry in storage for a particular sequence number
@@ -112,34 +111,6 @@ public class Leader implements MembershipListener {
      * noisy when it should be silent). This field can be updated as the result of OldRound messages.
      */
     private long _rndNumber = 0;
-
-    /**
-     * The current value the leader is using for a proposal. Might be sourced from _clientOp but can also come from 
-     * Last messages as part of recovery.
-     */
-    private byte[] _value;
-
-    /**
-     * Note that being the leader is merely an optimisation and saves on sending COLLECTs.  Thus if one thread 
-     * establishes we're leader and a prior thread decides otherwise with the latter being last to update this variable
-     * we'll simply do an unnecessary COLLECT.  The protocol execution will still be correct.
-     */
-    private boolean _isLeader = false;
-
-    /**
-     * When in recovery mode we perform collect for each sequence number in the recovery range
-     */
-    private boolean _isRecovery = false;
-
-    private long _lowWatermark;
-    private long _highWatermark;
-
-    /**
-     * Maintains the current client request. The actual sequence number and value the state machine operates on are
-     * held in <code>_seqNum</code> and <code>_value</code> and during recovery will not be the same as the client
-     * request.  Thus we cache the client request and move it into the operating variables once recovery is complete.
-     */
-    private Post _clientOp;
 
     /**
      * This alarm is used to limit the amount of time the leader will wait for responses from all apparently live
@@ -214,30 +185,6 @@ public class Leader implements MembershipListener {
         _rndNumber = aNumber;
     }
 
-    private boolean isRecovery() {
-        return _isRecovery;
-    }
-
-    private void amRecovery() {
-        _isRecovery = true;
-    }
-
-    private void notRecovery() {
-        _isRecovery = false;
-    }
-
-    private boolean isLeader() {
-        return _isLeader;
-    }
-
-    private void amLeader() {
-        _isLeader = true;
-    }
-
-    private void notLeader() {
-        _isLeader = false;
-    }
-
     public NodeId getNodeId() {
         return _nodeId;
     }
@@ -248,17 +195,38 @@ public class Leader implements MembershipListener {
         }
     }
 
+    private boolean compareValues(byte[] aValue, byte[] anotherValue) {
+    	if (aValue.length != anotherValue.length)
+    		return false;
+
+    	for (int i = 0; i < aValue.length; i++) {
+    		if (aValue[i] != anotherValue[i])
+    			return false;
+    	}
+
+    	return true;
+    }
+    
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
      * we expect ACCEPT or OLDROUND
+     * 
+     * @todo Leader can only inform client of success once it has a majority of successes. It can also only advance
+     * its sequence number at that point.
      */
     private void process() {
         switch(_stage) {
             case ABORT : {
-                _logger.info("Leader::ABORT " + _event);
+            	assert (_queue.size() != 0);
+            	
+                _logger.info("Leader::ABORT " + _event, new RuntimeException());
 
                 _messages.clear();
+                
+                // Remove the just processed item
+                //
+                _queue.remove(0);
                 
                 if (_membership != null)
                     _membership.dispose();
@@ -278,26 +246,23 @@ public class Leader implements MembershipListener {
             }
 
             case EXIT : {
-                _logger.info("Leader::EXIT " + _event);
+            	assert (_queue.size() != 0);
+
+            	_logger.info("Leader::EXIT " + _event);
 
                 _messages.clear();
+                
+                // Remove the just processed item
+                //                
+                _queue.remove(0);
                 
                 if (_membership != null)
                     _membership.dispose();
 
-                if (isRecovery()) {
-                    /*
-                     * We've completed a paxos instance as part of recovery, we must return to COLLECT via SUBMITTED
-                     * (which sets up membership etc) to continue recovery of process the original request that
-                     * triggered us to assume leadership and recover.
-                     */
-                    _stage = SUBMITTED;
-                    process();
-
-                } else if (_queue.size() > 0) {
-                    _clientOp = _queue.remove(0);
-
-                    _logger.info("Processing op from queue: " + _clientOp);
+                _al.signal(_event);
+                
+                if (_queue.size() > 0) {
+                    _logger.info("Processing op from queue: " + _queue.get(0));
 
                     _stage = SUBMITTED;
                     process();
@@ -311,6 +276,8 @@ public class Leader implements MembershipListener {
             }
 
             case SUBMITTED : {
+            	assert (_queue.size() != 0);
+            	
                 _membership = _detector.getMembers(this);
 
                 _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" +
@@ -324,84 +291,65 @@ public class Leader implements MembershipListener {
                 break;
             }
 
+            /*
+             * It's possible an AL will have seen a success that no others saw such that a previous value is 
+             * not fully committed. That's okay as a lagging leader will propose a new client value for that sequence
+             * number and find that AL tells it about this value which will cause the leader to finish off that
+             * round and any others after which it can propose the client value for a sequence number. Should that AL
+             * die the record is lost and the client needs to re-propose the value.
+             * 
+             * Other AL's may have missed other values, that's also okay as they will separately deduce they have
+             * missing instances to catch-up and recover that state from those around them.
+             */
             case COLLECT : {
-                if ((! isLeader()) && (! isRecovery())) {
-                    _logger.info("Not currently leader, recovering");
+            	assert (_queue.size() != 0);
+            	
+            	/*
+            	 * If the Acceptor/Learner thinks there's a valid leader and the failure detector confirms
+            	 * liveness, reject the request
+            	 */
+            	Collect myLastCollect = _al.getLastCollect();
 
-                    /*
-                     * If the Acceptor/Learner thinks there's a valid leader and the failure detector confirms
-                     * liveness, reject the request
-                     */
-                    Collect myLastCollect = _al.getLastCollect();
+            	// Collect is INITIAL means no leader known so try to become leader
+            	//
+            	if (! myLastCollect.isInitial()) {
+            		NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
 
-                    // Collect is INITIAL means no leader known so try to become leader
-                    //
-                    if (! myLastCollect.isInitial()) {
-                      NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
+            		// If the leader is not us, give up
+            		//
+            		if ((! myOtherLeader.equals(_nodeId)) && (_detector.isLive(myOtherLeader))) {
+            			error(Event.Reason.OTHER_LEADER, myOtherLeader);
+            			return;
+            		}
+            	}
 
-                      if (_detector.isLive(myOtherLeader)) {
-                          error(Event.Reason.OTHER_LEADER, myOtherLeader);
-                      }
-                    }
+            	// Best guess for a round number is the acceptor/learner
+            	//
+            	updateRndNumber(myLastCollect.getRndNumber());
 
-                    _logger.info("Trying to become leader and computing high and low watermarks");
-                    
-                    // Best guess for a round number is the acceptor/learner
-                    //
-                    updateRndNumber(myLastCollect.getRndNumber());
+            	// Best guess for starting sequence number is the acceptor/learner
+            	//
+            	_seqNum = _al.getLowWatermark();
 
-                    // Best guess for starting sequence number is the acceptor/learner
-                    //
-                    _seqNum = _al.getLowWatermark();
+            	// Possibility we're starting from scratch
+            	//
+            	if (_seqNum == LogStorage.NO_SEQ)
+            		_seqNum = 0;
+            	else
+            		_seqNum = _seqNum + 1;
 
-                    // Possibility we're starting from scratch
-                    //
-                    if (_seqNum == LogStorage.NO_SEQ)
-                        _seqNum = 0;
-
-                    _stage = RECOVER;
-                    emitCollect();
-
-                } else if (isRecovery()) {
-                    ++_seqNum;
-
-                    if (_seqNum > _highWatermark) {
-                        // Recovery is complete
-                        //
-                        notRecovery();
-                        amLeader();
-
-                        _logger.info("Recovery complete - we're leader doing begin with client value");
-
-                        _value = _clientOp.getConsolidatedValue();
-                        _stage = BEGIN;
-                        process();
-
-                    } else {
-                        _value = LogStorage.NO_VALUE;
-                        _stage = BEGIN;
-                        emitCollect();
-                    }
-
-                } else if (isLeader()) {
-                    _logger.info("Skipping collect phase - we're leader already");
-
-                    _value = _clientOp.getConsolidatedValue();
-                    ++_seqNum;
-
-                    _stage = BEGIN;
-                    process();
-                }
-
-                break;
+            	_stage = BEGIN;
+            	emitCollect();
+            	
+            	break;
             }
 
-            case RECOVER : {
-                // Compute low and high watermarks
-                //
-                long myMinSeq = -1;
-                long myMaxSeq = -1;
-
+            case BEGIN : {
+            	assert (_queue.size() != 0);
+            	
+            	long myMaxProposal = -1;
+            	ConsolidatedValue myValue = null;
+            	
                 Iterator<PaxosMessage> myMessages = _messages.iterator();
 
                 while (myMessages.hasNext()) {
@@ -409,100 +357,38 @@ public class Leader implements MembershipListener {
 
                     if (myMessage.getType() == Operations.OLDROUND) {
                         /*
-                         * An OldRound here indicates some other leader is present and we're only computing the
-                         * range for recovery thus we just give up and exit
+                         * An OldRound here indicates some other leader is present, give up.
                          */
                         oldRound(myMessage);
                         return;
                     } else {
                         Last myLast = (Last) myMessage;
-
-                        long myLow = myLast.getLowWatermark();
-                        long myHigh = myLast.getHighWatermark();
-
-                        /*
-                         * NO_SEQ is -1 and a participant that has no valid watermarks
-                         * as it's state will return NO_SEQ thus simple < comparisons with myMinSeq are acceptable.
-                         */
-                        if (myLow < myMinSeq)
-                        	myMinSeq = myLow;
-
-                        if (myHigh > myMaxSeq) {
-                        	myMaxSeq = myHigh;
+                        
+                        if (! myLast.getConsolidatedValue().equals(LogStorage.NO_VALUE)) {
+                        	if (myLast.getRndNumber() > myMaxProposal)
+                        		myValue = myLast.getConsolidatedValue();
                         }
                     }
                 }
-
-                amRecovery();
-
-                _lowWatermark = myMinSeq;
-                _highWatermark = myMaxSeq;
 
                 /*
-                 * Collect always increments the sequence number so we must allow for that when figuring out where to
-                 * start from low watermark
+                 * If we have a value from a LAST message and it's not the same as the one we want to propose, 
+                 * we've hit an outstanding paxos instance and must now drive it to completion. Put it at the head of 
+                 * the queue ready for the BEGIN. Note we must compare the consolidated value we want to propose
+                 * as the one in the LAST message will be a consolidated value.
                  */
-                if (_lowWatermark == -1)
-                    _seqNum = -1;
-                else
-                    _seqNum = _lowWatermark - 1;
-
-                _logger.info("Recovery started: " + _lowWatermark + " ->" + _highWatermark + " (" + _seqNum + ") ");
-
-                _stage = COLLECT;
-                process();
-
-                break;
-            }
-
-            case BEGIN : {
-                byte[] myValue = _value;
-
-                /* 
-                 * If we're not currently the leader, we'll have issued a collect and must process the responses.
-                 * We'll be in recovery so we're interested in resolving any outstanding sequence numbers thus our
-                 * proposal must be constrained by whatever values the acceptor/learners already know about
-                 */
-                if (! isLeader()) {
-                    // Process _messages to assess what we do next - might be to launch a new round or to give up
-                    //
-                    long myMaxRound = 0;
-                    Iterator<PaxosMessage> myMessages = _messages.iterator();
-
-                    while (myMessages.hasNext()) {
-                        PaxosMessage myMessage = myMessages.next();
-
-                        if (myMessage.getType() == Operations.OLDROUND) {
-                            oldRound(myMessage);
-                            return;
-                        } else {
-                            Last myLast = (Last) myMessage;
-
-                            if (myLast.getRndNumber() > myMaxRound) {
-                                myMaxRound = myLast.getRndNumber();
-                                myValue = myLast.getValue();
-                            }
-                        }
-                    }
-                }
-
-                _value = myValue;
+                if ((myValue != null) && (! myValue.equals(_queue.get(0).getConsolidatedValue())))
+                	_queue.add(new Post(myValue));
 
                 emitBegin();
                 _stage = SUCCESS;
-
+                
                 break;
             }
 
             case SUCCESS : {
-                /*
-                 * Old round message, causes start at collect or quit. If Accept messages total more than majority
-                 * we're happy, send Success wait for all acks or redo collect. Note that if we receive OldRound
-                 * here we haven't proposed a value (we do that when we emit success) thus if we die after this point
-                 * the worst case would be an empty entry in the log with no filled in value. If we succeed here
-                 * we've essentially reserved a slot in the log for the specified sequence number and it's up to us
-                 * to fill it with the value we want.
-                 */
+            	assert (_queue.size() != 0);
+            	
                 int myAcceptCount = 0;
 
                 Iterator<PaxosMessage> myMessages = _messages.iterator();
@@ -533,6 +419,8 @@ public class Leader implements MembershipListener {
             }
 
             case COMMITTED : {
+            	assert (_queue.size() != 0);
+            	
                 /*
                  * If ACK messages total more than majority we're happy otherwise try again.
                  */
@@ -562,7 +450,7 @@ public class Leader implements MembershipListener {
              * although that's unlikely if things are stable as no other node can become leader whilst we hold the
              * lease
              */
-            submit(new Post(AcceptorLearner.HEARTBEAT, new byte[0]));
+            submit(new Post(AcceptorLearner.HEARTBEAT));
         }
     }
 
@@ -579,8 +467,6 @@ public class Leader implements MembershipListener {
      * @param aMessage is an OldRound message received from some other node
      */
     private void oldRound(PaxosMessage aMessage) {
-        failed();
-
         OldRound myOldRound = (OldRound) aMessage;
 
         NodeId myCompetingNodeId = NodeId.from(myOldRound.getNodeId());
@@ -609,25 +495,16 @@ public class Leader implements MembershipListener {
 
     private void successful(int aReason, Object aContext) {
         _stage = EXIT;
-        _event = new Event(aReason, _seqNum, _value, aContext);
+        _event = new Event(aReason, _seqNum, _queue.get(0).getConsolidatedValue(), aContext);
 
         process();
     }
 
     private void error(int aReason, Object aContext) {
         _stage = ABORT;
-        _event = new Event(aReason, _seqNum, _value, aContext);
+        _event = new Event(aReason, _seqNum, _queue.get(0).getConsolidatedValue(), aContext);
 
         process();
-    }
-
-    /**
-     * If we timed out or lost membership, we're potentially no longer leader and need to run recovery to get back to
-     * the right sequence number.
-     */
-    private void failed() {
-        notLeader();
-        notRecovery();
     }
 
     private void emitCollect() {
@@ -646,7 +523,8 @@ public class Leader implements MembershipListener {
     private void emitBegin() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _nodeId.asLong());
+        PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _queue.get(0).getConsolidatedValue(),
+        		_nodeId.asLong());
 
         if (!startInteraction())
         	return;
@@ -659,7 +537,7 @@ public class Leader implements MembershipListener {
     private void emitSuccess() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Success(_seqNum, _value);
+        PaxosMessage myMessage = new Success(_seqNum, _queue.get(0).getConsolidatedValue());
 
         if (!startInteraction())
         	return;
@@ -691,7 +569,6 @@ public class Leader implements MembershipListener {
         _interactionAlarm.cancel();
         
         synchronized(this) {
-            failed();
             error(Event.Reason.BAD_MEMBERSHIP, null);
         }
     }
@@ -705,7 +582,6 @@ public class Leader implements MembershipListener {
             if (_messages.size() >= _membership.getMajority())
                 process();
             else {
-                failed();
                 error(Event.Reason.VOTE_TIMEOUT, null);
             }
         }
@@ -726,15 +602,14 @@ public class Leader implements MembershipListener {
      */
     private void submit(Post anOp) {
         synchronized (this) {
+        	_queue.add(anOp);
+        	
             if (! isReady()) {
-                _logger.info("Queued operation: " + anOp);
-                _queue.add(anOp);
+                _logger.info("Queued operation (already active): " + anOp);
                 return;
             }
 
-            _clientOp = anOp;
-
-            _logger.info("Initialising leader: " + Long.toHexString(_seqNum));
+            _logger.info("Queued operation (initialising leader): " + Long.toHexString(_seqNum));
 
             _stage = SUBMITTED;
 

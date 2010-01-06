@@ -2,13 +2,14 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.ConsolidatedValue;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.Post;
 
 public class PostCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
         Post myPost = (Post) anObject;
-        byte[] myBytes = myPost.getConsolidatedValue();
+        byte[] myBytes = myPost.getConsolidatedValue().marshall();
 
         ByteBuffer myBuffer = ByteBuffer.allocate(8 + myBytes.length);
 
@@ -31,6 +32,6 @@ public class PostCodec implements Codec {
 
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
-        return new Post(myBytes);
+        return new Post(new ConsolidatedValue(myBytes));
     }
 }
