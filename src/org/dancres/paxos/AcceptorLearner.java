@@ -23,6 +23,20 @@ import org.slf4j.LoggerFactory;
  * from the leader.  Thus if a leader declares SUCCESS then the local instance will receive those packets.  This can be
  * useful for processing client requests correctly and signalling interested parties as necessary.
  *
+ * @todo Success messages must contain the round number so we can validate they follow on from the current BEGIN.
+ * If it doesn't follow on we must OLD_ROUND. In the original algorithmic description from "Paxos Made Simple" accepts
+ * are broadcast to all learners so they can see a quorum for a particular round. As we use a distinguished learner,
+ * in the form of the Leader, it must broadcast the quorum itself which means it must include the round number in case
+ * some other leader gains acceptance and now wants to send out a value. We could fix this by sending the value out
+ * during the accept phase and then have the success message be merely a commit of that value. Then a round number
+ * is not required for success as any leader that gets as far as success must have accounted for the values sent in
+ * accept when processing last messages. Success would just then contain the sequence number and any AL that hasn't
+ * seen the associated begin would take no action (no sync of value to disk and no ack of the success), such an AL
+ * would then perform recovery as the result of not incrementing it's low watermark (in response to success) and 
+ * detecting a missed round at the next begin/accept.
+ * 
+ * @todo Checkpoint must include low watermark etc.
+ * 
  * @author dan
  */
 public class AcceptorLearner {
@@ -51,14 +65,14 @@ public class AcceptorLearner {
      * leader recovery, essentially we want to recover from the last contiguous sequence number in the stream of paxos
      * instances.
      */
-    private long _lowSeqNumWatermark = LogStorage.EMPTY_LOG;
+    private long _lowSeqNumWatermark = LogStorage.NO_SEQ;
 
     /**
      * Records the most recent seqNum we've seen in a BEGIN or SUCCESS message.  We may see a SUCCESS without BEGIN but
      * that's okay as the leader must have had sufficient majority to get agreement so we can just agree, update this
      * count and update the value/seqNum store. A value of -1 indicates we have yet to see a proposal.
      */
-    private long _highSeqNumWatermark = LogStorage.EMPTY_LOG;
+    private long _highSeqNumWatermark = LogStorage.NO_SEQ;
 
     /**
      * PacketBuffer is used to maintain a limited amount of past Paxos history that can be used to catch-up
@@ -69,6 +83,61 @@ public class AcceptorLearner {
     
     private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 
+    /*
+     * Introducing recovery:
+     * 
+     * Low watermark is -1
+     * When packet arrives, unless it's for seqnum 0 (which indicates this is the initial paxos execution) we'll store
+     * it in packet buffer and trigger recovery (which should set a flag which causes further recovery triggers to
+     * be skipped but stores packets up meantime).
+     * 
+     * Recovery looks at current low watermark, sees it's -1 and opens log, restoring checkpointed state and then
+     * playing through any outstanding packets in the log. On completion, it dispatches a RESTORED packet
+     * into AcceptorLearner.
+     * 
+     * AcceptorLearner sees RESTORED packet and proceeds to try and replay any packets out of the packet buffer, if it
+     * can't it triggers another recovery. (The packets replayed will be those "since" the last packet recovered from
+     * the log of the other node).
+     *  
+     * Recovery looks at current low watermark, sees it's not -1 and determines the log_id of the last log record 
+     * committed by this AL. It then requests the log from another node from this log_id onwards and plays those
+     * packets through the AL to catch it up. If it succeeds, it dispatches a RESTORED packet
+     * to AcceptorLearner and behaviour is as above. 
+     * 
+     * If it fails (because the log_id is no longer in the valid range of the target's log, it closes the log 
+     * (which will have been opened in the initial recovery case at least), delete's the files and attempts to grab
+     * checkpoint and log from a node which has state up to and including at least low watermark seq num + 1.
+     * 
+     * Impl Ideas:
+     * 
+     * Perhaps when AL starts up (and when it triggers further recoveries beyond initial startup recovery) it has
+     * an instance of a recoverer stored in a member. As the member is non-null, it sends all received packets to it
+     * which can then be restored by it when it's completed its other recovery tasks. Also, because the member is
+     * non-null it doesn't attempt further recoveries. The fact the field is set also indicates to the Leader what's
+     * going on. To make this work means separating the public entry point for packet reception from the inner
+     * processing layer. The public entry point does a check for the recoverer and then submits it to the inner
+     * layer. The inner layer is directly accessed by the recovery routines so they can drive through packets to effect
+     * state transitions.
+     * 
+     * Maybe the log doesn't consist of packets, just state transitions which could be re-applied to AL state. Packets
+     * are only stored temporarily during recovery and when asked for a LAST we consult the log via a replay for the
+     * relevant SUCCESS transition. When packets are fed through, if they are out of date according to the low watermark
+     * we simply ignore them. The advantage of state transition is we don't need to re-parse the packet, skipping
+     * around recovery and such. 
+     * 
+     * The low watermark should consist of two elements, the sequence number and the associated log_id. We'd use the
+     * sequence number to rule out old packets and the log number to help us during recovery when we need to ask for
+     * logs from another node.
+     * 
+     * We don't need the high watermark as we don't store a value during a BEGIN only during a SUCCESS. This means
+     * we can compute the range to recover purely from all the low watermarks (which are updated every time we see
+     * a contiguous SUCCESS). If the low watermark is lower than any leader's seen so far, it's the minimum. If it's
+     * greater than any we've seen before, it's the maximum.
+     * 
+     * @todo:
+ 	 * A leader when consulting it's AL may then issue a collect for something that is way out of date
+     * and thus would need to recover itself. How do we signal that back via a LAST and how does it do recovery?
+     */
     public AcceptorLearner(LogStorage aStore) {
         _storage = aStore;
         
@@ -120,9 +189,6 @@ public class AcceptorLearner {
 
     private void updateLowWatermark(long aSeqNum) {
         synchronized(this) {
-            if (_lowSeqNumWatermark == LogStorage.EMPTY_LOG)
-                _lowSeqNumWatermark = -1;
-
             if (_lowSeqNumWatermark == (aSeqNum - 1)) {
                 _lowSeqNumWatermark = aSeqNum;
 

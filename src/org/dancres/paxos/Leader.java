@@ -104,7 +104,7 @@ public class Leader implements MembershipListener {
     private final Transport _transport;
     private final AcceptorLearner _al;
 
-    private long _seqNum = LogStorage.EMPTY_LOG;
+    private long _seqNum = LogStorage.NO_SEQ;
 
     /**
      * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without 
@@ -356,7 +356,7 @@ public class Leader implements MembershipListener {
 
                     // Possibility we're starting from scratch
                     //
-                    if (_seqNum == LogStorage.EMPTY_LOG)
+                    if (_seqNum == LogStorage.NO_SEQ)
                         _seqNum = 0;
 
                     _stage = RECOVER;
@@ -421,18 +421,14 @@ public class Leader implements MembershipListener {
                         long myHigh = myLast.getHighWatermark();
 
                         /*
-                         * Ignore EMPTY_LOG which means the participant has no valid watermarks
-                         * as it's state is initial.
+                         * NO_SEQ is -1 and a participant that has no valid watermarks
+                         * as it's state will return NO_SEQ thus simple < comparisons with myMinSeq are acceptable.
                          */
-                        if (myLow != LogStorage.EMPTY_LOG) {
-                            if (myLow < myMinSeq)
-                                myMinSeq = myLow;
-                        }
+                        if (myLow < myMinSeq)
+                        	myMinSeq = myLow;
 
-                        if (myHigh != LogStorage.EMPTY_LOG) {
-                            if (myHigh > myMaxSeq) {
-                                myMaxSeq = myHigh;
-                            }
+                        if (myHigh > myMaxSeq) {
+                        	myMaxSeq = myHigh;
                         }
                     }
                 }
@@ -758,11 +754,7 @@ public class Leader implements MembershipListener {
     		return;
     	}
     	
-        if (! isLeader()) {
-        	_logger.info("This leader is not active - dumping message: " + aMessage);
-        } else {
-            _logger.info("Leader received message: " + aMessage);        	
-        }
+		_logger.info("Leader received message: " + aMessage);
         
         synchronized (this) {
             if (aMessage.getSeqNum() == _seqNum) {

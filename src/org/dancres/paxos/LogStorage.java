@@ -6,7 +6,7 @@ package org.dancres.paxos;
  * @author dan
  */
 public interface LogStorage {
-    public static final long EMPTY_LOG = Long.MIN_VALUE;
+    public static final long NO_SEQ = -1;
     public static final byte[] NO_VALUE = new byte[0];
 
     public byte[] get(long mark) throws Exception;

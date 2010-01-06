@@ -7,7 +7,7 @@ public class Collect implements PaxosMessage {
     private long _rndNumber;
     private long _nodeId;
 
-    public static final Collect INITIAL = new Collect(0, LogStorage.EMPTY_LOG, Long.MIN_VALUE);
+    public static final Collect INITIAL = new Collect(LogStorage.NO_SEQ, Long.MIN_VALUE, Long.MIN_VALUE);
 
     public Collect(long aSeqNum, long aRndNumber, long aNodeId) {
         _seqNum = aSeqNum;
