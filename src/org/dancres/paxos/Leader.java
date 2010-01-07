@@ -247,8 +247,6 @@ public class Leader implements MembershipListener {
                 if (_membership != null)
                     _membership.dispose();
 
-                _al.signal(_event);
-                
                 if (_queue.size() > 0) {
                     _logger.info(this + ": processing op from queue: " + _queue.get(0));
 

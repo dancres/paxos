@@ -330,9 +330,6 @@ public class AcceptorLearner {
                 }
             }
             
-            /**
-             * @todo AL needs to raise the value to it's listener - can't just be leader node.....
-             */
             case Operations.SUCCESS : {
                 Success mySuccess = (Success) aMessage;
 
@@ -350,6 +347,9 @@ public class AcceptorLearner {
 
                     _logger.info("AcceptorLearner discarded heartbeat: " + System.currentTimeMillis() + ", " +
                             getHeartbeatCount());
+                } else {
+                	signal(new Event(Event.Reason.DECISION, 
+                			mySuccess.getSeqNum(), mySuccess.getConsolidatedValue(), null));
                 }
 
                 return new Ack(mySuccess.getSeqNum());
