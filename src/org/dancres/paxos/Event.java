@@ -62,6 +62,7 @@ public class Event {
     }
 
     public String toString() {
-        return "Completion: " + _result + ", " + Long.toHexString(_seqNum) + ", " + _context;
+        return "Event: " + _result + ", " + Long.toHexString(_seqNum) + ", " + 
+        	_consolidatedValue + ", " + _context;
     }
 }
