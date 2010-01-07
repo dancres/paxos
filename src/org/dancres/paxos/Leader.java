@@ -195,18 +195,6 @@ public class Leader implements MembershipListener {
         }
     }
 
-    private boolean compareValues(byte[] aValue, byte[] anotherValue) {
-    	if (aValue.length != anotherValue.length)
-    		return false;
-
-    	for (int i = 0; i < aValue.length; i++) {
-    		if (aValue[i] != anotherValue[i])
-    			return false;
-    	}
-
-    	return true;
-    }
-    
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
@@ -220,7 +208,7 @@ public class Leader implements MembershipListener {
             case ABORT : {
             	assert (_queue.size() != 0);
             	
-                _logger.info("Leader::ABORT " + _event, new RuntimeException());
+                _logger.info(this + ": ABORT " + _event, new RuntimeException());
 
                 _messages.clear();
                 
@@ -248,7 +236,7 @@ public class Leader implements MembershipListener {
             case EXIT : {
             	assert (_queue.size() != 0);
 
-            	_logger.info("Leader::EXIT " + _event);
+            	_logger.info(this + ": EXIT " + _event);
 
                 _messages.clear();
                 
@@ -262,7 +250,7 @@ public class Leader implements MembershipListener {
                 _al.signal(_event);
                 
                 if (_queue.size() > 0) {
-                    _logger.info("Processing op from queue: " + _queue.get(0));
+                    _logger.info(this + ": processing op from queue: " + _queue.get(0));
 
                     _stage = SUBMITTED;
                     process();
@@ -280,7 +268,7 @@ public class Leader implements MembershipListener {
             	
                 _membership = _detector.getMembers(this);
 
-                _logger.info("Got membership for leader: " + Long.toHexString(_seqNum) + ", (" +
+                _logger.info(this + ": got membership: (" +
                         _membership.getSize() + ")");
 
                 // Collect will decide if it can skip straight to a begin
@@ -442,7 +430,7 @@ public class Leader implements MembershipListener {
 
     private class HeartbeatTask extends TimerTask {
         public void run() {
-            _logger.info("Sending heartbeat: " + System.currentTimeMillis());
+            _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
 
             /*
              * Don't have to check the return value - if it's accepted we weren't active, otherwise we are and
@@ -477,8 +465,7 @@ public class Leader implements MembershipListener {
          * Some other node is active, we should abort if they are the leader by virtue of a larger nodeId
          */
         if (myCompetingNodeId.leads(_nodeId)) {
-            _logger.info("Superior leader is active, backing down: " + myCompetingNodeId + ", " +
-                    _nodeId);
+            _logger.info(this + ": Superior leader is active, backing down: " + myCompetingNodeId);
 
             error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
             return;
@@ -515,7 +502,7 @@ public class Leader implements MembershipListener {
         if (!startInteraction())
         	return;
 
-        _logger.info("Leader sending collect: " + Long.toHexString(_seqNum));
+        _logger.info(this + ": sending collect");
 
         _transport.send(myMessage, NodeId.BROADCAST);
     }
@@ -529,7 +516,7 @@ public class Leader implements MembershipListener {
         if (!startInteraction())
         	return;
 
-        _logger.info("Leader sending begin: " + Long.toHexString(_seqNum));
+        _logger.info(this + ": sending begin");
 
         _transport.send(myMessage, NodeId.BROADCAST);
     }
@@ -542,7 +529,7 @@ public class Leader implements MembershipListener {
         if (!startInteraction())
         	return;
 
-        _logger.info("Leader sending success: " + Long.toHexString(_seqNum));
+        _logger.info(this + ": sending success");
 
         _transport.send(myMessage, NodeId.BROADCAST);
     }
@@ -564,7 +551,7 @@ public class Leader implements MembershipListener {
      * @todo If we get ABORT, we could try a new round from scratch or make the client re-submit or .....
      */
     public void abort() {
-        _logger.info("Membership requested abort: " + Long.toHexString(_seqNum));
+        _logger.info(this + ": Membership requested abort");
 
         _interactionAlarm.cancel();
         
@@ -574,7 +561,7 @@ public class Leader implements MembershipListener {
     }
 
     private void expired() {
-        _logger.info("Watchdog requested abort: " + Long.toHexString(_seqNum));
+        _logger.info(this + ": Watchdog requested abort: ");
 
         synchronized(this) {
             // If there are enough messages we might get a majority continue
@@ -605,11 +592,11 @@ public class Leader implements MembershipListener {
         	_queue.add(anOp);
         	
             if (! isReady()) {
-                _logger.info("Queued operation (already active): " + anOp);
+                _logger.info(this + ": Queued operation (already active): " + anOp);
                 return;
             }
 
-            _logger.info("Queued operation (initialising leader): " + Long.toHexString(_seqNum));
+            _logger.info(this + ": Queued operation (initialising leader)");
 
             _stage = SUBMITTED;
 
@@ -636,11 +623,14 @@ public class Leader implements MembershipListener {
                 _messages.add(aMessage);
                 _membership.receivedResponse(aNodeId);
             } else {
-                _logger.warn("Unexpected message received: " + aMessage.getSeqNum() + " (" +
-                        Long.toHexString(_seqNum) + ")");
+                _logger.warn(this + ": Unexpected message received: " + aMessage.getSeqNum());
             }
         }
 
-        _logger.info("Leader processed message: " + aMessage);
+        _logger.info(this + ": processed message: " + aMessage);
+    }
+    
+    public String toString() {
+    	return "Leader: " + _nodeId + ": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")";
     }
 }
