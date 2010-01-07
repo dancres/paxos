@@ -45,6 +45,17 @@ public class Collect implements PaxosMessage {
     }
 
     public boolean isInitial() {
-        return (_nodeId == 0);
+    	return equals(INITIAL);
+    }
+    
+    public boolean equals(Object anObject) {
+    	if (anObject instanceof Collect) {
+    		Collect myOther = (Collect) anObject;
+    		
+    		return ((myOther._nodeId == _nodeId) && (myOther._rndNumber == _rndNumber) && 
+    				(myOther._seqNum == _seqNum)); 
+    	}
+    	
+    	return false;
     }
 }

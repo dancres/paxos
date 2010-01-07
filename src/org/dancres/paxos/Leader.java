@@ -300,20 +300,37 @@ public class Leader implements MembershipListener {
 
             	// Collect is INITIAL means no leader known so try to become leader
             	//
-            	if (! myLastCollect.isInitial()) {
+            	if (myLastCollect.isInitial()) {
+                	// Best guess for a round number is the acceptor/learner
+                	//
+            		_logger.info(this + ": collect is initial");
+            		
+                	updateRndNumber(myLastCollect.getRndNumber() + 1);            		
+            	} else { 
             		NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
-
-            		// If the leader is not us, give up
-            		//
-            		if ((! myOtherLeader.equals(_nodeId)) && (_detector.isLive(myOtherLeader))) {
-            			error(Event.Reason.OTHER_LEADER, myOtherLeader);
-            			return;
+            		boolean isUs = myOtherLeader.equals(_nodeId);
+            		
+            		/*
+            		 *  If the leader is us, use our existing round number, otherwise ascertain liveness and if we are
+            		 *  going to proceed invent a new round number.
+            		 */
+            		if (! isUs) {
+            			
+            			_logger.info(this + ": leader is not us");
+            			
+            			if (_detector.isLive(myOtherLeader)) {
+            				error(Event.Reason.OTHER_LEADER, myOtherLeader);
+            				return;
+            			} else {
+                        	// Best guess for a round number is the acceptor/learner
+                        	//
+            				
+            				_logger.info(this + ": other leader not alive");
+            				
+                        	updateRndNumber(myLastCollect.getRndNumber() + 1);            		            				
+            			}
             		}
             	}
-
-            	// Best guess for a round number is the acceptor/learner
-            	//
-            	updateRndNumber(myLastCollect.getRndNumber());
 
             	// Best guess for starting sequence number is the acceptor/learner
             	//
@@ -459,25 +476,11 @@ public class Leader implements MembershipListener {
 
         NodeId myCompetingNodeId = NodeId.from(myOldRound.getNodeId());
 
-        updateRndNumber(myOldRound);
+        //Some other node is active, we should abort.
+        //
+        _logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId);
 
-        /*
-         * Some other node is active, we should abort if they are the leader by virtue of a larger nodeId
-         */
-        if (myCompetingNodeId.leads(_nodeId)) {
-            _logger.info(this + ": Superior leader is active, backing down: " + myCompetingNodeId);
-
-            error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
-            return;
-        }
-
-        /*
-         * Some other leader is active but we are superior, restart negotiations with COLLECT, note we must mark 
-         * ourselves as not the leader (as has been done above) because having re-established leadership we must
-         * perform recovery and then attempt to submit the client's value (if any) again.
-         */
-        _stage = COLLECT;
-        process();
+        error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
     }
 
     private void successful(int aReason, Object aContext) {
@@ -497,7 +500,7 @@ public class Leader implements MembershipListener {
     private void emitCollect() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Collect(_seqNum, newRndNumber(), _nodeId.asLong());
+        PaxosMessage myMessage = new Collect(_seqNum, getRndNumber(), _nodeId.asLong());
 
         if (!startInteraction())
         	return;

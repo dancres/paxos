@@ -116,4 +116,15 @@ public class HeartbeatTest {
 
         Assert.assertTrue(myAl.getHeartbeatCount() == 1);
     }
+    
+    public static void main(String[] anArgs) throws Exception {
+		HeartbeatTest myTest = new HeartbeatTest();
+
+		try {
+    		myTest.init();
+    		myTest.post();
+    	} finally {
+    		myTest.stop();
+    	}
+    }
 }

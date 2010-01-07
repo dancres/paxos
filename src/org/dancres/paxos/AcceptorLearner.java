@@ -242,7 +242,7 @@ public class AcceptorLearner {
             if (_lastCollect.isInitial()) {
                 return true;
             } else {
-                if (aCollect.getNodeId() == _lastCollect.getNodeId())
+                if (isFromCurrentLeader(aCollect))
                     return true;
                 else
                     return (aCurrentTime > _lastLeaderActionTime + DEFAULT_LEASE);
@@ -250,6 +250,10 @@ public class AcceptorLearner {
         }
     }
 
+    private boolean isFromCurrentLeader(Collect aCollect) {
+        return (aCollect.getNodeId() == _lastCollect.getNodeId());
+    }
+    
     private void updateLastActionTime(long aTime) {
         _logger.info("Updating last action time: " + aTime);
 
@@ -280,14 +284,20 @@ public class AcceptorLearner {
 
                 Collect myOld = supercedes(myCollect);
 
-                if (myOld != null) {
+                // If the collect supercedes our previous collect or it's from the current leader
+                //
+                if ((myOld != null) || (isFromCurrentLeader(myCollect))) {
                     updateLastActionTime(myCurrentTime);
                     write(aMessage, true);
                     
-                    // @TODO FIX THIS!!!!
-                    //
-                    return new Last(mySeqNum, getLowWatermark(), myOld.getRndNumber(),
-                            LogStorage.NO_VALUE);
+                    /*
+                     *  @TODO FIX THIS!!!!
+                     *  
+                     *  Rnd number should be the round of the last proposal we saw for this sequence number or 
+                     *  some form of null value. Similarly the value should either come from the highest numbered
+                     *  proposal we've seen or the log/packet buffer.
+                     */
+                    return new Last(mySeqNum, getLowWatermark(), Long.MIN_VALUE, LogStorage.NO_VALUE);
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
@@ -320,6 +330,9 @@ public class AcceptorLearner {
                 }
             }
             
+            /**
+             * @todo AL needs to raise the value to it's listener - can't just be leader node.....
+             */
             case Operations.SUCCESS : {
                 Success mySuccess = (Success) aMessage;
 
