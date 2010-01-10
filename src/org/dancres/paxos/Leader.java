@@ -629,7 +629,7 @@ public class Leader implements MembershipListener {
     		return;
     	}
     	
-		_logger.info("Leader received message: " + aMessage);
+		_logger.info(this + " received message: " + aMessage);
         
         synchronized (this) {
             if (aMessage.getSeqNum() == _seqNum) {
@@ -639,8 +639,6 @@ public class Leader implements MembershipListener {
                 _logger.warn(this + ": Unexpected message received: " + aMessage.getSeqNum());
             }
         }
-
-        _logger.info(this + ": processed message: " + aMessage);
     }
     
     public String toString() {
