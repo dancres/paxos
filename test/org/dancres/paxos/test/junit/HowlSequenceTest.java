@@ -121,5 +121,14 @@ public class HowlSequenceTest {
 
             Assert.assertTrue(myMsg.getSeqNum() == i);
         }
+        
+        /*
+         *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is
+         *  because there are two nodes at play. Leader achieves success and posts this to both AL's, the first
+         *  receives it and announces it to the test code which then completes and shuts things down before the
+         *  second AL has finished processing the same success, by which time the log has been shut in that AL causing
+         *  the assertion. 
+         */
+        Thread.sleep(5000);        
     }
 }
