@@ -1,6 +1,7 @@
 package org.dancres.paxos.messages;
 
 import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.LogStorage;
 
 public class Begin implements PaxosMessage {
     private long _seqNum;
@@ -37,7 +38,8 @@ public class Begin implements PaxosMessage {
     
     public String toString() {
         return "Begin: " + Long.toHexString(_seqNum) + " [ " +
-                Long.toHexString(_rndNumber) + ", " + Long.toHexString(_nodeId) + " ] ";
+                Long.toHexString(_rndNumber) + ", " + Long.toHexString(_nodeId) + " ] " + 
+                _consolidatedValue.equals(LogStorage.NO_VALUE);
     }
 
     public boolean originates(Collect aCollect) {

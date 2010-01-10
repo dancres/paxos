@@ -1,6 +1,7 @@
 package org.dancres.paxos.messages;
 
 import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.LogStorage;
 
 public class Last implements PaxosMessage {
     private long _seqNum;
@@ -59,6 +60,6 @@ public class Last implements PaxosMessage {
 
     public String toString() {
         return "Last: " + Long.toHexString(_seqNum) + " " + Long.toHexString(_low) + 
-                " [ " + Long.toHexString(_rndNumber) + " ]";
+                " [ " + Long.toHexString(_rndNumber) + " ] " + _value.equals(LogStorage.NO_VALUE);
     }
 }
