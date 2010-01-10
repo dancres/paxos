@@ -106,14 +106,14 @@ class MembershipImpl implements Membership, LivenessListener {
     }
 
     void populate(Set anActiveAddresses) {
-        _logger.info("Populating membership");
+        _logger.debug("Populating membership");
 
         synchronized(this) {
-            _logger.info("Populating membership - got lock");
+            _logger.debug("Populating membership - got lock");
 
             _initialMemberAddresses.addAll(anActiveAddresses);
 
-            _logger.info("Populating membership - addresses added");
+            _logger.debug("Populating membership - addresses added");
 
             _populated = true;
 
@@ -129,6 +129,8 @@ class MembershipImpl implements Membership, LivenessListener {
     }
 
     public void dispose() {
+    	_logger.debug("Membership disposed");
+    	
         _parent.remove(this);
 
         synchronized(this) {

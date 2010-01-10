@@ -121,11 +121,11 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         Set myActives = new HashSet();
 
         synchronized(this) {
-            _logger.info("Snapping failure detector members");
+            _logger.debug("Snapping failure detector members");
 
             myActives.addAll(_lastHeartbeats.keySet());
 
-            _logger.info("Snapping failure detector members - done");
+            _logger.debug("Snapping failure detector members - done");
         }
         
         myMembership.populate(myActives);

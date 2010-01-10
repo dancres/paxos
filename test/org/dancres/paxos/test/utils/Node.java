@@ -9,11 +9,9 @@ import org.dancres.paxos.LogStorage;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Fail;
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.mina.io.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 import org.dancres.paxos.NodeId;
@@ -76,8 +74,6 @@ public class Node implements PacketListener {
      * @todo Remove the ugly hack
      */
     public void deliver(Packet aPacket) throws Exception {
-        _logger.info("Got packet: " + aPacket.getMsg());
-        
         PaxosMessage myMessage = aPacket.getMsg();
 
         switch (myMessage.getClassification()) {
