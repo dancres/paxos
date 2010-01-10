@@ -266,7 +266,8 @@ public class AcceptorLearner {
         _logger.info("Updating last action time: " + aTime);
 
         synchronized(this) {
-            _lastLeaderActionTime = aTime;
+        	if (aTime > _lastLeaderActionTime)
+        		_lastLeaderActionTime = aTime;
         }
     }
 
@@ -286,14 +287,13 @@ public class AcceptorLearner {
                 if (! amAccepting(myCollect, myCurrentTime)) {
                     _ignoredCollects.incrementAndGet();
 
-                    _logger.info("Not accepting: " + myCollect + ", " + getIgnoredCollectsCount());
+                    _logger.info("Not accepting: " + myCollect + ", " + getIgnoredCollectsCount());                 
                     return null;
                 }
 
                 // If the collect supercedes our previous collect sace it to disk, return last proposal etc
                 //
                 if (supercedes(myCollect)) {
-                    updateLastActionTime(myCurrentTime);
                     write(aMessage, true);
                     
                     /*
@@ -317,7 +317,8 @@ public class AcceptorLearner {
                      *  some form of null value. Similarly the value should either come from the highest numbered
                      *  proposal we've seen or the log/packet buffer.
                      */
-                    return new Last(mySeqNum, getLowWatermark(), Long.MIN_VALUE, LogStorage.NO_VALUE);                	
+                    return new Last(mySeqNum, getLowWatermark(), Long.MIN_VALUE, LogStorage.NO_VALUE);
+                    
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //

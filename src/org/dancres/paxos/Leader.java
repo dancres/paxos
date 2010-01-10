@@ -97,7 +97,6 @@ public class Leader implements MembershipListener {
     public static final int ACCEPTED = 257;
 
     private final Timer _watchdog = new Timer("Leader timers");
-    private final long _watchdogTimeout;
     private final FailureDetector _detector;
     private final NodeId _nodeId;
     private final Transport _transport;
@@ -144,7 +143,6 @@ public class Leader implements MembershipListener {
         _nodeId = aNodeId;
         _detector = aDetector;
         _transport = aTransport;
-        _watchdogTimeout = _detector.getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;
         _al = anAcceptorLearner;
     }
 
@@ -153,6 +151,9 @@ public class Leader implements MembershipListener {
         return myExpiry - (myExpiry * 20 / 100);
     }
 
+    private long calculateInteractionTimeout() {
+        return _detector.getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;    	
+    }
     public long getCurrentRound() {
         synchronized(this) {
             return _rndNumber;
@@ -161,17 +162,6 @@ public class Leader implements MembershipListener {
 
     private long getRndNumber() {
         return _rndNumber;
-    }
-
-    private long newRndNumber() {
-        return ++_rndNumber;
-    }
-
-    /**
-     * @param anOldRound is the instance to update from
-     */
-    private void updateRndNumber(OldRound anOldRound) {
-        updateRndNumber(anOldRound.getLastRound());
     }
 
     /**
@@ -199,9 +189,8 @@ public class Leader implements MembershipListener {
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
      * we expect ACCEPT or OLDROUND
-     * 
-     * @todo Leader can only inform client of success once it has a majority of successes. It can also only advance
-     * its sequence number at that point.
+     *
+     * @todo Increment round number via heartbeats every so often - see note below about jittering collects.
      */
     private void process() {
         switch(_stage) {
@@ -254,6 +243,9 @@ public class Leader implements MembershipListener {
                     process();
 
                 } else {
+                	
+                	// If we got here, we're leader, setup for a heartbeat if there's no other activity
+                	//
                     _heartbeatAlarm = new HeartbeatTask();
                     _watchdog.schedule(_heartbeatAlarm, calculateLeaderRefresh());
                 }
@@ -290,9 +282,29 @@ public class Leader implements MembershipListener {
             case COLLECT : {
             	assert (_queue.size() != 0);
             	
+            	// We've got activity, cancel heartbeat until we're done. Note this may be a heartbeat, that's okay.
+            	//
+            	if (_heartbeatAlarm != null)
+            		_heartbeatAlarm.cancel();
+            	
             	/*
             	 * If the Acceptor/Learner thinks there's a valid leader and the failure detector confirms
-            	 * liveness, reject the request
+            	 * liveness, reject the request. Note that leader may be partitioned from the network with some 
+            	 * collection of clients who may then try and use it as leader. The local AcceptorLearner will 
+            	 * take the collect but there will be no majority. Clients might continue to hit the leader and at some
+            	 * point it will become connected to the network.
+            	 * 
+            	 * During all this time it's updating it's round number and ultimately it would overpower the other
+            	 * leader when it reconnects because acceptor learners only extend their lease when they receive a
+            	 * begin from a leader (which means it succeeded with a collect). This can result in collect jitters
+            	 * where the partitioned master returns with a higher round number and wins when it submits a collect.
+            	 * We don't want this to happen too often. 
+            	 * 
+            	 * The above jittering is addressed by having clients process the vote_timeout message they will receive
+            	 * from the partitioned leader and attempt to locate the last known leader for some period of time 
+            	 * before returning to this one for another attempt. This slows the rate at which the partitioned leader
+            	 * increments it's round number. In addition we have the active leader increment it's own round number
+            	 * after some number of heartbeats to further reduce the likelihood of this jittering.
             	 */
             	Collect myLastCollect = _al.getLastCollect();
 
@@ -477,7 +489,7 @@ public class Leader implements MembershipListener {
         //Some other node is active, we should abort.
         //
         _logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId);
-
+        
         error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
     }
 
@@ -537,7 +549,7 @@ public class Leader implements MembershipListener {
 
     private boolean startInteraction() {
         _interactionAlarm = new InteractionAlarm();
-        _watchdog.schedule(_interactionAlarm, _watchdogTimeout);
+        _watchdog.schedule(_interactionAlarm, calculateInteractionTimeout());
 
         return _membership.startInteraction();
     }
