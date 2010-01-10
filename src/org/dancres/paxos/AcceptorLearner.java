@@ -53,6 +53,12 @@ public class AcceptorLearner {
     private AtomicLong _ignoredCollects = new AtomicLong();
     private AtomicLong _receivedHeartbeats = new AtomicLong();
 
+    /**
+     * @todo Must checkpoint _lastCollect, as it'll only be written in the log file the first time it appears and thus
+     * when we hit a checkpoint it will be discarded. This is because we implement the optimisation for multi-paxos
+     * described in "Paxos Made Simple" such that we needn't sync to disk for a Collect that is identical to and comes
+     * from the same Leader as for previous rounds.
+     */
     private Collect _lastCollect = Collect.INITIAL;
     private long _lastLeaderActionTime = 0;
 
@@ -200,17 +206,17 @@ public class AcceptorLearner {
 
     /**
      * @param aCollect should be tested to see if it supercedes the current COLLECT
-     * @return the old collect if it's superceded or null
+     * @return <code>true</code> if it supercedes, <code>false</code> otherwise
      */
-    private Collect supercedes(Collect aCollect) {
+    private boolean supercedes(Collect aCollect) {
         synchronized(this) {
             if (aCollect.supercedes(_lastCollect)) {
                 Collect myOld = _lastCollect;
                 _lastCollect = aCollect;
 
-                return myOld;
+                return true;
             } else {
-                return null;
+                return false;
             }
         }
     }
@@ -251,7 +257,9 @@ public class AcceptorLearner {
     }
 
     private boolean isFromCurrentLeader(Collect aCollect) {
-        return (aCollect.getNodeId() == _lastCollect.getNodeId());
+    	synchronized(this) {
+    		return aCollect.sameLeader(_lastCollect);
+    	}
     }
     
     private void updateLastActionTime(long aTime) {
@@ -282,11 +290,9 @@ public class AcceptorLearner {
                     return null;
                 }
 
-                Collect myOld = supercedes(myCollect);
-
-                // If the collect supercedes our previous collect or it's from the current leader
+                // If the collect supercedes our previous collect sace it to disk, return last proposal etc
                 //
-                if ((myOld != null) || (isFromCurrentLeader(myCollect))) {
+                if (supercedes(myCollect)) {
                     updateLastActionTime(myCurrentTime);
                     write(aMessage, true);
                     
@@ -298,6 +304,20 @@ public class AcceptorLearner {
                      *  proposal we've seen or the log/packet buffer.
                      */
                     return new Last(mySeqNum, getLowWatermark(), Long.MIN_VALUE, LogStorage.NO_VALUE);
+                
+                /*
+                 *  If the collect comes from the current leader (has same rnd and node), we apply the multi-paxos
+                 *  optimisation, no need to save to disk, just respond with last proposal etc
+                 */
+                } else if (isFromCurrentLeader(myCollect)) {                	
+                    /*
+                     *  @TODO FIX THIS!!!!
+                     *  
+                     *  Rnd number should be the round of the last proposal we saw for this sequence number or 
+                     *  some form of null value. Similarly the value should either come from the highest numbered
+                     *  proposal we've seen or the log/packet buffer.
+                     */
+                    return new Last(mySeqNum, getLowWatermark(), Long.MIN_VALUE, LogStorage.NO_VALUE);                	
                 } else {
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
@@ -361,7 +381,9 @@ public class AcceptorLearner {
 
     private void write(PaxosMessage aMessage, boolean aForceRequired) {
         try {
-        	_buffer.add(aMessage, getStorage().put(Codecs.encode(aMessage), aForceRequired));
+        	synchronized(this) {
+        		_buffer.add(aMessage, getStorage().put(Codecs.encode(aMessage), aForceRequired));
+        	}
         } catch (Exception anE) {
         	_logger.error("Acceptor cannot log: " + System.currentTimeMillis(), anE);
         	throw new RuntimeException(anE);
