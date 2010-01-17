@@ -3,4 +3,6 @@ build
 docs
 thirdpartylib
 reports
-
+.DS_Store
+.diff
+logs
