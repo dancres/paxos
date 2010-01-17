@@ -2,6 +2,9 @@ package org.dancres.paxos;
 
 import java.nio.ByteBuffer;
 
+/**
+ * A convenient representation of a handback/user-value pair that can be (un)marshalled to(from) a single value.
+ */
 public class ConsolidatedValue {
 	private byte[] _value;
 	private byte[] _handback;

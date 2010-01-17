@@ -1,7 +1,5 @@
 package org.dancres.paxos;
 
-import java.nio.ByteBuffer;
-
 /**
  * Status indication returned from the state machine for each vote requested
  */
