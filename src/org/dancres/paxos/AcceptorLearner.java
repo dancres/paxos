@@ -27,18 +27,33 @@ import org.slf4j.LoggerFactory;
  * 
  * @todo Checkpoint must include low watermark etc.
  * 
- * @todo Recovery: At construction, AL should load whatever state it has locally on disk. Past that it waits for
- * further updates which may then cause it to trigger further recovery. e.g. Because low watermark and current
- * sequence number are too far apart. It may trigger several different kinds of recovery based on what it sees, e.g.
- * quick catchup from other nodes' memory or a full file catchup. Whichever method it uses, it's important it stops
- * the leader acting on its out of date state. As the leader will always ask for the low watermark and what the
- * last viewed collect was when it initiates action, we can simply raise an exception to cause the leader to fail
- * and issue an appropriate response to clients. It would be nice to use the log as a means for recalling old values
- * etc. To do this requires that we only checkpoint upto and including the log entry of the low watermark we cannot
- * checkpoint higher as the values may not have settled out yet and we need to maintain references in the log. When
- * we checkpoint, we must note the lowest paxos instance the log will contain - which is low watermark + 1 (We could of
- * course just note the low watermark itself) so that if a node asks for recovery of sequence numbers that aren't in
- * the log can be spotted and informed of their being too out of date.
+ * @todo Recovery: At construction, AL should load whatever state it has locally on disk. 
+ * 
+ * Recovery: Past that it waits for further updates which may then cause it to trigger further recovery. 
+ * e.g. Because low watermark and current sequence number are too far apart. It may trigger several different kinds of
+ * recovery based on what it sees, e.g. quick catchup from other nodes' memory or a full file catchup. Whichever method 
+ * it uses, it's important it stops the leader acting on its out of date state. As the leader will always ask for the
+ * low watermark and what the last viewed collect was when it initiates action, we can simply raise an exception to
+ * cause the leader to fail and issue an appropriate response to clients. It would be nice to use the log as a means
+ * for recalling old values etc. To do this requires that we only checkpoint upto and including the log entry of the low
+ * watermark we cannot checkpoint higher as the values may not have settled out yet and we need to maintain references
+ * in the log. When we checkpoint, we must note the lowest paxos instance the log will contain - which is 
+ * low watermark + 1 (We could of course just note the low watermark itself) so that if a node asks for recovery of
+ * sequence numbers that aren't in the log can be spotted and informed of their being too out of date.
+ * 
+ * The ordered delivery of events to user-code and the problem of a lagging low watermark (when we end up dealing in
+ * sequence numbers that aren't contiguous perhaps as the result of temporary network separation) are closely related.
+ * We can address both via the PacketBuffer as follows:
+ * 
+ * <ol>
+ * <li>Each instance of Paxos is added into the buffer which tracks them in sequence number order.</li>
+ * <li>At the point where we reach success, we attempt an update of the low watermark.</li>
+ * <li>We check to see if the head of the buffer (which will include the Paxos instance just completed) is current
+ * low watermark + 1 and if it is increment the watermark and emit the value in the success record to the 
+ * user-code.</li>
+ * <li>We then repeat this check until either the buffer is empty or we encounter an instance which has sequence number
+ * > current low watermark + 1.</li>
+ * </ol>
  * 
  * @author dan
  */
@@ -72,15 +87,47 @@ public class AcceptorLearner {
 	private LogStorage _storage;
 
 	/**
-	 * Tracks the last contiguous sequence number for which we have a value. A
-	 * value of -1 indicates we have yet to see a proposals.
+	 * Tracks the last contiguous sequence number for which we have a value.
 	 * 
 	 * When we receive a success, if it's seqNum is this field + 1, increment
 	 * this field. Acts as the low watermark for leader recovery, essentially we
 	 * want to recover from the last contiguous sequence number in the stream of
 	 * paxos instances.
 	 */
-	private long _lowSeqNumWatermark = LogStorage.NO_SEQ;
+	public static class Watermark {
+		static final Watermark INITIAL = new Watermark(LogStorage.NO_SEQ, -1);
+		private long _seqNum;
+		private long _logOffset;
+		
+		private Watermark(long aSeqNum, long aLogOffset) {
+			_seqNum = aSeqNum;
+			_logOffset = aLogOffset;
+		}
+		
+		public long getSeqNum() {
+			return _seqNum;
+		}
+		
+		public long getLogOffset() {
+			return _logOffset;
+		}
+		
+		public boolean equals(Object anObject) {
+			if (anObject instanceof Watermark) {
+				Watermark myOther = (Watermark) anObject;
+				
+				return (myOther._seqNum == _seqNum) && (myOther._logOffset == _logOffset);
+			}
+			
+			return false;
+		}
+		
+		public String toString() {
+			return "Watermark: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_logOffset);
+		}
+	}
+
+	private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
 
 	/**
 	 * PacketBuffer is used to maintain a limited amount of past Paxos history
@@ -145,18 +192,18 @@ public class AcceptorLearner {
 		return _storage;
 	}
 
-	private void updateLowWatermark(long aSeqNum) {
+	private void updateLowWatermark(long aSeqNum, long aLogOffset) {
 		synchronized (this) {
-			if (_lowSeqNumWatermark == (aSeqNum - 1)) {
-				_lowSeqNumWatermark = aSeqNum;
+			if (_lowSeqNumWatermark.getSeqNum() == (aSeqNum - 1)) {
+				_lowSeqNumWatermark = new Watermark(aSeqNum, aLogOffset);
 
-				_logger.info("AL:Low watermark:" + aSeqNum);
+				_logger.info("AL:Low :" + _lowSeqNumWatermark);
 			}
 
 		}
 	}
 
-	public long getLowWatermark() {
+	public Watermark getLowWatermark() {
 		synchronized (this) {
 			return _lowSeqNumWatermark;
 		}
@@ -310,15 +357,20 @@ public class AcceptorLearner {
 			case Operations.SUCCESS: {
 				Success mySuccess = (Success) aMessage;
 
-				_logger.info("AL:Learnt value: " + mySuccess.getSeqNum());
-
 				updateLastActionTime(myCurrentTime);
-				updateLowWatermark(mySuccess.getSeqNum());
+
+				if (mySuccess.getSeqNum() <= getLowWatermark().getSeqNum()) {
+					_logger.info("AL:Discarded known value: " + mySuccess.getSeqNum());
+					return null;
+				} else
+					_logger.info("AL:Learnt value: " + mySuccess.getSeqNum());
 
 				// Always record the value even if it's the heartbeat so there are
 				// no gaps in the Paxos sequence
 				//
-				write(aMessage, true);
+				long myLogOffset = write(aMessage, true);
+
+				updateLowWatermark(mySuccess.getSeqNum(), myLogOffset);
 
 				if (mySuccess.getConsolidatedValue().equals(HEARTBEAT)) {
 					_receivedHeartbeats.incrementAndGet();
@@ -343,19 +395,21 @@ public class AcceptorLearner {
 		Begin myLastBegin = _buffer.getLastBegin(aSeqNum);
 
 		if (myLastBegin != null)
-			return new Last(aSeqNum, getLowWatermark(), myLastBegin
+			return new Last(aSeqNum, getLowWatermark().getSeqNum(), myLastBegin
 					.getRndNumber(), myLastBegin.getConsolidatedValue());
 		else
-			return new Last(aSeqNum, getLowWatermark(), Long.MIN_VALUE,
+			return new Last(aSeqNum, getLowWatermark().getSeqNum(), Long.MIN_VALUE,
 					LogStorage.NO_VALUE);
 	}
 
-	private void write(PaxosMessage aMessage, boolean aForceRequired) {
+	private long write(PaxosMessage aMessage, boolean aForceRequired) {
+		long myLogOffset;
+		
 		try {
-			synchronized (this) {
-				_buffer.add(aMessage, getStorage().put(Codecs.encode(aMessage),
-						aForceRequired));
-			}
+			myLogOffset = getStorage().put(Codecs.encode(aMessage), aForceRequired); 
+			_buffer.add(aMessage, myLogOffset);
+			
+			return myLogOffset;
 		} catch (Exception anE) {
 			_logger.error("AL: cannot log: " + System.currentTimeMillis(), anE);
 			throw new RuntimeException(anE);

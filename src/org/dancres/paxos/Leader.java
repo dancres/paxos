@@ -344,7 +344,7 @@ public class Leader implements MembershipListener {
 
             	// Best guess for starting sequence number is the acceptor/learner
             	//
-            	_seqNum = _al.getLowWatermark();
+            	_seqNum = _al.getLowWatermark().getSeqNum();
 
             	// Possibility we're starting from scratch
             	//
