@@ -86,6 +86,8 @@ public class AcceptorLearner {
 
 	private LogStorage _storage;
 
+	private Transport _transport;
+	
 	/**
 	 * Tracks the last contiguous sequence number for which we have a value.
 	 * 
@@ -139,8 +141,9 @@ public class AcceptorLearner {
 
 	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 
-	public AcceptorLearner(LogStorage aStore) {
+	public AcceptorLearner(LogStorage aStore, Transport aTransport) {
 		_storage = aStore;
+		_transport = aTransport;
 
 		try {
 			restore();
@@ -280,10 +283,18 @@ public class AcceptorLearner {
 		}
 	}
 
+	public void messageReceived(PaxosMessage aMessage, NodeId aNodeId) {
+		PaxosMessage myMessage = process(aMessage);
+		
+		if (myMessage != null) {
+			_transport.send(myMessage, aNodeId);
+		}
+	}
+	
 	/**
 	 * @todo FIX THIS - we need to return a value in a LAST not just a default!
 	 */
-	public PaxosMessage process(PaxosMessage aMessage) {
+	private PaxosMessage process(PaxosMessage aMessage) {
 		long myCurrentTime = System.currentTimeMillis();
 		long mySeqNum = aMessage.getSeqNum();
 

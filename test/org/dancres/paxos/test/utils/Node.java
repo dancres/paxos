@@ -50,7 +50,7 @@ public class Node implements PacketListener {
         _tp = aTransport;
         _hb = new Heartbeater(_tp);
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
-        _al = new AcceptorLearner(aLogger);
+        _al = new AcceptorLearner(aLogger, _tp);
         _ld = new Leader(_fd, NodeId.from(_addr), _tp, _al);
         _pq = new PacketQueueImpl(this);
         _al.add(new PacketBridge());    	
@@ -93,11 +93,7 @@ public class Node implements PacketListener {
 
             case PaxosMessage.LEADER: {
                 ProposerPacket myPropPkt = (ProposerPacket) myMessage;
-                PaxosMessage myResponse = _al.process(myPropPkt.getOperation());
-
-                if (myResponse != null) {
-                    _tp.send(myResponse, aPacket.getSender());
-                }
+                _al.messageReceived(myPropPkt.getOperation(), aPacket.getSender());
 
                 break;
             }

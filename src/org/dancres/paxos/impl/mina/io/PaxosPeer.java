@@ -13,7 +13,9 @@ import org.apache.mina.common.ConnectFuture;
 import org.apache.mina.common.IoEventType;
 import org.apache.mina.common.IoSession;
 import org.dancres.paxos.impl.mina.codec.PaxosCodecFactory;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;
+import org.dancres.paxos.Leader;
 import org.dancres.paxos.LivenessListener;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
@@ -45,44 +47,50 @@ public class PaxosPeer {
          *   - Failure detector uses broadcast messages to ascertain liveness
          * 
          */
-        FailureDetectorAdapter myDetectorAdapter = new FailureDetectorAdapter(5000);
-        myDetectorAdapter.add(new ListenerImpl());
-
-        DatagramConnector myPropUnicast = new NioDatagramConnector();
-        myPropUnicast.getFilterChain().addLast( "logger", myFilter);
-        myPropUnicast.getFilterChain().addLast("protocol",
+    	PaxosPacketHandler myHandler = new PaxosPacketHandler();
+    	
+    	/*
+    	 * Unicast sender channel, used by AcceptorLearners to talk directly with Leader.
+    	 */
+        NioDatagramConnector myUnicastSender = new NioDatagramConnector();
+        myUnicastSender.getFilterChain().addLast( "logger", myFilter);
+        myUnicastSender.getFilterChain().addLast("protocol",
                 new ProtocolCodecFilter(new PaxosCodecFactory()));
+        myUnicastSender.setHandler(myHandler);
 
-        AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage());
+        /*
+         * Unicast receiver used by Leader to receive direct messages from AcceptorLearners
+         */
+        InetSocketAddress myAddr = new InetSocketAddress(NetworkUtils.getWorkableInterface(), 0);
 
-        AcceptorLearnerAdapter myAccLearn = new AcceptorLearnerAdapter(myPropUnicast, myAl);
-        myPropUnicast.setHandler(myAccLearn);
+        DatagramAcceptor myUnicastChannel = new NioDatagramAcceptor();
+        myUnicastChannel.setHandler(myHandler);
+        myUnicastChannel.getFilterChain().addLast( "logger", myFilter);
+        myUnicastChannel.getFilterChain().addLast("protocol",
+                new ProtocolCodecFilter(new PaxosCodecFactory()));
+        myUnicastChannel.bind(myAddr);
+        _logger.info("PaxosPeer bound on port: " + myUnicastChannel.getLocalAddress());
+        
+        /*
+         * Receives broadcast messages, used by AcceptorLearners to receive messages from Leader. 
+         */
         DatagramAcceptor myPropBcast = new NioDatagramAcceptor();
-        myPropBcast.setHandler(myAccLearn);
+        myPropBcast.setHandler(myHandler);
         myPropBcast.getFilterChain().addLast( "logger", myFilter);
         myPropBcast.getFilterChain().addLast("protocol",
                 new ProtocolCodecFilter(new PaxosCodecFactory()));
-        myPropBcast.getFilterChain().addLast("failureDetector", myDetectorAdapter);
 
         DatagramSessionConfig myDcfg = myPropBcast.getSessionConfig();
         myDcfg.setReuseAddress(true);
         myPropBcast.bind(new InetSocketAddress(BROADCAST_PORT));
 
         /*
-         * Setup the stacks for Proposer
-         *
-         * Sends broadcast messages to all participants
-         * Receives unitcast messages from clients and acceptor/learners
-         *   - Heartbeat messages are sent on the broadcast channel to drive the failure detector
-         *
+         * Broadcast channel used by leader to send messages to all AcceptorLearners
          */
-        InetSocketAddress myAddr = new InetSocketAddress(NetworkUtils.getWorkableInterface(), 0);
-
-        ProposerAdapter myProposer = new ProposerAdapter();
         DatagramConnector myBroadcastChannel = new NioDatagramConnector();
         myBroadcastChannel.getSessionConfig().setBroadcast(true);
         myBroadcastChannel.getSessionConfig().setReuseAddress(true);
-        myBroadcastChannel.setHandler(myProposer);
+        myBroadcastChannel.setHandler(myHandler);
         myBroadcastChannel.getFilterChain().addLast( "logger", myFilter);
         myBroadcastChannel.getFilterChain().addLast("protocol",
                 new ProtocolCodecFilter(new PaxosCodecFactory()));
@@ -93,17 +101,24 @@ public class PaxosPeer {
         IoSession myBroadcastSession = myConnFuture.getSession();
 
         _logger.info("Broadcasting on: " + NetworkUtils.getBroadcastAddress());
+
+        TransportImpl myTransport = new TransportImpl(myUnicastChannel.getLocalAddress(), myBroadcastSession,
+        		myUnicastSender);
         
-        DatagramAcceptor myUnicastChannel = new NioDatagramAcceptor();
-        myUnicastChannel.setHandler(myProposer);
-        myUnicastChannel.getFilterChain().addLast( "logger", myFilter);
-        myUnicastChannel.getFilterChain().addLast("protocol",
-                new ProtocolCodecFilter(new PaxosCodecFactory()));
-        myUnicastChannel.bind(myAddr);
-        _logger.info("PaxosPeer bound on port: " + myUnicastChannel.getLocalAddress());
+        AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage(), myTransport);
+        FailureDetectorImpl myFd = new FailureDetectorImpl(5000);
+        myFd.add(new ListenerImpl());
 
-        myProposer.init(myBroadcastSession, myDetectorAdapter.getDetector(), myUnicastChannel.getLocalAddress(), myAl);
+        Leader myLeader = new Leader(myFd, NodeId.from(myUnicastChannel.getLocalAddress()), myTransport, myAl);
 
+        myHandler.setAcceptorLearner(myAl);
+        myHandler.setFailureDetector(myFd);
+        myHandler.setLeader(myLeader);
+        
+        Thread myHeartbeater = new Thread(new Heartbeater(myTransport));
+        myHeartbeater.setDaemon(true);
+        myHeartbeater.start();
+        
         /*
         _logger.info("Paxos Name: " + flatten(myClientUnicast.getLocalAddress().getAddress()));
         
@@ -131,9 +146,6 @@ public class PaxosPeer {
         }
         */
         
-        Thread myHeartbeater = new Thread(new Heartbeater(new TransportImpl(myUnicastChannel.getLocalAddress(), myBroadcastSession)));
-        myHeartbeater.setDaemon(true);
-        myHeartbeater.start();
     }
 
     static class ListenerImpl implements LivenessListener {
