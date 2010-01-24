@@ -361,7 +361,7 @@ public class AcceptorLearner {
 
 				if (mySuccess.getSeqNum() <= getLowWatermark().getSeqNum()) {
 					_logger.info("AL:Discarded known value: " + mySuccess.getSeqNum());
-					return null;
+					return new Ack(mySuccess.getSeqNum());
 				} else
 					_logger.info("AL:Learnt value: " + mySuccess.getSeqNum());
 
