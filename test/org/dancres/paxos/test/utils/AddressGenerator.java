@@ -2,9 +2,6 @@ package org.dancres.paxos.test.utils;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.Map;
 import org.dancres.paxos.impl.NetworkUtils;
 
 /**

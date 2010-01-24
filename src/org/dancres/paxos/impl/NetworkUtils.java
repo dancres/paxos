@@ -15,13 +15,14 @@ public class NetworkUtils {
      * Iterate interfaces and look for one that's multicast capable and not a 127 or 169 based address
      */
     static {
-        SortedSet myWorkableInterfaces = new TreeSet(new NetworkInterfaceComparator());
+        SortedSet<NetworkInterface> myWorkableInterfaces = 
+        	new TreeSet<NetworkInterface>(new NetworkInterfaceComparator());
 
         try {
-            Enumeration myInterfaces = NetworkInterface.getNetworkInterfaces();
+            Enumeration<NetworkInterface> myInterfaces = NetworkInterface.getNetworkInterfaces();
 
             while (myInterfaces.hasMoreElements()) {
-                NetworkInterface myInterface = (NetworkInterface) myInterfaces.nextElement();
+                NetworkInterface myInterface = myInterfaces.nextElement();
 
                 _logger.debug("Checking interface: " + myInterface.getDisplayName());
 
@@ -36,7 +37,7 @@ public class NetworkUtils {
                     myWorkableInterfaces.add(myInterface);
             }
 
-            Iterator myPossibles = myWorkableInterfaces.iterator();
+            Iterator<NetworkInterface> myPossibles = myWorkableInterfaces.iterator();
             while (myPossibles.hasNext()) {
                 _logger.debug("Candidate Interface: " + myPossibles.next());
             }
@@ -45,7 +46,7 @@ public class NetworkUtils {
              * We would prefer to use the index number to choose but in the absence of that we choose the
              * interface with the lowest index
              */
-            NetworkInterface myLowest = (NetworkInterface) myWorkableInterfaces.first();
+            NetworkInterface myLowest = myWorkableInterfaces.first();
             _workableAddress = getValidAddress(myLowest);
 
             _logger.debug("Equates to address: " + _workableAddress);
@@ -54,24 +55,21 @@ public class NetworkUtils {
         }
     }
 
-    private static class NetworkInterfaceComparator implements Comparator {
+    private static class NetworkInterfaceComparator implements Comparator<NetworkInterface> {
 
-        public int compare(Object anO, Object anotherO) {
-            NetworkInterface myA = (NetworkInterface) anO;
-            NetworkInterface myB = (NetworkInterface) anotherO;
-
-            String myAName = myA.getName();
-            String myBName = myB.getName();
+        public int compare(NetworkInterface anNi, NetworkInterface anotherNi) {
+            String myAName = anNi.getName();
+            String myBName = anotherNi.getName();
 
             return myAName.compareTo(myBName);
         }
     }
 
     private static InetAddress getValidAddress(NetworkInterface anIn) {
-        Enumeration myAddrs = anIn.getInetAddresses();
+        Enumeration<InetAddress> myAddrs = anIn.getInetAddresses();
 
         while (myAddrs.hasMoreElements()) {
-            InetAddress myAddr = (InetAddress) myAddrs.nextElement();
+            InetAddress myAddr = myAddrs.nextElement();
 
             // If it's not IPv4, forget it
             if (myAddr.getAddress().length != 4)
