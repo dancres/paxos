@@ -137,7 +137,7 @@ public class AcceptorLearner {
 	 * transfer of logs etc. This is useful in cases where nodes temporarily
 	 * fail due to loss of a network connection or reboots.
 	 */
-	private PacketBuffer _buffer = new PacketBuffer(512);
+	private PacketBuffer _buffer = new PacketBuffer();
 
 	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 

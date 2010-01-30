@@ -77,10 +77,8 @@ class PacketBuffer {
 	}
 	
 	private SortedMap<Long, InstanceState> _packets = new TreeMap<Long, InstanceState>();
-	private long _capacity;
 	
-	PacketBuffer(long aCapacity) {
-		_capacity = aCapacity;
+	PacketBuffer() {
 	}
 	
 	void add(PaxosMessage aMessage, long aLogOffset) {
@@ -88,10 +86,6 @@ class PacketBuffer {
 			InstanceState myState = _packets.get(new Long(aMessage.getSeqNum()));
 			
 			if (myState == null) {
-				if (_packets.size() == _capacity) {
-					_packets.remove(_packets.firstKey());
-				}
-				
 				myState = new InstanceState(aMessage.getSeqNum());
 				myState.add(aMessage, aLogOffset);
 				_packets.put(new Long(aMessage.getSeqNum()), myState);
