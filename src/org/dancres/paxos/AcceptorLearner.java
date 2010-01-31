@@ -470,7 +470,7 @@ public class AcceptorLearner {
 			
 			// All records we write are leader messages and they all have no length
 			//
-			PaxosMessage myMessage = Codecs.decode(aRecord, false);
+			PaxosMessage myMessage = Codecs.decode(aRecord);
 
 			if (myMessage.getSeqNum() == _seqNum) {
 				if (_state == null)

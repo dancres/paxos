@@ -10,7 +10,6 @@ import org.dancres.paxos.messages.OldRound;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
-import org.dancres.paxos.impl.mina.io.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.NodeId;
@@ -22,7 +21,6 @@ import org.dancres.paxos.test.utils.PacketQueue;
 import org.dancres.paxos.test.utils.PacketQueueImpl;
 import org.dancres.paxos.test.utils.TransportImpl;
 import org.junit.*;
-import org.junit.Assert.*;
 
 public class SuperiorLeaderTest {
 	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
@@ -132,19 +130,16 @@ public class SuperiorLeaderTest {
                     break;
                 }
 
-                case Operations.PROPOSER_REQ: {
-                    ProposerPacket myPropPkt = (ProposerPacket) myMessage;
-                    PaxosMessage myIn = myPropPkt.getOperation();
+                case Operations.COLLECT: {
+                	Collect myCollect = (Collect) myMessage;
 
-                    if (myIn.getType() == Operations.COLLECT) {
-                        Collect myCollect = (Collect) myIn;
+                	getTransport().send(
+                			new OldRound(myCollect.getSeqNum(), getLeader()
+                					.getNodeId().asLong(),
+                					myCollect.getRndNumber() + 1),
+                					aPacket.getSender());
 
-                        getTransport().send(
-                                new OldRound(myCollect.getSeqNum(), getLeader().getNodeId().asLong(), myCollect.getRndNumber() + 1),
-                                aPacket.getSender());
-                    }
-
-                    break;
+                	break;
                 }
 
                 default: {

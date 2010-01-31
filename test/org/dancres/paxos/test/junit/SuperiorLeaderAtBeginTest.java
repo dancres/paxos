@@ -10,7 +10,6 @@ import org.dancres.paxos.messages.OldRound;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
-import org.dancres.paxos.impl.mina.io.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.NodeId;
@@ -22,7 +21,6 @@ import org.dancres.paxos.test.utils.PacketQueue;
 import org.dancres.paxos.test.utils.PacketQueueImpl;
 import org.dancres.paxos.test.utils.TransportImpl;
 import org.junit.*;
-import org.junit.Assert.*;
 
 public class SuperiorLeaderAtBeginTest {
 	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
@@ -125,25 +123,22 @@ public class SuperiorLeaderAtBeginTest {
         public void deliver(Packet aPacket) throws Exception {
             PaxosMessage myMessage = aPacket.getMsg();
 
-            switch (myMessage.getType()) {
-                case Heartbeat.TYPE: {
+            switch (myMessage.getClassification()) {
+                case PaxosMessage.FAILURE_DETECTOR : {
                     getFailureDetector().processMessage(myMessage, aPacket.getSender());
 
                     break;
                 }
 
-                case Operations.PROPOSER_REQ: {
-                    ProposerPacket myPropPkt = (ProposerPacket) myMessage;
-                    PaxosMessage myIn = myPropPkt.getOperation();
-
-                    if (myIn.getType() == Operations.BEGIN) {
-                        Begin myBegin = (Begin) myIn;
+                case PaxosMessage.LEADER: {
+                    if (myMessage.getType() == Operations.BEGIN) {
+                        Begin myBegin = (Begin) myMessage;
 
                         getTransport().send(
                                 new OldRound(myBegin.getSeqNum(), getLeader().getNodeId().asLong(), myBegin.getRndNumber() + 1),
                                 aPacket.getSender());
                     } else {
-                    	getAcceptorLearner().messageReceived(myPropPkt.getOperation(), aPacket.getSender());
+                    	getAcceptorLearner().messageReceived(myMessage, aPacket.getSender());
                     }
 
                     break;

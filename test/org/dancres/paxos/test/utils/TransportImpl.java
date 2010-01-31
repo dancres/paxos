@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.NodeId;
 
 public class TransportImpl implements Transport {
@@ -24,29 +23,13 @@ public class TransportImpl implements Transport {
     }
 
     public void send(PaxosMessage aMessage, NodeId anAddress) {
-        PaxosMessage myMessage;
-
-        switch (aMessage.getType()) {
-            case Operations.COLLECT :
-            case Operations.BEGIN :
-            case Operations.SUCCESS : {
-                myMessage = new ProposerHeader(aMessage, _port);
-                break;
-            }
-
-            default : {
-                 myMessage = aMessage;
-                 break;
-            }
-        }
-
         if (anAddress.equals(NodeId.BROADCAST)) {
             Iterator<PacketQueue> myQueues = _queues.values().iterator();
 
             while (myQueues.hasNext())
-                myQueues.next().add(new Packet(_address, myMessage));
+                myQueues.next().add(new Packet(_address, aMessage));
         } else {
-            _queues.get(anAddress).add(new Packet(_address, myMessage));
+            _queues.get(anAddress).add(new Packet(_address, aMessage));
         }
     }
 }

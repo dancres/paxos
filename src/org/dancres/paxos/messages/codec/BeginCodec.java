@@ -16,8 +16,9 @@ class BeginCodec implements Codec {
         
         ByteBuffer myBuffer;
 
-        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + 8 + myBytes.length);
+        myBuffer = ByteBuffer.allocate(4 + 4 + 4 + 8 + 8 + 8 + myBytes.length);
 
+        myBuffer.putInt(4 + 4 + 8 + 8 + 8 + myBytes.length);
         myBuffer.putInt(Operations.BEGIN);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myBegin.getSeqNum());
@@ -30,6 +31,9 @@ class BeginCodec implements Codec {
     }
 
     public Object decode(ByteBuffer aBuffer) {
+    	// Discard length
+    	aBuffer.getInt();
+    	
         // Discard type
         aBuffer.getInt();
 

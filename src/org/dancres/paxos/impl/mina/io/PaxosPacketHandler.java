@@ -45,15 +45,11 @@ public class PaxosPacketHandler extends IoHandlerAdapter {
         switch (myMessage.getClassification()) {
         	case PaxosMessage.FAILURE_DETECTOR: {
         		_fd.processMessage(myMessage, NodeId.from(aSession.getRemoteAddress()));
-
         		break;
         	}
 
         	case PaxosMessage.LEADER: {
-        		ProposerPacket myPropPkt = (ProposerPacket) myMessage;
-        		_al.messageReceived(myPropPkt.getOperation(), NodeId.from(aSession.getRemoteAddress(), 
-        				myPropPkt.getPort()));
-
+        		_al.messageReceived(myMessage, NodeId.from(aSession.getRemoteAddress())); 
         		break;
         	}
 

@@ -9,7 +9,6 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.NodeId;
-import org.dancres.paxos.impl.mina.io.ProposerHeader;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
@@ -19,7 +18,6 @@ import org.dancres.paxos.test.utils.PacketQueue;
 import org.dancres.paxos.test.utils.PacketQueueImpl;
 import org.dancres.paxos.test.utils.TransportImpl;
 import org.junit.*;
-import org.junit.Assert.*;
 
 public class IgnoreCollectsTest {
 	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
@@ -114,7 +112,7 @@ public class IgnoreCollectsTest {
         Collect myCollect = new Collect(myAl.getLowWatermark().getSeqNum() + 1, 
         		myL.getCurrentRound(), NodeId.from(myAddr).asLong());
 
-        _node2.getQueue().add(new Packet(NodeId.from(myAddr), new ProposerHeader(myCollect, 8081)));
+        _node2.getQueue().add(new Packet(NodeId.from(myAddr), myCollect));
 
         // Must wait for message to make it's way to acceptor learners
         Thread.sleep(5000);

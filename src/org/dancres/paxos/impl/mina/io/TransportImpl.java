@@ -39,20 +39,6 @@ public class TransportImpl implements Transport {
     public void send(PaxosMessage aMessage, NodeId anAddress) {
         PaxosMessage myMessage;
 
-        switch (aMessage.getType()) {
-            case Operations.COLLECT :
-            case Operations.BEGIN :
-            case Operations.SUCCESS : {
-                myMessage = new ProposerHeader(aMessage, _addr.getPort());
-                break;
-            }
-
-            default : {
-                 myMessage = aMessage;
-                 break;
-            }
-        }
-
         IoSession mySession = (IoSession) _sessions.get(anAddress);
             
 		if (mySession == null) {
@@ -78,6 +64,6 @@ public class TransportImpl implements Transport {
 			}
 		}
 		
-        mySession.write(myMessage);
+        mySession.write(aMessage);
     }
 }

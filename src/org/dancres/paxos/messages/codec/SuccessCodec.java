@@ -13,8 +13,9 @@ public class SuccessCodec implements Codec {
 
         ByteBuffer myBuffer;
 
-        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + 8 + myBytes.length);
+        myBuffer = ByteBuffer.allocate(4 + 4 + 4 + 8 + 8 + 8 + myBytes.length);
 
+        myBuffer.putInt(4 + 4 + 8 + 8 + 8 + myBytes.length);
         myBuffer.putInt(Operations.SUCCESS);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(mySuccess.getSeqNum());
@@ -27,6 +28,9 @@ public class SuccessCodec implements Codec {
     }
 
     public Object decode(ByteBuffer aBuffer) {
+        // Discard length
+        aBuffer.getInt();
+
         // Discard type
         aBuffer.getInt();
 

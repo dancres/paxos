@@ -3,14 +3,11 @@ package org.dancres.paxos.test.junit;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.dancres.paxos.AcceptorLearner;
-import org.dancres.paxos.Leader;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.NodeId;
-import org.dancres.paxos.impl.mina.io.ProposerHeader;
-import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
 import org.dancres.paxos.test.utils.Node;
@@ -19,7 +16,6 @@ import org.dancres.paxos.test.utils.PacketQueue;
 import org.dancres.paxos.test.utils.PacketQueueImpl;
 import org.dancres.paxos.test.utils.TransportImpl;
 import org.junit.*;
-import org.junit.Assert.*;
 
 public class HeartbeatTest {
 	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};

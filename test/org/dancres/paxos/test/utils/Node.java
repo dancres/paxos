@@ -10,7 +10,6 @@ import org.dancres.paxos.Transport;
 import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.impl.mina.io.ProposerPacket;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
@@ -92,8 +91,7 @@ public class Node implements PacketListener {
             }
 
             case PaxosMessage.LEADER: {
-                ProposerPacket myPropPkt = (ProposerPacket) myMessage;
-                _al.messageReceived(myPropPkt.getOperation(), aPacket.getSender());
+                _al.messageReceived(myMessage, aPacket.getSender());
 
                 break;
             }
