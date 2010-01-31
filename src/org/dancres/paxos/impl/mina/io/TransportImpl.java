@@ -19,8 +19,6 @@ public class TransportImpl implements Transport {
      * The address where our unicast port is bound. We add a note of this to outgoing proposer messages so that
      * where appropriate we can be called back.
      */
-    private InetSocketAddress _addr;
-    
     private NioDatagramConnector _unicastConnector;
 
     /**
@@ -28,17 +26,13 @@ public class TransportImpl implements Transport {
      * @param aBroadcastSession is the session on which to send broadcast messages for acceptor learners
      * @param aUnicastConnector is the connector to use for contacting hosts directly when specified via NodeId
      */
-    public TransportImpl(InetSocketAddress aNodeAddr, IoSession aBroadcastSession, 
-    		NioDatagramConnector aUnicastConnector) {
+    public TransportImpl(IoSession aBroadcastSession, NioDatagramConnector aUnicastConnector) {
         super();
         _sessions.put(NodeId.BROADCAST, aBroadcastSession);
-        _addr = aNodeAddr;
         _unicastConnector = aUnicastConnector;
     }
 
     public void send(PaxosMessage aMessage, NodeId anAddress) {
-        PaxosMessage myMessage;
-
         IoSession mySession = (IoSession) _sessions.get(anAddress);
             
 		if (mySession == null) {

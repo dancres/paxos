@@ -14,7 +14,6 @@ import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.Node;
-import org.dancres.paxos.test.utils.Packet;
 import org.dancres.paxos.test.utils.PacketQueue;
 import org.dancres.paxos.test.utils.PacketQueueImpl;
 import org.dancres.paxos.test.utils.TransportImpl;
@@ -51,8 +50,8 @@ public class HowlSequenceTest {
         _addr1 = _allocator.allocate();
         _addr2 = _allocator.allocate();
 
-        _tport1 = new TransportImpl(_addr1);
-        _tport2 = new TransportImpl(_addr2);
+        _tport1 = new TransportImpl();
+        _tport2 = new TransportImpl();
 
         _node1 = new Node(_addr1, _tport1, 5000, new HowlLogger(_node1Log));
         _node2 = new Node(_addr2, _tport2, 5000, new HowlLogger(_node2Log));
@@ -107,14 +106,11 @@ public class HowlSequenceTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
 
-            _node2.getQueue().add(new Packet(NodeId.from(myAddr), 
-            		new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong())));
+            _node2.getQueue().add(new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong()));
 
-            Packet myPacket = myQueue.getNext(10000);
+            PaxosMessage myMsg = myQueue.getNext(10000);
 
-            Assert.assertFalse((myPacket == null));
-
-            PaxosMessage myMsg = myPacket.getMsg();
+            Assert.assertFalse((myMsg == null));
 
             System.err.println("Got message: " + myMsg.getType());
 

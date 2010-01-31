@@ -16,7 +16,6 @@ import org.dancres.paxos.NodeId;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
 import org.dancres.paxos.test.utils.Node;
-import org.dancres.paxos.test.utils.Packet;
 import org.dancres.paxos.test.utils.PacketQueue;
 import org.dancres.paxos.test.utils.PacketQueueImpl;
 import org.dancres.paxos.test.utils.TransportImpl;
@@ -42,8 +41,8 @@ public class SuperiorLeaderTest {
         _addr1 = _allocator.allocate();
         _addr2 = _allocator.allocate();
 
-        _tport1 = new TransportImpl(_addr1);
-        _tport2 = new TransportImpl(_addr2);
+        _tport1 = new TransportImpl();
+        _tport2 = new TransportImpl();
 
         _node1 = new Node(_addr1, _tport1, 5000);
         // _node1.getLeader().setLeaderCheck(false);
@@ -98,14 +97,11 @@ public class SuperiorLeaderTest {
             Thread.sleep(5000);
         }
 
-        _node1.getQueue().add(new Packet(NodeId.from(myAddr),
-        		new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong())));
+        _node1.getQueue().add(new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong()));
 
-        Packet myPacket = myQueue.getNext(10000);
+        PaxosMessage myMsg = myQueue.getNext(10000);
 
-        Assert.assertFalse((myPacket == null));
-
-        PaxosMessage myMsg = myPacket.getMsg();
+        Assert.assertFalse((myMsg == null));
 
         System.err.println("Got message: " + myMsg.getType());
 
@@ -121,29 +117,27 @@ public class SuperiorLeaderTest {
             super(anAddr, aTransport, anUnresponsivenessThreshold);
         }
 
-        public void deliver(Packet aPacket) throws Exception {
-            PaxosMessage myMessage = aPacket.getMsg();
-
-            switch (myMessage.getType()) {
+        public void deliver(PaxosMessage aMessage) throws Exception {
+            switch (aMessage.getType()) {
                 case Heartbeat.TYPE: {
-                    getFailureDetector().processMessage(myMessage);
+                    getFailureDetector().processMessage(aMessage);
 
                     break;
                 }
 
                 case Operations.COLLECT: {
-                	Collect myCollect = (Collect) myMessage;
+                	Collect myCollect = (Collect) aMessage;
 
                 	getTransport().send(
                 			new OldRound(myCollect.getSeqNum(), getLeader().getNodeId().asLong(),
                 					myCollect.getRndNumber() + 1, getLeader().getNodeId().asLong()),
-                					aPacket.getSender());
+                					NodeId.from(aMessage.getNodeId()));
 
                 	break;
                 }
 
                 default: {
-                    getLeader().messageReceived(myMessage);
+                    getLeader().messageReceived(aMessage);
                     break;
                 }
             }

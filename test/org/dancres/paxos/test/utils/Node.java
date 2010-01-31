@@ -72,12 +72,10 @@ public class Node implements PacketListener {
     /**
      * @todo Remove the ugly hack
      */
-    public void deliver(Packet aPacket) throws Exception {
-        PaxosMessage myMessage = aPacket.getMsg();
-
-        switch (myMessage.getClassification()) {
+    public void deliver(PaxosMessage aMessage) throws Exception {
+        switch (aMessage.getClassification()) {
             case PaxosMessage.FAILURE_DETECTOR : {
-                _fd.processMessage(myMessage);
+                _fd.processMessage(aMessage);
 
                 break;
             }
@@ -85,24 +83,24 @@ public class Node implements PacketListener {
             // UGLY HACK!!!
             //
             case PaxosMessage.CLIENT : {
-                _clientAddress = aPacket.getSender();
-                _ld.messageReceived(myMessage);
+                _clientAddress = NodeId.from(aMessage.getNodeId());
+                _ld.messageReceived(aMessage);
                 break;
             }
 
             case PaxosMessage.LEADER: {
-                _al.messageReceived(myMessage);
+                _al.messageReceived(aMessage);
 
                 break;
             }
 
             case PaxosMessage.ACCEPTOR_LEARNER: {
-                _ld.messageReceived(myMessage);
+                _ld.messageReceived(aMessage);
                 break;
             }
             
             default : {
-            	_logger.error("Unrecognised message:" + myMessage);
+            	_logger.error("Unrecognised message:" + aMessage);
             }
         }
     }

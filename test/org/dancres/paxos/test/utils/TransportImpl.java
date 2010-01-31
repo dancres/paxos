@@ -4,18 +4,13 @@ import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import org.dancres.paxos.Transport;
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.NodeId;
 
 public class TransportImpl implements Transport {
     private ConcurrentHashMap<NodeId, PacketQueue> _queues = new ConcurrentHashMap<NodeId, PacketQueue>();
-    private NodeId _address;
-    private int _port;
 
-    public TransportImpl(InetSocketAddress anAddress) {
-        _address = NodeId.from(anAddress);
-        _port = anAddress.getPort();
+    public TransportImpl() {
     }
 
     public void add(InetSocketAddress anAddress, PacketQueue aQueue) {
@@ -27,9 +22,9 @@ public class TransportImpl implements Transport {
             Iterator<PacketQueue> myQueues = _queues.values().iterator();
 
             while (myQueues.hasNext())
-                myQueues.next().add(new Packet(_address, aMessage));
+                myQueues.next().add(aMessage);
         } else {
-            _queues.get(anAddress).add(new Packet(_address, aMessage));
+            _queues.get(anAddress).add(aMessage);
         }
     }
 }

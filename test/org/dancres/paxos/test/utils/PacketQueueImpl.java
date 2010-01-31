@@ -3,13 +3,15 @@ package org.dancres.paxos.test.utils;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PacketQueueImpl implements PacketQueue, Runnable {
     private static Logger _logger = LoggerFactory.getLogger(PacketQueueImpl.class);
 
-    private BlockingQueue<Packet> _queue = new ArrayBlockingQueue<Packet>(10);
+    private BlockingQueue<PaxosMessage> _queue = new ArrayBlockingQueue<PaxosMessage>(10);
     private PacketListener _listener;
 
     /**
@@ -25,22 +27,22 @@ public class PacketQueueImpl implements PacketQueue, Runnable {
         _listener = aListener;
     }
 
-    public void add(Packet aPacket) {
-        _queue.add(aPacket);
+    public void add(PaxosMessage aMessage) {
+        _queue.add(aMessage);
     }
 
     public void run() {
         while (true) {
             try {
-                Packet myPacket = _queue.take();
-                _listener.deliver(myPacket);
+                PaxosMessage myMessage = _queue.take();
+                _listener.deliver(myMessage);
             } catch (Exception anE) {
-                _logger.error("Couldn't get packet", anE);
+                _logger.error("Couldn't get message", anE);
             }
         }
     }
 
-    public Packet getNext(long aPause) throws InterruptedException {
+    public PaxosMessage getNext(long aPause) throws InterruptedException {
         return _queue.poll(aPause, TimeUnit.MILLISECONDS);
     }
 }

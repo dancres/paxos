@@ -103,8 +103,7 @@ public class PaxosPeer {
         _logger.info("Broadcasting on: " + NetworkUtils.getBroadcastAddress());
         _logger.info("Broadcasting from: " + myBroadcastSession.getLocalAddress());
 
-        TransportImpl myTransport = new TransportImpl(myUnicastChannel.getLocalAddress(), myBroadcastSession,
-        		myUnicastSender);
+        TransportImpl myTransport = new TransportImpl(myBroadcastSession, myUnicastSender);
         
         AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage(), myTransport, 
         		NodeId.from(myUnicastChannel.getLocalAddress()));

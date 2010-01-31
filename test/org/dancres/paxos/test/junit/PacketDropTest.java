@@ -12,13 +12,11 @@ import org.dancres.paxos.Event;
 import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.Node;
-import org.dancres.paxos.test.utils.Packet;
 import org.dancres.paxos.test.utils.PacketQueue;
 import org.dancres.paxos.test.utils.PacketQueueImpl;
 import org.dancres.paxos.test.utils.ClientPacketFilter;
 import org.dancres.paxos.test.utils.TransportImpl;
 import org.junit.*;
-import org.junit.Assert.*;
 
 public class PacketDropTest {
 	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
@@ -40,8 +38,8 @@ public class PacketDropTest {
         _addr1 = _allocator.allocate();
         _addr2 = _allocator.allocate();
 
-        _tport1 = new TransportImpl(_addr1);
-        _tport2 = new DroppingTransportImpl(_addr2);
+        _tport1 = new TransportImpl();
+        _tport2 = new DroppingTransportImpl();
 
         _node1 = new Node(_addr1, _tport1, 5000);
         // _node1.getLeader().setLeaderCheck(false);
@@ -107,13 +105,10 @@ public class PacketDropTest {
          * If there is no stable majority and we cannot circumvent packet loss we expect the leader to ultimately
          * give up.
          */
-        _node1.getQueue().add(new Packet(NodeId.from(myAddr), 
-        		new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong())));
-        Packet myPacket = myQueue.getNext(15000);
+        _node1.getQueue().add(new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong()));
+        PaxosMessage myMsg = myQueue.getNext(15000);
 
-        Assert.assertFalse((myPacket == null));
-
-        PaxosMessage myMsg = myPacket.getMsg();
+        Assert.assertFalse((myMsg == null));
 
         Assert.assertTrue(myMsg.getType() == Operations.FAIL);
 
@@ -127,8 +122,8 @@ public class PacketDropTest {
     static class DroppingTransportImpl extends TransportImpl {
         private boolean _drop;
 
-        DroppingTransportImpl(InetSocketAddress anAddr) {
-            super(anAddr);
+        DroppingTransportImpl() {
+            super();
         }
 
         public void send(PaxosMessage aMessage, NodeId anAddress) {

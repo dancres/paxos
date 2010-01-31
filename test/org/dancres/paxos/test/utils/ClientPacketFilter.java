@@ -1,6 +1,7 @@
 package org.dancres.paxos.test.utils;
 
 import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 /**
  * Real clients would not see anything other than ACK or FAIL but the local test network simulations will generate additional
@@ -14,17 +15,17 @@ public class ClientPacketFilter implements PacketQueue {
         _queue = aQueue;
     }
 
-    public void add(Packet aPacket) {
-        switch (aPacket.getMsg().getType()) {
+    public void add(PaxosMessage aMessage) {
+        switch (aMessage.getType()) {
             case Operations.COMPLETE :
             case Operations.FAIL : {
-                _queue.add(aPacket);
+                _queue.add(aMessage);
                 break;
             }
         }
     }
 
-    public Packet getNext(long aPause) throws InterruptedException {
+    public PaxosMessage getNext(long aPause) throws InterruptedException {
         return _queue.getNext(aPause);
     }
 }
