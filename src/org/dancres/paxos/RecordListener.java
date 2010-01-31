@@ -1,5 +1,5 @@
 package org.dancres.paxos;
 
 public interface RecordListener {
-	public void onRecord(byte[] aRecord);
+	public void onRecord(long anOffset, byte[] aRecord);
 }

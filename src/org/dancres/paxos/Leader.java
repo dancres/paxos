@@ -537,7 +537,8 @@ public class Leader implements MembershipListener {
     private void emitSuccess() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Success(_seqNum, _queue.get(0).getConsolidatedValue());
+        PaxosMessage myMessage = new Success(_seqNum, getRndNumber(),
+        		_queue.get(0).getConsolidatedValue(), _nodeId.asLong());
 
         if (!startInteraction())
         	return;

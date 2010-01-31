@@ -16,7 +16,7 @@ import org.slf4j.Logger;
  * checkpoints in log files.
  */
 class PacketBuffer {
-	private static class InstanceState {
+	static class InstanceState {
 		private Begin _lastBegin;
 		private long _lastBeginOffset;
 		
@@ -29,7 +29,7 @@ class PacketBuffer {
 			_seqNum = aSeqNum;
 		}
 		
-		void add(PaxosMessage aMessage, long aLogOffset) {
+		synchronized void add(PaxosMessage aMessage, long aLogOffset) {
 			switch(aMessage.getType()) {
 				case Operations.COLLECT : {
 					// Nothing to do
@@ -66,13 +66,24 @@ class PacketBuffer {
 			}
 		}
 
-		public Begin getLastBegin() {
-			return _lastBegin;
+		synchronized Begin getLastValue() {
+			if (_lastSuccess != null) {
+				return new Begin(_lastSuccess.getSeqNum(), _lastSuccess.getRndNum(), 
+						_lastSuccess.getConsolidatedValue(), _lastSuccess.getNodeId());
+			} else if (_lastBegin != null) {
+				return _lastBegin;
+			} else {
+				return null;
+			}
 		}
 		
 		public String toString() {
-			return "LoggedInstance: " + _seqNum + " " + _lastBegin + " @ " + _lastBeginOffset +
-				" " + _lastSuccess + " @ " + _lastSuccessOffset;
+			return "LoggedInstance: " + _seqNum + " " + _lastBegin + " @ " + Long.toHexString(_lastBeginOffset) +
+				" " + _lastSuccess + " @ " + Long.toHexString(_lastSuccessOffset);
+		}
+
+		public long getSeqNum() {
+			return _seqNum;
 		}
 	}
 	
@@ -82,6 +93,13 @@ class PacketBuffer {
 	}
 	
 	void add(PaxosMessage aMessage, long aLogOffset) {
+		/*
+		 *  Ignore COLLECT - don't want to retain a state entry unless there was a genuine proposal as opposed to
+		 *  a leadership election (which is all collect really does)
+		 */
+		if (aMessage.getType() == Operations.COLLECT)
+			return;
+		
 		synchronized(this) {
 			InstanceState myState = _packets.get(new Long(aMessage.getSeqNum()));
 			
@@ -105,17 +123,9 @@ class PacketBuffer {
 		}
 	}
 
-	Begin getLastBegin(long aSeqNum) {
+	InstanceState getState(long aSeqNum) {
 		synchronized(this) {
-			InstanceState myState = _packets.get(new Long(aSeqNum));
-			
-			Begin myBegin = null;
-			
-			if (myState != null) {
-				return myState.getLastBegin();
-			}
-				
-			return myBegin;
-		}
+			return _packets.get(new Long(aSeqNum));
+		}		
 	}
 }

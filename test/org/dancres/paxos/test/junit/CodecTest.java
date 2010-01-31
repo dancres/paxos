@@ -143,13 +143,15 @@ public class CodecTest {
         byte[] myData = {55};
         byte[] myHandback = {56};
 
-        Success mySuccess = new Success(1, new ConsolidatedValue(myData, myHandback));
+        Success mySuccess = new Success(1, 2, new ConsolidatedValue(myData, myHandback), 3);
 
         byte[] myBuffer = Codecs.encode(mySuccess);
 
         Success mySuccess2 = (Success) Codecs.decode(myBuffer, false);
 
         Assert.assertEquals(mySuccess.getSeqNum(), mySuccess2.getSeqNum());
+        Assert.assertEquals(mySuccess.getRndNum(), mySuccess2.getRndNum());
+        Assert.assertEquals(mySuccess.getNodeId(), mySuccess2.getNodeId());
         Assert.assertEquals(mySuccess.getConsolidatedValue(), mySuccess2.getConsolidatedValue());
     }
 

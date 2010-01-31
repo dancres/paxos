@@ -82,7 +82,7 @@ public class MemoryLogStorage implements LogStorage {
 				Long myKey = myKeys.next();
 				
 				if (myKey.longValue() >= mark) {
-					listener.onRecord(_log.get(myKey));
+					listener.onRecord(myKey.longValue(), _log.get(myKey));
 				}
 			}
 		}

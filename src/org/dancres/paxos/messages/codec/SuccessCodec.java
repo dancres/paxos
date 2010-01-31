@@ -13,11 +13,13 @@ public class SuccessCodec implements Codec {
 
         ByteBuffer myBuffer;
 
-        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + myBytes.length);
+        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + 8 + myBytes.length);
 
         myBuffer.putInt(Operations.SUCCESS);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(mySuccess.getSeqNum());
+        myBuffer.putLong(mySuccess.getRndNum());
+        myBuffer.putLong(mySuccess.getNodeId());
         myBuffer.put(myBytes);
 
         myBuffer.flip();
@@ -30,10 +32,12 @@ public class SuccessCodec implements Codec {
 
         int myArrLength = aBuffer.getInt();
         long mySeqNum = aBuffer.getLong();
-
+        long myRndNum = aBuffer.getLong();
+        long myNodeId = aBuffer.getLong();
+        
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
 
-        return new Success(mySeqNum, new ConsolidatedValue(myBytes));
+        return new Success(mySeqNum, myRndNum, new ConsolidatedValue(myBytes), myNodeId);
     }
 }

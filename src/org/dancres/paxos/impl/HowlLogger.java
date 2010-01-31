@@ -5,6 +5,7 @@ import org.dancres.paxos.RecordListener;
 import org.objectweb.howl.log.Configuration;
 import org.objectweb.howl.log.LogException;
 import org.objectweb.howl.log.LogRecord;
+import org.objectweb.howl.log.LogRecordType;
 import org.objectweb.howl.log.Logger;
 import org.objectweb.howl.log.ReplayListener;
 
@@ -68,7 +69,27 @@ public class HowlLogger implements LogStorage {
 		}
 
 		public void onRecord(LogRecord aRecord) {
-			_listener.onRecord(aRecord.data);
+			if (aRecord.type != LogRecordType.END_OF_LOG) {
+				byte[][] myFields = aRecord.getFields();
+				
+				/*
+				for (int i = 0; i < myFields.length; i++) {
+					dump("Field: " + i, myFields[i]);
+				}
+				*/
+				
+				_listener.onRecord(aRecord.key, myFields[0]);
+			}
 		}
+		
+	    private void dump(String aMessage, byte[] aBuffer) {
+	    	System.err.print(aMessage + " ");
+	    	
+	        for (int i = 0; i < aBuffer.length; i++) {
+	            System.err.print(Integer.toHexString(aBuffer[i]) + " ");
+	        }
+
+	        System.err.println();
+	    }			
 	}
 }

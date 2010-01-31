@@ -88,6 +88,8 @@ public class AcceptorLearner {
 
 	private Transport _transport;
 	
+	private final long _leaderLease;
+	
 	/**
 	 * Tracks the last contiguous sequence number for which we have a value.
 	 * 
@@ -142,6 +144,10 @@ public class AcceptorLearner {
 	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 
 	public AcceptorLearner(LogStorage aStore, Transport aTransport) {
+		this(aStore, aTransport, DEFAULT_LEASE);
+	}
+
+	public AcceptorLearner(LogStorage aStore, Transport aTransport, long aLeaderLease) {
 		_storage = aStore;
 		_transport = aTransport;
 
@@ -151,8 +157,10 @@ public class AcceptorLearner {
 			_logger.error("Failed to open logger", anE);
 			throw new RuntimeException(anE);
 		}
+		
+		_leaderLease = aLeaderLease;
 	}
-
+	
 	private void restore() throws Exception {
 		_storage.open();		
 	}
@@ -168,7 +176,7 @@ public class AcceptorLearner {
 	}
 
 	public long getLeaderLeaseDuration() {
-		return DEFAULT_LEASE;
+		return _leaderLease;
 	}
 
 	public void add(AcceptorLearnerListener aListener) {
@@ -263,7 +271,7 @@ public class AcceptorLearner {
 					return true;
 				else
 					return (aCurrentTime > _lastLeaderActionTime
-							+ DEFAULT_LEASE);
+							+ _leaderLease);
 			}
 		}
 	}
@@ -292,7 +300,9 @@ public class AcceptorLearner {
 	}
 	
 	/**
-	 * @todo FIX THIS - we need to return a value in a LAST not just a default!
+	 * @todo If we see a seqnum that is > low_watermark + 1 we need to run some recovery and catch up. We should store
+	 * any incoming messages whilst we restore backup. Then process any that are for sequence numbers less than our
+	 * new low_watermark post recovery.
 	 */
 	private PaxosMessage process(PaxosMessage aMessage) {
 		long myCurrentTime = System.currentTimeMillis();
@@ -403,14 +413,27 @@ public class AcceptorLearner {
 	}
 
 	private Last constructLast(long aSeqNum) {
-		Begin myLastBegin = _buffer.getLastBegin(aSeqNum);
-
-		if (myLastBegin != null)
-			return new Last(aSeqNum, getLowWatermark().getSeqNum(), myLastBegin
-					.getRndNumber(), myLastBegin.getConsolidatedValue());
-		else
-			return new Last(aSeqNum, getLowWatermark().getSeqNum(), Long.MIN_VALUE,
+		Watermark myLow = getLowWatermark();
+		
+		/*
+		 * If the sequence number is less than the current low watermark, we've got to check the log file for
+		 * the value otherwise any value is to be found in the packet buffer.
+		 */
+		PacketBuffer.InstanceState myState;
+		
+		if (aSeqNum <= myLow.getSeqNum()) {
+			myState = scanLog(aSeqNum);
+		} else 
+			myState = _buffer.getState(aSeqNum);
+		
+		if (myState == null) {
+			return new Last(aSeqNum, myLow.getSeqNum(), Long.MIN_VALUE,
 					LogStorage.NO_VALUE);
+		} else {			
+			Begin myBegin = myState.getLastValue();
+			
+			return new Last(aSeqNum, myLow.getSeqNum(), myBegin.getRndNumber(), myBegin.getConsolidatedValue());
+		}
 	}
 
 	private long write(PaxosMessage aMessage, boolean aForceRequired) {
@@ -418,6 +441,9 @@ public class AcceptorLearner {
 		
 		try {
 			myLogOffset = getStorage().put(Codecs.encode(aMessage), aForceRequired); 
+			
+			// dump("Writing @ " + Long.toHexString(myLogOffset) + " : ", Codecs.encode(aMessage));
+			
 			_buffer.add(aMessage, myLogOffset);
 			
 			return myLogOffset;
@@ -427,6 +453,46 @@ public class AcceptorLearner {
 		}
 	}
 
+	private static class ReplayListenerImpl implements RecordListener {
+		private long _seqNum;
+		private PacketBuffer.InstanceState _state = null;
+		
+		ReplayListenerImpl(long aSeqNum) {
+			_seqNum = aSeqNum;
+		}
+		
+		PacketBuffer.InstanceState getState() {
+			return _state;
+		}
+		
+		public void onRecord(long anOffset, byte[] aRecord) {
+			// dump("Read:", aRecord);
+			
+			// All records we write are leader messages and they all have no length
+			//
+			PaxosMessage myMessage = Codecs.decode(aRecord, false);
+
+			if (myMessage.getSeqNum() == _seqNum) {
+				if (_state == null)
+					_state = new PacketBuffer.InstanceState(_seqNum);
+				
+				_state.add(myMessage, anOffset);
+			}
+		}		
+	}
+	
+	private PacketBuffer.InstanceState scanLog(long aSeqNum) {
+		try {
+			ReplayListenerImpl myListener = new ReplayListenerImpl(aSeqNum);
+			_storage.replay(myListener, 0);
+			
+			return myListener.getState();
+		} catch (Exception anE) {
+			_logger.error("Failed to replay log", anE);
+			throw new RuntimeException("Failed to replay log", anE);
+		}
+	}
+	
 	void signal(Event aStatus) {
 		List<AcceptorLearnerListener> myListeners;
 
@@ -440,4 +506,14 @@ public class AcceptorLearner {
 			myTargets.next().done(aStatus);
 		}
 	}
+	
+    private static void dump(String aMessage, byte[] aBuffer) {
+    	System.err.print(aMessage + " ");
+    	
+        for (int i = 0; i < aBuffer.length; i++) {
+            System.err.print(Integer.toHexString(aBuffer[i]) + " ");
+        }
+
+        System.err.println();
+    }	
 }
