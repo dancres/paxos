@@ -234,7 +234,6 @@ public class AcceptorLearner {
 	private boolean supercedes(Collect aCollect) {
 		synchronized (this) {
 			if (aCollect.supercedes(_lastCollect)) {
-				Collect myOld = _lastCollect;
 				_lastCollect = aCollect;
 
 				return true;
