@@ -44,18 +44,18 @@ public class PaxosPacketHandler extends IoHandlerAdapter {
 
         switch (myMessage.getClassification()) {
         	case PaxosMessage.FAILURE_DETECTOR: {
-        		_fd.processMessage(myMessage, NodeId.from(aSession.getRemoteAddress()));
+        		_fd.processMessage(myMessage);
         		break;
         	}
 
         	case PaxosMessage.LEADER: {
-        		_al.messageReceived(myMessage, NodeId.from(aSession.getRemoteAddress())); 
+        		_al.messageReceived(myMessage); 
         		break;
         	}
 
         	case PaxosMessage.ACCEPTOR_LEARNER :
         	case PaxosMessage.CLIENT : {
-        		_ld.messageReceived(myMessage, NodeId.from(aSession.getRemoteAddress()));
+        		_ld.messageReceived(myMessage);
         		break;
         	}
 

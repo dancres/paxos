@@ -107,7 +107,8 @@ public class DeadNodeTest {
 
         // And perform the test
         //
-        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK)));
+        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK, 
+        		NodeId.from(myAddr).asLong())));
         Packet myPacket = myQueue.getNext(10000);
 
         Assert.assertFalse((myPacket == null));

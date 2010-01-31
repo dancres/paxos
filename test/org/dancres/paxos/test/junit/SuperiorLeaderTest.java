@@ -98,7 +98,8 @@ public class SuperiorLeaderTest {
             Thread.sleep(5000);
         }
 
-        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK)));
+        _node1.getQueue().add(new Packet(NodeId.from(myAddr),
+        		new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong())));
 
         Packet myPacket = myQueue.getNext(10000);
 
@@ -125,7 +126,7 @@ public class SuperiorLeaderTest {
 
             switch (myMessage.getType()) {
                 case Heartbeat.TYPE: {
-                    getFailureDetector().processMessage(myMessage, aPacket.getSender());
+                    getFailureDetector().processMessage(myMessage);
 
                     break;
                 }
@@ -134,16 +135,15 @@ public class SuperiorLeaderTest {
                 	Collect myCollect = (Collect) myMessage;
 
                 	getTransport().send(
-                			new OldRound(myCollect.getSeqNum(), getLeader()
-                					.getNodeId().asLong(),
-                					myCollect.getRndNumber() + 1),
+                			new OldRound(myCollect.getSeqNum(), getLeader().getNodeId().asLong(),
+                					myCollect.getRndNumber() + 1, getLeader().getNodeId().asLong()),
                 					aPacket.getSender());
 
                 	break;
                 }
 
                 default: {
-                    getLeader().messageReceived(myMessage, aPacket.getSender());
+                    getLeader().messageReceived(myMessage);
                     break;
                 }
             }

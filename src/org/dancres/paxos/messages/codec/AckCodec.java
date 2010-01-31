@@ -9,10 +9,11 @@ public class AckCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
         Ack myAck = (Ack) anObject;
 
-        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8);
-        myBuffer.putInt(4 + 8);
+        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + 8);
+        myBuffer.putInt(4 + 8 + 8);
         myBuffer.putInt(Operations.ACK);
         myBuffer.putLong(myAck.getSeqNum());
+        myBuffer.putLong(myAck.getNodeId());
         myBuffer.flip();
         return myBuffer;
     }
@@ -23,7 +24,8 @@ public class AckCodec implements Codec {
         aBuffer.getInt();
         aBuffer.getInt();
         long mySeqNum = aBuffer.getLong();
-
-        return new Ack(mySeqNum);
+        long myNodeId = aBuffer.getLong();
+        
+        return new Ack(mySeqNum, myNodeId);
     }
 }

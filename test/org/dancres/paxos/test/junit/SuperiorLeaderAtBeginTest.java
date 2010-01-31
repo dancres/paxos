@@ -98,7 +98,8 @@ public class SuperiorLeaderAtBeginTest {
             Thread.sleep(5000);
         }
 
-        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK)));
+        _node1.getQueue().add(new Packet(NodeId.from(myAddr), 
+        		new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong())));
 
         Packet myPacket = myQueue.getNext(10000);
 
@@ -125,7 +126,7 @@ public class SuperiorLeaderAtBeginTest {
 
             switch (myMessage.getClassification()) {
                 case PaxosMessage.FAILURE_DETECTOR : {
-                    getFailureDetector().processMessage(myMessage, aPacket.getSender());
+                    getFailureDetector().processMessage(myMessage);
 
                     break;
                 }
@@ -135,17 +136,18 @@ public class SuperiorLeaderAtBeginTest {
                         Begin myBegin = (Begin) myMessage;
 
                         getTransport().send(
-                                new OldRound(myBegin.getSeqNum(), getLeader().getNodeId().asLong(), myBegin.getRndNumber() + 1),
+                                new OldRound(myBegin.getSeqNum(), getLeader().getNodeId().asLong(), 
+                                		myBegin.getRndNumber() + 1, getLeader().getNodeId().asLong()),
                                 aPacket.getSender());
                     } else {
-                    	getAcceptorLearner().messageReceived(myMessage, aPacket.getSender());
+                    	getAcceptorLearner().messageReceived(myMessage);
                     }
 
                     break;
                 }
 
                 default: {
-                    getLeader().messageReceived(myMessage, aPacket.getSender());
+                    getLeader().messageReceived(myMessage);
                     break;
                 }
             }

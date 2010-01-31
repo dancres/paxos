@@ -7,6 +7,7 @@ public class Last implements PaxosMessage {
     private long _seqNum;
     private long _low;
     private long _rndNumber;
+    private long _nodeId;
     private ConsolidatedValue _value;
 
     /**
@@ -15,11 +16,12 @@ public class Last implements PaxosMessage {
      * @param aMostRecentRound is the most recent leader round seen
      * @param aValue is the value, if any, associated with the sequence number of the related collect
      */
-    public Last(long aSeqNum, long aLowWatermark, long aMostRecentRound, ConsolidatedValue aValue) {
+    public Last(long aSeqNum, long aLowWatermark, long aMostRecentRound, ConsolidatedValue aValue, long aNodeId) {
         _seqNum = aSeqNum;
         _low = aLowWatermark;
         _rndNumber = aMostRecentRound;
         _value = aValue;
+        _nodeId = aNodeId;
     }
 
     public int getType() {
@@ -37,6 +39,10 @@ public class Last implements PaxosMessage {
         return _value;
     }
 
+    public long getNodeId() {
+    	return _nodeId;
+    }
+    
     /**
      * @return the most recent leader round seen
      */

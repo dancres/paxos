@@ -92,7 +92,8 @@ public class HeartbeatTest {
             Thread.sleep(5000);
         }
 
-        _node2.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK)));
+        _node2.getQueue().add(new Packet(NodeId.from(myAddr), 
+        		new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong())));
 
         Packet myPacket = myQueue.getNext(10000);
 

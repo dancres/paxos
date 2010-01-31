@@ -6,10 +6,11 @@ import org.dancres.paxos.impl.faildet.Heartbeat;
 
 public class HeartbeatCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
-        ByteBuffer myBuffer = ByteBuffer.allocate(8);
+        ByteBuffer myBuffer = ByteBuffer.allocate(16);
 
-        myBuffer.putInt(4);
+        myBuffer.putInt(12);
         myBuffer.putInt(Heartbeat.TYPE);
+        myBuffer.putLong(((Heartbeat) anObject).getNodeId());
         myBuffer.flip();
         
         return myBuffer;
@@ -21,6 +22,6 @@ public class HeartbeatCodec implements Codec {
         aBuffer.getInt();
         aBuffer.getInt();
 
-        return new Heartbeat();
+        return new Heartbeat(aBuffer.getLong());
     }
 }

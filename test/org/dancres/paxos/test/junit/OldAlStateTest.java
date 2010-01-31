@@ -58,14 +58,14 @@ public class OldAlStateTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, myTransport, 0);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, myTransport, _nodeId, 0);
 		
 		long myRndNum = 1;
 		long mySeqNum = 0;
 		
 		// First collect, Al has no state so this is accepted and will be held in packet buffer
 		//
-		myAl.messageReceived(new Collect(mySeqNum, myRndNum, _nodeId.asLong()), _nodeId);
+		myAl.messageReceived(new Collect(mySeqNum, myRndNum, _nodeId.asLong()));
 		
 		PaxosMessage myResponse = myTransport.getNextMsg();	
 		Assert.assertTrue(myResponse.getType() == Operations.LAST);
@@ -74,8 +74,7 @@ public class OldAlStateTest {
 		//
 		byte[] myData = new byte[] {1};
 		myAl.messageReceived(
-				new Begin(mySeqNum, myRndNum, new ConsolidatedValue(myData, HANDBACK), _nodeId.asLong()), 
-					_nodeId);
+				new Begin(mySeqNum, myRndNum, new ConsolidatedValue(myData, HANDBACK), _nodeId.asLong()));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
@@ -84,7 +83,7 @@ public class OldAlStateTest {
 		 * Emulate leader having to do recovery and re-run the paxos instance with a new rnd number - the response
 		 * should be a last and it will be sourced from the packet buffer.
 		 */		
-		myAl.messageReceived(new Collect(mySeqNum, myRndNum + 1, _nodeId.asLong()), _nodeId);
+		myAl.messageReceived(new Collect(mySeqNum, myRndNum + 1, _nodeId.asLong()));
 		
 		Last myLast = (Last) myTransport.getNextMsg();
 		
@@ -94,15 +93,14 @@ public class OldAlStateTest {
 		// Push the value again
 		//
 		myAl.messageReceived(
-				new Begin(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue(), _nodeId.asLong()), _nodeId);
+				new Begin(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue(), _nodeId.asLong()));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
 		
 		// Commit this instance
 		//
-		myAl.messageReceived(new Success(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue(), _nodeId.asLong()),
-				_nodeId);
+		myAl.messageReceived(new Success(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue(), _nodeId.asLong()));
 
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACK);
@@ -111,7 +109,7 @@ public class OldAlStateTest {
 		 *  Now re-run the instance again, results should be sourced from the log file and have the last
 		 *  round number used.
 		 */		
-		myAl.messageReceived(new Collect(mySeqNum, myRndNum + 2, _nodeId.asLong()), _nodeId);
+		myAl.messageReceived(new Collect(mySeqNum, myRndNum + 2, _nodeId.asLong()));
 		
 		myLast = (Last) myTransport.getNextMsg();
 		

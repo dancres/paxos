@@ -2,9 +2,15 @@ package org.dancres.paxos.messages;
 
 public class Ack implements PaxosMessage {
     private long _seqNum;
-
-    public Ack(long aSeqNum) {
+    private long _nodeId;
+    
+    public Ack(long aSeqNum, long aNodeId) {
         _seqNum = aSeqNum;
+        _nodeId = aNodeId;
+    }
+
+    public long getNodeId() {
+    	return _nodeId;
     }
 
     public int getType() {

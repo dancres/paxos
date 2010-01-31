@@ -3,16 +3,22 @@ package org.dancres.paxos.messages;
 public class Accept implements PaxosMessage {
     private long _seqNum;
     private long _rndNumber;
-
-    public Accept(long aSeqNum, long aRndNumber) {
+    private long _nodeId;
+    
+    public Accept(long aSeqNum, long aRndNumber, long aNodeId) {
         _seqNum = aSeqNum;
         _rndNumber = aRndNumber;
+        _nodeId = aNodeId;
     }
 
     public int getType() {
         return Operations.ACCEPT;
     }
 
+    public long getNodeId() {
+    	return _nodeId;
+    }
+    
     public short getClassification() {
     	return ACCEPTOR_LEARNER;
     }

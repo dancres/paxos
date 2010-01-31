@@ -107,7 +107,8 @@ public class PacketDropTest {
          * If there is no stable majority and we cannot circumvent packet loss we expect the leader to ultimately
          * give up.
          */
-        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK)));
+        _node1.getQueue().add(new Packet(NodeId.from(myAddr), 
+        		new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong())));
         Packet myPacket = myQueue.getNext(15000);
 
         Assert.assertFalse((myPacket == null));

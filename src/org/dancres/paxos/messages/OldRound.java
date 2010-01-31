@@ -3,12 +3,14 @@ package org.dancres.paxos.messages;
 public class OldRound implements PaxosMessage {
     private long _seqNum;
     private long _lastRound;
+    private long _leaderNodeId;
     private long _nodeId;
-
-    public OldRound(long aSeqNum, long aNodeId, long aLastRound) {
+    
+    public OldRound(long aSeqNum, long aLeaderNodeId, long aLastRound, long aNodeId) {
         _seqNum = aSeqNum;
-        _nodeId = aNodeId;
+        _leaderNodeId = aLeaderNodeId;
         _lastRound = aLastRound;
+        _nodeId = aNodeId;
     }
 
     public int getType() {
@@ -23,16 +25,20 @@ public class OldRound implements PaxosMessage {
         return _seqNum;
     }
 
-    public long getNodeId() {
-        return _nodeId;
+    public long getLeaderNodeId() {
+        return _leaderNodeId;
     }
 
+    public long getNodeId() {
+    	return _nodeId;
+    }
+        
     public long getLastRound() {
         return _lastRound;
     }
 
     public String toString() {
         return "OldRound: " + Long.toHexString(_seqNum) + " [ " + Long.toHexString(_lastRound) + ", " +
-                Long.toHexString(_nodeId) + " ]";
+                Long.toHexString(_leaderNodeId) + " ]";
     }
 }

@@ -90,6 +90,8 @@ public class AcceptorLearner {
 	
 	private final long _leaderLease;
 	
+    private final NodeId _nodeId;
+	
 	/**
 	 * Tracks the last contiguous sequence number for which we have a value.
 	 * 
@@ -143,14 +145,15 @@ public class AcceptorLearner {
 
 	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 
-	public AcceptorLearner(LogStorage aStore, Transport aTransport) {
-		this(aStore, aTransport, DEFAULT_LEASE);
+	public AcceptorLearner(LogStorage aStore, Transport aTransport, NodeId aNodeId) {
+		this(aStore, aTransport, aNodeId, DEFAULT_LEASE);
 	}
 
-	public AcceptorLearner(LogStorage aStore, Transport aTransport, long aLeaderLease) {
+	public AcceptorLearner(LogStorage aStore, Transport aTransport, NodeId aNodeId, long aLeaderLease) {
 		_storage = aStore;
 		_transport = aTransport;
-
+		_nodeId = aNodeId;
+		
 		try {
 			restore();
 		} catch (Exception anE) {
@@ -290,11 +293,29 @@ public class AcceptorLearner {
 		}
 	}
 
-	public void messageReceived(PaxosMessage aMessage, NodeId aNodeId) {
-		PaxosMessage myMessage = process(aMessage);
+	public void messageReceived(PaxosMessage aMessage) {
+		Dispatch myDispatch = process(aMessage);
 		
-		if (myMessage != null) {
-			_transport.send(myMessage, aNodeId);
+		if (myDispatch != null) {
+			_transport.send(myDispatch.getMessage(), myDispatch.getNodeId());
+		}
+	}
+	
+	private static class Dispatch {
+		private NodeId _nodeId;
+		private PaxosMessage _message;
+		
+		Dispatch(long anId, PaxosMessage aMessage) {
+			_nodeId = NodeId.from(anId);
+			_message = aMessage;
+		}
+		
+		PaxosMessage getMessage() {
+			return _message;
+		}
+		
+		NodeId getNodeId() {
+			return _nodeId;
 		}
 	}
 	
@@ -303,7 +324,8 @@ public class AcceptorLearner {
 	 * any incoming messages whilst we restore backup. Then process any that are for sequence numbers less than our
 	 * new low_watermark post recovery.
 	 */
-	private PaxosMessage process(PaxosMessage aMessage) {
+	private Dispatch process(PaxosMessage aMessage) {
+		long myNodeId = aMessage.getNodeId();
 		long myCurrentTime = System.currentTimeMillis();
 		long mySeqNum = aMessage.getSeqNum();
 
@@ -326,7 +348,7 @@ public class AcceptorLearner {
 				//
 				if (supercedes(myCollect)) {
 					write(aMessage, true);
-					return constructLast(mySeqNum);
+					return new Dispatch(myNodeId, constructLast(mySeqNum));
 
 					/*
 					 * If the collect comes from the current leader (has same rnd
@@ -334,7 +356,7 @@ public class AcceptorLearner {
 					 * save to disk, just respond with last proposal etc
 					 */
 				} else if (isFromCurrentLeader(myCollect)) {
-					return constructLast(mySeqNum);
+					return new Dispatch(myNodeId, constructLast(mySeqNum));
 
 				} else {
 					// Another collect has already arrived with a higher priority,
@@ -342,8 +364,8 @@ public class AcceptorLearner {
 					//
 					Collect myLastCollect = getLastCollect();
 
-					return new OldRound(mySeqNum, myLastCollect.getNodeId(),
-							myLastCollect.getRndNumber());
+					return new Dispatch(myNodeId, new OldRound(mySeqNum, myLastCollect.getNodeId(),
+							myLastCollect.getRndNumber(), _nodeId.asLong()));
 				}
 			}
 
@@ -356,15 +378,16 @@ public class AcceptorLearner {
 					updateLastActionTime(myCurrentTime);
 					write(aMessage, true);
 
-					return new Accept(mySeqNum, getLastCollect().getRndNumber());
+					return new Dispatch(myNodeId, 
+							new Accept(mySeqNum, getLastCollect().getRndNumber(), _nodeId.asLong()));
 				} else if (precedes(myBegin)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
 					Collect myLastCollect = getLastCollect();
 
-					return new OldRound(mySeqNum, myLastCollect.getNodeId(),
-							myLastCollect.getRndNumber());
+					return new Dispatch(myNodeId, new OldRound(mySeqNum, myLastCollect.getNodeId(),
+							myLastCollect.getRndNumber(), _nodeId.asLong()));
 				} else {
 					// Quiet, didn't see the collect, leader hasn't accounted for
 					// our values, it hasn't seen our last
@@ -381,7 +404,7 @@ public class AcceptorLearner {
 
 				if (mySuccess.getSeqNum() <= getLowWatermark().getSeqNum()) {
 					_logger.info("AL:Discarded known value: " + mySuccess.getSeqNum());
-					return new Ack(mySuccess.getSeqNum());
+					return new Dispatch(myNodeId, new Ack(mySuccess.getSeqNum(), _nodeId.asLong()));
 				} else
 					_logger.info("AL:Learnt value: " + mySuccess.getSeqNum());
 
@@ -403,7 +426,7 @@ public class AcceptorLearner {
 							mySuccess.getConsolidatedValue(), null));
 				}
 
-				return new Ack(mySuccess.getSeqNum());
+				return new Dispatch(myNodeId, new Ack(mySuccess.getSeqNum(), _nodeId.asLong()));
 			}
 
 			default:
@@ -427,11 +450,12 @@ public class AcceptorLearner {
 		
 		if (myState == null) {
 			return new Last(aSeqNum, myLow.getSeqNum(), Long.MIN_VALUE,
-					LogStorage.NO_VALUE);
+					LogStorage.NO_VALUE, _nodeId.asLong());
 		} else {			
 			Begin myBegin = myState.getLastValue();
 			
-			return new Last(aSeqNum, myLow.getSeqNum(), myBegin.getRndNumber(), myBegin.getConsolidatedValue());
+			return new Last(aSeqNum, myLow.getSeqNum(), myBegin.getRndNumber(), myBegin.getConsolidatedValue(),
+					_nodeId.asLong());
 		}
 	}
 

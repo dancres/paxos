@@ -88,17 +88,19 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
      * @todo Modify this to use any packet for liveness and arrange for clients to heartbeat if they don't send
      * any other packet within the heartbeat period.
      */
-    public void processMessage(PaxosMessage aMessage, NodeId aNodeId) throws Exception {
+    public void processMessage(PaxosMessage aMessage) throws Exception {
         if (aMessage.getType() == Heartbeat.TYPE) {
             Long myLast;
 
+            Heartbeat myHeartbeat = (Heartbeat) aMessage;
+            
             synchronized (this) {
-                myLast = _lastHeartbeats.put(aNodeId,
+                myLast = _lastHeartbeats.put(NodeId.from(myHeartbeat.getNodeId()),
                         new Long(System.currentTimeMillis()));
             }
 
             if (myLast == null)
-                _executor.submit(new AliveTask(aNodeId, _listeners));
+                _executor.submit(new AliveTask(NodeId.from(myHeartbeat.getNodeId()), _listeners));
         }
     }
 

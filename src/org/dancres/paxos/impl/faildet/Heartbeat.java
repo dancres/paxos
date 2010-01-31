@@ -10,7 +10,14 @@ import org.dancres.paxos.messages.PaxosMessage;
 public class Heartbeat implements PaxosMessage {
     public static final int TYPE = 0;
 
-    public Heartbeat() {
+    private long _addr;
+    
+    public Heartbeat(long anId) {
+    	_addr = anId;
+    }
+    
+    public long getNodeId() {
+    	return _addr;
     }
     
     public int getType() {

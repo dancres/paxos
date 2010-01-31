@@ -63,7 +63,8 @@ public class NoMajorityTest {
 
         Thread.sleep(5000);
 
-        _node1.getQueue().add(new Packet(NodeId.from(myAddr), new Post(myBuffer.array(), HANDBACK)));
+        _node1.getQueue().add(new Packet(NodeId.from(myAddr),
+        		new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong())));
         Packet myPacket = myQueue.getNext(10000);
 
         Assert.assertFalse((myPacket == null));

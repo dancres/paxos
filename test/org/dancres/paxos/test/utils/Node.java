@@ -47,9 +47,9 @@ public class Node implements PacketListener {
     public Node(InetSocketAddress anAddr, Transport aTransport, long anUnresponsivenessThreshold, LogStorage aLogger) {
         _addr = anAddr;
         _tp = aTransport;
-        _hb = new Heartbeater(_tp);
+        _hb = new Heartbeater(NodeId.from(_addr), _tp);
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
-        _al = new AcceptorLearner(aLogger, _tp);
+        _al = new AcceptorLearner(aLogger, _tp, NodeId.from(_addr));
         _ld = new Leader(_fd, NodeId.from(_addr), _tp, _al);
         _pq = new PacketQueueImpl(this);
         _al.add(new PacketBridge());    	
@@ -77,7 +77,7 @@ public class Node implements PacketListener {
 
         switch (myMessage.getClassification()) {
             case PaxosMessage.FAILURE_DETECTOR : {
-                _fd.processMessage(myMessage, aPacket.getSender());
+                _fd.processMessage(myMessage);
 
                 break;
             }
@@ -86,18 +86,18 @@ public class Node implements PacketListener {
             //
             case PaxosMessage.CLIENT : {
                 _clientAddress = aPacket.getSender();
-                _ld.messageReceived(myMessage, _clientAddress);
+                _ld.messageReceived(myMessage);
                 break;
             }
 
             case PaxosMessage.LEADER: {
-                _al.messageReceived(myMessage, aPacket.getSender());
+                _al.messageReceived(myMessage);
 
                 break;
             }
 
             case PaxosMessage.ACCEPTOR_LEARNER: {
-                _ld.messageReceived(myMessage, aPacket.getSender());
+                _ld.messageReceived(myMessage);
                 break;
             }
             

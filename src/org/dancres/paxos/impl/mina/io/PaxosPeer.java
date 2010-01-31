@@ -101,11 +101,13 @@ public class PaxosPeer {
         IoSession myBroadcastSession = myConnFuture.getSession();
 
         _logger.info("Broadcasting on: " + NetworkUtils.getBroadcastAddress());
+        _logger.info("Broadcasting from: " + myBroadcastSession.getLocalAddress());
 
         TransportImpl myTransport = new TransportImpl(myUnicastChannel.getLocalAddress(), myBroadcastSession,
         		myUnicastSender);
         
-        AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage(), myTransport);
+        AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage(), myTransport, 
+        		NodeId.from(myUnicastChannel.getLocalAddress()));
         FailureDetectorImpl myFd = new FailureDetectorImpl(5000);
         myFd.add(new ListenerImpl());
 
@@ -115,7 +117,8 @@ public class PaxosPeer {
         myHandler.setFailureDetector(myFd);
         myHandler.setLeader(myLeader);
         
-        Thread myHeartbeater = new Thread(new Heartbeater(myTransport));
+        Thread myHeartbeater = new Thread(
+        		new Heartbeater(NodeId.from(myUnicastChannel.getLocalAddress()), myTransport));
         myHeartbeater.setDaemon(true);
         myHeartbeater.start();
         

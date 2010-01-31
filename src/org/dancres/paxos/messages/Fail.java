@@ -1,5 +1,7 @@
 package org.dancres.paxos.messages;
 
+import org.dancres.paxos.NodeId;
+
 public class Fail implements PaxosMessage {
     private long _seqNum;
     private int _reason;
@@ -12,7 +14,11 @@ public class Fail implements PaxosMessage {
     public int getType() {
         return Operations.FAIL;
     }
-
+    
+    public long getNodeId() {
+    	return NodeId.BROADCAST.asLong();
+    }
+    
     public short getClassification() {
     	return CLIENT;
     }

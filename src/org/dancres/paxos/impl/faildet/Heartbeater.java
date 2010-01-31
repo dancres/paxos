@@ -10,14 +10,16 @@ import org.dancres.paxos.NodeId;
  */
 public class Heartbeater implements Runnable {
     private Transport _transport;
-
-    public Heartbeater(Transport aTransport) {
+    private NodeId _nodeId;
+    
+    public Heartbeater(NodeId aNodeId, Transport aTransport) {
         _transport = aTransport;
+        _nodeId = aNodeId;
     }
 
     public void run() {
         while (true) {
-            _transport.send(new Heartbeat(), NodeId.BROADCAST);
+            _transport.send(new Heartbeat(_nodeId.asLong()), NodeId.BROADCAST);
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {

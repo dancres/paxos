@@ -393,7 +393,7 @@ public class Leader implements MembershipListener {
                  * as the one in the LAST message will be a consolidated value.
                  */
                 if ((myValue != null) && (! myValue.equals(_queue.get(0).getConsolidatedValue())))
-                	_queue.add(new Post(myValue));
+                	_queue.add(new Post(myValue, NodeId.MOST_SUBORDINATE.asLong()));
 
                 emitBegin();
                 _stage = SUCCESS;
@@ -465,7 +465,7 @@ public class Leader implements MembershipListener {
              * although that's unlikely if things are stable as no other node can become leader whilst we hold the
              * lease
              */
-            submit(new Post(AcceptorLearner.HEARTBEAT));
+            submit(new Post(AcceptorLearner.HEARTBEAT, NodeId.MOST_SUBORDINATE.asLong()));
         }
     }
 
@@ -484,7 +484,7 @@ public class Leader implements MembershipListener {
     private void oldRound(PaxosMessage aMessage) {
         OldRound myOldRound = (OldRound) aMessage;
 
-        NodeId myCompetingNodeId = NodeId.from(myOldRound.getNodeId());
+        NodeId myCompetingNodeId = NodeId.from(myOldRound.getLeaderNodeId());
 
         //Some other node is active, we should abort.
         //
@@ -624,7 +624,7 @@ public class Leader implements MembershipListener {
      * @param aMessage is a message from some acceptor/learner
      * @param aNodeId is the address from which the message was sent
      */
-    public void messageReceived(PaxosMessage aMessage, NodeId aNodeId) {
+    public void messageReceived(PaxosMessage aMessage) {
     	if (aMessage.getClassification() == PaxosMessage.CLIENT) {
     		submit((Post) aMessage);
     		return;
@@ -635,7 +635,7 @@ public class Leader implements MembershipListener {
         synchronized (this) {
             if (aMessage.getSeqNum() == _seqNum) {
                 _messages.add(aMessage);
-                _membership.receivedResponse(aNodeId);
+                _membership.receivedResponse(NodeId.from(aMessage.getNodeId()));
             } else {
                 _logger.warn(this + ": Unexpected message received: " + aMessage.getSeqNum());
             }

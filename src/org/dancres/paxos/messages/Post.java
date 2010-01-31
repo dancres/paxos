@@ -7,15 +7,18 @@ public class Post implements PaxosMessage {
 
     private byte[] _value;
     private byte[] _handback;
+    private long _nodeId;
     
-    public Post(byte[] aValue, byte[] aHandback) {
+    public Post(byte[] aValue, byte[] aHandback, long aNodeId) {
         _value = aValue;
         _handback = aHandback;
+        _nodeId = aNodeId;
     }
     
-    public Post(ConsolidatedValue aValue) {
+    public Post(ConsolidatedValue aValue, long aNodeId) {
     	_value = aValue.getValue();
     	_handback = aValue.getHandback();
+    	_nodeId = aNodeId;
     }
     
     public long getSeqNum() {
@@ -29,7 +32,11 @@ public class Post implements PaxosMessage {
     public short getClassification() {
     	return CLIENT;
     }
-        
+     
+    public long getNodeId() {
+    	return _nodeId;
+    }
+    
     public String toString() {
         return "Post";
     }

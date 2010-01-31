@@ -11,12 +11,13 @@ public class PostCodec implements Codec {
         Post myPost = (Post) anObject;
         byte[] myBytes = myPost.getConsolidatedValue().marshall();
 
-        ByteBuffer myBuffer = ByteBuffer.allocate(8 + myBytes.length);
+        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + myBytes.length);
 
         // Length count does not include length bytes themselves
         //
-        myBuffer.putInt(4 + myBytes.length);
+        myBuffer.putInt(4 + 8 + myBytes.length);
         myBuffer.putInt(Operations.POST);
+        myBuffer.putLong(myPost.getNodeId());
         myBuffer.put(myBytes);
         myBuffer.flip();
         return myBuffer;
@@ -25,13 +26,15 @@ public class PostCodec implements Codec {
     public Object decode(ByteBuffer aBuffer) {
         // Discard the length and operation so remaining data can be processed
         // separately
-        int myArrLength = aBuffer.getInt() - 4;
+        int myArrLength = aBuffer.getInt() - 4 - 8;
 
         // Discard type
         aBuffer.getInt();
 
+        long myNodeId = aBuffer.getLong();
+        
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
-        return new Post(new ConsolidatedValue(myBytes));
+        return new Post(new ConsolidatedValue(myBytes), myNodeId);
     }
 }
