@@ -55,7 +55,7 @@ public class TransportImpl implements Transport {
 
         IoSession mySession = (IoSession) _sessions.get(anAddress);
             
-		if (mySession != null) {
+		if (mySession == null) {
 			try {
 				ConnectFuture connFuture = _unicastConnector.connect(NodeId
 						.toAddress(anAddress));
