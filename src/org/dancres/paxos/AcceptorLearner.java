@@ -425,6 +425,73 @@ public class AcceptorLearner {
 		}
 	}
 
+	private static class InstanceState {
+		private Begin _lastBegin;
+		private long _lastBeginOffset;
+		
+		private Success _lastSuccess;
+		private long _lastSuccessOffset;
+		
+		private long _seqNum;
+		
+		InstanceState(long aSeqNum) {
+			_seqNum = aSeqNum;
+		}
+		
+		synchronized void add(PaxosMessage aMessage, long aLogOffset) {
+			switch(aMessage.getType()) {
+				case Operations.COLLECT : {
+					// Nothing to do
+					//
+					break;
+				}
+				
+				case Operations.BEGIN : {
+					
+					Begin myBegin = (Begin) aMessage;
+					
+					if (_lastBegin == null) {
+						_lastBegin = myBegin;
+						_lastBeginOffset = aLogOffset;
+					} else if (myBegin.getRndNumber() > _lastBegin.getRndNumber() ){
+						_lastBegin = myBegin;
+						_lastBeginOffset = aLogOffset;
+					}
+					
+					break;
+				}
+				
+				case Operations.SUCCESS : {
+					
+					Success myLastSuccess = (Success) aMessage;
+
+					_lastSuccess = myLastSuccess;
+					_lastSuccessOffset = aLogOffset;
+					
+					break;
+				}
+				
+				default : throw new RuntimeException("Unexpected message: " + aMessage);
+			}
+		}
+
+		synchronized Begin getLastValue() {
+			if (_lastSuccess != null) {
+				return new Begin(_lastSuccess.getSeqNum(), _lastSuccess.getRndNum(), 
+						_lastSuccess.getConsolidatedValue(), _lastSuccess.getNodeId());
+			} else if (_lastBegin != null) {
+				return _lastBegin;
+			} else {
+				return null;
+			}
+		}
+		
+		public String toString() {
+			return "LoggedInstance: " + _seqNum + " " + _lastBegin + " @ " + Long.toHexString(_lastBeginOffset) +
+				" " + _lastSuccess + " @ " + Long.toHexString(_lastSuccessOffset);
+		}
+	}
+	
 	private Last constructLast(long aSeqNum) {
 		Watermark myLow = getLowWatermark();
 		
@@ -432,7 +499,7 @@ public class AcceptorLearner {
 		 * If the sequence number is less than the current low watermark, we've got to check through the log file for
 		 * the value otherwise if it's present, it will be since the low watermark offset.
 		 */
-		PacketBuffer.InstanceState myState;
+		InstanceState myState;
 		
 		if ((myLow.equals(Watermark.INITIAL)) || (aSeqNum <= myLow.getSeqNum())) {
 			myState = scanLog(aSeqNum, 0);
@@ -467,13 +534,13 @@ public class AcceptorLearner {
 
 	private static class ReplayListenerImpl implements RecordListener {
 		private long _seqNum;
-		private PacketBuffer.InstanceState _state = null;
+		private InstanceState _state = null;
 		
 		ReplayListenerImpl(long aSeqNum) {
 			_seqNum = aSeqNum;
 		}
 		
-		PacketBuffer.InstanceState getState() {
+		InstanceState getState() {
 			return _state;
 		}
 		
@@ -486,14 +553,14 @@ public class AcceptorLearner {
 
 			if (myMessage.getSeqNum() == _seqNum) {
 				if (_state == null)
-					_state = new PacketBuffer.InstanceState(_seqNum);
+					_state = new InstanceState(_seqNum);
 				
 				_state.add(myMessage, anOffset);
 			}
 		}		
 	}
 	
-	private PacketBuffer.InstanceState scanLog(long aSeqNum, long aLogOffset) {
+	private InstanceState scanLog(long aSeqNum, long aLogOffset) {
 		try {
 			ReplayListenerImpl myListener = new ReplayListenerImpl(aSeqNum);
 			_storage.replay(myListener, aLogOffset);
