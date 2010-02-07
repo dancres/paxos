@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author dan
  */
-public class AcceptorLearner {
+public class AcceptorLearner implements Runnable {
 	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue(
 			"org.dancres.paxos.Heartbeat".getBytes(), new byte[] {});
 
@@ -85,12 +85,13 @@ public class AcceptorLearner {
 	private long _lastLeaderActionTime = 0;
 
 	private LogStorage _storage;
-
 	private Transport _transport;
 	
+	private Thread _messageProcessor;
+	private final PacketBuffer _buffer = new PacketBuffer();
 	private final long _leaderLease;
-	
     private final NodeId _nodeId;
+	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 	
 	/**
 	 * Tracks the last contiguous sequence number for which we have a value.
@@ -135,8 +136,6 @@ public class AcceptorLearner {
 
 	private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
 
-	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
-
 	public AcceptorLearner(LogStorage aStore, Transport aTransport, NodeId aNodeId) {
 		this(aStore, aTransport, aNodeId, DEFAULT_LEASE);
 	}
@@ -154,14 +153,43 @@ public class AcceptorLearner {
 		}
 		
 		_leaderLease = aLeaderLease;
+		
+		_messageProcessor = new Thread(this);
+		_messageProcessor.start();
 	}
 	
 	private void restore() throws Exception {
 		_storage.open();		
 	}
 	
+	/*
+	 * We send this to ourselves to exit the message processor
+	 */
+	private static class PoisonPill implements PaxosMessage {
+		static final PoisonPill POISON = new PoisonPill();
+		
+		public short getClassification() {
+			return -1;
+		}
+
+		public long getNodeId() {
+			return -1;
+		}
+
+		public long getSeqNum() {
+			return Long.MAX_VALUE;
+		}
+
+		public int getType() {
+			return -1;
+		}		
+	}
+	
 	public void close() {
 		try {
+			_buffer.add(PoisonPill.POISON);
+			_messageProcessor.join();
+			
 			_storage.close();
 		} catch (Exception anE) {
 			_logger.error("Failed to close logger", anE);
@@ -284,12 +312,46 @@ public class AcceptorLearner {
 		}
 	}
 
-	public void messageReceived(PaxosMessage aMessage) {
-		Dispatch myDispatch = process(aMessage);
-		
-		if (myDispatch != null) {
-			_transport.send(myDispatch.getMessage(), myDispatch.getNodeId());
+	private class MessageFilter implements PacketBuffer.PaxosFilter {
+		MessageFilter() {
 		}
+		
+		public boolean interested(PaxosMessage aMessage) {
+			if (aMessage.equals(PoisonPill.POISON)) {
+				return true;
+			}
+			
+			/* A message with a seqnum <= current watermark + 1 can be processed - either because it's related to
+			 * the current paxos instance or an old one that should be in the logs somewhere
+			 */
+			long mySeqNum = getLowWatermark().equals(Watermark.INITIAL) ? 0 : getLowWatermark().getSeqNum() + 1;
+			
+			if (aMessage.getSeqNum() <= mySeqNum) {
+				return true;
+			}
+			
+			return false;
+		}		
+	}
+	
+	public void run() {
+		while (true) {
+			PaxosMessage myMsg = _buffer.await(new MessageFilter());
+			
+			if (myMsg.equals(PoisonPill.POISON))
+				return;
+			else {
+				Dispatch myDispatch = process(myMsg);
+				
+				if (myDispatch != null) {
+					_transport.send(myDispatch.getMessage(), myDispatch.getNodeId());
+				}
+			}
+		}
+	}
+	
+	public void messageReceived(PaxosMessage aMessage) {
+		_buffer.add(aMessage);
 	}
 	
 	private static class Dispatch {

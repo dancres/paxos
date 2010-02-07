@@ -44,11 +44,20 @@ public class OldAlStateTest {
 		public void send(PaxosMessage aMessage, NodeId aNodeId) {
 			synchronized(_messages) {
 				_messages.add(aMessage);
+				_messages.notifyAll();
 			}
 		}		
 		
 		PaxosMessage getNextMsg() {
 			synchronized(_messages) {
+				while (_messages.size() == 0) {
+					try {
+						_messages.wait();
+					} catch (InterruptedException anIE) {
+						// Ignore
+					}
+				}
+				
 				return _messages.remove(0);
 			}
 		}
