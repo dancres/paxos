@@ -135,14 +135,6 @@ public class AcceptorLearner {
 
 	private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
 
-	/**
-	 * PacketBuffer is used to maintain a limited amount of past Paxos history
-	 * that can be used to catch-up recovering nodes without the cost of a full
-	 * transfer of logs etc. This is useful in cases where nodes temporarily
-	 * fail due to loss of a network connection or reboots.
-	 */
-	private PacketBuffer _buffer = new PacketBuffer();
-
 	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 
 	public AcceptorLearner(LogStorage aStore, Transport aTransport, NodeId aNodeId) {
@@ -171,7 +163,6 @@ public class AcceptorLearner {
 	public void close() {
 		try {
 			_storage.close();
-			_buffer.dump(_logger);
 		} catch (Exception anE) {
 			_logger.error("Failed to close logger", anE);
 			throw new RuntimeException(anE);
@@ -321,7 +312,7 @@ public class AcceptorLearner {
 	
 	/**
 	 * @todo If we see a seqnum that is > low_watermark + 1 we need to run some recovery and catch up. We should store
-	 * any incoming messages whilst we restore backup. Then process any that are for sequence numbers less than our
+	 * any incoming messages whilst we restore backup. Then process any that are for sequence numbers greater than our
 	 * new low_watermark post recovery.
 	 */
 	private Dispatch process(PaxosMessage aMessage) {
@@ -438,17 +429,17 @@ public class AcceptorLearner {
 		Watermark myLow = getLowWatermark();
 		
 		/*
-		 * If the sequence number is less than the current low watermark, we've got to check the log file for
-		 * the value otherwise any value is to be found in the packet buffer.
+		 * If the sequence number is less than the current low watermark, we've got to check through the log file for
+		 * the value otherwise if it's present, it will be since the low watermark offset.
 		 */
 		PacketBuffer.InstanceState myState;
 		
-		if (aSeqNum <= myLow.getSeqNum()) {
-			myState = scanLog(aSeqNum);
+		if ((myLow.equals(Watermark.INITIAL)) || (aSeqNum <= myLow.getSeqNum())) {
+			myState = scanLog(aSeqNum, 0);
 		} else 
-			myState = _buffer.getState(aSeqNum);
+			myState = scanLog(aSeqNum, myLow.getLogOffset());
 		
-		if (myState == null) {
+		if ((myState == null) || (myState.getLastValue() == null)) {
 			return new Last(aSeqNum, myLow.getSeqNum(), Long.MIN_VALUE,
 					LogStorage.NO_VALUE, _nodeId.asLong());
 		} else {			
@@ -466,8 +457,6 @@ public class AcceptorLearner {
 			myLogOffset = getStorage().put(Codecs.encode(aMessage), aForceRequired); 
 			
 			// dump("Writing @ " + Long.toHexString(myLogOffset) + " : ", Codecs.encode(aMessage));
-			
-			_buffer.add(aMessage, myLogOffset);
 			
 			return myLogOffset;
 		} catch (Exception anE) {
@@ -504,10 +493,10 @@ public class AcceptorLearner {
 		}		
 	}
 	
-	private PacketBuffer.InstanceState scanLog(long aSeqNum) {
+	private PacketBuffer.InstanceState scanLog(long aSeqNum, long aLogOffset) {
 		try {
 			ReplayListenerImpl myListener = new ReplayListenerImpl(aSeqNum);
-			_storage.replay(myListener, 0);
+			_storage.replay(myListener, aLogOffset);
 			
 			return myListener.getState();
 		} catch (Exception anE) {
