@@ -4,10 +4,12 @@ import org.dancres.paxos.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -96,6 +98,14 @@ public class Leader implements MembershipListener {
      */
     public static final int ACCEPTED = 257;
 
+    private static final Map<Integer, Class[]> _acceptableResponses = new HashMap<Integer, Class[]>();
+    
+    static {
+    	_acceptableResponses.put(new Integer(COMMITTED), new Class[] {Ack.class});
+    	_acceptableResponses.put(new Integer(SUCCESS), new Class[] {OldRound.class, Accept.class});
+    	_acceptableResponses.put(new Integer(BEGIN), new Class[] {OldRound.class, Last.class});
+    }
+    
     private final Timer _watchdog = new Timer("Leader timers");
     private final FailureDetector _detector;
     private final NodeId _nodeId;
@@ -395,8 +405,8 @@ public class Leader implements MembershipListener {
                 if ((myValue != null) && (! myValue.equals(_queue.get(0).getConsolidatedValue())))
                 	_queue.add(new Post(myValue, NodeId.MOST_SUBORDINATE.asLong()));
 
-                emitBegin();
                 _stage = SUCCESS;
+                emitBegin();
                 
                 break;
             }
@@ -421,13 +431,13 @@ public class Leader implements MembershipListener {
                 if (myAcceptCount >= _membership.getMajority()) {
                     // Send success, wait for acks
                     //
-                    emitSuccess();
                     _stage = COMMITTED;
+                    emitSuccess();
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    emitBegin();
                     _stage = SUCCESS;
+                    emitBegin();
                 }
 
                 break;
@@ -444,8 +454,8 @@ public class Leader implements MembershipListener {
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    emitSuccess();
                     _stage = COMMITTED;
+                    emitSuccess();
                 }
 
                 break;
@@ -633,13 +643,27 @@ public class Leader implements MembershipListener {
 		_logger.info(this + " received message: " + aMessage);
         
         synchronized (this) {
-            if (aMessage.getSeqNum() == _seqNum) {
+            if ((aMessage.getSeqNum() == _seqNum) && acceptable(aMessage)) {
                 _messages.add(aMessage);
                 _membership.receivedResponse(NodeId.from(aMessage.getNodeId()));
             } else {
                 _logger.warn(this + ": Unexpected message received: " + aMessage.getSeqNum());
             }
         }
+    }
+    
+    private boolean acceptable(PaxosMessage aMessage) {
+    	Class[] myAcceptableTypes = _acceptableResponses.get(new Integer(_stage));
+    	
+    	if (myAcceptableTypes == null)
+    		throw new RuntimeException("Not got a set of expected types for this state :(");
+    	
+    	for (int i = 0; i < myAcceptableTypes.length; i++) {
+    		if (aMessage.getClass().equals(myAcceptableTypes[i]))
+    			return true;
+    	}
+    	
+    	return false;
     }
     
     public String toString() {
