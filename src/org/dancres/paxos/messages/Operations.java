@@ -9,7 +9,14 @@ public interface Operations {
     public static final int SUCCESS = 7;
     public static final int ACK = 8;
     public static final int OLDROUND = 9;
+    
+    // Test only
+    //
     public static final int FAIL = 11;
+    
+    // Test only
+    //
     public static final int COMPLETE = 12;
+    
     public static final int OPERATION = 13;
 }

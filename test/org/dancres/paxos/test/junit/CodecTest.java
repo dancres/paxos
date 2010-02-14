@@ -6,8 +6,6 @@ import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Ack;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
-import org.dancres.paxos.messages.Complete;
-import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.messages.Last;
 import org.dancres.paxos.messages.OldRound;
@@ -28,16 +26,6 @@ public class CodecTest {
         Assert.assertTrue(myAccept.getNodeId() == myAccept2.getNodeId());
     }
 
-    @Test public void complete() throws Exception {    
-        Complete myComp = new Complete(1);
-
-        byte[] myBuffer = Codecs.encode(myComp);
-
-        Complete myComp2 = (Complete) Codecs.decode(myBuffer);
-
-        Assert.assertTrue(myComp.getSeqNum() == myComp2.getSeqNum());
-    }
-    
     @Test public void ack() throws Exception {
         Ack myAck = new Ack(1, 2);
 
@@ -47,17 +35,6 @@ public class CodecTest {
 
         Assert.assertTrue(myAck.getSeqNum() == myAck2.getSeqNum());
         Assert.assertTrue(myAck.getNodeId() == myAck2.getNodeId());
-    }
-
-    @Test public void fail() throws Exception {
-        Fail myFail = new Fail(1, 2);
-
-        byte[] myBuffer = Codecs.encode(myFail);
-
-        Fail myFail2 = (Fail) Codecs.decode(myBuffer);
-
-        Assert.assertTrue(myFail.getSeqNum() == myFail2.getSeqNum());
-        Assert.assertTrue(myFail.getReason() == myFail2.getReason());
     }
 
     @Test public void begin() throws Exception {

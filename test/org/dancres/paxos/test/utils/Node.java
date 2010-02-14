@@ -7,8 +7,6 @@ import org.dancres.paxos.Event;
 import org.dancres.paxos.Leader;
 import org.dancres.paxos.LogStorage;
 import org.dancres.paxos.Transport;
-import org.dancres.paxos.messages.Complete;
-import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;

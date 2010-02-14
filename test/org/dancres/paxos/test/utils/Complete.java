@@ -1,6 +1,8 @@
-package org.dancres.paxos.messages;
+package org.dancres.paxos.test.utils;
 
 import org.dancres.paxos.NodeId;
+import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 public class Complete implements PaxosMessage {
     private long _seqNum;
