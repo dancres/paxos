@@ -22,6 +22,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+/**
+ * Objective of this test is to ensure the AL correctly remembers and recalls past Paxos rounds.
+ */
 public class OldAlStateTest {
 	private static final String DIRECTORY = "howllogs";
 	private static byte[] HANDBACK = new byte[] {1, 2, 3, 4};
