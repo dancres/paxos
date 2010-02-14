@@ -336,7 +336,7 @@ public class AcceptorLearner implements Runnable {
 	
 	public void run() {
 		while (true) {
-			PaxosMessage myMsg = _buffer.await(new MessageFilter());
+			PaxosMessage myMsg = _buffer.await(new MessageFilter(), 0);
 			
 			if (myMsg.equals(PoisonPill.POISON))
 				return;

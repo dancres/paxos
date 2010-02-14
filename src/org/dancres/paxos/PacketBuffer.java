@@ -11,10 +11,10 @@ import org.dancres.paxos.messages.PaxosMessage;
 /**
  * PacketBuffer tracks a collection of PaxosMessages. Ordered by sequence number and then arrival time.
  */
-class PacketBuffer {
+public class PacketBuffer {
 	private SortedMap<Long, List<PaxosMessage>> _messagesByInstance = new TreeMap<Long, List<PaxosMessage>>();
 	
-	void add(PaxosMessage aMessage) {
+	public void add(PaxosMessage aMessage) {
 		synchronized(this) {
 			List<PaxosMessage> myInstance = _messagesByInstance.get(new Long(aMessage.getSeqNum()));
 			
@@ -23,12 +23,16 @@ class PacketBuffer {
 				_messagesByInstance.put(new Long(aMessage.getSeqNum()), myInstance);
 			}
 			
-			myInstance.add(aMessage);			
-			notifyAll();
+			if (! myInstance.contains(aMessage)) {
+				myInstance.add(aMessage);			
+				notifyAll();
+			}
 		}
 	}
 	
-	PaxosMessage await(PaxosFilter aFilter) {
+	public PaxosMessage await(PaxosFilter aFilter, long aWaitTime) {
+		long myExpiry = System.currentTimeMillis() + aWaitTime;
+		
 		synchronized(this) {
 			while (true) {
 				Iterator<List<PaxosMessage>> myInstances = _messagesByInstance.values().iterator();
@@ -48,7 +52,16 @@ class PacketBuffer {
 				}
 
 				try {
-					wait();
+					if (aWaitTime == 0) {
+						wait(0);
+					} else {
+						long myActualWait = myExpiry - System.currentTimeMillis();
+												
+						if (myActualWait > 0)
+							wait(myActualWait);
+						else
+							return null;
+					}
 				} catch (InterruptedException anIE) {
 					// Doesn't matter
 				}
