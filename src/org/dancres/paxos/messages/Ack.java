@@ -21,10 +21,24 @@ public class Ack implements PaxosMessage {
     	return ACCEPTOR_LEARNER;
     }
 
-   public long getSeqNum() {
-        return _seqNum;
-    }
+	public long getSeqNum() {
+		return _seqNum;
+	}
 
+	public int hashCode() {
+		return new Long(_seqNum).hashCode() ^ new Long(_nodeId).hashCode();
+	}
+	
+	public boolean equals(Object anObject) {
+		if (anObject instanceof Ack) {
+			Ack myOther = (Ack) anObject;
+			
+			return (_seqNum == myOther._seqNum) && (_nodeId == myOther._nodeId);
+		}
+		
+		return false;
+	}
+	
     public String toString() {
         return "Ack: " + _seqNum;
     }

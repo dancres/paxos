@@ -37,6 +37,22 @@ public class OldRound implements PaxosMessage {
         return _lastRound;
     }
 
+    public int hashCode() {
+    	return new Long(_seqNum).hashCode() ^ new Long(_lastRound).hashCode() ^ new Long(_leaderNodeId).hashCode() ^
+    		new Long(_nodeId).hashCode();
+    }
+    
+    public boolean equals(Object anObject) {
+    	if (anObject instanceof OldRound) {
+    		OldRound myOther = (OldRound) anObject;
+    		
+    		return (myOther._seqNum == _seqNum) && (myOther._lastRound == _lastRound) && 
+    			(myOther._leaderNodeId == _leaderNodeId) && (myOther._nodeId == _nodeId);
+    	}
+    	
+    	return false;
+    }
+    
     public String toString() {
         return "OldRound: " + Long.toHexString(_seqNum) + " [ " + Long.toHexString(_lastRound) + ", " +
                 Long.toHexString(_leaderNodeId) + " ]";

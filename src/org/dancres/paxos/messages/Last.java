@@ -64,6 +64,22 @@ public class Last implements PaxosMessage {
         return _seqNum;
     }
 
+    public int hashCode() {
+    	return new Long(_seqNum).hashCode() ^ new Long(_low).hashCode() ^ 
+    		new Long(_rndNumber).hashCode() ^ new Long(_nodeId).hashCode();
+    }
+    
+    public boolean equals(Object anObject) {
+    	if (anObject instanceof Last) {
+    		Last myOther = (Last) anObject;
+    		
+    		return (_seqNum == myOther._seqNum) && (_low == myOther._low) && (_rndNumber == myOther._rndNumber) &&
+    			(_nodeId == myOther._nodeId);
+    	}
+    	
+    	return false;
+    }
+    
     public String toString() {
         return "Last: " + Long.toHexString(_seqNum) + " " + Long.toHexString(_low) + 
                 " [ " + Long.toHexString(_rndNumber) + " ] " + _value.equals(LogStorage.NO_VALUE);

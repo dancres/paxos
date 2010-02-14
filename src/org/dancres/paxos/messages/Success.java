@@ -40,6 +40,20 @@ public class Success implements PaxosMessage {
         return _value;
     }
     
+    public int hashCode() {
+    	return new Long(_seqNum).hashCode() ^ new Long(_rndNum).hashCode() ^ new Long(_nodeId).hashCode(); 
+    }
+    
+    public boolean equals(Object anObject) {
+    	if (anObject instanceof Success) {
+    		Success myOther = (Success) anObject;
+    		
+    		return (_seqNum == myOther._seqNum) && (_rndNum == myOther._rndNum) && (_nodeId == myOther._nodeId);
+    	}
+    	
+    	return false;
+    }
+    
     public String toString() {
         return "Success: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNum) + ", " + 
         	Long.toHexString(_nodeId);

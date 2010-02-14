@@ -31,8 +31,22 @@ public class Accept implements PaxosMessage {
         return _seqNum;
     }
 
+    public int hashCode() {
+    	return new Long(_seqNum).hashCode() ^ new Long(_rndNumber).hashCode() ^ new Long(_nodeId).hashCode();
+    }
+    
+    public boolean equals(Object anObject) {
+    	if (anObject instanceof Accept) {
+    		Accept myOther = (Accept) anObject;
+    		
+    		return (_seqNum == myOther._seqNum)&& (_rndNumber == myOther._seqNum) && (_nodeId == myOther._nodeId);  
+    	}
+    	
+    	return false;
+    }
+    
     public String toString() {
-        return "Accept: " + Long.toHexString(_seqNum) + " [ " +
+        return "Accept: " + Long.toHexString(_nodeId) + ", " + Long.toHexString(_seqNum) + " [ " +
                 Long.toHexString(_rndNumber) + " ] ";
     }
 }

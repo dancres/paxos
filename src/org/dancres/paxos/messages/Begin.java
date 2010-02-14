@@ -36,6 +36,20 @@ public class Begin implements PaxosMessage {
     	return _consolidatedValue;
     }
     
+    public int hashCode() {
+    	return new Long(_seqNum).hashCode() ^ new Long(_rndNumber).hashCode() ^ new Long(_nodeId).hashCode();
+    }
+    
+    public boolean equals(Object anObject) {
+    	if (anObject instanceof Begin) {
+    		Begin myOther = (Begin) anObject;
+    		
+    		return (_seqNum == myOther._seqNum) && (_rndNumber == myOther._rndNumber) && (_nodeId == myOther._nodeId);
+    	}
+    	
+    	return false;
+    }
+    
     public String toString() {
         return "Begin: " + Long.toHexString(_seqNum) + " [ " +
                 Long.toHexString(_rndNumber) + ", " + Long.toHexString(_nodeId) + " ] " + 

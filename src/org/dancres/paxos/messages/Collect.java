@@ -52,6 +52,10 @@ public class Collect implements PaxosMessage {
     	return equals(INITIAL);
     }
     
+    public int hashCode() {
+    	return new Long(_nodeId).hashCode() ^ new Long(_rndNumber).hashCode() ^ new Long(_seqNum).hashCode();
+    }
+    
     public boolean equals(Object anObject) {
     	if (anObject instanceof Collect) {
     		Collect myOther = (Collect) anObject;
