@@ -480,15 +480,6 @@ public class Leader implements MembershipListener {
     }
 
     /**
-     * @todo Fixup the leader conflict behaviour. Right now we'd keep trying and falling down a hole as another
-     * leader will hold the lease and we'll get silence. But a client potentially resubmits to us because it
-     * still thinks we should be leader. We potentially have to check with our on AccepterLearner as to whether
-     * it thinks there is another leader (factoring in heartbeat activity) and if there is, redirect the client to 
-     * that. Otherwise we could try to become leader. This would allow us to ignore the "superior node" conflict as
-     * either clients think we are superior or some other node is and if each time either leader fails the clients
-     * need to re-check for a new leader (or we could tell them in the failure message) we'll settle eventually.
-     * Note we'll have to review the leader checking tests.
-     * 
      * @param aMessage is an OldRound message received from some other node
      */
     private void oldRound(PaxosMessage aMessage) {

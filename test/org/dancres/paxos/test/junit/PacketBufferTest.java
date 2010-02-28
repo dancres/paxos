@@ -9,6 +9,9 @@ import org.dancres.paxos.messages.Success;
 import org.junit.Assert;
 import org.junit.Test;
 
+/**
+ * Test PacketBuffer to ensure it performs duplicate elimination.
+ */
 public class PacketBufferTest {
 
 	@Test public void testCollect() {

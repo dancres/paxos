@@ -9,7 +9,8 @@ import java.util.TreeMap;
 import org.dancres.paxos.messages.PaxosMessage;
 
 /**
- * PacketBuffer tracks a collection of PaxosMessages. Ordered by sequence number and then arrival time.
+ * PacketBuffer tracks a collection of <code>PaxosMessage</code>s. Ordered by sequence number and then arrival time. 
+ * Duplicates are eliminated and do not re-trigger <code>PaxosFilter</code> instances.
  */
 public class PacketBuffer {
 	private SortedMap<Long, List<PaxosMessage>> _messagesByInstance = new TreeMap<Long, List<PaxosMessage>>();
