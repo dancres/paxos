@@ -135,7 +135,7 @@ public class AcceptorLearner implements Runnable {
 	/*
 	 * We send this to ourselves to exit the message processor
 	 */
-	private static class PoisonPill implements PaxosMessage {
+	public static class PoisonPill implements PaxosMessage {
 		static final PoisonPill POISON = new PoisonPill();
 		
 		public short getClassification() {
