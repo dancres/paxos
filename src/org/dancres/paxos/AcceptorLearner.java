@@ -25,36 +25,6 @@ import org.slf4j.LoggerFactory;
  * instance will receive those packets. This can be useful for processing client
  * requests correctly and signalling interested parties as necessary.
  * 
- * @todo Checkpoint must include low watermark etc.
- * 
- * @todo Recovery: At construction, AL should load whatever state it has locally on disk. 
- * 
- * Recovery: Past that it waits for further updates which may then cause it to trigger further recovery. 
- * e.g. Because low watermark and current sequence number are too far apart. It may trigger several different kinds of
- * recovery based on what it sees, e.g. quick catchup from other nodes' memory or a full file catchup. Whichever method 
- * it uses, it's important it stops the leader acting on its out of date state. As the leader will always ask for the
- * low watermark and what the last viewed collect was when it initiates action, we can simply raise an exception to
- * cause the leader to fail and issue an appropriate response to clients. It would be nice to use the log as a means
- * for recalling old values etc. To do this requires that we only checkpoint upto and including the log entry of the low
- * watermark we cannot checkpoint higher as the values may not have settled out yet and we need to maintain references
- * in the log. When we checkpoint, we must note the lowest paxos instance the log will contain - which is 
- * low watermark + 1 (We could of course just note the low watermark itself) so that if a node asks for recovery of
- * sequence numbers that aren't in the log can be spotted and informed of their being too out of date.
- * 
- * The ordered delivery of events to user-code and the problem of a lagging low watermark (when we end up dealing in
- * sequence numbers that aren't contiguous perhaps as the result of temporary network separation) are closely related.
- * We can address both via the PacketBuffer as follows:
- * 
- * <ol>
- * <li>Each instance of Paxos is added into the buffer which tracks them in sequence number order.</li>
- * <li>At the point where we reach success, we attempt an update of the low watermark.</li>
- * <li>We check to see if the head of the buffer (which will include the Paxos instance just completed) is current
- * low watermark + 1 and if it is increment the watermark and emit the value in the success record to the 
- * user-code.</li>
- * <li>We then repeat this check until either the buffer is empty or we encounter an instance which has sequence number
- * > current low watermark + 1.</li>
- * </ol>
- * 
  * @author dan
  */
 public class AcceptorLearner implements Runnable {
@@ -177,7 +147,7 @@ public class AcceptorLearner implements Runnable {
 		}
 
 		public long getSeqNum() {
-			return Long.MAX_VALUE;
+			return Long.MIN_VALUE;
 		}
 
 		public int getType() {
@@ -316,13 +286,19 @@ public class AcceptorLearner implements Runnable {
 		MessageFilter() {
 		}
 		
+		/**
+		 * @todo Implement recovery
+		 */
 		public boolean interested(PaxosMessage aMessage) {
 			if (aMessage.equals(PoisonPill.POISON)) {
 				return true;
 			}
 			
 			/* A message with a seqnum <= current watermark + 1 can be processed - either because it's related to
-			 * the current paxos instance or an old one that should be in the logs somewhere
+			 * the current paxos instance or an old one that should be in the logs somewhere. If the message has
+			 * sequence number > current watermark + 1 we need to do recovery - set recovery pause to the arrived
+			 * sequence number + 1, issue recovery requests and be silent until we've got sufficient records to
+			 * have reached arrived sequence number + 2 (records might have come from recovery or live behaviours).
 			 */
 			long mySeqNum = getLowWatermark().equals(Watermark.INITIAL) ? 0 : getLowWatermark().getSeqNum() + 1;
 			
@@ -338,9 +314,10 @@ public class AcceptorLearner implements Runnable {
 		while (true) {
 			PaxosMessage myMsg = _buffer.await(new MessageFilter(), 0);
 			
-			if (myMsg.equals(PoisonPill.POISON))
+			if (myMsg.equals(PoisonPill.POISON)) {
+				_logger.info("AL:POISON - Exiting");
 				return;
-			else {
+			} else {
 				Dispatch myDispatch = process(myMsg);
 				
 				if (myDispatch != null) {
@@ -372,11 +349,6 @@ public class AcceptorLearner implements Runnable {
 		}
 	}
 	
-	/**
-	 * @todo If we see a seqnum that is > low_watermark + 1 we need to run some recovery and catch up. We should store
-	 * any incoming messages whilst we restore backup. Then process any that are for sequence numbers greater than our
-	 * new low_watermark post recovery.
-	 */
 	private Dispatch process(PaxosMessage aMessage) {
 		long myNodeId = aMessage.getNodeId();
 		long myCurrentTime = System.currentTimeMillis();
@@ -396,7 +368,7 @@ public class AcceptorLearner implements Runnable {
 					return null;
 				}
 
-				// If the collect supercedes our previous collect sace it to disk,
+				// If the collect supercedes our previous collect save it to disk,
 				// return last proposal etc
 				//
 				if (supercedes(myCollect)) {
@@ -554,6 +526,10 @@ public class AcceptorLearner implements Runnable {
 		}
 	}
 	
+	/**
+	 * @todo When we add checkpointing, we must add support here for warning a leader it is out of date and asking
+	 * about a sequence number that is no longer in the log
+	 */
 	private Last constructLast(long aSeqNum) {
 		Watermark myLow = getLowWatermark();
 		
