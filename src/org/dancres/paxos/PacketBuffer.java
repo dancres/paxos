@@ -16,15 +16,7 @@ public class PacketBuffer {
 	public void add(PaxosMessage aMessage) {
 		synchronized(this) {
 			if (! _messages.contains(aMessage)) {
-				if (aMessage.equals(AcceptorLearner.PoisonPill.POISON)) {
-					ArrayList<PaxosMessage> myMessages = new ArrayList<PaxosMessage>();
-					myMessages.add(aMessage);
-					myMessages.addAll(_messages);
-					_messages = myMessages;
-				} else { 
-					_messages.add(aMessage);
-				}
-				
+				_messages.add(aMessage);
 				notifyAll();
 			}
 		}

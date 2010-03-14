@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author dan
  */
-public class AcceptorLearner implements Runnable {
+public class AcceptorLearner {
 	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue(
 			"org.dancres.paxos.Heartbeat".getBytes(), new byte[] {});
 
@@ -57,8 +57,6 @@ public class AcceptorLearner implements Runnable {
 	private LogStorage _storage;
 	private Transport _transport;
 	
-	private Thread _messageProcessor;
-	private final PacketBuffer _buffer = new PacketBuffer();
 	private final long _leaderLease;
     private final NodeId _nodeId;
 	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
@@ -123,43 +121,14 @@ public class AcceptorLearner implements Runnable {
 		}
 		
 		_leaderLease = aLeaderLease;
-		
-		_messageProcessor = new Thread(this);
-		_messageProcessor.start();
 	}
 	
 	private void restore() throws Exception {
 		_storage.open();		
 	}
 	
-	/*
-	 * We send this to ourselves to exit the message processor
-	 */
-	public static class PoisonPill implements PaxosMessage {
-		static final PoisonPill POISON = new PoisonPill();
-		
-		public short getClassification() {
-			return -1;
-		}
-
-		public long getNodeId() {
-			return -1;
-		}
-
-		public long getSeqNum() {
-			return Long.MIN_VALUE;
-		}
-
-		public int getType() {
-			return -1;
-		}		
-	}
-	
 	public void close() {
 		try {
-			_buffer.add(PoisonPill.POISON);
-			_messageProcessor.join();
-			
 			_storage.close();
 		} catch (Exception anE) {
 			_logger.error("Failed to close logger", anE);
@@ -282,56 +251,17 @@ public class AcceptorLearner implements Runnable {
 		}
 	}
 
-	private class MessageFilter implements PacketBuffer.PaxosFilter {
-		MessageFilter() {
-		}
-		
-		/**
-		 * @todo Implement recovery
-		 */
-		public boolean interested(PaxosMessage aMessage) {
-			if (aMessage.equals(PoisonPill.POISON)) {
-				return true;
-			}
-			
-			/* A message with a seqnum <= current watermark + 1 can be processed - either because it's related to
-			 * the current paxos instance or an old one that should be in the logs somewhere. If the message has
-			 * sequence number > current watermark + 1 we need to do recovery - set recovery pause to the arrived
-			 * sequence number + 1, issue recovery requests and be silent until we've got sufficient records to
-			 * have reached arrived sequence number + 2 (records might have come from recovery or live behaviours).
-			 */
-			long mySeqNum = getLowWatermark().equals(Watermark.INITIAL) ? 0 : getLowWatermark().getSeqNum() + 1;
-			
-			if (aMessage.getSeqNum() <= mySeqNum) {
-				return true;
-			}
-			
-			return false;
-		}		
-	}
-	
-	public void run() {
-		while (true) {
-			PaxosMessage myMsg = _buffer.await(new MessageFilter(), 0);
-			
-			if (myMsg.equals(PoisonPill.POISON)) {
-				_logger.info("AL:POISON - Exiting");
-				return;
-			} else {
-				Dispatch myDispatch = process(myMsg);
-				
-				if (myDispatch != null) {
-					_transport.send(myDispatch.getMessage(), myDispatch.getNodeId());
-				}
-			}
-		}
-	}
-	
 	public void messageReceived(PaxosMessage aMessage) {
-		_buffer.add(aMessage);
+		Dispatch myDispatch = process(aMessage);
+		
+		if (! myDispatch.equals(Dispatch.NO_RESPONSE)) {
+			_transport.send(myDispatch.getMessage(), myDispatch.getNodeId());
+		}
 	}
 	
 	private static class Dispatch {
+		static final Dispatch NO_RESPONSE = new Dispatch(0, null);
+		
 		private NodeId _nodeId;
 		private PaxosMessage _message;
 		
@@ -365,7 +295,7 @@ public class AcceptorLearner implements Runnable {
 
 					_logger.info("AL:Not accepting: " + myCollect + ", "
 							+ getIgnoredCollectsCount());
-					return null;
+					return Dispatch.NO_RESPONSE;
 				}
 
 				// If the collect supercedes our previous collect save it to disk,
@@ -419,6 +349,7 @@ public class AcceptorLearner implements Runnable {
 					//
 					_logger.info("AL:Missed collect, going silent: " + mySeqNum
 							+ " [ " + myBegin.getRndNumber() + " ]");
+					return Dispatch.NO_RESPONSE;
 				}
 			}
 
