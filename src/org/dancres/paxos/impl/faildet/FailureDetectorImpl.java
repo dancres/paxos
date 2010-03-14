@@ -3,6 +3,7 @@ package org.dancres.paxos.impl.faildet;
 import org.dancres.paxos.LivenessListener;
 import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.Membership;
+import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,7 +90,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
      * any other packet within the heartbeat period.
      */
     public void processMessage(PaxosMessage aMessage) throws Exception {
-        if (aMessage.getType() == Heartbeat.TYPE) {
+        if (aMessage.getType() == Operations.HEARTBEAT) {
             Long myLast;
 
             Heartbeat myHeartbeat = (Heartbeat) aMessage;

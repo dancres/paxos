@@ -6,6 +6,7 @@ import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Ack;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
+import org.dancres.paxos.messages.Need;
 import org.dancres.paxos.impl.faildet.Heartbeat;
 import org.dancres.paxos.messages.Last;
 import org.dancres.paxos.messages.OldRound;
@@ -138,6 +139,18 @@ public class CodecTest {
         Assert.assertEquals(mySuccess.getConsolidatedValue(), mySuccess2.getConsolidatedValue());
     }
 
+    @Test public void need() throws Exception {
+    	Need myNeed = new Need(1, 2, 3);
+    	
+    	byte[] myBuffer = Codecs.encode(myNeed);
+    	
+    	Need myNeed2 = (Need) Codecs.decode(myBuffer);
+    	
+    	Assert.assertEquals(myNeed.getMinSeq(), myNeed2.getMinSeq());
+    	Assert.assertEquals(myNeed.getMaxSeq(), myNeed2.getMaxSeq());
+    	Assert.assertEquals(myNeed.getNodeId(), myNeed2.getNodeId());    	
+    }
+    
     private void dump(byte[] aBuffer) {
         for (int i = 0; i < aBuffer.length; i++) {
             System.err.print(Integer.toHexString(aBuffer[i]) + " ");

@@ -119,7 +119,7 @@ public class SuperiorLeaderTest {
 
         public void deliver(PaxosMessage aMessage) throws Exception {
             switch (aMessage.getType()) {
-                case Heartbeat.TYPE: {
+                case Operations.HEARTBEAT: {
                     getFailureDetector().processMessage(aMessage);
 
                     break;

@@ -6,6 +6,7 @@ import org.dancres.paxos.Leader;
 import org.dancres.paxos.NodeId;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeat;
+import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +40,7 @@ public class PaxosPacketHandler extends IoHandlerAdapter {
 
 		PaxosMessage myMessage = (PaxosMessage) anObject;
 
-		if (myMessage.getType() != Heartbeat.TYPE)
+		if (myMessage.getType() != Operations.HEARTBEAT)
 			_logger.info("serverMsgRx: s=" + aSession + " o=" + anObject);
 
         switch (myMessage.getClassification()) {
@@ -70,7 +71,7 @@ public class PaxosPacketHandler extends IoHandlerAdapter {
 
 		PaxosMessage myMessage = (PaxosMessage) anObject;
 
-		if (myMessage.getType() != Heartbeat.TYPE)
+		if (myMessage.getType() != Operations.HEARTBEAT)
 			_logger.info("serverMsgTx: s=" + aSession + " o=" + anObject);
 	}
 }

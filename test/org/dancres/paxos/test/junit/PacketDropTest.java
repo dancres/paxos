@@ -127,7 +127,7 @@ public class PacketDropTest {
         }
 
         public void send(PaxosMessage aMessage, NodeId anAddress) {
-            if (aMessage.getType() == Heartbeat.TYPE)
+            if (aMessage.getType() == Operations.HEARTBEAT)
                 super.send(aMessage, anAddress);
         }
     }

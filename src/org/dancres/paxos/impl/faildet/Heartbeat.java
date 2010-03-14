@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl.faildet;
 
+import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
 /**
@@ -8,8 +9,6 @@ import org.dancres.paxos.messages.PaxosMessage;
  * @author dan
  */
 public class Heartbeat implements PaxosMessage {
-    public static final int TYPE = 0;
-
     private long _addr;
     
     public Heartbeat(long anId) {
@@ -21,7 +20,7 @@ public class Heartbeat implements PaxosMessage {
     }
     
     public int getType() {
-        return TYPE;
+        return Operations.HEARTBEAT;
     }
 
     public short getClassification() {
