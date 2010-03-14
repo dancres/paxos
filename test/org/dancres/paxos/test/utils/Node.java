@@ -83,10 +83,12 @@ public class Node implements PacketListener {
             case PaxosMessage.CLIENT : {
                 _clientAddress = NodeId.from(aMessage.getNodeId());
                 _ld.messageReceived(aMessage);
+                
                 break;
             }
 
-            case PaxosMessage.LEADER: {
+            case PaxosMessage.LEADER:
+            case PaxosMessage.RECOVERY : {
                 _al.messageReceived(aMessage);
 
                 break;
@@ -94,6 +96,7 @@ public class Node implements PacketListener {
 
             case PaxosMessage.ACCEPTOR_LEARNER: {
                 _ld.messageReceived(aMessage);
+                
                 break;
             }
             
