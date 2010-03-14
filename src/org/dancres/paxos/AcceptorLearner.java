@@ -9,6 +9,7 @@ import org.dancres.paxos.messages.Ack;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Last;
+import org.dancres.paxos.messages.Need;
 import org.dancres.paxos.messages.OldRound;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -47,6 +48,29 @@ public class AcceptorLearner {
 	private AtomicLong _receivedHeartbeats = new AtomicLong();
 
 	private short _state = UP_TO_DATE;
+
+	private static class RecoveryWindow {
+		private long _minSeqNum;
+		private long _maxSeqNum;
+		
+		RecoveryWindow(long aMin, long aMax) {
+			_minSeqNum = aMin;
+			_maxSeqNum = aMax;
+		}
+		
+		long getMinSeqNum() {
+			return _minSeqNum;
+		}
+
+		long getMaxSeqNum() {
+			return _maxSeqNum;
+		}
+	}
+		
+	/**
+	 * Tracks the range of sequence numbers we're interested in getting from some other AL.
+	 */
+	private RecoveryWindow _recoveryWindow;
 	
 	/**
 	 * @todo Must checkpoint _lastCollect, as it'll only be written in the log
@@ -152,7 +176,7 @@ public class AcceptorLearner {
 
 	public boolean isRecovering() {
 		synchronized(this) {
-			return (_state == OUT_OF_DATE);
+			return (_state != UP_TO_DATE);
 		}
 	}
 	
@@ -277,6 +301,11 @@ public class AcceptorLearner {
 			_message = aMessage;
 		}
 		
+		Dispatch(NodeId anId, PaxosMessage aMessage) {
+			_nodeId = anId;
+			_message = aMessage;
+		}
+		
 		PaxosMessage getMessage() {
 			return _message;
 		}
@@ -294,7 +323,7 @@ public class AcceptorLearner {
 			myState = _state;
 		}
 		
-		if (myState == OUT_OF_DATE) {
+		if (myState != UP_TO_DATE) {
 			myDispatch = recover(aMessage);
 		} else {		
 			myDispatch = process(aMessage);
@@ -313,6 +342,10 @@ public class AcceptorLearner {
 	 */
 	private Dispatch recover(PaxosMessage aMessage) {
 		if (aMessage.getClassification() == PaxosMessage.LEADER)
+			/* 
+			 * Standard protocol messages are discarded unless they're for sequence numbers greater than our recovery
+			 * window.
+			 */
 			return Dispatch.NO_RESPONSE;
 		else {
 			// Switch statement and test
@@ -333,14 +366,21 @@ public class AcceptorLearner {
 
 		_logger.info("AL: got [ " + mySeqNum + " ] : " + aMessage);
 
+		/*
+		 * If the sequence number we're seeing is for a sequence number > lwm + 1, we've missed some packets.
+		 * Recovery range r is lwm < r < x (where x = currentMessage.seqNum + 1) 
+		 * so that the round we're seeing right now is complete and we need save packets only after that point.
+		 */
 		if (mySeqNum > getLowWatermark().getSeqNum() + 1) {
 			synchronized(this) {
 				_state = OUT_OF_DATE;
+				_recoveryWindow = new RecoveryWindow(getLowWatermark().getSeqNum(), mySeqNum + 1);
+
+				// Return a broadcast message for AL with messages we require
+				//
+				return new Dispatch(NodeId.BROADCAST, 
+						new Need(_recoveryWindow.getMinSeqNum(), _recoveryWindow.getMaxSeqNum(), _nodeId.asLong()));
 			}
-			
-			// Return a broadcast message for AL with messages we require
-			//
-			return Dispatch.NO_RESPONSE;
 		}
 		
 		switch (aMessage.getType()) {
