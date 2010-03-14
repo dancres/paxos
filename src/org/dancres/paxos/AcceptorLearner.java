@@ -31,6 +31,9 @@ public class AcceptorLearner {
 	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue(
 			"org.dancres.paxos.Heartbeat".getBytes(), new byte[] {});
 
+	private static final short UP_TO_DATE = 1;
+	private static final short OUT_OF_DATE = 2;
+	
 	private static long DEFAULT_LEASE = 30 * 1000;
 	private static Logger _logger = LoggerFactory
 			.getLogger(AcceptorLearner.class);
@@ -43,6 +46,8 @@ public class AcceptorLearner {
 	private AtomicLong _ignoredCollects = new AtomicLong();
 	private AtomicLong _receivedHeartbeats = new AtomicLong();
 
+	private short _state = UP_TO_DATE;
+	
 	/**
 	 * @todo Must checkpoint _lastCollect, as it'll only be written in the log
 	 *       file the first time it appears and thus when we hit a checkpoint it
@@ -123,6 +128,11 @@ public class AcceptorLearner {
 		_leaderLease = aLeaderLease;
 	}
 	
+	/**
+	 * @todo Replay state, reload checkpoint etc
+	 * 
+	 * @throws Exception
+	 */
 	private void restore() throws Exception {
 		_storage.open();		
 	}
@@ -140,6 +150,12 @@ public class AcceptorLearner {
 		return _leaderLease;
 	}
 
+	public boolean isRecovering() {
+		synchronized(this) {
+			return (_state == OUT_OF_DATE);
+		}
+	}
+	
 	public void add(AcceptorLearnerListener aListener) {
 		synchronized (_listeners) {
 			_listeners.add(aListener);
@@ -171,7 +187,6 @@ public class AcceptorLearner {
 
 				_logger.info("AL:Low :" + _lowSeqNumWatermark);
 			}
-
 		}
 	}
 
@@ -251,14 +266,6 @@ public class AcceptorLearner {
 		}
 	}
 
-	public void messageReceived(PaxosMessage aMessage) {
-		Dispatch myDispatch = process(aMessage);
-		
-		if (! myDispatch.equals(Dispatch.NO_RESPONSE)) {
-			_transport.send(myDispatch.getMessage(), myDispatch.getNodeId());
-		}
-	}
-	
 	private static class Dispatch {
 		static final Dispatch NO_RESPONSE = new Dispatch(0, null);
 		
@@ -279,6 +286,46 @@ public class AcceptorLearner {
 		}
 	}
 	
+	public void messageReceived(PaxosMessage aMessage) {
+		Dispatch myDispatch;
+		short myState;
+		
+		synchronized(this) {
+			myState = _state;
+		}
+		
+		if (myState == OUT_OF_DATE) {
+			myDispatch = recover(aMessage);
+		} else {		
+			myDispatch = process(aMessage);
+		}
+		
+		if (! myDispatch.equals(Dispatch.NO_RESPONSE)) {
+			_transport.send(myDispatch.getMessage(), myDispatch.getNodeId());
+		}
+	}
+	
+	/**
+	 * @todo Implement recovery
+	 * 
+	 * @param aMessage is the message to process
+	 * @return is any message to send
+	 */
+	private Dispatch recover(PaxosMessage aMessage) {
+		if (aMessage.getClassification() == PaxosMessage.CLIENT)
+			return Dispatch.NO_RESPONSE;
+		else {
+			// Switch statement and test
+			return Dispatch.NO_RESPONSE;
+		}
+	}
+	
+	/**
+	 * @todo Implement recovery protocol packets etc
+	 * 
+	 * @param aMessage is the message to process
+	 * @return is any message to send
+	 */
 	private Dispatch process(PaxosMessage aMessage) {
 		long myNodeId = aMessage.getNodeId();
 		long myCurrentTime = System.currentTimeMillis();
@@ -286,6 +333,16 @@ public class AcceptorLearner {
 
 		_logger.info("AL: got [ " + mySeqNum + " ] : " + aMessage);
 
+		if (mySeqNum > getLowWatermark().getSeqNum() + 1) {
+			synchronized(this) {
+				_state = OUT_OF_DATE;
+			}
+			
+			// Return a broadcast message for AL with messages we require
+			//
+			return Dispatch.NO_RESPONSE;
+		}
+		
 		switch (aMessage.getType()) {
 			case Operations.COLLECT: {
 				Collect myCollect = (Collect) aMessage;
