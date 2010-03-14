@@ -312,7 +312,7 @@ public class AcceptorLearner {
 	 * @return is any message to send
 	 */
 	private Dispatch recover(PaxosMessage aMessage) {
-		if (aMessage.getClassification() == PaxosMessage.CLIENT)
+		if (aMessage.getClassification() == PaxosMessage.LEADER)
 			return Dispatch.NO_RESPONSE;
 		else {
 			// Switch statement and test
