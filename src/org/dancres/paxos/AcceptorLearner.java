@@ -85,6 +85,7 @@ public class AcceptorLearner {
 
 	private LogStorage _storage;
 	private Transport _transport;
+	private FailureDetector _fd;
 	
 	private final long _leaderLease;
     private final NodeId _nodeId;
@@ -133,14 +134,16 @@ public class AcceptorLearner {
 
 	private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
 
-	public AcceptorLearner(LogStorage aStore, Transport aTransport, NodeId aNodeId) {
-		this(aStore, aTransport, aNodeId, DEFAULT_LEASE);
+	public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport, NodeId aNodeId) {
+		this(aStore, anFD, aTransport, aNodeId, DEFAULT_LEASE);
 	}
 
-	public AcceptorLearner(LogStorage aStore, Transport aTransport, NodeId aNodeId, long aLeaderLease) {
+	public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport, 
+			NodeId aNodeId, long aLeaderLease) {
 		_storage = aStore;
 		_transport = aTransport;
 		_nodeId = aNodeId;
+		_fd = anFD;
 		
 		try {
 			restore();

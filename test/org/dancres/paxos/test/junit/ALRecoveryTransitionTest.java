@@ -18,6 +18,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Success;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.FileSystem;
+import org.dancres.paxos.test.utils.NullFailureDetector;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,7 +68,7 @@ public class ALRecoveryTransitionTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, myTransport, _nodeId, 0);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, _nodeId, 0);
 		
 		Assert.assertFalse(myAl.isRecovering());
 		

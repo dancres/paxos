@@ -12,6 +12,7 @@ import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.FileSystem;
+import org.dancres.paxos.test.utils.NullFailureDetector;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +51,7 @@ public class ALStartupTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, myTransport, _nodeId, 0);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, _nodeId, 0);
 		myAl.close();
 	}
 	

@@ -105,10 +105,11 @@ public class PaxosPeer {
 
         TransportImpl myTransport = new TransportImpl(myBroadcastSession, myUnicastSender);
         
-        AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage(), myTransport, 
-        		NodeId.from(myUnicastChannel.getLocalAddress()));
         FailureDetectorImpl myFd = new FailureDetectorImpl(5000);
         myFd.add(new ListenerImpl());
+
+        AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage(), myFd, myTransport, 
+        		NodeId.from(myUnicastChannel.getLocalAddress()));
 
         Leader myLeader = new Leader(myFd, NodeId.from(myUnicastChannel.getLocalAddress()), myTransport, myAl);
 

@@ -47,7 +47,7 @@ public class Node implements PacketListener {
         _tp = aTransport;
         _hb = new Heartbeater(NodeId.from(_addr), _tp);
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
-        _al = new AcceptorLearner(aLogger, _tp, NodeId.from(_addr));
+        _al = new AcceptorLearner(aLogger, _fd, _tp, NodeId.from(_addr));
         _ld = new Leader(_fd, NodeId.from(_addr), _tp, _al);
         _pq = new PacketQueueImpl(this);
         _al.add(new PacketBridge());    	
