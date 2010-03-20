@@ -75,14 +75,14 @@ public class OldAlStateTest {
 		long myRndNum = 1;
 		long mySeqNum = 0;
 		
-		// First collect, Al has no state so this is accepted and will be held in packet buffer
+		// First collect, Al has no state so this is accepted
 		//
 		myAl.messageReceived(new Collect(mySeqNum, myRndNum, _nodeId.asLong()));
 		
 		PaxosMessage myResponse = myTransport.getNextMsg();	
 		Assert.assertTrue(myResponse.getType() == Operations.LAST);
 		
-		// Now push a value into the Al, also held in packet buffer
+		// Now push a value into the Al
 		//
 		byte[] myData = new byte[] {1};
 		myAl.messageReceived(
@@ -93,7 +93,7 @@ public class OldAlStateTest {
 
 		/* 
 		 * Emulate leader having to do recovery and re-run the paxos instance with a new rnd number - the response
-		 * should be a last and it will be sourced from the packet buffer.
+		 * should be a last
 		 */		
 		myAl.messageReceived(new Collect(mySeqNum, myRndNum + 1, _nodeId.asLong()));
 		
