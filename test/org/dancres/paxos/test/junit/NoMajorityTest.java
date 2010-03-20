@@ -32,9 +32,9 @@ public class NoMajorityTest {
 
         _addr1 = _allocator.allocate();
 
-        _tport1 = new TransportImpl();
+        _tport1 = new TransportImpl(NodeId.from(_addr1));
 
-        _node1 = new Node(_addr1, _tport1, 5000);
+        _node1 = new Node(_tport1, 5000);
 
         /*
          * "Network" mappings for node1's broadcast channel

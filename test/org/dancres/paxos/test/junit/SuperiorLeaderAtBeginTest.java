@@ -41,12 +41,12 @@ public class SuperiorLeaderAtBeginTest {
         _addr1 = _allocator.allocate();
         _addr2 = _allocator.allocate();
 
-        _tport1 = new TransportImpl();
-        _tport2 = new TransportImpl();
+        _tport1 = new TransportImpl(NodeId.from(_addr1));
+        _tport2 = new TransportImpl(NodeId.from(_addr2));
 
-        _node1 = new Node(_addr1, _tport1, 5000);
+        _node1 = new Node(_tport1, 5000);
         // _node1.getLeader().setLeaderCheck(false);
-        _node2 = new OldRoundNode(_addr2, _tport2, 5000);
+        _node2 = new OldRoundNode(_tport2, 5000);
 
         /*
          * "Network" mappings for node1's broadcast channel
@@ -113,8 +113,8 @@ public class SuperiorLeaderAtBeginTest {
     }
 
     private static class OldRoundNode extends Node {
-        public OldRoundNode(InetSocketAddress anAddr, Transport aTransport, long anUnresponsivenessThreshold) {
-            super(anAddr, aTransport, anUnresponsivenessThreshold);
+        public OldRoundNode(Transport aTransport, long anUnresponsivenessThreshold) {
+            super(aTransport, anUnresponsivenessThreshold);
         }
 
         public void deliver(PaxosMessage aMessage) throws Exception {
@@ -130,8 +130,8 @@ public class SuperiorLeaderAtBeginTest {
                         Begin myBegin = (Begin) aMessage;
 
                         getTransport().send(
-                                new OldRound(myBegin.getSeqNum(), getLeader().getNodeId().asLong(), 
-                                		myBegin.getRndNumber() + 1, getLeader().getNodeId().asLong()),
+                                new OldRound(myBegin.getSeqNum(), getTransport().getLocalNodeId().asLong(), 
+                                		myBegin.getRndNumber() + 1, getTransport().getLocalNodeId().asLong()),
                                 NodeId.from(aMessage.getNodeId()));
                     } else {
                     	getAcceptorLearner().messageReceived(aMessage);

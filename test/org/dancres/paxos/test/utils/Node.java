@@ -25,7 +25,6 @@ public class Node implements PacketListener {
     private static Logger _logger = LoggerFactory.getLogger(Node.class);
 
     private NodeId _clientAddress;
-    private InetSocketAddress _addr;
     private AcceptorLearner _al;
     private Leader _ld;
     private FailureDetectorImpl _fd;
@@ -34,21 +33,19 @@ public class Node implements PacketListener {
     private Transport _tp;
 
     /**
-     * @param anAddr is the address this node should use
      * @param aTransport to use for sending messages
      * @param anUnresponsivenessThreshold is the time after which the failure detector may declare a node dead
      */
-    public Node(InetSocketAddress anAddr, Transport aTransport, long anUnresponsivenessThreshold) {
-    	this(anAddr, aTransport, anUnresponsivenessThreshold, new MemoryLogStorage());
+    public Node(Transport aTransport, long anUnresponsivenessThreshold) {
+    	this(aTransport, anUnresponsivenessThreshold, new MemoryLogStorage());
     }
 
-    public Node(InetSocketAddress anAddr, Transport aTransport, long anUnresponsivenessThreshold, LogStorage aLogger) {
-        _addr = anAddr;
+    public Node(Transport aTransport, long anUnresponsivenessThreshold, LogStorage aLogger) {
         _tp = aTransport;
-        _hb = new Heartbeater(NodeId.from(_addr), _tp);
+        _hb = new Heartbeater(_tp);
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
-        _al = new AcceptorLearner(aLogger, _fd, _tp, NodeId.from(_addr));
-        _ld = new Leader(_fd, NodeId.from(_addr), _tp, _al);
+        _al = new AcceptorLearner(aLogger, _fd, _tp);
+        _ld = new Leader(_fd, _tp, _al);
         _pq = new PacketQueueImpl(this);
         _al.add(new PacketBridge());    	
     }

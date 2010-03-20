@@ -41,6 +41,11 @@ public class ALRecoveryTransitionTest {
 	
 	private static class TransportImpl implements Transport {
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
+		private NodeId _nodeId;
+		
+		TransportImpl(NodeId aNodeId) {
+			_nodeId = aNodeId;
+		}
 		
 		public void send(PaxosMessage aMessage, NodeId aNodeId) {
 			synchronized(_messages) {
@@ -62,13 +67,17 @@ public class ALRecoveryTransitionTest {
 				return _messages.remove(0);
 			}
 		}
+
+		public NodeId getLocalNodeId() {
+			return _nodeId;
+		}
 	}
 	
 	@Test public void test() throws Exception {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
-		TransportImpl myTransport = new TransportImpl();
+		TransportImpl myTransport = new TransportImpl(_nodeId);
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, _nodeId, 0);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
 		
 		Assert.assertFalse(myAl.isRecovering());
 		

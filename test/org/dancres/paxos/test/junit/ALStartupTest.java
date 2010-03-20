@@ -23,7 +23,7 @@ public class ALStartupTest {
     private InetSocketAddress _addr1;
 	private NodeId _nodeId;
 	
-	private static class TransportImpl implements Transport {
+	private class TransportImpl implements Transport {
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 		
 		public void send(PaxosMessage aMessage, NodeId aNodeId) {
@@ -36,6 +36,10 @@ public class ALStartupTest {
 			synchronized(_messages) {
 				return _messages.remove(0);
 			}
+		}
+
+		public NodeId getLocalNodeId() {
+			return _nodeId;
 		}
 	}
 		
@@ -51,7 +55,7 @@ public class ALStartupTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, _nodeId, 0);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
 		myAl.close();
 	}
 	

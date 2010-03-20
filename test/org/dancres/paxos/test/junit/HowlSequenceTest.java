@@ -50,11 +50,11 @@ public class HowlSequenceTest {
         _addr1 = _allocator.allocate();
         _addr2 = _allocator.allocate();
 
-        _tport1 = new TransportImpl();
-        _tport2 = new TransportImpl();
+        _tport1 = new TransportImpl(NodeId.from(_addr1));
+        _tport2 = new TransportImpl(NodeId.from(_addr2));
 
-        _node1 = new Node(_addr1, _tport1, 5000, new HowlLogger(_node1Log));
-        _node2 = new Node(_addr2, _tport2, 5000, new HowlLogger(_node2Log));
+        _node1 = new Node(_tport1, 5000, new HowlLogger(_node1Log));
+        _node2 = new Node(_tport2, 5000, new HowlLogger(_node2Log));
 
         /*
          * "Network" mappings for node1's broadcast channel

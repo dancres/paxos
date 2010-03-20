@@ -21,13 +21,16 @@ public class TransportImpl implements Transport {
      */
     private NioDatagramConnector _unicastConnector;
 
+    private NodeId _nodeId;
+    
     /**
      * @param aNodeAddr is the address of our unicast port
      * @param aBroadcastSession is the session on which to send broadcast messages for acceptor learners
      * @param aUnicastConnector is the connector to use for contacting hosts directly when specified via NodeId
      */
-    public TransportImpl(IoSession aBroadcastSession, NioDatagramConnector aUnicastConnector) {
+    public TransportImpl(NodeId aLocalNodeId, IoSession aBroadcastSession, NioDatagramConnector aUnicastConnector) {
         super();
+        _nodeId = aLocalNodeId;
         _sessions.put(NodeId.BROADCAST, aBroadcastSession);
         _unicastConnector = aUnicastConnector;
     }
@@ -60,4 +63,8 @@ public class TransportImpl implements Transport {
 		
         mySession.write(aMessage);
     }
+
+	public NodeId getLocalNodeId() {
+		return _nodeId;
+	}
 }

@@ -40,12 +40,12 @@ public class DeadNodeTest {
         _addr1 = _allocator.allocate();
         _addr2 = _allocator.allocate();
 
-        _tport1 = new TransportImpl();
-        _tport2 = new DroppingTransportImpl();
+        _tport1 = new TransportImpl(NodeId.from(_addr1));
+        _tport2 = new DroppingTransportImpl(NodeId.from(_addr2));
 
-        _node1 = new Node(_addr1, _tport1, 5000);
+        _node1 = new Node(_tport1, 5000);
         // _node1.getLeader().setLeaderCheck(false);
-        _node2 = new Node(_addr2, _tport2, 5000);
+        _node2 = new Node(_tport2, 5000);
 
         /*
          * "Network" mappings for node1's broadcast channel
@@ -121,8 +121,8 @@ public class DeadNodeTest {
     static class DroppingTransportImpl extends TransportImpl {
         private boolean _drop;
 
-        DroppingTransportImpl() {
-            super();
+        DroppingTransportImpl(NodeId aNodeId) {
+            super(aNodeId);
         }
 
         public void send(PaxosMessage aMessage, NodeId anAddress) {

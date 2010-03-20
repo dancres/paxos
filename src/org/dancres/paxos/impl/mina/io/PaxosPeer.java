@@ -103,22 +103,21 @@ public class PaxosPeer {
         _logger.info("Broadcasting on: " + NetworkUtils.getBroadcastAddress());
         _logger.info("Broadcasting from: " + myBroadcastSession.getLocalAddress());
 
-        TransportImpl myTransport = new TransportImpl(myBroadcastSession, myUnicastSender);
+        TransportImpl myTransport = new TransportImpl(NodeId.from(myUnicastChannel.getLocalAddress()), 
+        		myBroadcastSession, myUnicastSender);
         
         FailureDetectorImpl myFd = new FailureDetectorImpl(5000);
         myFd.add(new ListenerImpl());
 
-        AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage(), myFd, myTransport, 
-        		NodeId.from(myUnicastChannel.getLocalAddress()));
+        AcceptorLearner myAl = new AcceptorLearner(new MemoryLogStorage(), myFd, myTransport);
 
-        Leader myLeader = new Leader(myFd, NodeId.from(myUnicastChannel.getLocalAddress()), myTransport, myAl);
+        Leader myLeader = new Leader(myFd, myTransport, myAl);
 
         myHandler.setAcceptorLearner(myAl);
         myHandler.setFailureDetector(myFd);
         myHandler.setLeader(myLeader);
         
-        Thread myHeartbeater = new Thread(
-        		new Heartbeater(NodeId.from(myUnicastChannel.getLocalAddress()), myTransport));
+        Thread myHeartbeater = new Thread(new Heartbeater(myTransport));
         myHeartbeater.setDaemon(true);
         myHeartbeater.start();
         

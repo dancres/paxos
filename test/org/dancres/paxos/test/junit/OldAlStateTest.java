@@ -42,7 +42,7 @@ public class OldAlStateTest {
         _nodeId = NodeId.from(_addr1);
 	}
 	
-	private static class TransportImpl implements Transport {
+	private class TransportImpl implements Transport {
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 		
 		public void send(PaxosMessage aMessage, NodeId aNodeId) {
@@ -65,13 +65,17 @@ public class OldAlStateTest {
 				return _messages.remove(0);
 			}
 		}
+
+		public NodeId getLocalNodeId() {
+			return _nodeId;
+		}
 	}
 	
 	@Test public void test() throws Exception {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, _nodeId, 0);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
 		
 		long myRndNum = 1;
 		long mySeqNum = 0;

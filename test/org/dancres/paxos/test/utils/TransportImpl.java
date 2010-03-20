@@ -9,8 +9,10 @@ import org.dancres.paxos.NodeId;
 
 public class TransportImpl implements Transport {
     private ConcurrentHashMap<NodeId, PacketQueue> _queues = new ConcurrentHashMap<NodeId, PacketQueue>();
-
-    public TransportImpl() {
+    private NodeId _nodeId;
+    
+    public TransportImpl(NodeId aNodeId) {
+    	_nodeId = aNodeId;
     }
 
     public void add(InetSocketAddress anAddress, PacketQueue aQueue) {
@@ -27,4 +29,8 @@ public class TransportImpl implements Transport {
             _queues.get(anAddress).add(aMessage);
         }
     }
+
+	public NodeId getLocalNodeId() {
+		return _nodeId;
+	}
 }

@@ -108,7 +108,6 @@ public class Leader implements MembershipListener {
     
     private final Timer _watchdog = new Timer("Leader timers");
     private final FailureDetector _detector;
-    private final NodeId _nodeId;
     private final Transport _transport;
     private final AcceptorLearner _al;
 
@@ -149,8 +148,7 @@ public class Leader implements MembershipListener {
 
     private List<Post> _queue = new LinkedList<Post>();
 
-    public Leader(FailureDetector aDetector, NodeId aNodeId, Transport aTransport, AcceptorLearner anAcceptorLearner) {
-        _nodeId = aNodeId;
+    public Leader(FailureDetector aDetector, Transport aTransport, AcceptorLearner anAcceptorLearner) {
         _detector = aDetector;
         _transport = aTransport;
         _al = anAcceptorLearner;
@@ -183,10 +181,6 @@ public class Leader implements MembershipListener {
      */
     private void updateRndNumber(long aNumber) {
         _rndNumber = aNumber;
-    }
-
-    public NodeId getNodeId() {
-        return _nodeId;
     }
 
     public boolean isReady() {
@@ -328,7 +322,7 @@ public class Leader implements MembershipListener {
                 	updateRndNumber(myLastCollect.getRndNumber() + 1);            		
             	} else { 
             		NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
-            		boolean isUs = myOtherLeader.equals(_nodeId);
+            		boolean isUs = myOtherLeader.equals(_transport.getLocalNodeId());
             		
             		/*
             		 *  If the leader is us, use our existing round number, otherwise ascertain liveness and if we are
@@ -511,7 +505,7 @@ public class Leader implements MembershipListener {
     private void emitCollect() {
         _messages.clear();
 
-        PaxosMessage myMessage = new Collect(_seqNum, getRndNumber(), _nodeId.asLong());
+        PaxosMessage myMessage = new Collect(_seqNum, getRndNumber(), _transport.getLocalNodeId().asLong());
 
         if (!startInteraction())
         	return;
@@ -525,7 +519,7 @@ public class Leader implements MembershipListener {
         _messages.clear();
 
         PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _queue.get(0).getConsolidatedValue(),
-        		_nodeId.asLong());
+        		_transport.getLocalNodeId().asLong());
 
         if (!startInteraction())
         	return;
@@ -539,7 +533,7 @@ public class Leader implements MembershipListener {
         _messages.clear();
 
         PaxosMessage myMessage = new Success(_seqNum, getRndNumber(),
-        		_queue.get(0).getConsolidatedValue(), _nodeId.asLong());
+        		_queue.get(0).getConsolidatedValue(), _transport.getLocalNodeId().asLong());
 
         if (!startInteraction())
         	return;
@@ -658,6 +652,7 @@ public class Leader implements MembershipListener {
     }
     
     public String toString() {
-    	return "Leader: " + _nodeId + ": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")";
+    	return "Leader: " + _transport.getLocalNodeId() +
+    		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")";
     }
 }

@@ -8,6 +8,8 @@ import org.dancres.paxos.messages.PaxosMessage;
  * @author dan
  */
 public interface Transport {
+	public NodeId getLocalNodeId();
+	
     /**
      * @param aMessage is the message to send
      * @param aNodeId is the abstract address of the target for the message which might be <code>Address.BROADCAST</code>.
