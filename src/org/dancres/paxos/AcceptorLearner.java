@@ -49,30 +49,7 @@ public class AcceptorLearner {
 
 	private short _state = UP_TO_DATE;
 
-	private static class RecoveryWindow {
-		private long _minSeqNum;
-		private long _maxSeqNum;
-		
-		RecoveryWindow(long aMin, long aMax) {
-			_minSeqNum = aMin;
-			_maxSeqNum = aMax;
-		}
-		
-		long getMinSeqNum() {
-			return _minSeqNum;
-		}
-
-		long getMaxSeqNum() {
-			return _maxSeqNum;
-		}
-	}
-
-	private Interaction _interaction;
-	
-	/**
-	 * Tracks the range of sequence numbers we're interested in getting from some other AL.
-	 */
-	private RecoveryWindow _recoveryWindow;
+	private Recovery _recovery;
 	
 	/**
 	 * @todo Must checkpoint _lastCollect, as it'll only be written in the log
@@ -300,66 +277,10 @@ public class AcceptorLearner {
 		}
 		
 		if (myState != UP_TO_DATE) {
-			recover(aMessage);
+			_recovery.messageReceived(aMessage);
 		} else {		
 			process(aMessage);
 		}		
-	}
-	
-	/**
-	 * @todo Implement recovery
-	 * 
-	 * @param aMessage is the message to process
-	 * @return is any message to send
-	 */
-	private void recover(PaxosMessage aMessage) {
-		if (aMessage.getClassification() == PaxosMessage.LEADER) {
-			/* 
-			 * Standard protocol messages are discarded unless they're for sequence numbers greater than our recovery
-			 * window.
-			 */
-		} else {
-			_interaction.messageReceived(aMessage);
-		}
-	}
-	
-	class NeedImpl implements MembershipListener, Interaction {
-		private List _messages = new ArrayList();
-		private Membership _membership;
-		
-		NeedImpl() {
-			emitNeed();
-		}
-		
-		void emitNeed() {
-			synchronized(_messages) {
-				_messages.clear();
-				_membership = _fd.getMembers(this);
-				if (_membership.startInteraction())
-					_transport.send(new Need(_recoveryWindow.getMinSeqNum(), _recoveryWindow.getMaxSeqNum(),
-						_transport.getLocalNodeId().asLong()), NodeId.BROADCAST);
-			}
-		}
-		
-		public void messageReceived(PaxosMessage aMessage) {
-			synchronized(_messages) {
-				_messages.add(aMessage);
-				_membership.receivedResponse(NodeId.from(aMessage.getNodeId()));
-			}
-		}
-
-		/**
-		 * @todo Implement re-send etc
-		 */
-		public void abort() {
-		}
-
-		/**
-		 * @todo Dispatch next interaction
-		 */
-		public void allReceived() {
-			_membership.dispose();
-		}
 	}
 	
 	/**
@@ -383,10 +304,9 @@ public class AcceptorLearner {
 		if (mySeqNum > getLowWatermark().getSeqNum() + 1) {
 			synchronized(this) {
 				_state = OUT_OF_DATE;
-				_recoveryWindow = new RecoveryWindow(getLowWatermark().getSeqNum(), mySeqNum + 1);
-				_interaction = new NeedImpl();
+				_recovery = new Recovery(getLowWatermark().getSeqNum(), mySeqNum + 1, _fd, _transport, this);
 				
-				// NeedImpl will generate a response...
+				// Recovery will generate a response...
 				//
 				return;
 			}
