@@ -12,9 +12,30 @@ import org.dancres.paxos.messages.Last;
 import org.dancres.paxos.messages.OldRound;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.messages.Success;
+import org.dancres.paxos.test.utils.Complete;
+import org.dancres.paxos.test.utils.Fail;
 import org.junit.*;
 
 public class CodecTest {
+	@Test public void fail() throws Exception {
+		Fail myFail = new Fail(1, 2);
+		
+		byte[] myBuffer = Codecs.encode(myFail);
+		
+		Fail myFail2 = (Fail) Codecs.decode(myBuffer);
+		Assert.assertTrue(myFail.getReason() == myFail2.getReason());
+		Assert.assertTrue(myFail.getSeqNum() == myFail2.getSeqNum());
+	}
+	
+	@Test public void complete() throws Exception {
+		Complete myComp = new Complete(1);
+		
+		byte[] myBuffer = Codecs.encode(myComp);
+		
+		Complete myComp2 = (Complete) Codecs.decode(myBuffer);
+		Assert.assertTrue(myComp.getSeqNum() == myComp2.getSeqNum());		
+	}
+	
     @Test public void accept() throws Exception {
         Accept myAccept = new Accept(1, 2, 3);
 

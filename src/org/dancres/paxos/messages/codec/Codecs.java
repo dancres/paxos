@@ -8,7 +8,7 @@ public class Codecs {
     public static final Codec[] CODECS = new Codec[] {
         new HeartbeatCodec(), new EmptyCodec(), new PostCodec(), new CollectCodec(), new LastCodec(),
             new BeginCodec(), new AcceptCodec(), new SuccessCodec(), new AckCodec(), new OldRoundCodec(),
-            new NeedCodec(), new EmptyCodec(), new EmptyCodec()
+            new NeedCodec(), new FailCodec(), new CompleteCodec()
     };
 
     public static byte[] encode(PaxosMessage aMessage) {
