@@ -66,7 +66,9 @@ public class AcceptorLearner {
 			return _maxSeqNum;
 		}
 	}
-		
+
+	private Interaction _interaction;
+	
 	/**
 	 * Tracks the range of sequence numbers we're interested in getting from some other AL.
 	 */
@@ -290,33 +292,7 @@ public class AcceptorLearner {
 		}
 	}
 
-	private static class Dispatch {
-		static final Dispatch NO_RESPONSE = new Dispatch(0, null);
-		
-		private NodeId _nodeId;
-		private PaxosMessage _message;
-		
-		Dispatch(long anId, PaxosMessage aMessage) {
-			_nodeId = NodeId.from(anId);
-			_message = aMessage;
-		}
-		
-		Dispatch(NodeId anId, PaxosMessage aMessage) {
-			_nodeId = anId;
-			_message = aMessage;
-		}
-		
-		PaxosMessage getMessage() {
-			return _message;
-		}
-		
-		NodeId getNodeId() {
-			return _nodeId;
-		}
-	}
-	
 	public void messageReceived(PaxosMessage aMessage) {
-		Dispatch myDispatch;
 		short myState;
 		
 		synchronized(this) {
@@ -324,14 +300,10 @@ public class AcceptorLearner {
 		}
 		
 		if (myState != UP_TO_DATE) {
-			myDispatch = recover(aMessage);
+			recover(aMessage);
 		} else {		
-			myDispatch = process(aMessage);
-		}
-		
-		if (! myDispatch.equals(Dispatch.NO_RESPONSE)) {
-			_transport.send(myDispatch.getMessage(), myDispatch.getNodeId());
-		}
+			process(aMessage);
+		}		
 	}
 	
 	/**
@@ -340,16 +312,53 @@ public class AcceptorLearner {
 	 * @param aMessage is the message to process
 	 * @return is any message to send
 	 */
-	private Dispatch recover(PaxosMessage aMessage) {
-		if (aMessage.getClassification() == PaxosMessage.LEADER)
+	private void recover(PaxosMessage aMessage) {
+		if (aMessage.getClassification() == PaxosMessage.LEADER) {
 			/* 
 			 * Standard protocol messages are discarded unless they're for sequence numbers greater than our recovery
 			 * window.
 			 */
-			return Dispatch.NO_RESPONSE;
-		else {
-			// Switch statement and test
-			return Dispatch.NO_RESPONSE;
+		} else {
+			_interaction.messageReceived(aMessage);
+		}
+	}
+	
+	class NeedImpl implements MembershipListener, Interaction {
+		private List _messages = new ArrayList();
+		private Membership _membership;
+		
+		NeedImpl() {
+			emitNeed();
+		}
+		
+		void emitNeed() {
+			synchronized(_messages) {
+				_messages.clear();
+				_membership = _fd.getMembers(this);
+				if (_membership.startInteraction())
+					_transport.send(new Need(_recoveryWindow.getMinSeqNum(), _recoveryWindow.getMaxSeqNum(),
+						_transport.getLocalNodeId().asLong()), NodeId.BROADCAST);
+			}
+		}
+		
+		public void messageReceived(PaxosMessage aMessage) {
+			synchronized(_messages) {
+				_messages.add(aMessage);
+				_membership.receivedResponse(NodeId.from(aMessage.getNodeId()));
+			}
+		}
+
+		/**
+		 * @todo Implement re-send etc
+		 */
+		public void abort() {
+		}
+
+		/**
+		 * @todo Dispatch next interaction
+		 */
+		public void allReceived() {
+			_membership.dispose();
 		}
 	}
 	
@@ -359,8 +368,8 @@ public class AcceptorLearner {
 	 * @param aMessage is the message to process
 	 * @return is any message to send
 	 */
-	private Dispatch process(PaxosMessage aMessage) {
-		long myNodeId = aMessage.getNodeId();
+	private void process(PaxosMessage aMessage) {
+		NodeId myNodeId = NodeId.from(aMessage.getNodeId());
 		long myCurrentTime = System.currentTimeMillis();
 		long mySeqNum = aMessage.getSeqNum();
 
@@ -375,12 +384,11 @@ public class AcceptorLearner {
 			synchronized(this) {
 				_state = OUT_OF_DATE;
 				_recoveryWindow = new RecoveryWindow(getLowWatermark().getSeqNum(), mySeqNum + 1);
-
-				// Return a broadcast message for AL with messages we require
+				_interaction = new NeedImpl();
+				
+				// NeedImpl will generate a response...
 				//
-				return new Dispatch(NodeId.BROADCAST, 
-						new Need(_recoveryWindow.getMinSeqNum(), _recoveryWindow.getMaxSeqNum(), 
-								_transport.getLocalNodeId().asLong()));
+				return;
 			}
 		}
 		
@@ -393,7 +401,7 @@ public class AcceptorLearner {
 
 					_logger.info("AL:Not accepting: " + myCollect + ", "
 							+ getIgnoredCollectsCount());
-					return Dispatch.NO_RESPONSE;
+					return;
 				}
 
 				// If the collect supercedes our previous collect save it to disk,
@@ -401,7 +409,7 @@ public class AcceptorLearner {
 				//
 				if (supercedes(myCollect)) {
 					write(aMessage, true);
-					return new Dispatch(myNodeId, constructLast(mySeqNum));
+					_transport.send(constructLast(mySeqNum), myNodeId);
 
 					/*
 					 * If the collect comes from the current leader (has same rnd
@@ -409,7 +417,7 @@ public class AcceptorLearner {
 					 * save to disk, just respond with last proposal etc
 					 */
 				} else if (isFromCurrentLeader(myCollect)) {
-					return new Dispatch(myNodeId, constructLast(mySeqNum));
+					_transport.send(constructLast(mySeqNum), myNodeId);
 
 				} else {
 					// Another collect has already arrived with a higher priority,
@@ -417,9 +425,11 @@ public class AcceptorLearner {
 					//
 					Collect myLastCollect = getLastCollect();
 
-					return new Dispatch(myNodeId, new OldRound(mySeqNum, myLastCollect.getNodeId(),
-							myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()));
+					_transport.send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
+							myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
 				}
+				
+				break;
 			}
 
 			case Operations.BEGIN: {
@@ -431,25 +441,25 @@ public class AcceptorLearner {
 					updateLastActionTime(myCurrentTime);
 					write(aMessage, true);
 
-					return new Dispatch(myNodeId, 
-							new Accept(mySeqNum, getLastCollect().getRndNumber(), 
-									_transport.getLocalNodeId().asLong()));
+					_transport.send(new Accept(mySeqNum, getLastCollect().getRndNumber(), 
+							_transport.getLocalNodeId().asLong()), myNodeId);
 				} else if (precedes(myBegin)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
 					Collect myLastCollect = getLastCollect();
 
-					return new Dispatch(myNodeId, new OldRound(mySeqNum, myLastCollect.getNodeId(),
-							myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()));
+					_transport.send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
+							myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
 				} else {
 					// Quiet, didn't see the collect, leader hasn't accounted for
 					// our values, it hasn't seen our last
 					//
 					_logger.info("AL:Missed collect, going silent: " + mySeqNum
 							+ " [ " + myBegin.getRndNumber() + " ]");
-					return Dispatch.NO_RESPONSE;
 				}
+				
+				break;
 			}
 
 			case Operations.SUCCESS: {
@@ -459,30 +469,32 @@ public class AcceptorLearner {
 
 				if (mySuccess.getSeqNum() <= getLowWatermark().getSeqNum()) {
 					_logger.info("AL:Discarded known value: " + mySuccess.getSeqNum());
-					return new Dispatch(myNodeId, new Ack(mySuccess.getSeqNum(), 
-							_transport.getLocalNodeId().asLong()));
-				} else
+					_transport.send(new Ack(mySuccess.getSeqNum(), _transport.getLocalNodeId().asLong()), myNodeId);
+				} else {
 					_logger.info("AL:Learnt value: " + mySuccess.getSeqNum());
 
-				// Always record the value even if it's the heartbeat so there are
-				// no gaps in the Paxos sequence
-				//
-				long myLogOffset = write(aMessage, true);
+					// Always record the value even if it's the heartbeat so there are
+					// no gaps in the Paxos sequence
+					//
+					long myLogOffset = write(aMessage, true);
 
-				updateLowWatermark(mySuccess.getSeqNum(), myLogOffset);
+					updateLowWatermark(mySuccess.getSeqNum(), myLogOffset);
 
-				if (mySuccess.getConsolidatedValue().equals(HEARTBEAT)) {
-					_receivedHeartbeats.incrementAndGet();
+					if (mySuccess.getConsolidatedValue().equals(HEARTBEAT)) {
+						_receivedHeartbeats.incrementAndGet();
 
-					_logger.info("AL: discarded heartbeat: "
-							+ System.currentTimeMillis() + ", "
-							+ getHeartbeatCount());
-				} else {
-					signal(new Event(Event.Reason.DECISION, mySuccess.getSeqNum(),
-							mySuccess.getConsolidatedValue(), null));
+						_logger.info("AL: discarded heartbeat: "
+								+ System.currentTimeMillis() + ", "
+								+ getHeartbeatCount());
+					} else {
+						signal(new Event(Event.Reason.DECISION, mySuccess.getSeqNum(),
+								mySuccess.getConsolidatedValue(), null));
+					}
+
+					_transport.send(new Ack(mySuccess.getSeqNum(), _transport.getLocalNodeId().asLong()), myNodeId);
 				}
-
-				return new Dispatch(myNodeId, new Ack(mySuccess.getSeqNum(), _transport.getLocalNodeId().asLong()));
+				
+				break;
 			}
 
 			default:

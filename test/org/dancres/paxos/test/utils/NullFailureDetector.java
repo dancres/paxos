@@ -20,8 +20,42 @@ public class NullFailureDetector implements FailureDetector {
 	}
 
 	public Membership getMembers(MembershipListener aListener) {
-		return null;
+		return new MembershipImpl(aListener);
 	}
+
+	class MembershipImpl implements Membership {
+		private MembershipListener _listener;
+		private int _responseCount = 2;
+		
+		MembershipImpl(MembershipListener aListener) {
+			_listener = aListener;
+		}
+		
+		public void dispose() {
+		}
+
+		public int getMajority() {
+			return 2;
+		}
+
+		public int getSize() {
+			return 2;
+		}
+
+		public boolean receivedResponse(NodeId aNodeId) {
+			synchronized(this) {
+				--_responseCount;
+				if (_responseCount == 0)
+					_listener.allReceived();
+			}
+			
+			return true;
+		}
+
+		public boolean startInteraction() {
+			return true;
+		}			
+	};
 
 	public long getUnresponsivenessThreshold() {
 		return 0;
