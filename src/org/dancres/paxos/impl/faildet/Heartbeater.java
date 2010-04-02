@@ -8,15 +8,28 @@ import org.dancres.paxos.NodeId;
  *
  * @author dan
  */
-public class Heartbeater implements Runnable {
+public class Heartbeater extends Thread {
     private Transport _transport;
+    private boolean _stopping = false;
     
     public Heartbeater(Transport aTransport) {
         _transport = aTransport;
     }
 
+    public void halt() {
+    	synchronized(this) {
+    		_stopping = true;
+    	}
+    }
+    
+    private boolean isStopping() {
+    	synchronized(this) {
+    		return _stopping;
+    	}
+    }
+    
     public void run() {
-        while (true) {
+        while (! isStopping()) {
             _transport.send(new Heartbeat(_transport.getLocalNodeId().asLong()), NodeId.BROADCAST);
             try {
                 Thread.sleep(2000);

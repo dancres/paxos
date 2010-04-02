@@ -13,4 +13,14 @@ public interface FailureDetector {
     public boolean amLeader(NodeId aNodeId);
     public Membership getMembers(MembershipListener aListener);
     public boolean isLive(NodeId aNodeId);
+    
+    /**
+     * Currently a simple majority test - ultimately we only need one member of the previous majority to be present
+     * in this majority for Paxos to work.
+     * 
+     * @return true if at this point, available membership would allow for a majority
+     */
+    public boolean couldComplete();
+    
+    public void stop();    
 }

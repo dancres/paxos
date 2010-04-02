@@ -64,4 +64,11 @@ public class NullFailureDetector implements FailureDetector {
 	public boolean isLive(NodeId aNodeId) {
 		return false;
 	}
+
+	public boolean couldComplete() {
+		return true;
+	}
+	
+	public void stop() {		
+	}
 }

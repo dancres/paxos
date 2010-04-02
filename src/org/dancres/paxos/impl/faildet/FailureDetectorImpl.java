@@ -30,7 +30,8 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     private Thread _scanner;
     private CopyOnWriteArraySet _listeners;
     private long _maximumPeriodOfUnresponsiveness;
-
+    private boolean _stopping;
+    
     private Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
 
     /**
@@ -44,8 +45,27 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
     }
 
+    public void stop() {
+    	synchronized(this) {
+    		_stopping = true;
+    	}
+
+    	try {
+    		_scanner.join();
+    	} catch (InterruptedException anIE) {    		
+    	}
+    	
+    	_executor.shutdownNow();
+    }
+    
+    private boolean isStopping() {
+    	synchronized(this) {
+    		return _stopping;
+    	}
+    }
+    
     public void run() {
-        while(true) {
+        while(! isStopping()) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
