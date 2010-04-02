@@ -41,6 +41,9 @@ public class ALStartupTest {
 		public NodeId getLocalNodeId() {
 			return _nodeId;
 		}
+
+		public void shutdown() {
+		}
 	}
 		
 	@Before public void init() throws Exception {

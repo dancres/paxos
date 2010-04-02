@@ -69,6 +69,9 @@ public class OldAlStateTest {
 		public NodeId getLocalNodeId() {
 			return _nodeId;
 		}
+
+		public void shutdown() {
+		}
 	}
 	
 	@Test public void test() throws Exception {
