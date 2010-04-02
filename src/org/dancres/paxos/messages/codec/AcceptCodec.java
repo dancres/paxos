@@ -10,11 +10,8 @@ public class AcceptCodec implements Codec {
         Accept myAccept = (Accept) anObject;
 
         // 4-byte length, 4-byte op, 3 * 8 bytes for Accept
-        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8);
+        ByteBuffer myBuffer = ByteBuffer.allocate(4 + 8 + 8 + 8);
 
-        // Length count does not include length bytes themselves
-        //
-        myBuffer.putInt(4 + 3 * 8);
         myBuffer.putInt(Operations.ACCEPT);
         myBuffer.putLong(myAccept.getSeqNum());
         myBuffer.putLong(myAccept.getRndNumber());
@@ -25,9 +22,6 @@ public class AcceptCodec implements Codec {
     }
 
     public Object decode(ByteBuffer aBuffer) {
-        // Discard the length and operation so remaining data can be processed
-        // separately
-        aBuffer.getInt();
         aBuffer.getInt();
 
         long mySeq = aBuffer.getLong();

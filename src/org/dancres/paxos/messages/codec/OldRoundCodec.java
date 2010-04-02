@@ -10,11 +10,8 @@ public class OldRoundCodec implements Codec {
         OldRound myOldRound = (OldRound) anObject;
 
         // 4-byte length, 4-byte op, 4 * 8 bytes for OldRound
-        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + 8);
+        ByteBuffer myBuffer = ByteBuffer.allocate(4 + 8 + 8 + 8 + 8);
 
-        // Length count does not include length bytes themselves
-        //
-        myBuffer.putInt(4 + 4 * 8);
         myBuffer.putInt(Operations.OLDROUND);
         myBuffer.putLong(myOldRound.getSeqNum());
         myBuffer.putLong(myOldRound.getLeaderNodeId());
@@ -26,9 +23,6 @@ public class OldRoundCodec implements Codec {
     }
 
     public Object decode(ByteBuffer aBuffer) {
-        // Discard the length and operation so remaining data can be processed
-        // separately
-        aBuffer.getInt();
         aBuffer.getInt();
 
         long mySeq = aBuffer.getLong();

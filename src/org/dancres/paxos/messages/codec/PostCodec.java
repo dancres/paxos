@@ -15,8 +15,8 @@ public class PostCodec implements Codec {
 
         // Length count does not include length bytes themselves
         //
-        myBuffer.putInt(4 + 8 + myBytes.length);
         myBuffer.putInt(Operations.POST);
+        myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myPost.getNodeId());
         myBuffer.put(myBytes);
         myBuffer.flip();
@@ -24,12 +24,12 @@ public class PostCodec implements Codec {
     }
 
     public Object decode(ByteBuffer aBuffer) {
-        // Discard the length and operation so remaining data can be processed
-        // separately
-        int myArrLength = aBuffer.getInt() - 4 - 8;
-
         // Discard type
         aBuffer.getInt();
+
+        // Discard the length and operation so remaining data can be processed
+        // separately
+        int myArrLength = aBuffer.getInt();
 
         long myNodeId = aBuffer.getLong();
         

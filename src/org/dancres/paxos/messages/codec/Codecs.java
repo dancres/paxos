@@ -22,7 +22,7 @@ public class Codecs {
         ByteBuffer myBuffer = ByteBuffer.wrap(aBuffer);
         int myOp;
         
-		myOp = myBuffer.getInt(4);
+		myOp = myBuffer.getInt(0);
 
         Codec myCodec = Codecs.CODECS[myOp];
 

@@ -12,8 +12,7 @@ public class NeedCodec implements Codec {
 		
 		ByteBuffer myBuffer;
 		
-		myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + 8);
-		myBuffer.putInt(4 + 8 + 8 + 8);
+		myBuffer = ByteBuffer.allocate(4 + 8 + 8 + 8);
 		myBuffer.putInt(Operations.NEED);
 		myBuffer.putLong(myNeed.getMinSeq());
 		myBuffer.putLong(myNeed.getMaxSeq());
@@ -24,9 +23,6 @@ public class NeedCodec implements Codec {
 	}
 
 	public Object decode(ByteBuffer aBuffer) {
-		// Discard length
-		aBuffer.getInt();
-		
 		// Discard type
 		aBuffer.getInt();
 		

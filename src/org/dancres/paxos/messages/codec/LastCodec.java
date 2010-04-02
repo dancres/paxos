@@ -18,14 +18,13 @@ public class LastCodec implements Codec {
         else
             myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + 8 + myBytes.length);
 
-        // Length count does not include length bytes themselves
-        //
-        if (myBytes == null)
-            myBuffer.putInt(4 + 8 + 8 + 8 + 8);
-        else
-            myBuffer.putInt(4 + 8 + 8 + 8 + 8 + myBytes.length);
-
         myBuffer.putInt(Operations.LAST);
+
+        if (myBytes == null)
+            myBuffer.putInt(0);
+        else
+            myBuffer.putInt(myBytes.length);
+
         myBuffer.putLong(myLast.getSeqNum());
         myBuffer.putLong(myLast.getLowWatermark());
         myBuffer.putLong(myLast.getRndNumber());
@@ -39,12 +38,12 @@ public class LastCodec implements Codec {
     }
 
     public Object decode(ByteBuffer aBuffer) {
-        // Discard the length and operation so remaining data can be processed
-        // separately
-        int myArrLength = aBuffer.getInt() - (4 + 8 + 8 + 8 + 8);
-
         // Discard type
         aBuffer.getInt();
+
+        // Discard the length and operation so remaining data can be processed
+        // separately
+        int myArrLength = aBuffer.getInt();
 
         long mySeqNum = aBuffer.getLong();
         long myLow = aBuffer.getLong();
