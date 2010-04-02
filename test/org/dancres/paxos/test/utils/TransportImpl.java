@@ -33,4 +33,7 @@ public class TransportImpl implements Transport {
 	public NodeId getLocalNodeId() {
 		return _nodeId;
 	}
+
+	public void shutdown() {
+	}
 }

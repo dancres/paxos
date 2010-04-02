@@ -15,4 +15,6 @@ public interface Transport {
      * @param aNodeId is the abstract address of the target for the message which might be <code>Address.BROADCAST</code>.
      */
     public void send(PaxosMessage aMessage, NodeId aNodeId);
+    
+    public void shutdown();
 }

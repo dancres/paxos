@@ -38,6 +38,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	public static final int BROADCAST_PORT = 41952;
 
 	private static InetSocketAddress _mcastAddr;
+	private DatagramChannelFactory _mcastFactory;
 	private DatagramChannel _mcast;
 	private DatagramChannelFactory _unicastFactory;
 	private DatagramChannel _unicast;
@@ -50,16 +51,13 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 	
 	public TransportImpl(Dispatcher aDispatcher) throws Exception {
-		_dispatcher = aDispatcher;
-		_dispatcher.setTransport(this);
-		
 		InetSocketAddress myMcastTarget = new InetSocketAddress((InetAddress) null,
 				BROADCAST_PORT);
 		_mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
 
-		DatagramChannelFactory myFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool());
+		_mcastFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool());
 
-		_mcast = myFactory.newChannel(newPipeline());
+		_mcast = _mcastFactory.newChannel(newPipeline());
 		ChannelFuture myFuture = _mcast.bind(myMcastTarget);
 		myFuture.await();
 		_mcast.joinGroup(_mcastAddr.getAddress());
@@ -73,8 +71,43 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		_nodeId = NodeId.from(_unicast.getLocalAddress());
 		
 		_logger.info("Transport bound on: " + _nodeId);
+
+		synchronized(this) {
+			_dispatcher = aDispatcher;
+			_dispatcher.setTransport(this);
+		}
 	}
 
+	public void shutdown() {
+		try {
+			_logger.info("Unbind mcast");
+
+			ChannelFuture myFuture = _mcast.unbind();
+			myFuture.await();
+
+			_logger.info("Close unicast");
+
+			myFuture = _unicast.close();
+			myFuture.await();
+
+			_logger.info("Unbind unicast");
+
+			myFuture = _unicast.unbind();
+			myFuture.await();
+
+			_logger.info("Stop mcast factory");
+			_mcastFactory.releaseExternalResources();
+
+			_logger.info("Stop unicast factory");
+			_unicastFactory.releaseExternalResources();
+
+			_logger.info("Shutdown complete");
+		} catch (Exception anE) {
+			_logger.error("Failed to shutdown cleanly", anE);
+		}
+
+	}
+	
 	private ChannelPipeline newPipeline() {
 		ChannelPipeline myPipeline = Channels.pipeline();
 		myPipeline.addLast("framer", new Framer());
@@ -91,7 +124,14 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 
     public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {
-    	_dispatcher.messageReceived((PaxosMessage) anEvent.getMessage());
+    	Dispatcher myDispatcher;
+    	
+    	synchronized(this) {
+    		myDispatcher = _dispatcher;
+    	}
+    	
+    	if (myDispatcher != null)
+    		myDispatcher.messageReceived((PaxosMessage) anEvent.getMessage());
     }
 
     public void exceptionCaught(ChannelHandlerContext aContext, ExceptionEvent anEvent) {
@@ -189,6 +229,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		
 		_tport1.send(new Accept(1, 2, _tport1.getLocalNodeId().asLong()), NodeId.BROADCAST);
 		_tport1.send(new Accept(2, 3, _tport2.getLocalNodeId().asLong()), _tport2.getLocalNodeId());
+		
+		Thread.sleep(5000);
+		_tport1.shutdown();
+		_tport2.shutdown();
 	}
 	
 	static class DispatcherImpl implements Dispatcher {
