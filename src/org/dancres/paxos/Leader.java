@@ -154,6 +154,10 @@ public class Leader implements MembershipListener {
         _al = anAcceptorLearner;
     }
 
+    public void shutdown() {
+    	_watchdog.cancel();
+    }
+    
     private long calculateLeaderRefresh() {
         long myExpiry = _al.getLeaderLeaseDuration();
         return myExpiry - (myExpiry * 20 / 100);
