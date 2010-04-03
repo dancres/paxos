@@ -42,7 +42,6 @@
     <path id="allclasses">
         <pathelement location="${build}"/>
         <pathelement location="${otherlib}/netty-3.1.5.GA.jar"/>
-        <pathelement location="${otherlib}/mina-core-2.0.0-M1.jar"/>
         <pathelement location="${otherlib}/slf4j-api-1.5.0.jar"/>
         <pathelement location="${otherlib}/slf4j-jdk14-1.5.0.jar"/>
     	<pathelement location="${otherlib}/jmdns-2.0/lib/jmdns.jar"/>
