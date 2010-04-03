@@ -12,6 +12,8 @@ import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
+import org.dancres.paxos.messages.Complete;
+import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

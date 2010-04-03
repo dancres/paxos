@@ -2,8 +2,8 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.test.utils.Fail;
 
 public class FailCodec implements Codec {
 

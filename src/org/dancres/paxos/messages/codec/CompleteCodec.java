@@ -2,8 +2,8 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.test.utils.Complete;
 
 public class CompleteCodec implements Codec {
 

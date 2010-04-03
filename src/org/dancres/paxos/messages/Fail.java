@@ -1,8 +1,6 @@
-package org.dancres.paxos.test.utils;
+package org.dancres.paxos.messages;
 
 import org.dancres.paxos.NodeId;
-import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.messages.PaxosMessage;
 
 public class Fail implements PaxosMessage {
     private long _seqNum;

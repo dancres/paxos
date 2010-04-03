@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.messages.Begin;
+import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.OldRound;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -11,7 +12,6 @@ import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.NodeId;
 import org.dancres.paxos.test.utils.ClientDispatcher;
-import org.dancres.paxos.test.utils.Fail;
 import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.*;
 

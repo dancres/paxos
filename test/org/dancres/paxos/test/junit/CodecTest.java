@@ -12,8 +12,8 @@ import org.dancres.paxos.messages.Last;
 import org.dancres.paxos.messages.OldRound;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.messages.Success;
-import org.dancres.paxos.test.utils.Complete;
-import org.dancres.paxos.test.utils.Fail;
+import org.dancres.paxos.messages.Complete;
+import org.dancres.paxos.messages.Fail;
 import org.junit.*;
 
 public class CodecTest {
