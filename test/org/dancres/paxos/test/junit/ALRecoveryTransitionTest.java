@@ -1,7 +1,6 @@
 package org.dancres.paxos.test.junit;
 
 import java.io.File;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +15,6 @@ import org.dancres.paxos.messages.Need;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Success;
-import org.dancres.paxos.test.utils.AddressGenerator;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
 import org.junit.Assert;
@@ -27,16 +25,12 @@ public class ALRecoveryTransitionTest {
 	private static final String DIRECTORY = "howllogs";
 	private static byte[] HANDBACK = new byte[] {1, 2, 3, 4};
 	
-    private AddressGenerator _allocator;
-    private InetSocketAddress _addr1;
 	private NodeId _nodeId;
 	
 	@Before public void init() throws Exception {
     	FileSystem.deleteDirectory(new File(DIRECTORY));
     	
-        _allocator = new AddressGenerator();
-        _addr1 = _allocator.allocate();
-        _nodeId = NodeId.from(_addr1);
+        _nodeId = NodeId.from(12345678);
 	}
 	
 	private static class TransportImpl implements Transport {

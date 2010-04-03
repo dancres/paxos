@@ -1,22 +1,17 @@
 package org.dancres.paxos.test.junit;
 
 import java.io.File;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.NodeId;
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.HowlLogger;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
-import org.dancres.paxos.test.utils.AddressGenerator;
-import org.dancres.paxos.test.utils.ClientPacketFilter;
+import org.dancres.paxos.test.utils.ClientDispatcher;
 import org.dancres.paxos.test.utils.FileSystem;
-import org.dancres.paxos.test.utils.Node;
-import org.dancres.paxos.test.utils.PacketQueue;
-import org.dancres.paxos.test.utils.PacketQueueImpl;
-import org.dancres.paxos.test.utils.TransportImpl;
+import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -28,13 +23,8 @@ public class HowlSequenceTest {
 	
 	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
 	
-    private AddressGenerator _allocator;
-
-    private InetSocketAddress _addr1;
-    private InetSocketAddress _addr2;
-
-    private Node _node1;
-    private Node _node2;
+    private ServerDispatcher _node1;
+    private ServerDispatcher _node2;
 
     private TransportImpl _tport1;
     private TransportImpl _tport2;
@@ -45,37 +35,10 @@ public class HowlSequenceTest {
     	
         Runtime.getRuntime().runFinalizersOnExit(true);
 
-        _allocator = new AddressGenerator();
-
-        _addr1 = _allocator.allocate();
-        _addr2 = _allocator.allocate();
-
-        _tport1 = new TransportImpl(NodeId.from(_addr1));
-        _tport2 = new TransportImpl(NodeId.from(_addr2));
-
-        _node1 = new Node(_tport1, 5000, new HowlLogger(_node1Log));
-        _node2 = new Node(_tport2, 5000, new HowlLogger(_node2Log));
-
-        /*
-         * "Network" mappings for node1's broadcast channel
-         *
-         * addr1 maps to a channel that sends packets from addr1 to node1's queue
-         * addr2 maps to a channel that sends packets from addr1 to node2's queue
-         */
-        _tport1.add(_addr1, _node1.getQueue());
-        _tport1.add(_addr2, _node2.getQueue());
-
-        /*
-         * "Network" mappings for node2's broadcast channel
-         *
-         * addr1 maps to a channel that sends packets from addr2 to node1's queue
-         * addr2 maps to a channel that sends packets from addr2 to node2's queue
-         */
-        _tport2.add(_addr1, _node1.getQueue());
-        _tport2.add(_addr2, _node2.getQueue());
-
-        _node1.startup();
-        _node2.startup();
+        _node1 = new ServerDispatcher(5000, new HowlLogger(_node1Log));
+        _node2 = new ServerDispatcher(5000, new HowlLogger(_node2Log));        
+        _tport1 = new TransportImpl(_node1);
+        _tport2 = new TransportImpl(_node2);
     }
 
     @After public void stop() throws Exception {
@@ -84,13 +47,9 @@ public class HowlSequenceTest {
     }
     
     @Test public void post() throws Exception {
-        PacketQueue myQueue = new ClientPacketFilter(new PacketQueueImpl());
-        InetSocketAddress myAddr = _allocator.allocate();
-
-        _tport1.add(myAddr, myQueue);
-        _tport2.add(myAddr, myQueue);
-
-        FailureDetectorImpl myFd = _node1.getFailureDetector();
+    	ClientDispatcher myClient = new ClientDispatcher();
+    	TransportImpl myTransport = new TransportImpl(myClient);
+        FailureDetector myFd = _node1.getFailureDetector();
 
         int myChances = 0;
 
@@ -106,9 +65,10 @@ public class HowlSequenceTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
 
-            _node2.getQueue().add(new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong()));
+            myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()),
+            	_tport2.getLocalNodeId());
 
-            PaxosMessage myMsg = myQueue.getNext(10000);
+            PaxosMessage myMsg = myClient.getNext(10000);
 
             Assert.assertFalse((myMsg == null));
 
@@ -126,6 +86,8 @@ public class HowlSequenceTest {
          *  second AL has finished processing the same success, by which time the log has been shut in that AL causing
          *  the assertion. 
          */
-        Thread.sleep(5000);        
+        Thread.sleep(5000);
+        
+        myClient.shutdown();
     }
 }

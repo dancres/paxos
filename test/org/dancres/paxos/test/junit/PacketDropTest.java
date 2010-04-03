@@ -1,70 +1,32 @@
 package org.dancres.paxos.test.junit;
 
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.impl.faildet.Heartbeat;
+import org.dancres.paxos.impl.netty.TransportImpl;
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.NodeId;
 import org.dancres.paxos.Event;
-import org.dancres.paxos.test.utils.AddressGenerator;
+import org.dancres.paxos.test.utils.ClientDispatcher;
 import org.dancres.paxos.test.utils.Fail;
-import org.dancres.paxos.test.utils.Node;
-import org.dancres.paxos.test.utils.PacketQueue;
-import org.dancres.paxos.test.utils.PacketQueueImpl;
-import org.dancres.paxos.test.utils.ClientPacketFilter;
-import org.dancres.paxos.test.utils.TransportImpl;
+import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.*;
 
 public class PacketDropTest {
 	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
 	
-    private AddressGenerator _allocator;
-
-    private InetSocketAddress _addr1;
-    private InetSocketAddress _addr2;
-
     private TransportImpl _tport1;
     private TransportImpl _tport2;
 
-    private Node _node1;
-    private Node _node2;
+    private ServerDispatcher _node1;
+    private ServerDispatcher _node2;
 
     @Before public void init() throws Exception {
-        _allocator = new AddressGenerator();
-
-        _addr1 = _allocator.allocate();
-        _addr2 = _allocator.allocate();
-
-        _tport1 = new TransportImpl(NodeId.from(_addr1));
-        _tport2 = new DroppingTransportImpl(NodeId.from(_addr2));
-
-        _node1 = new Node(_tport1, 5000);
-        // _node1.getLeader().setLeaderCheck(false);
-        _node2 = new Node(_tport2, 5000);
-
-        /*
-         * "Network" mappings for node1's broadcast channel
-         *
-         * addr1 maps to a channel that sends packets from addr1 to node1's queue
-         * addr2 maps to a channel that sends packets from addr1 to node2's queue
-         */
-        _tport1.add(_addr1, _node1.getQueue());
-        _tport1.add(_addr2, _node2.getQueue());
-
-        /*
-         * "Network" mappings for node2's broadcast channel
-         *
-         * addr1 maps to a channel that sends packets from addr2 to node1's queue
-         * addr2 maps to a channel that sends packets from addr2 to node2's queue
-         */
-        _tport2.add(_addr1, _node1.getQueue());
-        _tport2.add(_addr2, _node2.getQueue());
-
-        _node1.startup();
-        _node2.startup();
+    	_node1 = new ServerDispatcher(5000);
+    	_node2 = new ServerDispatcher(5000);
+        _tport1 = new TransportImpl(_node1);
+        _tport2 = new DroppingTransportImpl(_node2);
     }
 
     @After public void stop() throws Exception {
@@ -79,16 +41,13 @@ public class PacketDropTest {
      * @throws java.lang.Exception
      */
     @Test public void post() throws Exception {
-        PacketQueue myQueue = new ClientPacketFilter(new PacketQueueImpl());
-        InetSocketAddress myAddr = _allocator.allocate();
+    	ClientDispatcher myClient = new ClientDispatcher();
+    	TransportImpl myTransport = new TransportImpl(myClient);
 
-        _tport1.add(myAddr, myQueue);
-        _tport2.add(myAddr, myQueue);
-
-        ByteBuffer myBuffer = ByteBuffer.allocate(4);
+    	ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
-        FailureDetectorImpl myFd = _node1.getFailureDetector();
+        FailureDetector myFd = _node1.getFailureDetector();
 
         int myChances = 0;
 
@@ -105,8 +64,10 @@ public class PacketDropTest {
          * If there is no stable majority and we cannot circumvent packet loss we expect the leader to ultimately
          * give up.
          */
-        _node1.getQueue().add(new Post(myBuffer.array(), HANDBACK, NodeId.from(myAddr).asLong()));
-        PaxosMessage myMsg = myQueue.getNext(15000);
+        myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()), 
+        		_tport1.getLocalNodeId());
+
+        PaxosMessage myMsg = myClient.getNext(15000);
 
         Assert.assertFalse((myMsg == null));
 
@@ -122,8 +83,8 @@ public class PacketDropTest {
     static class DroppingTransportImpl extends TransportImpl {
         private boolean _drop;
 
-        DroppingTransportImpl(NodeId aNodeId) {
-            super(aNodeId);
+        DroppingTransportImpl(Dispatcher aDispatcher) throws Exception {
+        	super(aDispatcher);
         }
 
         public void send(PaxosMessage aMessage, NodeId anAddress) {

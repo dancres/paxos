@@ -13,7 +13,6 @@ import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.test.utils.Node.PacketBridge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +90,10 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
         _hb.start();
 	}
 	
+	public Transport getTransport() {
+		return _tp;
+	}
+	
 	public FailureDetector getFailureDetector() {
 		return _fd;
 	}
@@ -126,5 +129,13 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
                 _tp.send(new Fail(anEvent.getSeqNum(), anEvent.getResult()), _clientAddress);
             }
         }
-    }	
+    }
+
+	public AcceptorLearner getAcceptorLearner() {
+		return _al;
+	}
+
+	public Leader getLeader() {
+		return _ld;
+	}	
 }

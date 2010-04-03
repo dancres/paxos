@@ -80,28 +80,28 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 	public void shutdown() {
 		try {
-			_logger.info("Unbind mcast");
+			_logger.debug("Unbind mcast");
 
 			ChannelFuture myFuture = _mcast.unbind();
 			myFuture.await();
 
-			_logger.info("Close unicast");
+			_logger.debug("Close unicast");
 
 			myFuture = _unicast.close();
 			myFuture.await();
 
-			_logger.info("Unbind unicast");
+			_logger.debug("Unbind unicast");
 
 			myFuture = _unicast.unbind();
 			myFuture.await();
 
-			_logger.info("Stop mcast factory");
+			_logger.debug("Stop mcast factory");
 			_mcastFactory.releaseExternalResources();
 
-			_logger.info("Stop unicast factory");
+			_logger.debug("Stop unicast factory");
 			_unicastFactory.releaseExternalResources();
 
-			_logger.info("Shutdown complete");
+			_logger.debug("Shutdown complete");
 		} catch (Exception anE) {
 			_logger.error("Failed to shutdown cleanly", anE);
 		}
