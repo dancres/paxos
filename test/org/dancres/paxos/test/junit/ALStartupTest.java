@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.NodeId;
+import org.dancres.paxos.Stream;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -40,6 +41,10 @@ public class ALStartupTest {
 
 		public void shutdown() {
 		}
+
+		public Stream connectTo(NodeId aNodeId) {
+			return null;
+		}	
 	}
 		
 	@Before public void init() throws Exception {

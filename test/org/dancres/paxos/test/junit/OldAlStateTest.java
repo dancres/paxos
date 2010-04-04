@@ -7,6 +7,7 @@ import java.util.List;
 import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.ConsolidatedValue;
 import org.dancres.paxos.NodeId;
+import org.dancres.paxos.Stream;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.messages.Begin;
@@ -65,6 +66,10 @@ public class OldAlStateTest {
 		}
 
 		public void shutdown() {
+		}
+
+		public Stream connectTo(NodeId aNodeId) {
+			return null;
 		}
 	}
 	

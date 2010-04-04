@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.Executors;
 
 import org.dancres.paxos.NodeId;
+import org.dancres.paxos.Stream;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.NetworkUtils;
 import org.dancres.paxos.messages.Accept;
@@ -17,13 +18,19 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.ChildChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.channel.socket.DatagramChannel;
 import org.jboss.netty.channel.socket.DatagramChannelFactory;
+import org.jboss.netty.channel.socket.ServerSocketChannel;
+import org.jboss.netty.channel.socket.SocketChannel;
+import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory;
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.oio.OioDatagramChannelFactory;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import org.jboss.netty.handler.codec.oneone.OneToOneDecoder;
@@ -42,6 +49,9 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private DatagramChannel _mcast;
 	private DatagramChannelFactory _unicastFactory;
 	private DatagramChannel _unicast;
+	private NioServerSocketChannelFactory _serverStreamFactory; 
+	private ServerSocketChannel _serverStreamChannel;
+	private NioClientSocketChannelFactory _clientStreamFactory;
 	private Dispatcher _dispatcher;
 	private NodeId _nodeId;
 	
@@ -72,6 +82,16 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		
 		_logger.info("Transport bound on: " + _nodeId);
 
+		_serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), 
+				Executors.newCachedThreadPool());
+		
+		_serverStreamChannel = _serverStreamFactory.newChannel(newPipeline());
+		_serverStreamChannel.bind(_unicast.getLocalAddress());
+		_serverStreamChannel.getConfig().setPipelineFactory(Channels.pipelineFactory(newPipeline()));
+		
+		_clientStreamFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(),
+				Executors.newCachedThreadPool());
+		
 		synchronized(this) {
 			_dispatcher = aDispatcher;
 			_dispatcher.setTransport(this);
@@ -81,26 +101,37 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	public void shutdown() {
 		try {
 			_logger.debug("Unbind mcast");
-
 			ChannelFuture myFuture = _mcast.unbind();
 			myFuture.await();
 
 			_logger.debug("Close unicast");
-
 			myFuture = _unicast.close();
 			myFuture.await();
 
 			_logger.debug("Unbind unicast");
-
 			myFuture = _unicast.unbind();
 			myFuture.await();
 
+			_logger.debug("Close serverstream");
+			myFuture = _serverStreamChannel.close();
+			myFuture.await();
+			
+			_logger.debug("Unbind serverstream");
+			myFuture = _serverStreamChannel.unbind();
+			myFuture.await();
+			
 			_logger.debug("Stop mcast factory");
 			_mcastFactory.releaseExternalResources();
 
 			_logger.debug("Stop unicast factory");
 			_unicastFactory.releaseExternalResources();
 
+			_logger.debug("Stop serverstream factory");
+			_serverStreamFactory.releaseExternalResources();
+			
+			_logger.debug("Stop clientstream factory");
+			_clientStreamFactory.releaseExternalResources();			
+			
 			_logger.debug("Shutdown complete");
 		} catch (Exception anE) {
 			_logger.error("Failed to shutdown cleanly", anE);
@@ -123,6 +154,14 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		return _nodeId;
 	}
 
+	public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		_logger.info("Connected: " + ctx + ", " + e);
+	}
+	
+	public void childChannelOpen(ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception {
+		_logger.info("Stream open: " + ctx + ", " + e);		
+	}
+	
     public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {
     	Dispatcher myDispatcher;
     	
@@ -151,6 +190,40 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		}
 	}
 
+	private static class StreamImpl implements Stream {
+		private SocketChannel _channel;
+		
+		StreamImpl(SocketChannel aChannel) {
+			_channel = aChannel;
+		}
+		
+		public void close() {
+			ChannelFuture myFuture = _channel.close();
+			
+			try {
+				myFuture.await();
+			} catch (InterruptedException anIE) {
+			}
+		}
+		
+		public void send(PaxosMessage aMessage) {
+			_channel.write(aMessage);
+		}
+	}
+	
+	public Stream connectTo(NodeId aNodeId) {
+		SocketChannel myChannel = _clientStreamFactory.newChannel(newPipeline());
+		
+		try {
+			myChannel.connect(NodeId.toAddress(aNodeId));
+			
+			return new StreamImpl(myChannel);
+		} catch (Exception anE) {
+			_logger.error("Couldn't connect to: " + Long.toHexString(aNodeId.asLong()), anE);
+			return null;
+		}
+	}
+	
 	private static class Encoder extends OneToOneEncoder {
 		protected Object encode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
 			PaxosMessage myMsg = (PaxosMessage) anObject;
