@@ -112,13 +112,13 @@ public class ALRecoveryTransitionTest {
 		Assert.assertTrue(myAl.isRecovering());		
 		
 		/*
-		 * Recovery range r is lwm < r < x (where x = tooNewMessage.seqNum + 1)
+		 * Recovery range r is lwm < r <= x (where x = tooNewMessage.seqNum)
 		 * lwm after one successful round should 0. 
 		 */
 		Need myNeed = (Need) myTransport.getNextMsg();
 		
 		Assert.assertEquals(myNeed.getMinSeq(), 0);
-		Assert.assertEquals(myNeed.getMaxSeq(), mySeqNum + 5 + 1);
+		Assert.assertEquals(myNeed.getMaxSeq(), mySeqNum + 5);
 		
 		myAl.close();
 	}

@@ -286,6 +286,9 @@ public class AcceptorLearner {
 	/**
 	 * @todo Implement recovery protocol packets etc
 	 * 
+	 * @todo Move all _transport.send into an emit() method which can account for an active recovery and dump responses
+	 * as appropriate.
+	 * 
 	 * @param aMessage is the message to process
 	 * @return is any message to send
 	 */
@@ -298,13 +301,13 @@ public class AcceptorLearner {
 
 		/*
 		 * If the sequence number we're seeing is for a sequence number > lwm + 1, we've missed some packets.
-		 * Recovery range r is lwm < r < x (where x = currentMessage.seqNum + 1) 
+		 * Recovery range r is lwm < r <= x (where x = currentMessage.seqNum) 
 		 * so that the round we're seeing right now is complete and we need save packets only after that point.
 		 */
 		if (mySeqNum > getLowWatermark().getSeqNum() + 1) {
 			synchronized(this) {
 				_state = OUT_OF_DATE;
-				_recovery = new Recovery(getLowWatermark().getSeqNum(), mySeqNum + 1, _fd, _transport, this);
+				_recovery = new Recovery(getLowWatermark().getSeqNum(), mySeqNum, _fd, _transport, this);
 				
 				// Recovery will generate a response...
 				//
@@ -312,6 +315,13 @@ public class AcceptorLearner {
 			}
 		}
 		
+		if (mySeqNum <= getLowWatermark().getSeqNum()) {
+			Collect myLastCollect = getLastCollect();
+			
+			_transport.send(new OldRound(getLowWatermark().getSeqNum(), myLastCollect.getNodeId(),
+					myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
+		}
+			
 		switch (aMessage.getType()) {
 			case Operations.COLLECT: {
 				Collect myCollect = (Collect) aMessage;

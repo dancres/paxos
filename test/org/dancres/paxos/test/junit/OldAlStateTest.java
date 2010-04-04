@@ -112,24 +112,6 @@ public class OldAlStateTest {
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
 		
-		// Commit this instance
-		//
-		myAl.messageReceived(new Success(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue(), _nodeId.asLong()));
-
-		myResponse = myTransport.getNextMsg();
-		Assert.assertTrue(myResponse.getType() == Operations.ACK);
-		
-		/*
-		 *  Now re-run the instance again, results should be sourced from the log file and have the last
-		 *  round number used.
-		 */		
-		myAl.messageReceived(new Collect(mySeqNum, myRndNum + 2, _nodeId.asLong()));
-		
-		myLast = (Last) myTransport.getNextMsg();
-		
-		Assert.assertTrue(myLast.getSeqNum() == mySeqNum);
-		Assert.assertTrue(myLast.getRndNumber() == myRndNum + 1);
-		
 		myAl.close();
 	}	
 }

@@ -478,6 +478,8 @@ public class Leader implements MembershipListener {
     }
 
     /**
+     * @todo Ensure leader trigger's recovery when it receives an out-of-date warning.
+     * 
      * @param aMessage is an OldRound message received from some other node
      */
     private void oldRound(PaxosMessage aMessage) {
@@ -487,7 +489,10 @@ public class Leader implements MembershipListener {
 
         //Some other node is active, we should abort.
         //
-        _logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId);
+        if (myOldRound.getSeqNum() > _seqNum)
+        	_logger.info(this + ": This leader is out of date: " + _seqNum + " < " + myOldRound.getSeqNum());
+        else
+        	_logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId);
         
         error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
     }
