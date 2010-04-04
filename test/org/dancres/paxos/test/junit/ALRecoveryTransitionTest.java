@@ -105,9 +105,17 @@ public class ALRecoveryTransitionTest {
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACK);
 		
-		// Now start an instance which should trigger recovery
+		// Now start an instance which should trigger recovery - can only happen on the success boundary
 		//
 		myAl.messageReceived(new Collect(mySeqNum + 5, myRndNum + 2, _nodeId.asLong()));
+
+		Assert.assertFalse(myAl.isRecovering());
+		
+		myAl.messageReceived(new Begin(mySeqNum + 5, myRndNum + 2, myValue, _nodeId.asLong()));
+
+		Assert.assertFalse(myAl.isRecovering());		
+		
+		myAl.messageReceived(new Success(mySeqNum + 5, myRndNum + 2, myValue, _nodeId.asLong()));
 		
 		Assert.assertTrue(myAl.isRecovering());		
 		

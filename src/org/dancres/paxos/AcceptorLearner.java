@@ -2,6 +2,7 @@ package org.dancres.paxos;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.dancres.paxos.messages.Accept;
@@ -32,9 +33,6 @@ public class AcceptorLearner {
 	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue(
 			"org.dancres.paxos.Heartbeat".getBytes(), new byte[] {});
 
-	private static final short UP_TO_DATE = 1;
-	private static final short OUT_OF_DATE = 2;
-	
 	private static long DEFAULT_LEASE = 30 * 1000;
 	private static Logger _logger = LoggerFactory
 			.getLogger(AcceptorLearner.class);
@@ -47,9 +45,26 @@ public class AcceptorLearner {
 	private AtomicLong _ignoredCollects = new AtomicLong();
 	private AtomicLong _receivedHeartbeats = new AtomicLong();
 
-	private short _state = UP_TO_DATE;
+	private static class RecoveryWindow {
+		private long _minSeqNum;
+		private long _maxSeqNum;
+		
+		RecoveryWindow(long aMin, long aMax) {
+			_minSeqNum = aMin;
+			_maxSeqNum = aMax;
+		}
+		
+		long getMinSeqNum() {
+			return _minSeqNum;
+		}
 
-	private Recovery _recovery;
+		long getMaxSeqNum() {
+			return _maxSeqNum;
+		}
+	}
+	
+	private RecoveryWindow _recoveryWindow = null;
+	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
 	
 	/**
 	 * @todo Must checkpoint _lastCollect, as it'll only be written in the log
@@ -155,7 +170,7 @@ public class AcceptorLearner {
 
 	public boolean isRecovering() {
 		synchronized(this) {
-			return (_state != UP_TO_DATE);
+			return (_recoveryWindow != null);
 		}
 	}
 	
@@ -269,25 +284,88 @@ public class AcceptorLearner {
 		}
 	}
 
+	/**
+	 * @param aMessage
+	 */
 	public void messageReceived(PaxosMessage aMessage) {
-		short myState;
-		
-		synchronized(this) {
-			myState = _state;
+		long mySeqNum = aMessage.getSeqNum();
+
+		if (isRecovering()) {
+			// If the packet is a recovery request, ignore it
+			//
+			if (aMessage.getType() == Operations.NEED)
+				return;
+			
+			// If the packet is for a sequence number above the recovery window - save it for later
+			//
+			if (mySeqNum > _recoveryWindow.getMaxSeqNum()) {
+				synchronized(this) {
+					_packetBuffer.add(aMessage);
+				}
+				
+			// If the packet is for a sequence number within the window, process it now for catchup
+			} else if (mySeqNum > _recoveryWindow.getMinSeqNum()) {
+				process(aMessage);
+				
+				/*
+				 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
+				 *  streamed through the packet buffer
+				 */
+				if (getLowWatermark().getSeqNum() == _recoveryWindow.getMaxSeqNum()) {
+					synchronized(this) {
+						Iterator<PaxosMessage> myPackets = _packetBuffer.iterator();
+						
+						while (myPackets.hasNext()) {
+							process(myPackets.next());
+						}
+						
+						_recoveryWindow = null;
+						_packetBuffer.clear();
+					}
+				}
+			} else {			
+				// Packet is below recovery window, ignore it.
+				//
+			}
+		} else {
+			/*
+			 * If the sequence number we're seeing is for a sequence number >
+			 * lwm + 1, we've missed some packets. Recovery range r is lwm < r
+			 * <= x (where x = currentMessage.seqNum) so that the round we're
+			 * seeing right now is complete and we need save packets only after
+			 * that point.
+			 */
+			if (mySeqNum > getLowWatermark().getSeqNum() + 1) {
+				/*
+				 * We need to catchup to the end of a complete paxos instance so we must wait for a SUCCESS that is
+				 * > lwm + 1 which will thus contain a sequence number to bound the recovery.  
+				 */
+				if (aMessage.getType() != Operations.SUCCESS)
+					return;
+				
+				synchronized (this) {
+					// Must store up the packet which triggered recovery for later replay
+					//
+					_packetBuffer.add(aMessage);
+					
+					RecoveryWindow myWindow = new RecoveryWindow(getLowWatermark().getSeqNum(), mySeqNum);
+					
+					// Ask the current leader to bring us back up to speed
+					//
+					send(new Need(myWindow.getMinSeqNum(), myWindow.getMaxSeqNum(), 
+							_transport.getLocalNodeId().asLong()), NodeId.from(aMessage.getNodeId()));
+
+					// Declare recovery active - which stops this AL emitting responses
+					//
+					_recoveryWindow = myWindow;
+				}
+			} else
+				process(aMessage);
 		}
-		
-		if (myState != UP_TO_DATE) {
-			_recovery.messageReceived(aMessage);
-		} else {		
-			process(aMessage);
-		}		
 	}
 	
 	/**
-	 * @todo Implement recovery protocol packets etc
-	 * 
-	 * @todo Move all _transport.send into an emit() method which can account for an active recovery and dump responses
-	 * as appropriate.
+	 * @todo Implement response to Need message - startup a thread and feed packets etc.
 	 * 
 	 * @param aMessage is the message to process
 	 * @return is any message to send
@@ -299,26 +377,10 @@ public class AcceptorLearner {
 
 		_logger.info("AL: got [ " + mySeqNum + " ] : " + aMessage);
 
-		/*
-		 * If the sequence number we're seeing is for a sequence number > lwm + 1, we've missed some packets.
-		 * Recovery range r is lwm < r <= x (where x = currentMessage.seqNum) 
-		 * so that the round we're seeing right now is complete and we need save packets only after that point.
-		 */
-		if (mySeqNum > getLowWatermark().getSeqNum() + 1) {
-			synchronized(this) {
-				_state = OUT_OF_DATE;
-				_recovery = new Recovery(getLowWatermark().getSeqNum(), mySeqNum, _fd, _transport, this);
-				
-				// Recovery will generate a response...
-				//
-				return;
-			}
-		}
-		
 		if (mySeqNum <= getLowWatermark().getSeqNum()) {
 			Collect myLastCollect = getLastCollect();
 			
-			_transport.send(new OldRound(getLowWatermark().getSeqNum(), myLastCollect.getNodeId(),
+			send(new OldRound(getLowWatermark().getSeqNum(), myLastCollect.getNodeId(),
 					myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
 		}
 			
@@ -339,7 +401,7 @@ public class AcceptorLearner {
 				//
 				if (supercedes(myCollect)) {
 					write(aMessage, true);
-					_transport.send(constructLast(mySeqNum), myNodeId);
+					send(constructLast(mySeqNum), myNodeId);
 
 					/*
 					 * If the collect comes from the current leader (has same rnd
@@ -347,7 +409,7 @@ public class AcceptorLearner {
 					 * save to disk, just respond with last proposal etc
 					 */
 				} else if (isFromCurrentLeader(myCollect)) {
-					_transport.send(constructLast(mySeqNum), myNodeId);
+					send(constructLast(mySeqNum), myNodeId);
 
 				} else {
 					// Another collect has already arrived with a higher priority,
@@ -355,7 +417,7 @@ public class AcceptorLearner {
 					//
 					Collect myLastCollect = getLastCollect();
 
-					_transport.send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
+					send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
 							myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
 				}
 				
@@ -371,7 +433,7 @@ public class AcceptorLearner {
 					updateLastActionTime(myCurrentTime);
 					write(aMessage, true);
 
-					_transport.send(new Accept(mySeqNum, getLastCollect().getRndNumber(), 
+					send(new Accept(mySeqNum, getLastCollect().getRndNumber(), 
 							_transport.getLocalNodeId().asLong()), myNodeId);
 				} else if (precedes(myBegin)) {
 					// New collect was received since the collect for this begin,
@@ -379,7 +441,7 @@ public class AcceptorLearner {
 					//
 					Collect myLastCollect = getLastCollect();
 
-					_transport.send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
+					send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
 							myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
 				} else {
 					// Quiet, didn't see the collect, leader hasn't accounted for
@@ -399,7 +461,7 @@ public class AcceptorLearner {
 
 				if (mySuccess.getSeqNum() <= getLowWatermark().getSeqNum()) {
 					_logger.info("AL:Discarded known value: " + mySuccess.getSeqNum());
-					_transport.send(new Ack(mySuccess.getSeqNum(), _transport.getLocalNodeId().asLong()), myNodeId);
+					send(new Ack(mySuccess.getSeqNum(), _transport.getLocalNodeId().asLong()), myNodeId);
 				} else {
 					_logger.info("AL:Learnt value: " + mySuccess.getSeqNum());
 
@@ -421,7 +483,7 @@ public class AcceptorLearner {
 								mySuccess.getConsolidatedValue(), null));
 					}
 
-					_transport.send(new Ack(mySuccess.getSeqNum(), _transport.getLocalNodeId().asLong()), myNodeId);
+					send(new Ack(mySuccess.getSeqNum(), _transport.getLocalNodeId().asLong()), myNodeId);
 				}
 				
 				break;
@@ -432,6 +494,10 @@ public class AcceptorLearner {
 		}
 	}
 
+	private void send(PaxosMessage aMessage, NodeId aNodeId) {
+		if (! isRecovering())
+			_transport.send(aMessage, aNodeId);
+	}
 	private static class InstanceState {
 		private Begin _lastBegin;
 		private long _lastBeginOffset;
