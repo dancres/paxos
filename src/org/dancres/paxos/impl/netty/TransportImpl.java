@@ -215,7 +215,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		SocketChannel myChannel = _clientStreamFactory.newChannel(newPipeline());
 		
 		try {
-			myChannel.connect(NodeId.toAddress(aNodeId));
+			ChannelFuture myFuture = myChannel.connect(NodeId.toAddress(aNodeId));
+			myFuture.await();
 			
 			return new StreamImpl(myChannel);
 		} catch (Exception anE) {
