@@ -45,6 +45,13 @@ public class AcceptorLearner {
 	private AtomicLong _ignoredCollects = new AtomicLong();
 	private AtomicLong _receivedHeartbeats = new AtomicLong();
 
+	/*
+	 * If the sequence number of the collect we're seeing is for a sequence number >
+	 * lwm + 1, we've missed some packets. Recovery range r is lwm < r
+	 * <= x (where x = currentMessage.seqNum) so that the round we're
+	 * seeing right now is complete and we need save packets only after
+	 * that point.
+	 */	
 	private static class RecoveryWindow {
 		private long _minSeqNum;
 		private long _maxSeqNum;
@@ -304,6 +311,7 @@ public class AcceptorLearner {
 				}
 				
 			// If the packet is for a sequence number within the window, process it now for catchup
+			//
 			} else if (mySeqNum > _recoveryWindow.getMinSeqNum()) {
 				process(aMessage);
 				
@@ -316,7 +324,16 @@ public class AcceptorLearner {
 						Iterator<PaxosMessage> myPackets = _packetBuffer.iterator();
 						
 						while (myPackets.hasNext()) {
-							process(myPackets.next());
+							PaxosMessage myMessage = myPackets.next();
+							
+							/*
+							 * Have we discovered another message that will cause recovery? If so stop early
+							 * and wait for a packet to re-trigger.  
+							 */
+							if (myMessage.getSeqNum() > getLowWatermark().getSeqNum() + 1)
+								break;
+							else
+								process(myMessage);
 						}
 						
 						_recoveryWindow = null;
@@ -337,10 +354,10 @@ public class AcceptorLearner {
 			 */
 			if (mySeqNum > getLowWatermark().getSeqNum() + 1) {
 				/*
-				 * We need to catchup to the end of a complete paxos instance so we must wait for a SUCCESS that is
+				 * We need to catchup to the end of a complete paxos instance so we must wait for a COLLECT that is
 				 * > lwm + 1 which will thus contain a sequence number to bound the recovery.  
 				 */
-				if (aMessage.getType() != Operations.SUCCESS)
+				if (aMessage.getType() != Operations.COLLECT)
 					return;
 				
 				synchronized (this) {
@@ -348,7 +365,9 @@ public class AcceptorLearner {
 					//
 					_packetBuffer.add(aMessage);
 					
-					RecoveryWindow myWindow = new RecoveryWindow(getLowWatermark().getSeqNum(), mySeqNum);
+					// Boundary is a collect which starts next round - we need up to and including previous round
+					//
+					RecoveryWindow myWindow = new RecoveryWindow(getLowWatermark().getSeqNum(), mySeqNum - 1);
 					
 					// Ask the current leader to bring us back up to speed
 					//
@@ -365,7 +384,8 @@ public class AcceptorLearner {
 	}
 	
 	/**
-	 * @todo Implement response to Need message - startup a thread and feed packets etc.
+	 * @todo Implement too-out-of-date response which will be picked up by the requesting AL and cause it to
+	 * do a full by-file resync.
 	 * 
 	 * @param aMessage is the message to process
 	 * @return is any message to send
@@ -377,7 +397,9 @@ public class AcceptorLearner {
 
 		_logger.info("AL: got [ " + mySeqNum + " ] : " + aMessage);
 
-		if (mySeqNum <= getLowWatermark().getSeqNum()) {
+		// Check the leader is not out of sync
+		//
+		if ((aMessage.getClassification() == PaxosMessage.LEADER) && (mySeqNum <= getLowWatermark().getSeqNum())) {
 			Collect myLastCollect = getLastCollect();
 			
 			send(new OldRound(getLowWatermark().getSeqNum(), myLastCollect.getNodeId(),
@@ -385,6 +407,20 @@ public class AcceptorLearner {
 		}
 			
 		switch (aMessage.getType()) {
+			case Operations.NEED : {
+				Need myNeed = (Need) aMessage;
+				
+				// Make sure we can dispatch the recovery request
+				//
+				if (myNeed.getMaxSeq() <= getLowWatermark().getSeqNum()) {
+					_logger.info("Running streamer");
+					
+					new Streamer(myNeed).run();
+				}
+				
+				break;
+			}
+			
 			case Operations.COLLECT: {
 				Collect myCollect = (Collect) aMessage;
 
@@ -498,6 +534,7 @@ public class AcceptorLearner {
 		if (! isRecovering())
 			_transport.send(aMessage, aNodeId);
 	}
+	
 	private static class InstanceState {
 		private Begin _lastBegin;
 		private long _lastBeginOffset;
@@ -511,7 +548,7 @@ public class AcceptorLearner {
 			_seqNum = aSeqNum;
 		}
 		
-		synchronized void add(PaxosMessage aMessage, long aLogOffset) {
+		void add(PaxosMessage aMessage, long aLogOffset) {
 			switch(aMessage.getType()) {
 				case Operations.COLLECT : {
 					// Nothing to do
@@ -548,7 +585,7 @@ public class AcceptorLearner {
 			}
 		}
 
-		synchronized Begin getLastValue() {
+		Begin getLastValue() {
 			if (_lastSuccess != null) {
 				return new Begin(_lastSuccess.getSeqNum(), _lastSuccess.getRndNum(), 
 						_lastSuccess.getConsolidatedValue(), _lastSuccess.getNodeId());
@@ -565,10 +602,35 @@ public class AcceptorLearner {
 		}
 	}
 	
-	/**
-	 * @todo When we add checkpointing, we must add support here for warning a leader it is out of date and asking
-	 * about a sequence number that is no longer in the log
-	 */
+	private class ReplayListenerImpl implements RecordListener {
+		private long _seqNum;
+		private InstanceState _state = null;
+		
+		ReplayListenerImpl(long aSeqNum, long aLogOffset) throws Exception {
+			_seqNum = aSeqNum;
+			_storage.replay(this, aLogOffset);
+		}
+		
+		InstanceState getState() {
+			return _state;
+		}
+		
+		public void onRecord(long anOffset, byte[] aRecord) {
+			// dump("Read:", aRecord);
+			
+			// All records we write are leader messages and they all have no length
+			//
+			PaxosMessage myMessage = Codecs.decode(aRecord);
+
+			if (myMessage.getSeqNum() == _seqNum) {
+				if (_state == null)
+					_state = new InstanceState(_seqNum);
+				
+				_state.add(myMessage, anOffset);
+			}
+		}		
+	}
+	
 	private Last constructLast(long aSeqNum) {
 		Watermark myLow = getLowWatermark();
 		
@@ -578,10 +640,15 @@ public class AcceptorLearner {
 		 */
 		InstanceState myState;
 		
-		if ((myLow.equals(Watermark.INITIAL)) || (aSeqNum <= myLow.getSeqNum())) {
-			myState = scanLog(aSeqNum, 0);
-		} else 
-			myState = scanLog(aSeqNum, myLow.getLogOffset());
+		try {
+			if ((myLow.equals(Watermark.INITIAL)) || (aSeqNum <= myLow.getSeqNum())) {
+				myState = new ReplayListenerImpl(aSeqNum, 0).getState();
+			} else 
+				myState = new ReplayListenerImpl(aSeqNum, myLow.getLogOffset()).getState();
+		} catch (Exception anE) {
+			_logger.error("Failed to replay log", anE);
+			throw new RuntimeException("Failed to replay log", anE);
+		}
 		
 		if ((myState == null) || (myState.getLastValue() == null)) {
 			return new Last(aSeqNum, myLow.getSeqNum(), Long.MIN_VALUE,
@@ -609,43 +676,47 @@ public class AcceptorLearner {
 		}
 	}
 
-	private static class ReplayListenerImpl implements RecordListener {
-		private long _seqNum;
-		private InstanceState _state = null;
+	class Streamer extends Thread implements RecordListener {
+		private Need _need;
+		private Stream _stream;
 		
-		ReplayListenerImpl(long aSeqNum) {
-			_seqNum = aSeqNum;
+		Streamer(Need aNeed) {
+			_need = aNeed;
 		}
 		
-		InstanceState getState() {
-			return _state;
-		}
-		
-		public void onRecord(long anOffset, byte[] aRecord) {
-			// dump("Read:", aRecord);
+		public void run() {
+			_logger.info("Streamer starting");
 			
-			// All records we write are leader messages and they all have no length
+			_stream = _transport.connectTo(NodeId.from(_need.getNodeId()));
+			
+			// Check we got a connection
 			//
+			if (_stream == null) {
+				_logger.warn("Stream couldn't connect: " + _need.getNodeId());
+				return;
+			}
+			
+			try {
+				_storage.replay(this, 0);
+			} catch (Exception anE) {
+				_logger.error("Failed to replay log", anE);
+			}
+			
+			_stream.close();
+		}
+
+		public void onRecord(long anOffset, byte[] aRecord) {
 			PaxosMessage myMessage = Codecs.decode(aRecord);
 
-			if (myMessage.getSeqNum() == _seqNum) {
-				if (_state == null)
-					_state = new InstanceState(_seqNum);
-				
-				_state.add(myMessage, anOffset);
+			// Only send messages in the recovery window
+			//
+			if ((myMessage.getSeqNum() > _need.getMinSeq())
+					&& (myMessage.getSeqNum() <= _need.getMaxSeq())) {
+				_logger.debug("Streaming: " + myMessage);
+				_stream.send(myMessage);
+			} else {
+				_logger.debug("Not streaming: " + myMessage);
 			}
-		}		
-	}
-	
-	private InstanceState scanLog(long aSeqNum, long aLogOffset) {
-		try {
-			ReplayListenerImpl myListener = new ReplayListenerImpl(aSeqNum);
-			_storage.replay(myListener, aLogOffset);
-			
-			return myListener.getState();
-		} catch (Exception anE) {
-			_logger.error("Failed to replay log", anE);
-			throw new RuntimeException("Failed to replay log", anE);
 		}
 	}
 	

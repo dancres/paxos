@@ -77,7 +77,7 @@ public class ALRecoveryTransitionTest {
 	
 	@Test public void test() throws Exception {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
-		TransportImpl myTransport = new TransportImpl(_nodeId);
+		TransportImpl myTransport = new TransportImpl(NodeId.from(12345));
 		
 		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
 		
@@ -110,28 +110,21 @@ public class ALRecoveryTransitionTest {
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACK);
 		
-		// Now start an instance which should trigger recovery - can only happen on the success boundary
+		// Now start an instance which should trigger recovery - happens on collect boundary
 		//
 		myAl.messageReceived(new Collect(mySeqNum + 5, myRndNum + 2, _nodeId.asLong()));
-
-		Assert.assertFalse(myAl.isRecovering());
-		
-		myAl.messageReceived(new Begin(mySeqNum + 5, myRndNum + 2, myValue, _nodeId.asLong()));
-
-		Assert.assertFalse(myAl.isRecovering());		
-		
-		myAl.messageReceived(new Success(mySeqNum + 5, myRndNum + 2, myValue, _nodeId.asLong()));
 		
 		Assert.assertTrue(myAl.isRecovering());		
 		
 		/*
-		 * Recovery range r is lwm < r <= x (where x = tooNewMessage.seqNum)
+		 * Recovery range r is lwm < r <= x - 1 (where x = tooNewCollect.seqNum)
 		 * lwm after one successful round should 0. 
 		 */
 		Need myNeed = (Need) myTransport.getNextMsg();
 		
+		Assert.assertEquals(myNeed.getNodeId(), myTransport.getLocalNodeId().asLong());
 		Assert.assertEquals(myNeed.getMinSeq(), 0);
-		Assert.assertEquals(myNeed.getMaxSeq(), mySeqNum + 5);
+		Assert.assertEquals(myNeed.getMaxSeq(), mySeqNum + 4);
 		
 		myAl.close();
 	}
