@@ -100,8 +100,12 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 	public void shutdown() {
 		try {
+			_logger.debug("Close mcast");
+			ChannelFuture myFuture = _mcast.close();
+			myFuture.await();
+
 			_logger.debug("Unbind mcast");
-			ChannelFuture myFuture = _mcast.unbind();
+			myFuture = _mcast.unbind();
 			myFuture.await();
 
 			_logger.debug("Close unicast");
