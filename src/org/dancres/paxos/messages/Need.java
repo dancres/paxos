@@ -21,7 +21,7 @@ public class Need implements PaxosMessage {
 
 	public long getNodeId() {
 		// TODO Auto-generated method stub
-		return 0;
+		return _nodeId;
 	}
 
 	public long getSeqNum() {
@@ -40,5 +40,10 @@ public class Need implements PaxosMessage {
 
 	public long getMaxSeq() {
 		return _maxSeq;
+	}
+	
+	public String toString() {
+        return "Need: " + Long.toHexString(_minSeq) + " -> " + Long.toHexString(_maxSeq) + ", " +
+        	Long.toHexString(_nodeId) + " ]";		
 	}
 }
