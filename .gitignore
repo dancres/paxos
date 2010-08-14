@@ -1,0 +1,7 @@
+nbproject
+build
+docs
+reports
+.DS_Store
+.diff
+*logs*
