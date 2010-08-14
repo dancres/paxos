@@ -36,7 +36,6 @@
   <target name="pristine" description="Restore to pristine build"
           depends="clean">
     <delete dir="docs/javadocs"/>
-    <delete dir="${release}"/>
   </target>
 
     <path id="allclasses">
@@ -44,7 +43,7 @@
         <pathelement location="${otherlib}/netty-3.1.5.GA.jar"/>
         <pathelement location="${otherlib}/slf4j-api-1.5.0.jar"/>
         <pathelement location="${otherlib}/slf4j-jdk14-1.5.0.jar"/>
-    	<pathelement location="${otherlib}/jmdns-2.0/lib/jmdns.jar"/>
+    	<pathelement location="${otherlib}/jmdns.jar"/>
     	<pathelement location="${otherlib}/junit-4.5.jar"/>
     	<pathelement location="${otherlib}/howl-1.0.2.jar"/>
     </path>
