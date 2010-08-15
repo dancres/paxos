@@ -6,7 +6,6 @@ package org.dancres.paxos;
  * @author dan
  */
 public interface LogStorage {
-    public static final long NO_SEQ = -1;
     public static final ConsolidatedValue NO_VALUE = 
     	new ConsolidatedValue("org.dancres.paxos.NoValue".getBytes(), new byte[0]);
 

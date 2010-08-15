@@ -88,30 +88,13 @@ public class Leader implements MembershipListener {
      */
     private static final int SUBMITTED = 7;
 
-    /**
-     * Indicates the Leader is not ready to process the passed message and the caller should retry.
-     */
-    public static final int BUSY = 256;
-
-    /**
-     * Indicates the Leader has accepted the message and is waiting for further messages.
-     */
-    public static final int ACCEPTED = 257;
-
-    private static final Map<Integer, Class[]> _acceptableResponses = new HashMap<Integer, Class[]>();
-    
-    static {
-    	_acceptableResponses.put(new Integer(COMMITTED), new Class[] {Ack.class});
-    	_acceptableResponses.put(new Integer(SUCCESS), new Class[] {OldRound.class, Accept.class});
-    	_acceptableResponses.put(new Integer(BEGIN), new Class[] {OldRound.class, Last.class});
-    }
-    
     private final Timer _watchdog = new Timer("Leader timers");
     private final FailureDetector _detector;
     private final Transport _transport;
     private final AcceptorLearner _al;
+    private final MessageValidator _msgValidator = new MessageValidator();
 
-    private long _seqNum = LogStorage.NO_SEQ;
+    private long _seqNum = AcceptorLearner.UNKNOWN_SEQ;
 
     /**
      * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without 
@@ -137,7 +120,7 @@ public class Leader implements MembershipListener {
      */
     private Membership _membership;
 
-    private int _stage = EXIT;
+    private int _state = EXIT;
     
     /**
      * In cases of ABORT, indicates the reason
@@ -166,6 +149,7 @@ public class Leader implements MembershipListener {
     private long calculateInteractionTimeout() {
         return _detector.getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;    	
     }
+
     public long getCurrentRound() {
         synchronized(this) {
             return _rndNumber;
@@ -189,7 +173,7 @@ public class Leader implements MembershipListener {
 
     public boolean isReady() {
         synchronized(this) {
-            return (_stage == EXIT) || (_stage == ABORT);
+            return (_state == EXIT) || (_state == ABORT);
         }
     }
 
@@ -201,7 +185,7 @@ public class Leader implements MembershipListener {
      * @todo Increment round number via heartbeats every so often - see note below about jittering collects.
      */
     private void process() {
-        switch(_stage) {
+        switch(_state) {
             case ABORT : {
             	assert (_queue.size() != 0);
             	
@@ -247,7 +231,7 @@ public class Leader implements MembershipListener {
                 if (_queue.size() > 0) {
                     _logger.info(this + ": processing op from queue: " + _queue.get(0));
 
-                    _stage = SUBMITTED;
+                    _state = SUBMITTED;
                     process();
 
                 } else {
@@ -271,7 +255,7 @@ public class Leader implements MembershipListener {
 
                 // Collect will decide if it can skip straight to a begin
                 //
-                _stage = COLLECT;
+                _state = COLLECT;
                 process();
 
                 break;
@@ -308,7 +292,7 @@ public class Leader implements MembershipListener {
             	 * where the partitioned master returns with a higher round number and wins when it submits a collect.
             	 * We don't want this to happen too often. 
             	 * 
-            	 * The above jittering is addressed by having clients process the vote_timeout message they will receive
+            	 * The above jittering is addressed by having clients process the vote_timeout error they will receive
             	 * from the partitioned leader and attempt to locate the last known leader for some period of time 
             	 * before returning to this one for another attempt. This slows the rate at which the partitioned leader
             	 * increments it's round number. In addition we have the active leader increment it's own round number
@@ -356,12 +340,12 @@ public class Leader implements MembershipListener {
 
             	// Possibility we're starting from scratch
             	//
-            	if (_seqNum == LogStorage.NO_SEQ)
+            	if (_seqNum == AcceptorLearner.UNKNOWN_SEQ)
             		_seqNum = 0;
             	else
             		_seqNum = _seqNum + 1;
 
-            	_stage = BEGIN;
+            	_state = BEGIN;
             	emitCollect();
             	
             	break;
@@ -403,7 +387,7 @@ public class Leader implements MembershipListener {
                 if ((myValue != null) && (! myValue.equals(_queue.get(0).getConsolidatedValue())))
                 	_queue.add(new Post(myValue, NodeId.MOST_SUBORDINATE.asLong()));
 
-                _stage = SUCCESS;
+                _state = SUCCESS;
                 emitBegin();
                 
                 break;
@@ -429,12 +413,12 @@ public class Leader implements MembershipListener {
                 if (myAcceptCount >= _membership.getMajority()) {
                     // Send success, wait for acks
                     //
-                    _stage = COMMITTED;
+                    _state = COMMITTED;
                     emitSuccess();
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    _stage = SUCCESS;
+                    _state = SUCCESS;
                     emitBegin();
                 }
 
@@ -452,28 +436,14 @@ public class Leader implements MembershipListener {
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    _stage = COMMITTED;
+                    _state = COMMITTED;
                     emitSuccess();
                 }
 
                 break;
             }
 
-            default : throw new RuntimeException("Invalid state: " + _stage);
-        }
-    }
-
-    private class HeartbeatTask extends TimerTask {
-        public void run() {
-            _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
-
-            /*
-             * Don't have to check the return value - if it's accepted we weren't active, otherwise we are and
-             * no heartbeat is required. Note that a heartbeat could cause us to decide we're no longer leader
-             * although that's unlikely if things are stable as no other node can become leader whilst we hold the
-             * lease
-             */
-            submit(new Post(AcceptorLearner.HEARTBEAT, NodeId.MOST_SUBORDINATE.asLong()));
+            default : throw new RuntimeException("Invalid state: " + _state);
         }
     }
 
@@ -498,58 +468,42 @@ public class Leader implements MembershipListener {
     }
 
     private void successful(int aReason, Object aContext) {
-        _stage = EXIT;
+        _state = EXIT;
         _event = new Event(aReason, _seqNum, _queue.get(0).getConsolidatedValue(), aContext);
 
         process();
     }
 
     private void error(int aReason, Object aContext) {
-        _stage = ABORT;
+        _state = ABORT;
         _event = new Event(aReason, _seqNum, _queue.get(0).getConsolidatedValue(), aContext);
 
         process();
     }
 
     private void emitCollect() {
-        _messages.clear();
-
-        PaxosMessage myMessage = new Collect(_seqNum, getRndNumber(), _transport.getLocalNodeId().asLong());
-
-        if (!startInteraction())
-        	return;
-
-        _logger.info(this + ": sending collect");
-
-        _transport.send(myMessage, NodeId.BROADCAST);
+        emit(new Collect(_seqNum, getRndNumber(), _transport.getLocalNodeId().asLong()));
     }
 
     private void emitBegin() {
-        _messages.clear();
-
-        PaxosMessage myMessage = new Begin(_seqNum, getRndNumber(), _queue.get(0).getConsolidatedValue(),
-        		_transport.getLocalNodeId().asLong());
-
-        if (!startInteraction())
-        	return;
-
-        _logger.info(this + ": sending begin");
-
-        _transport.send(myMessage, NodeId.BROADCAST);
+        emit(new Begin(_seqNum, getRndNumber(), _queue.get(0).getConsolidatedValue(),
+        		_transport.getLocalNodeId().asLong()));
     }
 
     private void emitSuccess() {
-        _messages.clear();
+        emit(new Success(_seqNum, getRndNumber(),
+        		_queue.get(0).getConsolidatedValue(), _transport.getLocalNodeId().asLong()));
+    }
 
-        PaxosMessage myMessage = new Success(_seqNum, getRndNumber(),
-        		_queue.get(0).getConsolidatedValue(), _transport.getLocalNodeId().asLong());
+    private void emit(PaxosMessage aMessage) {
+        _messages.clear();
 
         if (!startInteraction())
         	return;
 
-        _logger.info(this + ": sending success");
+        _logger.info(this + ": sending: " + aMessage);
 
-        _transport.send(myMessage, NodeId.BROADCAST);
+        _transport.send(aMessage, NodeId.BROADCAST);
     }
 
     private boolean startInteraction() {
@@ -557,12 +511,6 @@ public class Leader implements MembershipListener {
         _watchdog.schedule(_interactionAlarm, calculateInteractionTimeout());
 
         return _membership.startInteraction();
-    }
-
-    private class InteractionAlarm extends TimerTask {
-        public void run() {
-            expired();
-        }
     }
 
     /**
@@ -616,7 +564,7 @@ public class Leader implements MembershipListener {
 
             _logger.info(this + ": Queued operation (initialising leader)");
 
-            _stage = SUBMITTED;
+            _state = SUBMITTED;
 
             process();
         }
@@ -626,7 +574,6 @@ public class Leader implements MembershipListener {
      * Used to process all core paxos protocol messages.
      *
      * @param aMessage is a message from some acceptor/learner
-     * @param aNodeId is the address from which the message was sent
      */
     public void messageReceived(PaxosMessage aMessage) {
     	if (aMessage.getClassification() == PaxosMessage.CLIENT) {
@@ -637,7 +584,7 @@ public class Leader implements MembershipListener {
 		_logger.info(this + " received message: " + aMessage);
         
         synchronized (this) {
-            if ((aMessage.getSeqNum() == _seqNum) && acceptable(aMessage)) {
+            if ((aMessage.getSeqNum() == _seqNum) && _msgValidator.acceptable(aMessage, _state)) {
                 _messages.add(aMessage);
                 _membership.receivedResponse(NodeId.from(aMessage.getNodeId()));
             } else {
@@ -646,22 +593,58 @@ public class Leader implements MembershipListener {
         }
     }
     
-    private boolean acceptable(PaxosMessage aMessage) {
-    	Class[] myAcceptableTypes = _acceptableResponses.get(new Integer(_stage));
-    	
-    	if (myAcceptableTypes == null)
-    		throw new RuntimeException("Not got a set of expected types for this state :(");
-    	
-    	for (int i = 0; i < myAcceptableTypes.length; i++) {
-    		if (aMessage.getClass().equals(myAcceptableTypes[i]))
-    			return true;
-    	}
-    	
-    	return false;
+    public String toString() {
+        int myState;
+
+        synchronized(this) {
+            myState = _state;
+        }
+
+    	return "Leader: " + _transport.getLocalNodeId() +
+    		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState;
+    }
+
+    private class InteractionAlarm extends TimerTask {
+        public void run() {
+            expired();
+        }
     }
     
-    public String toString() {
-    	return "Leader: " + _transport.getLocalNodeId() +
-    		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")";
+    private class HeartbeatTask extends TimerTask {
+        public void run() {
+            _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
+
+            /*
+             * Don't have to check the return value - if it's accepted we weren't active, otherwise we are and
+             * no heartbeat is required. Note that a heartbeat could cause us to decide we're no longer leader
+             * although that's unlikely if things are stable as no other node can become leader whilst we hold the
+             * lease
+             */
+            submit(new Post(AcceptorLearner.HEARTBEAT, NodeId.MOST_SUBORDINATE.asLong()));
+        }
+    }
+
+    private static class MessageValidator {
+        private static final Map<Integer, Class[]> _acceptableResponses = new HashMap<Integer, Class[]>();
+
+        static {
+            _acceptableResponses.put(new Integer(COMMITTED), new Class[]{Ack.class});
+            _acceptableResponses.put(new Integer(SUCCESS), new Class[]{OldRound.class, Accept.class});
+            _acceptableResponses.put(new Integer(BEGIN), new Class[]{OldRound.class, Last.class});
+        }
+
+        boolean acceptable(PaxosMessage aMessage, int aLeaderState) {
+            Class[] myAcceptableTypes = _acceptableResponses.get(new Integer(aLeaderState));
+
+            if (myAcceptableTypes == null)
+                throw new RuntimeException("Not got a set of expected types for this state :(");
+
+            for (int i = 0; i < myAcceptableTypes.length; i++) {
+                if (aMessage.getClass().equals(myAcceptableTypes[i]))
+                    return true;
+            }
+
+            return false;
+        }
     }
 }

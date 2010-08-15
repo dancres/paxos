@@ -1,13 +1,13 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.LogStorage;
+import org.dancres.paxos.AcceptorLearner;
 
 public class Collect implements PaxosMessage {
     private long _seqNum;
     private long _rndNumber;
     private long _nodeId;
 
-    public static final Collect INITIAL = new Collect(LogStorage.NO_SEQ, Long.MIN_VALUE, Long.MIN_VALUE);
+    public static final Collect INITIAL = new Collect(AcceptorLearner.UNKNOWN_SEQ, Long.MIN_VALUE, Long.MIN_VALUE);
 
     public Collect(long aSeqNum, long aRndNumber, long aNodeId) {
         _seqNum = aSeqNum;

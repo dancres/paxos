@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
  * @author dan
  */
 public class AcceptorLearner {
+    public static final long UNKNOWN_SEQ = -1;
+    
 	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue(
 			"org.dancres.paxos.Heartbeat".getBytes(), new byte[] {});
 
@@ -45,31 +47,6 @@ public class AcceptorLearner {
 	private AtomicLong _ignoredCollects = new AtomicLong();
 	private AtomicLong _receivedHeartbeats = new AtomicLong();
 
-	/*
-	 * If the sequence number of the collect we're seeing is for a sequence number >
-	 * lwm + 1, we've missed some packets. Recovery range r is lwm < r
-	 * <= x (where x = currentMessage.seqNum) so that the round we're
-	 * seeing right now is complete and we need save packets only after
-	 * that point.
-	 */	
-	private static class RecoveryWindow {
-		private long _minSeqNum;
-		private long _maxSeqNum;
-		
-		RecoveryWindow(long aMin, long aMax) {
-			_minSeqNum = aMin;
-			_maxSeqNum = aMax;
-		}
-		
-		long getMinSeqNum() {
-			return _minSeqNum;
-		}
-
-		long getMaxSeqNum() {
-			return _maxSeqNum;
-		}
-	}
-	
 	private RecoveryWindow _recoveryWindow = null;
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
 	
@@ -91,47 +68,6 @@ public class AcceptorLearner {
 	private final long _leaderLease;
 	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
 	
-	/**
-	 * Tracks the last contiguous sequence number for which we have a value.
-	 * 
-	 * When we receive a success, if it's seqNum is this field + 1, increment
-	 * this field. Acts as the low watermark for leader recovery, essentially we
-	 * want to recover from the last contiguous sequence number in the stream of
-	 * paxos instances.
-	 */
-	public static class Watermark {
-		static final Watermark INITIAL = new Watermark(LogStorage.NO_SEQ, -1);
-		private long _seqNum;
-		private long _logOffset;
-		
-		private Watermark(long aSeqNum, long aLogOffset) {
-			_seqNum = aSeqNum;
-			_logOffset = aLogOffset;
-		}
-		
-		public long getSeqNum() {
-			return _seqNum;
-		}
-		
-		public long getLogOffset() {
-			return _logOffset;
-		}
-		
-		public boolean equals(Object anObject) {
-			if (anObject instanceof Watermark) {
-				Watermark myOther = (Watermark) anObject;
-				
-				return (myOther._seqNum == _seqNum) && (myOther._logOffset == _logOffset);
-			}
-			
-			return false;
-		}
-		
-		public String toString() {
-			return "Watermark: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_logOffset);
-		}
-	}
-
 	private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
 
 	public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport) {
@@ -535,102 +471,6 @@ public class AcceptorLearner {
 			_transport.send(aMessage, aNodeId);
 	}
 	
-	private static class InstanceState {
-		private Begin _lastBegin;
-		private long _lastBeginOffset;
-		
-		private Success _lastSuccess;
-		private long _lastSuccessOffset;
-		
-		private long _seqNum;
-		
-		InstanceState(long aSeqNum) {
-			_seqNum = aSeqNum;
-		}
-		
-		void add(PaxosMessage aMessage, long aLogOffset) {
-			switch(aMessage.getType()) {
-				case Operations.COLLECT : {
-					// Nothing to do
-					//
-					break;
-				}
-				
-				case Operations.BEGIN : {
-					
-					Begin myBegin = (Begin) aMessage;
-					
-					if (_lastBegin == null) {
-						_lastBegin = myBegin;
-						_lastBeginOffset = aLogOffset;
-					} else if (myBegin.getRndNumber() > _lastBegin.getRndNumber() ){
-						_lastBegin = myBegin;
-						_lastBeginOffset = aLogOffset;
-					}
-					
-					break;
-				}
-				
-				case Operations.SUCCESS : {
-					
-					Success myLastSuccess = (Success) aMessage;
-
-					_lastSuccess = myLastSuccess;
-					_lastSuccessOffset = aLogOffset;
-					
-					break;
-				}
-				
-				default : throw new RuntimeException("Unexpected message: " + aMessage);
-			}
-		}
-
-		Begin getLastValue() {
-			if (_lastSuccess != null) {
-				return new Begin(_lastSuccess.getSeqNum(), _lastSuccess.getRndNum(), 
-						_lastSuccess.getConsolidatedValue(), _lastSuccess.getNodeId());
-			} else if (_lastBegin != null) {
-				return _lastBegin;
-			} else {
-				return null;
-			}
-		}
-		
-		public String toString() {
-			return "LoggedInstance: " + _seqNum + " " + _lastBegin + " @ " + Long.toHexString(_lastBeginOffset) +
-				" " + _lastSuccess + " @ " + Long.toHexString(_lastSuccessOffset);
-		}
-	}
-	
-	private class ReplayListenerImpl implements RecordListener {
-		private long _seqNum;
-		private InstanceState _state = null;
-		
-		ReplayListenerImpl(long aSeqNum, long aLogOffset) throws Exception {
-			_seqNum = aSeqNum;
-			_storage.replay(this, aLogOffset);
-		}
-		
-		InstanceState getState() {
-			return _state;
-		}
-		
-		public void onRecord(long anOffset, byte[] aRecord) {
-			// dump("Read:", aRecord);
-			
-			// All records we write are leader messages and they all have no length
-			//
-			PaxosMessage myMessage = Codecs.decode(aRecord);
-
-			if (myMessage.getSeqNum() == _seqNum) {
-				if (_state == null)
-					_state = new InstanceState(_seqNum);
-				
-				_state.add(myMessage, anOffset);
-			}
-		}		
-	}
-	
 	private Last constructLast(long aSeqNum) {
 		Watermark myLow = getLowWatermark();
 		
@@ -676,50 +516,6 @@ public class AcceptorLearner {
 		}
 	}
 
-	class Streamer extends Thread implements RecordListener {
-		private Need _need;
-		private Stream _stream;
-		
-		Streamer(Need aNeed) {
-			_need = aNeed;
-		}
-		
-		public void run() {
-			_logger.info("Streamer starting");
-			
-			_stream = _transport.connectTo(NodeId.from(_need.getNodeId()));
-			
-			// Check we got a connection
-			//
-			if (_stream == null) {
-				_logger.warn("Stream couldn't connect: " + _need.getNodeId());
-				return;
-			}
-			
-			try {
-				_storage.replay(this, 0);
-			} catch (Exception anE) {
-				_logger.error("Failed to replay log", anE);
-			}
-			
-			_stream.close();
-		}
-
-		public void onRecord(long anOffset, byte[] aRecord) {
-			PaxosMessage myMessage = Codecs.decode(aRecord);
-
-			// Only send messages in the recovery window
-			//
-			if ((myMessage.getSeqNum() > _need.getMinSeq())
-					&& (myMessage.getSeqNum() <= _need.getMaxSeq())) {
-				_logger.debug("Streaming: " + myMessage);
-				_stream.send(myMessage);
-			} else {
-				_logger.debug("Not streaming: " + myMessage);
-			}
-		}
-	}
-	
 	void signal(Event aStatus) {
 		List<AcceptorLearnerListener> myListeners;
 
@@ -743,4 +539,210 @@ public class AcceptorLearner {
 
         System.err.println();
     }	
+
+    private static class InstanceState {
+        private Begin _lastBegin;
+        private long _lastBeginOffset;
+
+        private Success _lastSuccess;
+        private long _lastSuccessOffset;
+
+        private long _seqNum;
+
+        InstanceState(long aSeqNum) {
+            _seqNum = aSeqNum;
+        }
+
+        void add(PaxosMessage aMessage, long aLogOffset) {
+            switch(aMessage.getType()) {
+                case Operations.COLLECT : {
+                    // Nothing to do
+                    //
+                    break;
+                }
+
+                case Operations.BEGIN : {
+
+                    Begin myBegin = (Begin) aMessage;
+
+                    if (_lastBegin == null) {
+                        _lastBegin = myBegin;
+                        _lastBeginOffset = aLogOffset;
+                    } else if (myBegin.getRndNumber() > _lastBegin.getRndNumber() ){
+                        _lastBegin = myBegin;
+                        _lastBeginOffset = aLogOffset;
+                    }
+
+                    break;
+                }
+
+                case Operations.SUCCESS : {
+
+                    Success myLastSuccess = (Success) aMessage;
+
+                    _lastSuccess = myLastSuccess;
+                    _lastSuccessOffset = aLogOffset;
+
+                    break;
+                }
+
+                default : throw new RuntimeException("Unexpected message: " + aMessage);
+            }
+        }
+
+        Begin getLastValue() {
+            if (_lastSuccess != null) {
+                return new Begin(_lastSuccess.getSeqNum(), _lastSuccess.getRndNum(),
+                        _lastSuccess.getConsolidatedValue(), _lastSuccess.getNodeId());
+            } else if (_lastBegin != null) {
+                return _lastBegin;
+            } else {
+                return null;
+            }
+        }
+
+        public String toString() {
+            return "LoggedInstance: " + _seqNum + " " + _lastBegin + " @ " + Long.toHexString(_lastBeginOffset) +
+                " " + _lastSuccess + " @ " + Long.toHexString(_lastSuccessOffset);
+        }
+    }
+
+    private class ReplayListenerImpl implements RecordListener {
+        private long _seqNum;
+        private InstanceState _state = null;
+
+        ReplayListenerImpl(long aSeqNum, long aLogOffset) throws Exception {
+            _seqNum = aSeqNum;
+            _storage.replay(this, aLogOffset);
+        }
+
+        InstanceState getState() {
+            return _state;
+        }
+
+        public void onRecord(long anOffset, byte[] aRecord) {
+            // dump("Read:", aRecord);
+
+            // All records we write are leader messages and they all have no length
+            //
+            PaxosMessage myMessage = Codecs.decode(aRecord);
+
+            if (myMessage.getSeqNum() == _seqNum) {
+                if (_state == null)
+                    _state = new InstanceState(_seqNum);
+
+                _state.add(myMessage, anOffset);
+            }
+        }
+    }
+
+    private class Streamer extends Thread implements RecordListener {
+        private Need _need;
+        private Stream _stream;
+
+        Streamer(Need aNeed) {
+            _need = aNeed;
+        }
+
+        public void run() {
+            _logger.info("Streamer starting");
+
+            _stream = _transport.connectTo(NodeId.from(_need.getNodeId()));
+
+            // Check we got a connection
+            //
+            if (_stream == null) {
+                _logger.warn("Stream couldn't connect: " + _need.getNodeId());
+                return;
+            }
+
+            try {
+                _storage.replay(this, 0);
+            } catch (Exception anE) {
+                _logger.error("Failed to replay log", anE);
+            }
+
+            _stream.close();
+        }
+
+        public void onRecord(long anOffset, byte[] aRecord) {
+            PaxosMessage myMessage = Codecs.decode(aRecord);
+
+            // Only send messages in the recovery window
+            //
+            if ((myMessage.getSeqNum() > _need.getMinSeq())
+                    && (myMessage.getSeqNum() <= _need.getMaxSeq())) {
+                _logger.debug("Streaming: " + myMessage);
+                _stream.send(myMessage);
+            } else {
+                _logger.debug("Not streaming: " + myMessage);
+            }
+        }
+    }
+
+    /**
+     * Tracks the last contiguous sequence number for which we have a value.
+     *
+     * When we receive a success, if it's seqNum is this field + 1, increment
+     * this field. Acts as the low watermark for leader recovery, essentially we
+     * want to recover from the last contiguous sequence number in the stream of
+     * paxos instances.
+     */
+    public static class Watermark {
+        static final Watermark INITIAL = new Watermark(UNKNOWN_SEQ, -1);
+        private long _seqNum;
+        private long _logOffset;
+
+        private Watermark(long aSeqNum, long aLogOffset) {
+            _seqNum = aSeqNum;
+            _logOffset = aLogOffset;
+        }
+
+        public long getSeqNum() {
+            return _seqNum;
+        }
+
+        public long getLogOffset() {
+            return _logOffset;
+        }
+
+        public boolean equals(Object anObject) {
+            if (anObject instanceof Watermark) {
+                Watermark myOther = (Watermark) anObject;
+
+                return (myOther._seqNum == _seqNum) && (myOther._logOffset == _logOffset);
+            }
+
+            return false;
+        }
+
+        public String toString() {
+            return "Watermark: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_logOffset);
+        }
+    }
+
+    /*
+     * If the sequence number of the collect we're seeing is for a sequence number >
+     * lwm + 1, we've missed some packets. Recovery range r is lwm < r
+     * <= x (where x = currentMessage.seqNum) so that the round we're
+     * seeing right now is complete and we need save packets only after
+     * that point.
+     */
+    private static class RecoveryWindow {
+        private long _minSeqNum;
+        private long _maxSeqNum;
+
+        RecoveryWindow(long aMin, long aMax) {
+            _minSeqNum = aMin;
+            _maxSeqNum = aMax;
+        }
+
+        long getMinSeqNum() {
+            return _minSeqNum;
+        }
+
+        long getMaxSeqNum() {
+            return _maxSeqNum;
+        }
+    }
 }
