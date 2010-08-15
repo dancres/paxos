@@ -247,7 +247,7 @@ public class Leader implements MembershipListener {
 
             case SUBMITTED : {
             	assert (_queue.size() != 0);
-            	
+
                 _membership = _detector.getMembers(this);
 
                 _logger.info(this + ": got membership: (" +
@@ -279,64 +279,44 @@ public class Leader implements MembershipListener {
             	if (_heartbeatAlarm != null)
             		_heartbeatAlarm.cancel();
             	
-            	/*
-            	 * If the Acceptor/Learner thinks there's a valid leader and the failure detector confirms
-            	 * liveness, reject the request. Note that leader may be partitioned from the network with some 
-            	 * collection of clients who may then try and use it as leader. The local AcceptorLearner will 
-            	 * take the collect but there will be no majority. Clients might continue to hit the leader and at some
-            	 * point it will become connected to the network.
-            	 * 
-            	 * During all this time it's updating it's round number and ultimately it would overpower the other
-            	 * leader when it reconnects because acceptor learners only extend their lease when they receive a
-            	 * begin from a leader (which means it succeeded with a collect). This can result in collect jitters
-            	 * where the partitioned master returns with a higher round number and wins when it submits a collect.
-            	 * We don't want this to happen too often. 
-            	 * 
-            	 * The above jittering is addressed by having clients process the vote_timeout error they will receive
-            	 * from the partitioned leader and attempt to locate the last known leader for some period of time 
-            	 * before returning to this one for another attempt. This slows the rate at which the partitioned leader
-            	 * increments it's round number. In addition we have the active leader increment it's own round number
-            	 * after some number of heartbeats to further reduce the likelihood of this jittering.
-            	 */
             	Collect myLastCollect = _al.getLastCollect();
 
             	// Collect is INITIAL means no leader known so try to become leader
             	//
             	if (myLastCollect.isInitial()) {
-                	// Best guess for a round number is the acceptor/learner
-                	//
             		_logger.info(this + ": collect is initial");
-            		
-                	updateRndNumber(myLastCollect.getRndNumber() + 1);            		
-            	} else { 
+
+                    updateRndNumber(myLastCollect.getRndNumber() + 1);
+            	} else {
             		NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
             		boolean isUs = myOtherLeader.equals(_transport.getLocalNodeId());
             		
             		/*
-            		 *  If the leader is us, use our existing round number, otherwise ascertain liveness and if we are
-            		 *  going to proceed invent a new round number.
+            		 * If the leader is us we needn't update our round number and we can proceed, otherwise
+            		 * we ascertain liveness of last known leader and proceed if it appears dead.
             		 */
             		if (! isUs) {
             			
             			_logger.info(this + ": leader is not us");
             			
             			if (_detector.isLive(myOtherLeader)) {
+                            _logger.info(this + ": other leader is alive");
+
             				error(Event.Reason.OTHER_LEADER, myOtherLeader);
             				return;
             			} else {
-                        	// Best guess for a round number is the acceptor/learner
-                        	//
-            				
             				_logger.info(this + ": other leader not alive");
-            				
-                        	updateRndNumber(myLastCollect.getRndNumber() + 1);            		            				
+
+                            /*
+                             * If we're going for leadership, make sure we have a credible round number. If this
+                             * round number isn't good enough, we'll find out via OldRound messages and update
+                             * the round number accordingly.
+                             */
+                            if (getRndNumber() <= myLastCollect.getRndNumber())
+                                updateRndNumber(myLastCollect.getRndNumber() + 1);
             			}
             		}
             	}
-
-            	// Best guess for starting sequence number is the acceptor/learner
-            	//
-            	_seqNum = _al.getLowWatermark().getSeqNum();
 
             	// Possibility we're starting from scratch
             	//
@@ -448,8 +428,6 @@ public class Leader implements MembershipListener {
     }
 
     /**
-     * @todo Ensure leader trigger's recovery when it receives an out-of-date warning.
-     * 
      * @param aMessage is an OldRound message received from some other node
      */
     private void oldRound(PaxosMessage aMessage) {
@@ -457,14 +435,28 @@ public class Leader implements MembershipListener {
 
         NodeId myCompetingNodeId = NodeId.from(myOldRound.getLeaderNodeId());
 
-        //Some other node is active, we should abort.
-        //
-        if (myOldRound.getSeqNum() > _seqNum)
-        	_logger.info(this + ": This leader is out of date: " + _seqNum + " < " + myOldRound.getSeqNum());
-        else
-        	_logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId);
-        
-        error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
+        /*
+         * If we're getting an OldRound, the other leader's lease has expired. We may be about to become leader
+         * but if we're proposing against an already settled sequence number we need to get up to date. If we were
+         * about to become leader but our sequence number is out of date, the response we'll get from an AL is an
+         * OldRound where the round number is less than ours but the sequence number is greater.
+         */
+        if (myOldRound.getLastRound() < getRndNumber()) {
+            if (myOldRound.getSeqNum() > _seqNum) {
+                _seqNum = myOldRound.getSeqNum();
+
+        	    _logger.info(this + ": This leader is out of date: " + _seqNum + " < " + myOldRound.getSeqNum());
+
+                _state = COLLECT;
+                process();
+            }
+        } else {
+        	_logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
+                myOldRound.getLastRound() + ", " + getRndNumber() + ")");
+
+            updateRndNumber(myOldRound.getLastRound() + 1);
+            error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
+        }
     }
 
     private void successful(int aReason, Object aContext) {
