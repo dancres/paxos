@@ -333,15 +333,6 @@ public class AcceptorLearner {
 
 		_logger.info("AL: got [ " + mySeqNum + " ] : " + aMessage);
 
-		// Check the leader is not out of sync
-		//
-		if ((aMessage.getClassification() == PaxosMessage.LEADER) && (mySeqNum <= getLowWatermark().getSeqNum())) {
-			Collect myLastCollect = getLastCollect();
-			
-			send(new OldRound(getLowWatermark().getSeqNum(), myLastCollect.getNodeId(),
-					myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
-		}
-			
 		switch (aMessage.getType()) {
 			case Operations.NEED : {
 				Need myNeed = (Need) aMessage;
@@ -367,6 +358,17 @@ public class AcceptorLearner {
 							+ getIgnoredCollectsCount());
 					return;
 				}
+
+                // Check the leader is not out of sync
+                //
+                if ((aMessage.getClassification() == PaxosMessage.LEADER) &&
+                        (mySeqNum <= getLowWatermark().getSeqNum())) {
+                    Collect myLastCollect = getLastCollect();
+
+                    send(new OldRound(getLowWatermark().getSeqNum(), myLastCollect.getNodeId(),
+                            myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
+                    return;
+                }
 
 				// If the collect supercedes our previous collect save it to disk,
 				// return last proposal etc
@@ -467,6 +469,8 @@ public class AcceptorLearner {
 	}
 
 	private void send(PaxosMessage aMessage, NodeId aNodeId) {
+        // Stay silent during recovery to avoid producing out-of-date responses
+        //
 		if (! isRecovering())
 			_transport.send(aMessage, aNodeId);
 	}
