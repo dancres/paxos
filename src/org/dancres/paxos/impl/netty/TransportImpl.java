@@ -211,7 +211,12 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		}
 		
 		public void send(PaxosMessage aMessage) {
-			_channel.write(aMessage);
+			ChannelFuture myFuture = _channel.write(aMessage);
+
+            try {
+                myFuture.await();
+            } catch (InterruptedException anIE) {
+            }
 		}
 	}
 	
