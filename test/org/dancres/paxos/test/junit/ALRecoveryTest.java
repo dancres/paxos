@@ -52,22 +52,26 @@ public class ALRecoveryTest {
     	if (_node3 != null)
     		_node3.stop();
     }
-    
-    @Test public void post() throws Exception {
-    	ClientDispatcher myClient = new ClientDispatcher();
-    	TransportImpl myTransport = new TransportImpl(myClient);
-        FailureDetector myFd = _node1.getFailureDetector();
 
+    private void ensureFD(FailureDetector anFD) throws Exception {
         int myChances = 0;
 
-        while (!myFd.couldComplete()) {
+        while (!anFD.couldComplete()) {
             ++myChances;
             if (myChances == 4)
                 Assert.assertTrue("Membership not achieved", false);
 
             Thread.sleep(5000);
         }
-        
+    }
+
+    @Test public void post() throws Exception {
+    	ClientDispatcher myClient = new ClientDispatcher();
+    	TransportImpl myTransport = new TransportImpl(myClient);
+
+        ensureFD(_node1.getFailureDetector());
+        ensureFD(_node2.getFailureDetector());
+
         System.err.println("Run some instances");
 
         // Run some instances
@@ -99,17 +103,7 @@ public class ALRecoveryTest {
         _node3 = new ServerDispatcher(5000, new HowlLogger(_node3Log));
         _tport3 = new TransportImpl(_node3);
         
-        myFd = _node3.getFailureDetector();
-
-        myChances = 0;
-
-        while (!myFd.couldComplete()) {
-            ++myChances;
-            if (myChances == 4)
-                Assert.assertTrue("Membership not achieved", false);
-
-            Thread.sleep(5000);
-        }
+        ensureFD(_node3.getFailureDetector());
 
         System.err.println("Run another instance - trigger");
         

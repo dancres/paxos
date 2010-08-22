@@ -45,21 +45,26 @@ public class HowlSequenceTest {
     	_node1.stop();
     	_node2.stop();
     }
-    
-    @Test public void post() throws Exception {
-    	ClientDispatcher myClient = new ClientDispatcher();
-    	TransportImpl myTransport = new TransportImpl(myClient);
-        FailureDetector myFd = _node1.getFailureDetector();
 
+    private void ensureFD(FailureDetector anFD) throws Exception {
         int myChances = 0;
 
-        while (!myFd.couldComplete()) {
+        while (!anFD.couldComplete()) {
             ++myChances;
             if (myChances == 4)
                 Assert.assertTrue("Membership not achieved", false);
 
             Thread.sleep(5000);
         }
+    }
+
+
+    @Test public void post() throws Exception {
+    	ClientDispatcher myClient = new ClientDispatcher();
+    	TransportImpl myTransport = new TransportImpl(myClient);
+
+        ensureFD(_node1.getFailureDetector());
+        ensureFD(_node2.getFailureDetector());
 
         for (int i = 0; i < 5; i++) {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);

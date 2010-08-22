@@ -32,6 +32,18 @@ public class HeartbeatTest {
     	_node2.stop();
     }
         
+    private void ensureFD(FailureDetector anFD) throws Exception {
+        int myChances = 0;
+
+        while (!anFD.couldComplete()) {
+            ++myChances;
+            if (myChances == 4)
+                Assert.assertTrue("Membership not achieved", false);
+
+            Thread.sleep(5000);
+        }
+    }
+
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
     	TransportImpl myTransport = new TransportImpl(myClient);
@@ -39,17 +51,8 @@ public class HeartbeatTest {
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
-        FailureDetector myFd = _node1.getFailureDetector();
-
-        int myChances = 0;
-
-        while (!myFd.couldComplete()) {
-            ++myChances;
-            if (myChances == 4)
-                Assert.assertTrue("Membership not achieved", false);
-
-            Thread.sleep(5000);
-        }
+        ensureFD(_node1.getFailureDetector());
+        ensureFD(_node2.getFailureDetector());
 
         myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()), 
         		_tport2.getLocalNodeId());
