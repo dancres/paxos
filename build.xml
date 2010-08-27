@@ -94,7 +94,7 @@
     <jar jarfile="${lib}/blitz.jar" basedir="${build}"/>
   </target>
 
-  <target name="javadoc" description="Generate developer grade docos for the code">
+  <target name="javadoc" depends="compile" description="Generate developer grade docos for the code">
     <javadoc sourcepath="${testsrc}:${src}" classpathref="allclasses"
 	   maxmemory="256m"
        destdir="docs/javadocs"
