@@ -156,21 +156,6 @@ public class Leader implements MembershipListener {
         }
     }
 
-    private long getRndNumber() {
-        return _rndNumber;
-    }
-
-    /**
-     * Updates the leader's view of what the current round number is. We don't increment it here, that's done when
-     * we attempt to become leader. We're only concerned here with having as up-to-date view as possible of what
-     * the current view is.
-     *
-     * @param aNumber the round number we wish to update to
-     */
-    private void updateRndNumber(long aNumber) {
-        _rndNumber = aNumber;
-    }
-
     public boolean isReady() {
         synchronized(this) {
             return (_state == EXIT) || (_state == ABORT);
@@ -286,7 +271,7 @@ public class Leader implements MembershipListener {
             	if (myLastCollect.isInitial()) {
             		_logger.info(this + ": collect is initial");
 
-                    updateRndNumber(myLastCollect.getRndNumber() + 1);
+                    _rndNumber = myLastCollect.getRndNumber() + 1;
             	} else {
             		NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
             		boolean isUs = myOtherLeader.equals(_transport.getLocalNodeId());
@@ -294,6 +279,17 @@ public class Leader implements MembershipListener {
             		/*
             		 * If the leader is us we needn't update our round number and we can proceed, otherwise
             		 * we ascertain liveness of last known leader and proceed if it appears dead.
+            		 *
+            		 * This potential leader and its associated AL may be unaware of the active leader or indeed
+            		 * it may appear dead. Under such circumstances this potential leader will attempt to
+            		 * become anointed but could fail on an existing leader lease which would lead to a vote
+            		 * timeout. The client would thus re-submit or similar rather than swap to the active leader node.
+            		 * This is okay as eventually this potential leader will decide the active leader is alive and
+            		 * immediately reject the client with an other leader message resulting in the necessary re-routing.
+            		 *
+            		 * The above behaviour has another benefit which is a client can connect to any member of the
+            		 * paxos co-operative and be re-directed to the leader node. This means clients don't have to
+            		 * perform any specialised behaviours for selecting a leader.  
             		 */
             		if (! isUs) {
             			
@@ -312,8 +308,8 @@ public class Leader implements MembershipListener {
                              * round number isn't good enough, we'll find out via OldRound messages and update
                              * the round number accordingly.
                              */
-                            if (getRndNumber() <= myLastCollect.getRndNumber())
-                                updateRndNumber(myLastCollect.getRndNumber() + 1);
+                            if (_rndNumber <= myLastCollect.getRndNumber())
+                                _rndNumber = myLastCollect.getRndNumber() + 1;
             			}
             		}
             	}
@@ -441,7 +437,7 @@ public class Leader implements MembershipListener {
          * about to become leader but our sequence number is out of date, the response we'll get from an AL is an
          * OldRound where the round number is less than ours but the sequence number is greater.
          */
-        if (myOldRound.getLastRound() < getRndNumber()) {
+        if (myOldRound.getLastRound() < _rndNumber) {
             if (myOldRound.getSeqNum() > _seqNum) {
                 _seqNum = myOldRound.getSeqNum();
 
@@ -452,9 +448,9 @@ public class Leader implements MembershipListener {
             }
         } else {
         	_logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
-                myOldRound.getLastRound() + ", " + getRndNumber() + ")");
+                myOldRound.getLastRound() + ", " + _rndNumber + ")");
 
-            updateRndNumber(myOldRound.getLastRound() + 1);
+            _rndNumber = myOldRound.getLastRound() + 1;
             error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
         }
     }
@@ -474,16 +470,16 @@ public class Leader implements MembershipListener {
     }
 
     private void emitCollect() {
-        emit(new Collect(_seqNum, getRndNumber(), _transport.getLocalNodeId().asLong()));
+        emit(new Collect(_seqNum, _rndNumber, _transport.getLocalNodeId().asLong()));
     }
 
     private void emitBegin() {
-        emit(new Begin(_seqNum, getRndNumber(), _queue.get(0).getConsolidatedValue(),
+        emit(new Begin(_seqNum, _rndNumber, _queue.get(0).getConsolidatedValue(),
         		_transport.getLocalNodeId().asLong()));
     }
 
     private void emitSuccess() {
-        emit(new Success(_seqNum, getRndNumber(),
+        emit(new Success(_seqNum, _rndNumber,
         		_queue.get(0).getConsolidatedValue(), _transport.getLocalNodeId().asLong()));
     }
 
