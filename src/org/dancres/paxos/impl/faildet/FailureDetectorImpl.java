@@ -28,7 +28,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     private Map<NodeId, Long> _lastHeartbeats = new HashMap<NodeId, Long>();
     private ExecutorService _executor = Executors.newFixedThreadPool(1);
     private Thread _scanner;
-    private CopyOnWriteArraySet _listeners;
+    private CopyOnWriteArraySet<LivenessListener> _listeners;
     private long _maximumPeriodOfUnresponsiveness;
     private boolean _stopping;
     

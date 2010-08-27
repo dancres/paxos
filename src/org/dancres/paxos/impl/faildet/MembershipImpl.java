@@ -25,12 +25,12 @@ class MembershipImpl implements Membership, LivenessListener {
     /**
      * Tracks the membership that forms the base for each round
      */
-    private Set _initialMemberAddresses = new HashSet();
+    private Set<NodeId> _initialMemberAddresses = new HashSet<NodeId>();
 
     /**
      * Tracks the members that have yet to respond in a round
      */
-    private Set _outstandingMemberAddresses;
+    private Set<NodeId> _outstandingMemberAddresses;
 
     private FailureDetectorImpl _parent;
     private boolean _populated = false;
@@ -105,7 +105,7 @@ class MembershipImpl implements Membership, LivenessListener {
         }
     }
 
-    void populate(Set anActiveAddresses) {
+    void populate(Set<NodeId> anActiveAddresses) {
         _logger.debug("Populating membership");
 
         synchronized(this) {
