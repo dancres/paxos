@@ -38,6 +38,33 @@ import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Paxos transport consists of two elements. The first is a shared multicast backplane that allows a node to efficiently
+ * broadcast to all other nodes. This is typically used for failure detectors and leader to followers comms. The second
+ * is a unicast connection used to talk to a specific node. This is typically used by followers wishing to respond
+ * to a leader.
+ *
+ * The basic design assumptions for this transport are:
+ *
+ * <ol>
+ * <li>Services that wish to base themselves upon Paxos consist of a client and a server component.</li>
+ * <li>Transport between service server and client is independent of the Paxos transport.</li>
+ * <li>Client sends a request to the server which is then sent to it's local leader.</li>
+ * <li>Local leader will process the request and respond with success or failure.</li>
+ * <li>Server acts upon the request and feeds back information to the client.</li>
+ * <ul>
+ * <li>If the local leader returns other_leader the server should probably send a message to the client which
+ * redirects it to the server node housing the current leader. This can be effected by having each server
+ * advertise itself with two addresses. The first is designed for use by clients, the second would be the Paxos
+ * nodeId for that server. Other servers could thus translate from the Paxos nodeId for another leader to the
+ * real service address.</li>
+ * <li>If the local leader returns a vote timeout, the server may choose to retry the operation submit a number of
+ * times and if that fails redirect the client or report a disconnection.</li>
+ * <li>The server is responsible for maintaining a list of active client requests and dispatching back to them
+ * based on the responses from it's local leader and acceptorlearner.</li>
+ * </ul>
+ * </ol>
+ */
 public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private static Logger _logger = LoggerFactory
 			.getLogger(TransportImpl.class);
