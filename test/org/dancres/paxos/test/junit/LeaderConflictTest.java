@@ -1,7 +1,9 @@
 package org.dancres.paxos.test.junit;
 
+import org.dancres.paxos.Event;
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.netty.TransportImpl;
+import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
@@ -80,5 +82,15 @@ public class LeaderConflictTest {
 
         Assert.assertTrue((myMsg1.getType() == Operations.FAIL && myMsg2.getType() == Operations.COMPLETE) ||
             (myMsg1.getType() == Operations.COMPLETE && myMsg2.getType() == Operations.FAIL));
+
+        if (myMsg1.getType() == Operations.FAIL) {
+            Fail myFail = (Fail) myMsg1;
+
+            assert(myFail.getReason() == Event.Reason.OTHER_LEADER);
+        } else {
+            Fail myFail = (Fail) myMsg2;
+
+            assert(myFail.getReason() == Event.Reason.OTHER_LEADER);
+        }
     }
 }
