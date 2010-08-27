@@ -129,9 +129,8 @@ public class CodecTest {
 
     @Test public void post() throws Exception {
         byte[] myData = {55};
-        byte[] myOther = {65};
 
-        Post myPost = new Post(myData, myOther, 1);
+        Post myPost = new Post(myData, 1);
 
         byte[] myBuffer = Codecs.encode(myPost);
 
@@ -139,8 +138,6 @@ public class CodecTest {
 
         Assert.assertEquals(myPost.getValue().length, myPost2.getValue().length);
         Assert.assertEquals(myPost.getValue()[0], myPost2.getValue()[0]);
-        Assert.assertEquals(myPost.getHandback().length, myPost2.getHandback().length);
-        Assert.assertEquals(myPost.getHandback()[0], myPost2.getHandback()[0]);
         Assert.assertEquals(myPost.getNodeId(), myPost2.getNodeId());
     }
 

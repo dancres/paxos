@@ -9,7 +9,7 @@ import org.dancres.paxos.messages.Post;
 public class PostCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
         Post myPost = (Post) anObject;
-        byte[] myBytes = myPost.getConsolidatedValue().marshall();
+        byte[] myBytes = myPost.getValue();
 
         ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + myBytes.length);
 
@@ -35,6 +35,6 @@ public class PostCodec implements Codec {
         
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
-        return new Post(new ConsolidatedValue(myBytes), myNodeId);
+        return new Post(myBytes, myNodeId);
     }
 }

@@ -18,8 +18,6 @@ import org.junit.*;
  * Simulate a node dying during an attempt to get consensus.
  */
 public class DeadNodeTest {
-	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
-	
     private TransportImpl _tport1;
     private DroppingTransportImpl _tport2;
 
@@ -66,7 +64,7 @@ public class DeadNodeTest {
 
         // And perform the test
         //
-        myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()), 
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()), 
         		_tport1.getLocalNodeId());
         PaxosMessage myMsg = myClient.getNext(10000);
 

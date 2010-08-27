@@ -12,8 +12,6 @@ import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.*;
 
 public class HeartbeatTest {
-	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
-
     private TransportImpl _tport1;
     private TransportImpl _tport2;
 
@@ -54,7 +52,7 @@ public class HeartbeatTest {
         ensureFD(_node1.getFailureDetector());
         ensureFD(_node2.getFailureDetector());
 
-        myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()), 
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()), 
         		_tport2.getLocalNodeId());
 
         PaxosMessage myMsg = myClient.getNext(10000);

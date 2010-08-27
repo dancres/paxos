@@ -1,13 +1,6 @@
 package org.dancres.paxos.test.utils;
 
-import org.dancres.paxos.AcceptorLearner;
-import org.dancres.paxos.AcceptorLearnerListener;
-import org.dancres.paxos.Event;
-import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.Leader;
-import org.dancres.paxos.LogStorage;
-import org.dancres.paxos.NodeId;
-import org.dancres.paxos.Transport;
+import org.dancres.paxos.*;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -15,19 +8,26 @@ import org.dancres.paxos.impl.util.MemoryLogStorage;
 import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.messages.Post;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ServerDispatcher implements TransportImpl.Dispatcher {
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
-    private NodeId _clientAddress;	
     private AcceptorLearner _al;
     private Leader _ld;
     private FailureDetectorImpl _fd;
     private Heartbeater _hb;
     private Transport _tp;
-	
+
+    private AtomicLong _handbackGenerator = new AtomicLong(0);
+	private Map<String, NodeId> _requestMap = new ConcurrentHashMap<String, NodeId>();
+
     private long _unresponsivenessThreshold;
     private LogStorage _log;
     
@@ -49,11 +49,12 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
 					break;
 				}
 
-				// UGLY HACK!!!
-				//
 				case PaxosMessage.CLIENT : {
-					_clientAddress = NodeId.from(aMessage.getNodeId());
-					_ld.messageReceived(aMessage);
+                    String myHandback = Long.toString(_handbackGenerator.getAndIncrement());
+                    _requestMap.put(myHandback, NodeId.from(aMessage.getNodeId()));
+
+                    Post myPost = (Post) aMessage;                            
+                    _ld.submit(myPost.getValue(), myHandback.getBytes());
 
 					break;	
 				}
@@ -114,21 +115,21 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
     	_ld.shutdown();
     }
     	
-    /**
-     * @todo Remove this ugly hack once we do handbacks etc
-     */
     class PacketBridge implements AcceptorLearnerListener {
 
         public void done(Event anEvent) {
             // If we're not the originating node for the post, because we're not leader, we won't have an addressed stored up
             //
-            if (_clientAddress == null)
+            String myHandback = new String(anEvent.getHandback());
+            NodeId myAddr = _requestMap.remove(myHandback);
+
+            if (myAddr == null)
                 return;
 
             if (anEvent.getResult() == Event.Reason.DECISION) {
-                _tp.send(new Complete(anEvent.getSeqNum()), _clientAddress);
+                _tp.send(new Complete(anEvent.getSeqNum()), myAddr);
             } else {
-                _tp.send(new Fail(anEvent.getSeqNum(), anEvent.getResult()), _clientAddress);
+                _tp.send(new Fail(anEvent.getSeqNum(), anEvent.getResult()), myAddr);
             }
         }
     }

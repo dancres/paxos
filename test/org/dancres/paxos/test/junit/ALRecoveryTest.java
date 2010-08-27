@@ -22,8 +22,6 @@ public class ALRecoveryTest {
 	private static final String _node2Log = "node2logs";
 	private static final String _node3Log = "node3logs";
 	
-	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
-	
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
     private ServerDispatcher _node3;
@@ -80,7 +78,7 @@ public class ALRecoveryTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
 
-            myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()),
+            myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()),
             	_tport2.getLocalNodeId());
 
             PaxosMessage myMsg = myClient.getNext(10000);
@@ -112,7 +110,7 @@ public class ALRecoveryTest {
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(67);
         
-        myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()),
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()),
             	_tport2.getLocalNodeId());
 
         PaxosMessage myMsg = myClient.getNext(10000);
@@ -122,7 +120,7 @@ public class ALRecoveryTest {
         
         System.err.println("Run another instance - in progress");
         
-        myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()),
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()),
             	_tport2.getLocalNodeId());
 
         myMsg = myClient.getNext(10000);

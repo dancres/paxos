@@ -1,24 +1,14 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.ConsolidatedValue;
-
 public class Post implements PaxosMessage {
     public static final int TYPE = Operations.POST;
 
     private byte[] _value;
-    private byte[] _handback;
     private long _nodeId;
     
-    public Post(byte[] aValue, byte[] aHandback, long aNodeId) {
+    public Post(byte[] aValue, long aNodeId) {
         _value = aValue;
-        _handback = aHandback;
         _nodeId = aNodeId;
-    }
-    
-    public Post(ConsolidatedValue aValue, long aNodeId) {
-    	_value = aValue.getValue();
-    	_handback = aValue.getHandback();
-    	_nodeId = aNodeId;
     }
     
     public long getSeqNum() {
@@ -43,13 +33,5 @@ public class Post implements PaxosMessage {
 
     public byte[] getValue() {
         return _value;
-    }
-
-    public byte[] getHandback() {
-        return _handback;
-    }
-
-    public ConsolidatedValue getConsolidatedValue() {
-    	return new ConsolidatedValue(_value, _handback);
     }
 }

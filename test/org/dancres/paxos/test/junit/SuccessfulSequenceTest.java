@@ -11,8 +11,6 @@ import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.*;
 
 public class SuccessfulSequenceTest {
-	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
-	
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
@@ -53,7 +51,7 @@ public class SuccessfulSequenceTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
 
-            myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()),
+            myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()),
             		_tport1.getLocalNodeId());
 
             PaxosMessage myMsg = myClient.getNext(10000);

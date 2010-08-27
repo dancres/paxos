@@ -21,8 +21,6 @@ public class HowlSequenceTest {
 	private static final String _node1Log = "node1logs";
 	private static final String _node2Log = "node2logs";
 	
-	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
-	
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
@@ -70,7 +68,7 @@ public class HowlSequenceTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
 
-            myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()),
+            myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()),
             	_tport2.getLocalNodeId());
 
             PaxosMessage myMsg = myClient.getNext(10000);

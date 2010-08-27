@@ -129,7 +129,7 @@ public class Leader implements MembershipListener {
 
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
-    private List<Post> _queue = new LinkedList<Post>();
+    private List<Op> _queue = new LinkedList<Op>();
 
     public Leader(FailureDetector aDetector, Transport aTransport, AcceptorLearner anAcceptorLearner) {
         _detector = aDetector;
@@ -191,7 +191,7 @@ public class Leader implements MembershipListener {
                  * If there are any queued operations we must fail those also - use the same completion code...
                  */
                 while (_queue.size() > 0) {
-                    Post myOp = (Post) _queue.remove(0);
+                    Op myOp = _queue.remove(0);
                     _al.signal(new Event(_event.getResult(), _event.getSeqNum(),
                             myOp.getConsolidatedValue()));
                 }
@@ -361,7 +361,7 @@ public class Leader implements MembershipListener {
                  * as the one in the LAST message will be a consolidated value.
                  */
                 if ((myValue != null) && (! myValue.equals(_queue.get(0).getConsolidatedValue())))
-                	_queue.add(new Post(myValue, NodeId.MOST_SUBORDINATE.asLong()));
+                	_queue.add(new Op(myValue));
 
                 _state = SUCCESS;
                 emitBegin();
@@ -536,12 +536,16 @@ public class Leader implements MembershipListener {
         }
     }
 
+    public void submit(byte[] aValue, byte[] aHandback) {
+        submit(new Op(aValue, aHandback));
+    }
+
     /**
      * Request a vote on a value.
      *
      * @param anOp is the value to attempt to agree upon
      */
-    private void submit(Post anOp) {
+    private void submit(Op anOp) {
         synchronized (this) {
         	_queue.add(anOp);
         	
@@ -565,8 +569,7 @@ public class Leader implements MembershipListener {
      */
     public void messageReceived(PaxosMessage aMessage) {
     	if (aMessage.getClassification() == PaxosMessage.CLIENT) {
-    		submit((Post) aMessage);
-    		return;
+            throw new IllegalArgumentException("Not going to handle that CLIENT message for you");
     	}
     	
 		_logger.info(this + " received message: " + aMessage);
@@ -592,6 +595,30 @@ public class Leader implements MembershipListener {
     		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState;
     }
 
+    private class Op {
+        private byte[] _value;
+        private byte[] _handback;
+
+        public Op(byte[] aValue, byte[] aHandback) {
+            _value = aValue;
+            _handback = aHandback;
+        }
+
+        public Op(ConsolidatedValue aValue) {
+            _value = aValue.getValue();
+            _handback = aValue.getHandback();
+        }
+
+        public String toString() {
+            return "Op";
+        }
+
+        public ConsolidatedValue getConsolidatedValue() {
+            return new ConsolidatedValue(_value, _handback);
+        }
+
+    }
+
     private class InteractionAlarm extends TimerTask {
         public void run() {
             expired();
@@ -608,7 +635,7 @@ public class Leader implements MembershipListener {
              * although that's unlikely if things are stable as no other node can become leader whilst we hold the
              * lease
              */
-            submit(new Post(AcceptorLearner.HEARTBEAT, NodeId.MOST_SUBORDINATE.asLong()));
+            submit(new Op(AcceptorLearner.HEARTBEAT));
         }
     }
 

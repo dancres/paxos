@@ -16,8 +16,6 @@ import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.*;
 
 public class SuperiorLeaderTest {
-	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
-
     private ServerDispatcher _node1;
     private OldRoundDispatcher _node2;
 
@@ -56,7 +54,7 @@ public class SuperiorLeaderTest {
             Thread.sleep(5000);
         }
 
-        myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()), 
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()), 
         		_tport1.getLocalNodeId());
 
         PaxosMessage myMsg = myClient.getNext(10000);

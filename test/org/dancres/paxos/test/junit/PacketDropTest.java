@@ -15,8 +15,6 @@ import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.*;
 
 public class PacketDropTest {
-	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
-	
     private TransportImpl _tport1;
     private TransportImpl _tport2;
 
@@ -65,7 +63,7 @@ public class PacketDropTest {
          * If there is no stable majority and we cannot circumvent packet loss we expect the leader to ultimately
          * give up.
          */
-        myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()), 
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()), 
         		_tport1.getLocalNodeId());
 
         PaxosMessage myMsg = myClient.getNext(15000);

@@ -14,8 +14,6 @@ import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.*;
 
 public class IgnoreCollectsTest {
-	private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
-
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
@@ -54,7 +52,7 @@ public class IgnoreCollectsTest {
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
-        myClient.send(new Post(myBuffer.array(), HANDBACK, myTransport.getLocalNodeId().asLong()),
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()),
         		_tport1.getLocalNodeId());
 
         PaxosMessage myMsg = myClient.getNext(10000);

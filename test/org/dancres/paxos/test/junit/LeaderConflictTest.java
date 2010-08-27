@@ -17,8 +17,6 @@ import org.junit.Test;
 import java.nio.ByteBuffer;
 
 public class LeaderConflictTest {
-    private static final byte[] HANDBACK = new byte[]{1, 2, 3, 4};
-
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
@@ -68,10 +66,10 @@ public class LeaderConflictTest {
         myBuffer1.putInt(1);
         myBuffer2.putInt(2);
 
-        myClient1.send(new Post(myBuffer1.array(), HANDBACK, myTransport1.getLocalNodeId().asLong()),
+        myClient1.send(new Post(myBuffer1.array(), myTransport1.getLocalNodeId().asLong()),
                 _tport1.getLocalNodeId());
 
-        myClient2.send(new Post(myBuffer2.array(), HANDBACK, myTransport2.getLocalNodeId().asLong()),
+        myClient2.send(new Post(myBuffer2.array(), myTransport2.getLocalNodeId().asLong()),
                 _tport2.getLocalNodeId());
 
         PaxosMessage myMsg1 = myClient1.getNext(10000);
