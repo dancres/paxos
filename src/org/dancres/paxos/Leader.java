@@ -222,7 +222,14 @@ public class Leader implements MembershipListener {
                 	
                 	// If we got here, we're leader, setup for a heartbeat if there's no other activity
                 	//
-                    _heartbeatAlarm = new HeartbeatTask();
+                    _heartbeatAlarm = new TimerTask() {
+                        public void run() {
+                            _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
+
+                            submit(AcceptorLearner.HEARTBEAT);
+                        }
+                    };
+
                     _watchdog.schedule(_heartbeatAlarm, calculateLeaderRefresh());
                 }
 
@@ -494,7 +501,12 @@ public class Leader implements MembershipListener {
     }
 
     private boolean startInteraction() {
-        _interactionAlarm = new InteractionAlarm();
+        _interactionAlarm = new TimerTask() {
+            public void run() {
+                expired();
+            }
+        };
+
         _watchdog.schedule(_interactionAlarm, calculateInteractionTimeout());
 
         return _membership.startInteraction();
@@ -592,26 +604,6 @@ public class Leader implements MembershipListener {
 
     	return "Leader: " + _transport.getLocalNodeId() +
     		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState;
-    }
-
-    private class InteractionAlarm extends TimerTask {
-        public void run() {
-            expired();
-        }
-    }
-    
-    private class HeartbeatTask extends TimerTask {
-        public void run() {
-            _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
-
-            /*
-             * Don't have to check the return value - if it's accepted we weren't active, otherwise we are and
-             * no heartbeat is required. Note that a heartbeat could cause us to decide we're no longer leader
-             * although that's unlikely if things are stable as no other node can become leader whilst we hold the
-             * lease
-             */
-            submit(AcceptorLearner.HEARTBEAT);
-        }
     }
 
     private static class MessageValidator {
