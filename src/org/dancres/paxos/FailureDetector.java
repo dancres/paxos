@@ -1,5 +1,7 @@
 package org.dancres.paxos;
 
+import java.net.InetSocketAddress;
+
 /**
  * Base interface for failure detector implementations.  For more on failure detectors read: Unreliable Failure Detectors for
  * Reliable Distributed Systems by Tushar Deepak Chandra and Sam Toueg.
@@ -8,11 +10,9 @@ package org.dancres.paxos;
  */
 public interface FailureDetector {
     public void add(LivenessListener aListener);
-    public NodeId getLeader();
     public long getUnresponsivenessThreshold();
-    public boolean amLeader(NodeId aNodeId);
     public Membership getMembers(MembershipListener aListener);
-    public boolean isLive(NodeId aNodeId);
+    public boolean isLive(InetSocketAddress aNodeId);
     
     /**
      * Currently a simple majority test - ultimately we only need one member of the previous majority to be present

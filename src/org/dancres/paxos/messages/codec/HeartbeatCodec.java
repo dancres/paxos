@@ -10,7 +10,7 @@ public class HeartbeatCodec implements Codec {
         ByteBuffer myBuffer = ByteBuffer.allocate(12);
 
         myBuffer.putInt(Operations.HEARTBEAT);
-        myBuffer.putLong(((Heartbeat) anObject).getNodeId());
+        myBuffer.putLong(Codecs.flatten(((Heartbeat) anObject).getNodeId()));
         myBuffer.flip();
         
         return myBuffer;
@@ -19,6 +19,6 @@ public class HeartbeatCodec implements Codec {
     public Object decode(ByteBuffer aBuffer) {
         aBuffer.getInt();
 
-        return new Heartbeat(aBuffer.getLong());
+        return new Heartbeat(Codecs.expand(aBuffer.getLong()));
     }
 }

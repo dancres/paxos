@@ -52,8 +52,8 @@ public class IgnoreCollectsTest {
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()),
-        		_tport1.getLocalNodeId());
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        		_tport1.getLocalAddress());
 
         PaxosMessage myMsg = myClient.getNext(10000);
 
@@ -67,9 +67,9 @@ public class IgnoreCollectsTest {
         AcceptorLearner myAl = _node2.getAcceptorLearner();
         Leader myL = _node2.getLeader();
         Collect myCollect = new Collect(myAl.getLowWatermark().getSeqNum() + 1, 
-        		myL.getCurrentRound(), myTransport.getLocalNodeId().asLong());
+        		myL.getCurrentRound(), myTransport.getLocalAddress());
 
-        myClient.send(myCollect, _tport2.getLocalNodeId());
+        myClient.send(myCollect, _tport2.getLocalAddress());
 
         // Must wait for message to make it's way to acceptor learners
         Thread.sleep(5000);

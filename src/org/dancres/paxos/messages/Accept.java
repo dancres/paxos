@@ -1,11 +1,13 @@
 package org.dancres.paxos.messages;
 
+import java.net.InetSocketAddress;
+
 public class Accept implements PaxosMessage {
     private long _seqNum;
     private long _rndNumber;
-    private long _nodeId;
+    private InetSocketAddress _nodeId;
     
-    public Accept(long aSeqNum, long aRndNumber, long aNodeId) {
+    public Accept(long aSeqNum, long aRndNumber, InetSocketAddress aNodeId) {
         _seqNum = aSeqNum;
         _rndNumber = aRndNumber;
         _nodeId = aNodeId;
@@ -15,7 +17,7 @@ public class Accept implements PaxosMessage {
         return Operations.ACCEPT;
     }
 
-    public long getNodeId() {
+    public InetSocketAddress getNodeId() {
     	return _nodeId;
     }
     
@@ -32,21 +34,21 @@ public class Accept implements PaxosMessage {
     }
 
     public int hashCode() {
-    	return new Long(_seqNum).hashCode() ^ new Long(_rndNumber).hashCode() ^ new Long(_nodeId).hashCode();
+    	return new Long(_seqNum).hashCode() ^ new Long(_rndNumber).hashCode() ^ _nodeId.hashCode();
     }
     
     public boolean equals(Object anObject) {
     	if (anObject instanceof Accept) {
     		Accept myOther = (Accept) anObject;
     		
-    		return (_seqNum == myOther._seqNum)&& (_rndNumber == myOther._seqNum) && (_nodeId == myOther._nodeId);  
+    		return (_seqNum == myOther._seqNum)&& (_rndNumber == myOther._seqNum) && (_nodeId.equals(myOther._nodeId));  
     	}
     	
     	return false;
     }
     
     public String toString() {
-        return "Accept: " + Long.toHexString(_nodeId) + ", " + Long.toHexString(_seqNum) + " [ " +
+        return "Accept: " + _nodeId + ", " + Long.toHexString(_seqNum) + " [ " +
                 Long.toHexString(_rndNumber) + " ] ";
     }
 }

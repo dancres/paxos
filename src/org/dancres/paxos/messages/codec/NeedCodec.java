@@ -16,7 +16,7 @@ public class NeedCodec implements Codec {
 		myBuffer.putInt(Operations.NEED);
 		myBuffer.putLong(myNeed.getMinSeq());
 		myBuffer.putLong(myNeed.getMaxSeq());
-		myBuffer.putLong(myNeed.getNodeId());
+		myBuffer.putLong(Codecs.flatten(myNeed.getNodeId()));
 		
 		myBuffer.flip();
 		return myBuffer;
@@ -30,6 +30,6 @@ public class NeedCodec implements Codec {
 		long myMax = aBuffer.getLong();
 		long myNodeId = aBuffer.getLong();
 		
-		return new Need(myMin, myMax, myNodeId);
+		return new Need(myMin, myMax, Codecs.expand(myNodeId));
 	}
 }

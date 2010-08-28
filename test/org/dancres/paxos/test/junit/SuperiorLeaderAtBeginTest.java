@@ -10,7 +10,6 @@ import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.netty.TransportImpl;
-import org.dancres.paxos.NodeId;
 import org.dancres.paxos.test.utils.ClientDispatcher;
 import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.*;
@@ -54,8 +53,8 @@ public class SuperiorLeaderAtBeginTest {
             Thread.sleep(5000);
         }
 
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()), 
-        		_tport1.getLocalNodeId());
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        		_tport1.getLocalAddress());
 
         PaxosMessage myMsg = myClient.getNext(10000);
 
@@ -88,9 +87,9 @@ public class SuperiorLeaderAtBeginTest {
                         Begin myBegin = (Begin) aMessage;
 
                         getTransport().send(
-                                new OldRound(myBegin.getSeqNum(), getTransport().getLocalNodeId().asLong(), 
-                                		myBegin.getRndNumber() + 1, getTransport().getLocalNodeId().asLong()),
-                                NodeId.from(aMessage.getNodeId()));
+                                new OldRound(myBegin.getSeqNum(), getTransport().getLocalAddress(),
+                                		myBegin.getRndNumber() + 1, getTransport().getLocalAddress()),
+                                aMessage.getNodeId());
                     } else {
                     	getAcceptorLearner().messageReceived(aMessage);
                     }

@@ -1,15 +1,16 @@
 package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.LivenessListener;
+
+import java.net.InetSocketAddress;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.Iterator;
-import org.dancres.paxos.NodeId;
 
 class AliveTask implements Runnable {
-    private NodeId _nodeId;
+    private InetSocketAddress _nodeId;
     private CopyOnWriteArraySet _listeners;
 
-    public AliveTask(NodeId aRemoteAddress, CopyOnWriteArraySet aListeners) {
+    public AliveTask(InetSocketAddress aRemoteAddress, CopyOnWriteArraySet aListeners) {
         _nodeId = aRemoteAddress;
         _listeners = aListeners;
     }

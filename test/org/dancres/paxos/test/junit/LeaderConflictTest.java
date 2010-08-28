@@ -66,11 +66,11 @@ public class LeaderConflictTest {
         myBuffer1.putInt(1);
         myBuffer2.putInt(2);
 
-        myClient1.send(new Post(myBuffer1.array(), myTransport1.getLocalNodeId().asLong()),
-                _tport1.getLocalNodeId());
+        myClient1.send(new Post(myBuffer1.array(), myTransport1.getLocalAddress()),
+                _tport1.getLocalAddress());
 
-        myClient2.send(new Post(myBuffer2.array(), myTransport2.getLocalNodeId().asLong()),
-                _tport2.getLocalNodeId());
+        myClient2.send(new Post(myBuffer2.array(), myTransport2.getLocalAddress()),
+                _tport2.getLocalAddress());
 
         PaxosMessage myMsg1 = myClient1.getNext(10000);
         PaxosMessage myMsg2 = myClient2.getNext(10000);

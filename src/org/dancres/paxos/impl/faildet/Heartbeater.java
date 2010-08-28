@@ -1,7 +1,6 @@
 package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.Transport;
-import org.dancres.paxos.NodeId;
 
 /**
  * Broadcasts <code>Heartbeat</code> messages at an appropriate rate for <code>FailureDetectorImpl</code>'s in other nodes.
@@ -30,7 +29,7 @@ public class Heartbeater extends Thread {
     
     public void run() {
         while (! isStopping()) {
-            _transport.send(new Heartbeat(_transport.getLocalNodeId().asLong()), NodeId.BROADCAST);
+            _transport.send(new Heartbeat(_transport.getLocalAddress()), _transport.getBroadcastAddress());
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {

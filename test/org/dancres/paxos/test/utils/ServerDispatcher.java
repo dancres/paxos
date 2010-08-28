@@ -12,6 +12,7 @@ import org.dancres.paxos.messages.Post;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,7 +27,7 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
     private Transport _tp;
 
     private AtomicLong _handbackGenerator = new AtomicLong(0);
-	private Map<String, NodeId> _requestMap = new ConcurrentHashMap<String, NodeId>();
+	private Map<String, InetSocketAddress> _requestMap = new ConcurrentHashMap<String, InetSocketAddress>();
 
     private long _unresponsivenessThreshold;
     private LogStorage _log;
@@ -51,7 +52,7 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
 
 				case PaxosMessage.CLIENT : {
                     String myHandback = Long.toString(_handbackGenerator.getAndIncrement());
-                    _requestMap.put(myHandback, NodeId.from(aMessage.getNodeId()));
+                    _requestMap.put(myHandback, aMessage.getNodeId());
 
                     Post myPost = (Post) aMessage;                            
                     _ld.submit(myPost.getValue(), myHandback.getBytes());
@@ -121,7 +122,7 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
             // If we're not the originating node for the post, because we're not leader, we won't have an addressed stored up
             //
             String myHandback = new String(anEvent.getHandback());
-            NodeId myAddr = _requestMap.remove(myHandback);
+            InetSocketAddress myAddr = _requestMap.remove(myHandback);
 
             if (myAddr == null)
                 return;

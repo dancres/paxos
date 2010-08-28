@@ -12,7 +12,7 @@ public class AckCodec implements Codec {
         ByteBuffer myBuffer = ByteBuffer.allocate(4 + 8 + 8);
         myBuffer.putInt(Operations.ACK);
         myBuffer.putLong(myAck.getSeqNum());
-        myBuffer.putLong(myAck.getNodeId());
+        myBuffer.putLong(Codecs.flatten(myAck.getNodeId()));
         myBuffer.flip();
         return myBuffer;
     }
@@ -22,6 +22,6 @@ public class AckCodec implements Codec {
         long mySeqNum = aBuffer.getLong();
         long myNodeId = aBuffer.getLong();
         
-        return new Ack(mySeqNum, myNodeId);
+        return new Ack(mySeqNum, Codecs.expand(myNodeId));
     }
 }

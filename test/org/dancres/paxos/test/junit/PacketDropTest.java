@@ -1,5 +1,6 @@
 package org.dancres.paxos.test.junit;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.messages.Fail;
@@ -8,7 +9,6 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.NodeId;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.test.utils.ClientDispatcher;
 import org.dancres.paxos.test.utils.ServerDispatcher;
@@ -63,8 +63,8 @@ public class PacketDropTest {
          * If there is no stable majority and we cannot circumvent packet loss we expect the leader to ultimately
          * give up.
          */
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()), 
-        		_tport1.getLocalNodeId());
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        		_tport1.getLocalAddress());
 
         PaxosMessage myMsg = myClient.getNext(15000);
 
@@ -86,7 +86,7 @@ public class PacketDropTest {
         	super(aDispatcher);
         }
 
-        public void send(PaxosMessage aMessage, NodeId anAddress) {
+        public void send(PaxosMessage aMessage, InetSocketAddress anAddress) {
             if (aMessage.getType() == Operations.HEARTBEAT)
                 super.send(aMessage, anAddress);
         }

@@ -14,7 +14,7 @@ public class CollectCodec implements Codec {
         myBuffer.putInt(Operations.COLLECT);
         myBuffer.putLong(myCollect.getSeqNum());
         myBuffer.putLong(myCollect.getRndNumber());
-        myBuffer.putLong(myCollect.getNodeId());
+        myBuffer.putLong(Codecs.flatten(myCollect.getNodeId()));
 
         myBuffer.flip();
         return myBuffer;
@@ -28,6 +28,6 @@ public class CollectCodec implements Codec {
         long myRnd = aBuffer.getLong();
         long myNode = aBuffer.getLong();
 
-        return new Collect(mySeq, myRnd, myNode);
+        return new Collect(mySeq, myRnd, Codecs.expand(myNode));
     }
 }

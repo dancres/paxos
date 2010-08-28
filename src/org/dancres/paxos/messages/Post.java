@@ -1,12 +1,14 @@
 package org.dancres.paxos.messages;
 
+import java.net.InetSocketAddress;
+
 public class Post implements PaxosMessage {
     public static final int TYPE = Operations.POST;
 
     private byte[] _value;
-    private long _nodeId;
+    private InetSocketAddress _nodeId;
     
-    public Post(byte[] aValue, long aNodeId) {
+    public Post(byte[] aValue, InetSocketAddress aNodeId) {
         _value = aValue;
         _nodeId = aNodeId;
     }
@@ -23,7 +25,7 @@ public class Post implements PaxosMessage {
     	return CLIENT;
     }
      
-    public long getNodeId() {
+    public InetSocketAddress getNodeId() {
     	return _nodeId;
     }
     

@@ -19,7 +19,7 @@ public class SuccessCodec implements Codec {
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(mySuccess.getSeqNum());
         myBuffer.putLong(mySuccess.getRndNum());
-        myBuffer.putLong(mySuccess.getNodeId());
+        myBuffer.putLong(Codecs.flatten(mySuccess.getNodeId()));
         myBuffer.put(myBytes);
 
         myBuffer.flip();
@@ -38,6 +38,6 @@ public class SuccessCodec implements Codec {
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
 
-        return new Success(mySeqNum, myRndNum, new ConsolidatedValue(myBytes), myNodeId);
+        return new Success(mySeqNum, myRndNum, new ConsolidatedValue(myBytes), Codecs.expand(myNodeId));
     }
 }

@@ -54,8 +54,8 @@ public class LeaderListenerTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
 
-            myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()),
-            		_tport1.getLocalNodeId());
+            myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+            		_tport1.getLocalAddress());
 
             PaxosMessage myMsg = myClient.getNext(10000);
 

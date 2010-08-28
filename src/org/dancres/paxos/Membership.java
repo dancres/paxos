@@ -1,5 +1,7 @@
 package org.dancres.paxos;
 
+import java.net.InetSocketAddress;
+
 /**
  * Represents a membership snapshot from a particular point in time which will be updated
  * by the failure detector on the fly.  This majority should be used until a Paxos round is completed
@@ -24,7 +26,7 @@ public interface Membership {
      * 
      * @return <code>true</code> if this response was expected, <code>false</code> otherwise.
      */
-    public boolean receivedResponse(NodeId aNodeId);
+    public boolean receivedResponse(InetSocketAddress aNodeId);
 
     /**
      * Indicate this membership will be used no more

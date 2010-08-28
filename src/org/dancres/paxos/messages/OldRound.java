@@ -1,12 +1,14 @@
 package org.dancres.paxos.messages;
 
+import java.net.InetSocketAddress;
+
 public class OldRound implements PaxosMessage {
     private long _seqNum;
     private long _lastRound;
-    private long _leaderNodeId;
-    private long _nodeId;
+    private InetSocketAddress _leaderNodeId;
+    private InetSocketAddress _nodeId;
     
-    public OldRound(long aSeqNum, long aLeaderNodeId, long aLastRound, long aNodeId) {
+    public OldRound(long aSeqNum, InetSocketAddress aLeaderNodeId, long aLastRound, InetSocketAddress aNodeId) {
         _seqNum = aSeqNum;
         _leaderNodeId = aLeaderNodeId;
         _lastRound = aLastRound;
@@ -25,11 +27,11 @@ public class OldRound implements PaxosMessage {
         return _seqNum;
     }
 
-    public long getLeaderNodeId() {
+    public InetSocketAddress getLeaderNodeId() {
         return _leaderNodeId;
     }
 
-    public long getNodeId() {
+    public InetSocketAddress getNodeId() {
     	return _nodeId;
     }
         
@@ -38,8 +40,8 @@ public class OldRound implements PaxosMessage {
     }
 
     public int hashCode() {
-    	return new Long(_seqNum).hashCode() ^ new Long(_lastRound).hashCode() ^ new Long(_leaderNodeId).hashCode() ^
-    		new Long(_nodeId).hashCode();
+    	return new Long(_seqNum).hashCode() ^ new Long(_lastRound).hashCode() ^ _leaderNodeId.hashCode() ^
+    		_nodeId.hashCode();
     }
     
     public boolean equals(Object anObject) {
@@ -47,7 +49,7 @@ public class OldRound implements PaxosMessage {
     		OldRound myOther = (OldRound) anObject;
     		
     		return (myOther._seqNum == _seqNum) && (myOther._lastRound == _lastRound) && 
-    			(myOther._leaderNodeId == _leaderNodeId) && (myOther._nodeId == _nodeId);
+    			(myOther._leaderNodeId.equals(_leaderNodeId)) && (myOther._nodeId.equals(_nodeId));
     	}
     	
     	return false;
@@ -55,6 +57,6 @@ public class OldRound implements PaxosMessage {
     
     public String toString() {
         return "OldRound: " + Long.toHexString(_seqNum) + " [ " + Long.toHexString(_lastRound) + ", " +
-                Long.toHexString(_leaderNodeId) + " ]";
+                _leaderNodeId + " ]";
     }
 }

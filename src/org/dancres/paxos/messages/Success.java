@@ -2,14 +2,16 @@ package org.dancres.paxos.messages;
 
 import org.dancres.paxos.ConsolidatedValue;
 
+import java.net.InetSocketAddress;
+
 public class Success implements PaxosMessage {
     private long _seqNum;
     private long _rndNum;
-    private long _nodeId;
+    private InetSocketAddress _nodeId;
     
     private ConsolidatedValue _value;
 
-    public Success(long aSeqNum, long aRndNumber, ConsolidatedValue aValue, long aNodeId) {
+    public Success(long aSeqNum, long aRndNumber, ConsolidatedValue aValue, InetSocketAddress aNodeId) {
         _seqNum = aSeqNum;
         _rndNum = aRndNumber;
         _value = aValue;
@@ -32,7 +34,7 @@ public class Success implements PaxosMessage {
     	return _rndNum;
     }
     
-    public long getNodeId() {
+    public InetSocketAddress getNodeId() {
     	return _nodeId;
     }
     
@@ -41,14 +43,14 @@ public class Success implements PaxosMessage {
     }
     
     public int hashCode() {
-    	return new Long(_seqNum).hashCode() ^ new Long(_rndNum).hashCode() ^ new Long(_nodeId).hashCode(); 
+    	return new Long(_seqNum).hashCode() ^ new Long(_rndNum).hashCode() ^ _nodeId.hashCode();
     }
     
     public boolean equals(Object anObject) {
     	if (anObject instanceof Success) {
     		Success myOther = (Success) anObject;
     		
-    		return (_seqNum == myOther._seqNum) && (_rndNum == myOther._rndNum) && (_nodeId == myOther._nodeId);
+    		return (_seqNum == myOther._seqNum) && (_rndNum == myOther._rndNum) && (_nodeId.equals(myOther._nodeId));
     	}
     	
     	return false;
@@ -56,6 +58,6 @@ public class Success implements PaxosMessage {
     
     public String toString() {
         return "Success: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNum) + ", " + 
-        	Long.toHexString(_nodeId);
+        	_nodeId;
     }
 }

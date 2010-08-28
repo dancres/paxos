@@ -1,12 +1,12 @@
 package org.dancres.paxos.test.junit;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.ConsolidatedValue;
-import org.dancres.paxos.NodeId;
 import org.dancres.paxos.Stream;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.HowlLogger;
@@ -18,6 +18,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Success;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
+import org.dancres.paxos.test.utils.Utils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,23 +27,24 @@ public class ALRecoveryTransitionTest {
 	private static final String DIRECTORY = "howllogs";
 	private static byte[] HANDBACK = new byte[] {1, 2, 3, 4};
 	
-	private NodeId _nodeId;
-	
+	private InetSocketAddress _nodeId = Utils.getTestAddress();
+    private InetSocketAddress _broadcastId = Utils.getTestAddress();
+
 	@Before public void init() throws Exception {
     	FileSystem.deleteDirectory(new File(DIRECTORY));
-    	
-        _nodeId = NodeId.from(12345678);
 	}
 	
 	private static class TransportImpl implements Transport {
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
-		private NodeId _nodeId;
-		
-		TransportImpl(NodeId aNodeId) {
+		private InetSocketAddress _nodeId;
+        private InetSocketAddress _broadcastId;
+
+		TransportImpl(InetSocketAddress aNodeId, InetSocketAddress aBroadcastId) {
 			_nodeId = aNodeId;
+            _broadcastId = aBroadcastId;
 		}
 		
-		public void send(PaxosMessage aMessage, NodeId aNodeId) {
+		public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
 			synchronized(_messages) {
 				_messages.add(aMessage);
 				_messages.notifyAll();
@@ -63,21 +65,25 @@ public class ALRecoveryTransitionTest {
 			}
 		}
 
-		public NodeId getLocalNodeId() {
+		public InetSocketAddress getLocalAddress() {
 			return _nodeId;
 		}
 
-		public void shutdown() {
+        public InetSocketAddress getBroadcastAddress() {
+            return _broadcastId;
+        }
+
+        public void shutdown() {
 		}
 
-		public Stream connectTo(NodeId aNodeId) {
+		public Stream connectTo(InetSocketAddress aNodeId) {
 			return null;
 		}
 	}
 	
 	@Test public void test() throws Exception {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
-		TransportImpl myTransport = new TransportImpl(NodeId.from(12345));
+		TransportImpl myTransport = new TransportImpl(_nodeId, _broadcastId);
 		
 		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
 		
@@ -88,7 +94,7 @@ public class ALRecoveryTransitionTest {
 		
 		// First collect, Al has no state so this is accepted and will be held in packet buffer
 		//
-		myAl.messageReceived(new Collect(mySeqNum, myRndNum, _nodeId.asLong()));
+		myAl.messageReceived(new Collect(mySeqNum, myRndNum, _nodeId));
 		
 		PaxosMessage myResponse = myTransport.getNextMsg();	
 		Assert.assertTrue(myResponse.getType() == Operations.LAST);
@@ -98,21 +104,21 @@ public class ALRecoveryTransitionTest {
 		byte[] myData = new byte[] {1};
 		ConsolidatedValue myValue = new ConsolidatedValue(myData, HANDBACK);
 		myAl.messageReceived(
-				new Begin(mySeqNum, myRndNum, myValue, _nodeId.asLong()));
+				new Begin(mySeqNum, myRndNum, myValue, _nodeId));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
 
 		// Commit this instance
 		//
-		myAl.messageReceived(new Success(mySeqNum, myRndNum + 1, myValue, _nodeId.asLong()));
+		myAl.messageReceived(new Success(mySeqNum, myRndNum + 1, myValue, _nodeId));
 
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACK);
 		
 		// Now start an instance which should trigger recovery - happens on collect boundary
 		//
-		myAl.messageReceived(new Collect(mySeqNum + 5, myRndNum + 2, _nodeId.asLong()));
+		myAl.messageReceived(new Collect(mySeqNum + 5, myRndNum + 2, _nodeId));
 		
 		Assert.assertTrue(myAl.isRecovering());		
 		
@@ -122,7 +128,7 @@ public class ALRecoveryTransitionTest {
 		 */
 		Need myNeed = (Need) myTransport.getNextMsg();
 		
-		Assert.assertEquals(myNeed.getNodeId(), myTransport.getLocalNodeId().asLong());
+		Assert.assertEquals(myNeed.getNodeId(), myTransport.getLocalAddress());
 		Assert.assertEquals(myNeed.getMinSeq(), 0);
 		Assert.assertEquals(myNeed.getMaxSeq(), mySeqNum + 4);
 		

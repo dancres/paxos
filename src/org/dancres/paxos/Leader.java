@@ -4,6 +4,7 @@ import org.dancres.paxos.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
@@ -279,8 +280,8 @@ public class Leader implements MembershipListener {
 
                     _rndNumber = myLastCollect.getRndNumber() + 1;
             	} else {
-            		NodeId myOtherLeader = NodeId.from(myLastCollect.getNodeId());
-            		boolean isUs = myOtherLeader.equals(_transport.getLocalNodeId());
+            		InetSocketAddress myOtherLeader = myLastCollect.getNodeId();
+            		boolean isUs = myOtherLeader.equals(_transport.getLocalAddress());
             		
             		/*
             		 * If the leader is us we needn't update our round number and we can proceed, otherwise
@@ -435,7 +436,7 @@ public class Leader implements MembershipListener {
     private void oldRound(PaxosMessage aMessage) {
         OldRound myOldRound = (OldRound) aMessage;
 
-        NodeId myCompetingNodeId = NodeId.from(myOldRound.getLeaderNodeId());
+        InetSocketAddress myCompetingNodeId = myOldRound.getLeaderNodeId();
 
         /*
          * If we're getting an OldRound, the other leader's lease has expired. We may be about to become leader
@@ -476,17 +477,17 @@ public class Leader implements MembershipListener {
     }
 
     private void emitCollect() {
-        emit(new Collect(_seqNum, _rndNumber, _transport.getLocalNodeId().asLong()));
+        emit(new Collect(_seqNum, _rndNumber, _transport.getLocalAddress()));
     }
 
     private void emitBegin() {
         emit(new Begin(_seqNum, _rndNumber, _queue.get(0),
-        		_transport.getLocalNodeId().asLong()));
+        		_transport.getLocalAddress()));
     }
 
     private void emitSuccess() {
         emit(new Success(_seqNum, _rndNumber,
-        		_queue.get(0), _transport.getLocalNodeId().asLong()));
+        		_queue.get(0), _transport.getLocalAddress()));
     }
 
     private void emit(PaxosMessage aMessage) {
@@ -497,7 +498,7 @@ public class Leader implements MembershipListener {
 
         _logger.info(this + ": sending: " + aMessage);
 
-        _transport.send(aMessage, NodeId.BROADCAST);
+        _transport.send(aMessage, _transport.getBroadcastAddress());
     }
 
     private boolean startInteraction() {
@@ -588,7 +589,7 @@ public class Leader implements MembershipListener {
         synchronized (this) {
             if ((aMessage.getSeqNum() == _seqNum) && _msgValidator.acceptable(aMessage, _state)) {
                 _messages.add(aMessage);
-                _membership.receivedResponse(NodeId.from(aMessage.getNodeId()));
+                _membership.receivedResponse(aMessage.getNodeId());
             } else {
                 _logger.warn(this + ": Unexpected message received: " + aMessage.getSeqNum());
             }
@@ -602,7 +603,7 @@ public class Leader implements MembershipListener {
             myState = _state;
         }
 
-    	return "Leader: " + _transport.getLocalNodeId() +
+    	return "Leader: " + _transport.getLocalAddress() +
     		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState;
     }
 

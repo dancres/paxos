@@ -1,5 +1,6 @@
 package org.dancres.paxos.test.junit;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.messages.Fail;
@@ -8,7 +9,6 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.NodeId;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.test.utils.ClientDispatcher;
 import org.dancres.paxos.test.utils.ServerDispatcher;
@@ -64,8 +64,8 @@ public class DeadNodeTest {
 
         // And perform the test
         //
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()), 
-        		_tport1.getLocalNodeId());
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        		_tport1.getLocalAddress());
         PaxosMessage myMsg = myClient.getNext(10000);
 
         Assert.assertFalse((myMsg == null));
@@ -84,7 +84,7 @@ public class DeadNodeTest {
             super(aDispatcher);
         }
 
-        public void send(PaxosMessage aMessage, NodeId anAddress) {
+        public void send(PaxosMessage aMessage, InetSocketAddress anAddress) {
             if (canSend())
                 super.send(aMessage, anAddress);
         }

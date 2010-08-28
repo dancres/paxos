@@ -68,8 +68,8 @@ public class HowlSequenceTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
 
-            myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()),
-            	_tport2.getLocalNodeId());
+            myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+            	_tport2.getLocalAddress());
 
             PaxosMessage myMsg = myClient.getNext(10000);
 

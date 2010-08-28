@@ -9,6 +9,7 @@ import java.util.*;
 public class NetworkUtils {
     private static Logger _logger = LoggerFactory.getLogger(NetworkUtils.class);
 
+    private static NetworkInterface _workableInterface = null;
     private static InetAddress _workableAddress = null;
 
     /*
@@ -46,8 +47,8 @@ public class NetworkUtils {
              * We would prefer to use the index number to choose but in the absence of that we choose the
              * interface with the lowest index
              */
-            NetworkInterface myLowest = myWorkableInterfaces.first();
-            _workableAddress = getValidAddress(myLowest);
+            _workableInterface = myWorkableInterfaces.first();
+            _workableAddress = getValidAddress(_workableInterface);
 
             _logger.debug("Equates to address: " + _workableAddress);
         } catch (Exception anE) {
@@ -128,16 +129,12 @@ public class NetworkUtils {
         }
     }
 
-    public static InetAddress getWorkableInterface() throws Exception {
+    public static InetAddress getWorkableInterface() {
         return _workableAddress;
     }
 
-    public static InetAddress getBroadcastAddress() throws Exception {
-        byte[] myAddr = _workableAddress.getAddress();
-
-        myAddr[3] = (byte) 255;
-
-        return InetAddress.getByAddress(myAddr);
+    public static InetAddress getBroadcastAddress() {
+        return _workableInterface.getInterfaceAddresses().get(0).getBroadcast();
     }
 
     public static int getAddressSize() {

@@ -14,9 +14,14 @@ import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.messages.Success;
 import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Fail;
+import org.dancres.paxos.test.utils.Utils;
 import org.junit.*;
 
+import java.net.InetSocketAddress;
+
 public class CodecTest {
+    private InetSocketAddress _testAddress = Utils.getTestAddress();
+
 	@Test public void fail() throws Exception {
 		Fail myFail = new Fail(1, 2);
 		
@@ -37,7 +42,7 @@ public class CodecTest {
 	}
 	
     @Test public void accept() throws Exception {
-        Accept myAccept = new Accept(1, 2, 3);
+        Accept myAccept = new Accept(1, 2, _testAddress);
 
         byte[] myBuffer = Codecs.encode(myAccept);
 
@@ -45,25 +50,25 @@ public class CodecTest {
 
         Assert.assertTrue(myAccept.getRndNumber() == myAccept2.getRndNumber());
         Assert.assertTrue(myAccept.getSeqNum() == myAccept2.getSeqNum());
-        Assert.assertTrue(myAccept.getNodeId() == myAccept2.getNodeId());
+        Assert.assertTrue(myAccept.getNodeId().equals( myAccept2.getNodeId()));
     }
 
     @Test public void ack() throws Exception {
-        Ack myAck = new Ack(1, 2);
+        Ack myAck = new Ack(1, _testAddress);
 
         byte[] myBuffer = Codecs.encode(myAck);
 
         Ack myAck2 = (Ack) Codecs.decode(myBuffer);
 
         Assert.assertTrue(myAck.getSeqNum() == myAck2.getSeqNum());
-        Assert.assertTrue(myAck.getNodeId() == myAck2.getNodeId());
+        Assert.assertTrue(myAck.getNodeId().equals( myAck2.getNodeId()));
     }
 
     @Test public void begin() throws Exception {
         byte[] myData = {55};
         byte[] myHandback = {56};
         
-        Begin myBegin = new Begin(1, 2, new ConsolidatedValue(myData, myHandback), 3);
+        Begin myBegin = new Begin(1, 2, new ConsolidatedValue(myData, myHandback), _testAddress);
 
         byte[] myBuffer = Codecs.encode(myBegin);
 
@@ -76,7 +81,7 @@ public class CodecTest {
     }
 
     @Test public void collect() throws Exception {
-        Collect myCollect = new Collect(1, 2, 3);
+        Collect myCollect = new Collect(1, 2, _testAddress);
 
         byte[] myBuffer = Codecs.encode(myCollect);
 
@@ -88,7 +93,7 @@ public class CodecTest {
     }
 
     @Test public void heartbeat() throws Exception {
-        Heartbeat myHeartbeat = new Heartbeat(1);
+        Heartbeat myHeartbeat = new Heartbeat(_testAddress);
 
         byte[] myBuffer = Codecs.encode(myHeartbeat);
 
@@ -101,7 +106,7 @@ public class CodecTest {
         byte[] myData = {55};
         byte[] myHandback = {56};
 
-        Last myLast = new Last(0, 1, 2, new ConsolidatedValue(myData, myHandback), 3);
+        Last myLast = new Last(0, 1, 2, new ConsolidatedValue(myData, myHandback), _testAddress);
 
         byte[] myBuffer = Codecs.encode(myLast);
 
@@ -115,7 +120,7 @@ public class CodecTest {
     }
 
     @Test public void oldRound() throws Exception {
-        OldRound myOldRound = new OldRound(1, 2, 3, 4);
+        OldRound myOldRound = new OldRound(1, _testAddress, 3, _testAddress);
 
         byte[] myBuffer = Codecs.encode(myOldRound);
 
@@ -130,7 +135,7 @@ public class CodecTest {
     @Test public void post() throws Exception {
         byte[] myData = {55};
 
-        Post myPost = new Post(myData, 1);
+        Post myPost = new Post(myData, _testAddress);
 
         byte[] myBuffer = Codecs.encode(myPost);
 
@@ -145,7 +150,7 @@ public class CodecTest {
         byte[] myData = {55};
         byte[] myHandback = {56};
 
-        Success mySuccess = new Success(1, 2, new ConsolidatedValue(myData, myHandback), 3);
+        Success mySuccess = new Success(1, 2, new ConsolidatedValue(myData, myHandback), _testAddress);
 
         byte[] myBuffer = Codecs.encode(mySuccess);
 
@@ -158,7 +163,7 @@ public class CodecTest {
     }
 
     @Test public void need() throws Exception {
-    	Need myNeed = new Need(1, 2, 3);
+    	Need myNeed = new Need(1, 2, _testAddress);
     	
     	byte[] myBuffer = Codecs.encode(myNeed);
     	

@@ -22,7 +22,7 @@ class BeginCodec implements Codec {
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myBegin.getSeqNum());
         myBuffer.putLong(myBegin.getRndNumber());
-        myBuffer.putLong(myBegin.getNodeId());
+        myBuffer.putLong(Codecs.flatten(myBegin.getNodeId()));
         myBuffer.put(myBytes);
 
         myBuffer.flip();
@@ -42,6 +42,6 @@ class BeginCodec implements Codec {
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
         
-        return new Begin(mySeqNum, myRndNum, new ConsolidatedValue(myBytes), myNodeId);
+        return new Begin(mySeqNum, myRndNum, new ConsolidatedValue(myBytes), Codecs.expand(myNodeId));
     }
 }

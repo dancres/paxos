@@ -15,7 +15,7 @@ public class AcceptCodec implements Codec {
         myBuffer.putInt(Operations.ACCEPT);
         myBuffer.putLong(myAccept.getSeqNum());
         myBuffer.putLong(myAccept.getRndNumber());
-        myBuffer.putLong(myAccept.getNodeId());
+        myBuffer.putLong(Codecs.flatten(myAccept.getNodeId()));
 
         myBuffer.flip();
         return myBuffer;
@@ -28,6 +28,6 @@ public class AcceptCodec implements Codec {
         long myRnd = aBuffer.getLong();
         long myNodeId = aBuffer.getLong();
         
-        return new Accept(mySeq, myRnd, myNodeId);
+        return new Accept(mySeq, myRnd, Codecs.expand(myNodeId));
     }
 }

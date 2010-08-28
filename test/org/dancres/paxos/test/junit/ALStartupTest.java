@@ -1,29 +1,31 @@
 package org.dancres.paxos.test.junit;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.AcceptorLearner;
-import org.dancres.paxos.NodeId;
 import org.dancres.paxos.Stream;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
+import org.dancres.paxos.test.utils.Utils;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ALStartupTest {
 	private static final String DIRECTORY = "howllogs";
 
-	private NodeId _nodeId;
-	
+	private InetSocketAddress _nodeId = Utils.getTestAddress();
+    private InetSocketAddress _broadcastId = Utils.getTestAddress();
+
 	private class TransportImpl implements Transport {
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 		
-		public void send(PaxosMessage aMessage, NodeId aNodeId) {
+		public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
 			synchronized(_messages) {
 				_messages.add(aMessage);
 			}
@@ -35,22 +37,24 @@ public class ALStartupTest {
 			}
 		}
 
-		public NodeId getLocalNodeId() {
+		public InetSocketAddress getLocalAddress() {
 			return _nodeId;
 		}
 
-		public void shutdown() {
+        public InetSocketAddress getBroadcastAddress() {
+            return _broadcastId;
+        }
+
+        public void shutdown() {
 		}
 
-		public Stream connectTo(NodeId aNodeId) {
+		public Stream connectTo(InetSocketAddress aNodeId) {
 			return null;
 		}	
 	}
 		
 	@Before public void init() throws Exception {
-    	FileSystem.deleteDirectory(new File(DIRECTORY));
-    	
-        _nodeId = NodeId.from(12345678);
+    	FileSystem.deleteDirectory(new File(DIRECTORY));    	
 	}
 	
 	@Test public void test() {

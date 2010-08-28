@@ -1,5 +1,6 @@
 package org.dancres.paxos;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -308,7 +309,7 @@ public class AcceptorLearner {
 					// Ask the current leader to bring us back up to speed
 					//
 					send(new Need(myWindow.getMinSeqNum(), myWindow.getMaxSeqNum(), 
-							_transport.getLocalNodeId().asLong()), NodeId.from(aMessage.getNodeId()));
+							_transport.getLocalAddress()), aMessage.getNodeId());
 
 					// Declare recovery active - which stops this AL emitting responses
 					//
@@ -327,7 +328,7 @@ public class AcceptorLearner {
 	 * @return is any message to send
 	 */
 	private void process(PaxosMessage aMessage) {
-		NodeId myNodeId = NodeId.from(aMessage.getNodeId());
+		InetSocketAddress myNodeId = aMessage.getNodeId();
 		long myCurrentTime = System.currentTimeMillis();
 		long mySeqNum = aMessage.getSeqNum();
 
@@ -366,7 +367,7 @@ public class AcceptorLearner {
                     Collect myLastCollect = getLastCollect();
 
                     send(new OldRound(getLowWatermark().getSeqNum(), myLastCollect.getNodeId(),
-                            myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
+                            myLastCollect.getRndNumber(), _transport.getLocalAddress()), myNodeId);
                     return;
                 }
 
@@ -392,7 +393,7 @@ public class AcceptorLearner {
 					Collect myLastCollect = getLastCollect();
 
 					send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
-							myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
+							myLastCollect.getRndNumber(), _transport.getLocalAddress()), myNodeId);
 				}
 				
 				break;
@@ -408,7 +409,7 @@ public class AcceptorLearner {
 					write(aMessage, true);
 
 					send(new Accept(mySeqNum, getLastCollect().getRndNumber(), 
-							_transport.getLocalNodeId().asLong()), myNodeId);
+							_transport.getLocalAddress()), myNodeId);
 				} else if (precedes(myBegin)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
@@ -416,7 +417,7 @@ public class AcceptorLearner {
 					Collect myLastCollect = getLastCollect();
 
 					send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
-							myLastCollect.getRndNumber(), _transport.getLocalNodeId().asLong()), myNodeId);
+							myLastCollect.getRndNumber(), _transport.getLocalAddress()), myNodeId);
 				} else {
 					// Quiet, didn't see the collect, leader hasn't accounted for
 					// our values, it hasn't seen our last
@@ -435,7 +436,7 @@ public class AcceptorLearner {
 
 				if (mySuccess.getSeqNum() <= getLowWatermark().getSeqNum()) {
 					_logger.info("AL:Discarded known value: " + mySuccess.getSeqNum());
-					send(new Ack(mySuccess.getSeqNum(), _transport.getLocalNodeId().asLong()), myNodeId);
+					send(new Ack(mySuccess.getSeqNum(), _transport.getLocalAddress()), myNodeId);
 				} else {
 					_logger.info("AL:Learnt value: " + mySuccess.getSeqNum());
 
@@ -457,7 +458,7 @@ public class AcceptorLearner {
 								mySuccess.getConsolidatedValue(), null));
 					}
 
-					send(new Ack(mySuccess.getSeqNum(), _transport.getLocalNodeId().asLong()), myNodeId);
+					send(new Ack(mySuccess.getSeqNum(), _transport.getLocalAddress()), myNodeId);
 				}
 				
 				break;
@@ -468,7 +469,7 @@ public class AcceptorLearner {
 		}
 	}
 
-	private void send(PaxosMessage aMessage, NodeId aNodeId) {
+	private void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
         // Stay silent during recovery to avoid producing out-of-date responses
         //
 		if (! isRecovering())
@@ -496,12 +497,12 @@ public class AcceptorLearner {
 		
 		if ((myState == null) || (myState.getLastValue() == null)) {
 			return new Last(aSeqNum, myLow.getSeqNum(), Long.MIN_VALUE,
-					LogStorage.NO_VALUE, _transport.getLocalNodeId().asLong());
+					LogStorage.NO_VALUE, _transport.getLocalAddress());
 		} else {			
 			Begin myBegin = myState.getLastValue();
 			
 			return new Last(aSeqNum, myLow.getSeqNum(), myBegin.getRndNumber(), myBegin.getConsolidatedValue(),
-					_transport.getLocalNodeId().asLong());
+					_transport.getLocalAddress());
 		}
 	}
 
@@ -651,7 +652,7 @@ public class AcceptorLearner {
         public void run() {
             _logger.info("Streamer starting");
 
-            _stream = _transport.connectTo(NodeId.from(_need.getNodeId()));
+            _stream = _transport.connectTo(_need.getNodeId());
 
             // Check we got a connection
             //

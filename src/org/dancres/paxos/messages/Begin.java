@@ -3,13 +3,15 @@ package org.dancres.paxos.messages;
 import org.dancres.paxos.ConsolidatedValue;
 import org.dancres.paxos.LogStorage;
 
+import java.net.InetSocketAddress;
+
 public class Begin implements PaxosMessage {
     private long _seqNum;
     private long _rndNumber;
-    private long _nodeId;
+    private InetSocketAddress _nodeId;
     private ConsolidatedValue _consolidatedValue;
     
-    public Begin(long aSeqNum, long aRndNumber, ConsolidatedValue aValue, long aNodeId) {
+    public Begin(long aSeqNum, long aRndNumber, ConsolidatedValue aValue, InetSocketAddress aNodeId) {
         _seqNum = aSeqNum;
         _rndNumber = aRndNumber;
         _nodeId = aNodeId;
@@ -37,14 +39,15 @@ public class Begin implements PaxosMessage {
     }
     
     public int hashCode() {
-    	return new Long(_seqNum).hashCode() ^ new Long(_rndNumber).hashCode() ^ new Long(_nodeId).hashCode();
+    	return new Long(_seqNum).hashCode() ^ new Long(_rndNumber).hashCode() ^ _nodeId.hashCode();
     }
     
     public boolean equals(Object anObject) {
     	if (anObject instanceof Begin) {
     		Begin myOther = (Begin) anObject;
     		
-    		return (_seqNum == myOther._seqNum) && (_rndNumber == myOther._rndNumber) && (_nodeId == myOther._nodeId);
+    		return (_seqNum == myOther._seqNum) &&
+                    (_rndNumber == myOther._rndNumber) && (_nodeId.equals(myOther._nodeId));
     	}
     	
     	return false;
@@ -52,19 +55,19 @@ public class Begin implements PaxosMessage {
     
     public String toString() {
         return "Begin: " + Long.toHexString(_seqNum) + " [ " +
-                Long.toHexString(_rndNumber) + ", " + Long.toHexString(_nodeId) + " ] " + 
+                Long.toHexString(_rndNumber) + ", " + _nodeId + " ] " +
                 _consolidatedValue.equals(LogStorage.NO_VALUE);
     }
 
     public boolean originates(Collect aCollect) {
-        return ((_rndNumber == aCollect.getRndNumber()) && (_nodeId == aCollect.getNodeId()));
+        return ((_rndNumber == aCollect.getRndNumber()) && (_nodeId.equals(aCollect.getNodeId())));
     }
 
     public boolean precedes(Collect aCollect) {
         return (_rndNumber < aCollect.getRndNumber());
     }
 
-    public long getNodeId() {
+    public InetSocketAddress getNodeId() {
         return _nodeId;
     }
 }

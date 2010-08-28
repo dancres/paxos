@@ -5,7 +5,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Executors;
 
-import org.dancres.paxos.NodeId;
 import org.dancres.paxos.Stream;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.NetworkUtils;
@@ -80,7 +79,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private ServerSocketChannel _serverStreamChannel;
 	private NioClientSocketChannelFactory _clientStreamFactory;
 	private Dispatcher _dispatcher;
-	private NodeId _nodeId;
+	private InetSocketAddress _unicastAddr;
+    private InetSocketAddress _broadcastAddr;
 	
 	public interface Dispatcher {
 		public void setTransport(Transport aTransport);
@@ -88,6 +88,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 	
 	public TransportImpl(Dispatcher aDispatcher) throws Exception {
+        _broadcastAddr = new InetSocketAddress(NetworkUtils.getBroadcastAddress(), 255);
+
 		InetSocketAddress myMcastTarget = new InetSocketAddress((InetAddress) null,
 				BROADCAST_PORT);
 		_mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
@@ -105,9 +107,9 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		myFuture = _unicast.bind(new InetSocketAddress(NetworkUtils.getWorkableInterface(), 0));
 		myFuture.await();
 		
-		_nodeId = NodeId.from(_unicast.getLocalAddress());
+		_unicastAddr = _unicast.getLocalAddress();
 		
-		_logger.info("Transport bound on: " + _nodeId);
+		_logger.info("Transport bound on: " + _unicastAddr);
 
 		_serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), 
 				Executors.newCachedThreadPool());
@@ -181,10 +183,14 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		return myPipeline;
 	}
 	
-	public NodeId getLocalNodeId() {
-		return _nodeId;
+	public InetSocketAddress getLocalAddress() {
+		return _unicastAddr;
 	}
 
+    public InetSocketAddress getBroadcastAddress() {
+        return _broadcastAddr;
+    }
+    
 	public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
 		_logger.info("Connected: " + ctx + ", " + e);
 	}
@@ -209,12 +215,12 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         anEvent.getChannel().close();
     }		
 	
-	public void send(PaxosMessage aMessage, NodeId aNodeId) {
+	public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
 		try {
-			if (aNodeId.equals(NodeId.BROADCAST))
+			if (aNodeId.equals(_broadcastAddr))
 				_mcast.write(aMessage, _mcastAddr);
 			else {
-				_unicast.write(aMessage, NodeId.toAddress(aNodeId));
+				_unicast.write(aMessage, aNodeId);
 			}
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
@@ -247,16 +253,16 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		}
 	}
 	
-	public Stream connectTo(NodeId aNodeId) {
+	public Stream connectTo(InetSocketAddress aNodeId) {
 		SocketChannel myChannel = _clientStreamFactory.newChannel(newPipeline());
 		
 		try {
-			ChannelFuture myFuture = myChannel.connect(NodeId.toAddress(aNodeId));
+			ChannelFuture myFuture = myChannel.connect(aNodeId);
 			myFuture.await();
 			
 			return new StreamImpl(myChannel);
 		} catch (Exception anE) {
-			_logger.error("Couldn't connect to: " + Long.toHexString(aNodeId.asLong()), anE);
+			_logger.error("Couldn't connect to: " + aNodeId, anE);
 			return null;
 		}
 	}
@@ -337,9 +343,9 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		Transport _tport1 = new TransportImpl(new DispatcherImpl());
 		Transport _tport2 = new TransportImpl(new DispatcherImpl());
 		
-		_tport1.send(new Accept(1, 2, _tport1.getLocalNodeId().asLong()), NodeId.BROADCAST);
-		_tport1.send(new Accept(2, 3, _tport2.getLocalNodeId().asLong()), _tport2.getLocalNodeId());
-		
+		_tport1.send(new Accept(1, 2, _tport1.getLocalAddress()), _tport1.getBroadcastAddress());
+		_tport1.send(new Accept(2, 3, _tport2.getLocalAddress()), _tport2.getLocalAddress());
+
 		Thread.sleep(5000);
 		_tport1.shutdown();
 		_tport2.shutdown();

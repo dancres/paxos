@@ -4,18 +4,19 @@ import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.LivenessListener;
 import org.dancres.paxos.Membership;
 import org.dancres.paxos.MembershipListener;
-import org.dancres.paxos.NodeId;
+
+import java.net.InetSocketAddress;
 
 public class NullFailureDetector implements FailureDetector {
 
 	public void add(LivenessListener aListener) {
 	}
 
-	public boolean amLeader(NodeId aNodeId) {
+	public boolean amLeader(InetSocketAddress aInetSocketAddress) {
 		return false;
 	}
 
-	public NodeId getLeader() {
+	public InetSocketAddress getLeader() {
 		return null;
 	}
 
@@ -42,7 +43,7 @@ public class NullFailureDetector implements FailureDetector {
 			return 2;
 		}
 
-		public boolean receivedResponse(NodeId aNodeId) {
+		public boolean receivedResponse(InetSocketAddress aInetSocketAddress) {
 			synchronized(this) {
 				--_responseCount;
 				if (_responseCount == 0)
@@ -61,7 +62,7 @@ public class NullFailureDetector implements FailureDetector {
 		return 0;
 	}
 
-	public boolean isLive(NodeId aNodeId) {
+	public boolean isLive(InetSocketAddress aInetSocketAddress) {
 		return false;
 	}
 

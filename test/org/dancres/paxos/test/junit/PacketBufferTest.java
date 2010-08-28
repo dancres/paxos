@@ -6,6 +6,7 @@ import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Success;
+import org.dancres.paxos.test.utils.Utils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -17,8 +18,8 @@ public class PacketBufferTest {
 	@Test public void testCollect() {
 		PacketBuffer myBuffer = new PacketBuffer();
 		
-		Collect myCollect1 = new Collect(1, 1, 1);
-		Collect myCollect2 = new Collect(2, 1, 1);
+		Collect myCollect1 = new Collect(1, 1, Utils.getTestAddress());
+		Collect myCollect2 = new Collect(2, 1, Utils.getTestAddress());
 		
 		myBuffer.add(myCollect1);
 		myBuffer.add(myCollect2);
@@ -45,8 +46,8 @@ public class PacketBufferTest {
 	@Test public void testBegin() {
 		PacketBuffer myBuffer = new PacketBuffer();
 		
-		Begin myBegin1 = new Begin(1, 1, new ConsolidatedValue(new byte[0], new byte[0]), 1);
-		Begin myBegin2 = new Begin(2, 1, new ConsolidatedValue(new byte[0], new byte[0]), 1);
+		Begin myBegin1 = new Begin(1, 1, new ConsolidatedValue(new byte[0], new byte[0]), Utils.getTestAddress());
+		Begin myBegin2 = new Begin(2, 1, new ConsolidatedValue(new byte[0], new byte[0]), Utils.getTestAddress());
 		
 		myBuffer.add(myBegin1);
 		myBuffer.add(myBegin2);
@@ -73,8 +74,8 @@ public class PacketBufferTest {
 	@Test public void testSuccess() {
 		PacketBuffer myBuffer = new PacketBuffer();
 		
-		Success mySuccess1 = new Success(1, 1, new ConsolidatedValue(new byte[0], new byte[0]), 1);
-		Success mySuccess2 = new Success(2, 1, new ConsolidatedValue(new byte[0], new byte[0]), 1);
+		Success mySuccess1 = new Success(1, 1, new ConsolidatedValue(new byte[0], new byte[0]), Utils.getTestAddress());
+		Success mySuccess2 = new Success(2, 1, new ConsolidatedValue(new byte[0], new byte[0]), Utils.getTestAddress());
 		
 		myBuffer.add(mySuccess1);
 		myBuffer.add(mySuccess2);

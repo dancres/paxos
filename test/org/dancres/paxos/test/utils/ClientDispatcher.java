@@ -1,9 +1,9 @@
 package org.dancres.paxos.test.utils;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.dancres.paxos.NodeId;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Operations;
@@ -26,7 +26,7 @@ public class ClientDispatcher implements TransportImpl.Dispatcher {
         }
 	}
 
-	public void send(PaxosMessage aMessage, NodeId aTarget) {
+	public void send(PaxosMessage aMessage, InetSocketAddress aTarget) {
 		_transport.send(aMessage, aTarget);
 	}
 	

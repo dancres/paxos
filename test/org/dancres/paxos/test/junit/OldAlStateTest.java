@@ -1,12 +1,12 @@
 package org.dancres.paxos.test.junit;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.ConsolidatedValue;
-import org.dancres.paxos.NodeId;
 import org.dancres.paxos.Stream;
 import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.HowlLogger;
@@ -18,6 +18,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Success;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
+import org.dancres.paxos.test.utils.Utils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,18 +30,18 @@ public class OldAlStateTest {
 	private static final String DIRECTORY = "howllogs";
 	private static byte[] HANDBACK = new byte[] {1, 2, 3, 4};
 	
-	private NodeId _nodeId;
+	private InetSocketAddress _nodeId = Utils.getTestAddress();
 	
 	@Before public void init() throws Exception {
     	FileSystem.deleteDirectory(new File(DIRECTORY));
-    	
-        _nodeId = NodeId.from(12345678);
 	}
 	
 	private class TransportImpl implements Transport {
+        private InetSocketAddress _broadcast = Utils.getTestAddress();
+
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 		
-		public void send(PaxosMessage aMessage, NodeId aNodeId) {
+		public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
 			synchronized(_messages) {
 				_messages.add(aMessage);
 				_messages.notifyAll();
@@ -61,14 +62,17 @@ public class OldAlStateTest {
 			}
 		}
 
-		public NodeId getLocalNodeId() {
+        public InetSocketAddress getBroadcastAddress() {
+            return _broadcast;
+        }
+		public InetSocketAddress getLocalAddress() {
 			return _nodeId;
 		}
 
 		public void shutdown() {
 		}
 
-		public Stream connectTo(NodeId aNodeId) {
+		public Stream connectTo(InetSocketAddress aNodeId) {
 			return null;
 		}
 	}
@@ -84,7 +88,7 @@ public class OldAlStateTest {
 		
 		// First collect, Al has no state so this is accepted
 		//
-		myAl.messageReceived(new Collect(mySeqNum, myRndNum, _nodeId.asLong()));
+		myAl.messageReceived(new Collect(mySeqNum, myRndNum, _nodeId));
 		
 		PaxosMessage myResponse = myTransport.getNextMsg();	
 		Assert.assertTrue(myResponse.getType() == Operations.LAST);
@@ -93,7 +97,7 @@ public class OldAlStateTest {
 		//
 		byte[] myData = new byte[] {1};
 		myAl.messageReceived(
-				new Begin(mySeqNum, myRndNum, new ConsolidatedValue(myData, HANDBACK), _nodeId.asLong()));
+				new Begin(mySeqNum, myRndNum, new ConsolidatedValue(myData, HANDBACK), _nodeId));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
@@ -102,7 +106,7 @@ public class OldAlStateTest {
 		 * Emulate leader having to do recovery and re-run the paxos instance with a new rnd number - the response
 		 * should be a last
 		 */		
-		myAl.messageReceived(new Collect(mySeqNum, myRndNum + 1, _nodeId.asLong()));
+		myAl.messageReceived(new Collect(mySeqNum, myRndNum + 1, _nodeId));
 		
 		Last myLast = (Last) myTransport.getNextMsg();
 		
@@ -112,7 +116,7 @@ public class OldAlStateTest {
 		// Push the value again
 		//
 		myAl.messageReceived(
-				new Begin(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue(), _nodeId.asLong()));
+				new Begin(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue(), _nodeId));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);

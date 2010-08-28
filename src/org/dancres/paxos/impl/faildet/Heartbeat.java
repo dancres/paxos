@@ -3,19 +3,21 @@ package org.dancres.paxos.impl.faildet;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
+import java.net.InetSocketAddress;
+
 /**
  * Message produced by <code>Heartbeater</code> for consumption and processing by <code>FailureDetectorImpl</code>
  *
  * @author dan
  */
 public class Heartbeat implements PaxosMessage {
-    private long _addr;
+    private InetSocketAddress _addr;
     
-    public Heartbeat(long anId) {
-    	_addr = anId;
+    public Heartbeat(InetSocketAddress anAddr) {
+    	_addr = anAddr;
     }
     
-    public long getNodeId() {
+    public InetSocketAddress getNodeId() {
     	return _addr;
     }
     
@@ -40,14 +42,14 @@ public class Heartbeat implements PaxosMessage {
     }
     
     public int hashCode() {
-    	return (int)(_addr ^ _addr >>>32);    	
+    	return _addr.hashCode();
     }
     
     public boolean equals(Object anObject) {
     	if (anObject instanceof Heartbeat) {
     		Heartbeat myOther = (Heartbeat) anObject;
     		
-    		return (myOther._addr == _addr);
+    		return (myOther._addr.equals(_addr));
     	}
     	
     	return false;

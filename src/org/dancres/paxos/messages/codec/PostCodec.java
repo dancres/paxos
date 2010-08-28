@@ -17,7 +17,7 @@ public class PostCodec implements Codec {
         //
         myBuffer.putInt(Operations.POST);
         myBuffer.putInt(myBytes.length);
-        myBuffer.putLong(myPost.getNodeId());
+        myBuffer.putLong(Codecs.flatten(myPost.getNodeId()));
         myBuffer.put(myBytes);
         myBuffer.flip();
         return myBuffer;
@@ -35,6 +35,6 @@ public class PostCodec implements Codec {
         
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
-        return new Post(myBytes, myNodeId);
+        return new Post(myBytes, Codecs.expand(myNodeId));
     }
 }

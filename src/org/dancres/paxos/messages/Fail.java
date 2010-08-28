@@ -1,6 +1,6 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.NodeId;
+import java.net.InetSocketAddress;
 
 public class Fail implements PaxosMessage {
     private long _seqNum;
@@ -15,8 +15,8 @@ public class Fail implements PaxosMessage {
         return Operations.FAIL;
     }
     
-    public long getNodeId() {
-    	return NodeId.BROADCAST.asLong();
+    public InetSocketAddress getNodeId() {
+        throw new UnsupportedOperationException();
     }
     
     public short getClassification() {

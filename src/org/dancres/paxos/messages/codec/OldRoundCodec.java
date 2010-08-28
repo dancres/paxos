@@ -14,9 +14,9 @@ public class OldRoundCodec implements Codec {
 
         myBuffer.putInt(Operations.OLDROUND);
         myBuffer.putLong(myOldRound.getSeqNum());
-        myBuffer.putLong(myOldRound.getLeaderNodeId());
+        myBuffer.putLong(Codecs.flatten(myOldRound.getLeaderNodeId()));
         myBuffer.putLong(myOldRound.getLastRound());
-        myBuffer.putLong(myOldRound.getNodeId());
+        myBuffer.putLong(Codecs.flatten(myOldRound.getNodeId()));
 
         myBuffer.flip();
         return myBuffer;
@@ -30,6 +30,6 @@ public class OldRoundCodec implements Codec {
         long myRnd = aBuffer.getLong();
         long myNodeId = aBuffer.getLong();
         
-        return new OldRound(mySeq, myLeaderNodeId, myRnd, myNodeId);
+        return new OldRound(mySeq, Codecs.expand(myLeaderNodeId), myRnd, Codecs.expand(myNodeId));
     }
 }

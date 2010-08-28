@@ -1,15 +1,17 @@
 package org.dancres.paxos.messages;
 
+import java.net.InetSocketAddress;
+
 public class Ack implements PaxosMessage {
     private long _seqNum;
-    private long _nodeId;
+    private InetSocketAddress _nodeId;
     
-    public Ack(long aSeqNum, long aNodeId) {
+    public Ack(long aSeqNum, InetSocketAddress aNodeId) {
         _seqNum = aSeqNum;
         _nodeId = aNodeId;
     }
 
-    public long getNodeId() {
+    public InetSocketAddress getNodeId() {
     	return _nodeId;
     }
 
@@ -26,14 +28,14 @@ public class Ack implements PaxosMessage {
 	}
 
 	public int hashCode() {
-		return new Long(_seqNum).hashCode() ^ new Long(_nodeId).hashCode();
+		return new Long(_seqNum).hashCode() ^ _nodeId.hashCode();
 	}
 	
 	public boolean equals(Object anObject) {
 		if (anObject instanceof Ack) {
 			Ack myOther = (Ack) anObject;
 			
-			return (_seqNum == myOther._seqNum) && (_nodeId == myOther._nodeId);
+			return (_seqNum == myOther._seqNum) && (_nodeId.equals(myOther._nodeId));
 		}
 		
 		return false;

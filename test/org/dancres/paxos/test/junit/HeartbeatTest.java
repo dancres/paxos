@@ -52,8 +52,8 @@ public class HeartbeatTest {
         ensureFD(_node1.getFailureDetector());
         ensureFD(_node2.getFailureDetector());
 
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()), 
-        		_tport2.getLocalNodeId());
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        		_tport2.getLocalAddress());
 
         PaxosMessage myMsg = myClient.getNext(10000);
 

@@ -3,11 +3,13 @@ package org.dancres.paxos.messages;
 import org.dancres.paxos.ConsolidatedValue;
 import org.dancres.paxos.LogStorage;
 
+import java.net.InetSocketAddress;
+
 public class Last implements PaxosMessage {
     private long _seqNum;
     private long _low;
     private long _rndNumber;
-    private long _nodeId;
+    private InetSocketAddress _nodeId;
     private ConsolidatedValue _value;
 
     /**
@@ -16,7 +18,8 @@ public class Last implements PaxosMessage {
      * @param aMostRecentRound is the most recent leader round seen
      * @param aValue is the value, if any, associated with the sequence number of the related collect
      */
-    public Last(long aSeqNum, long aLowWatermark, long aMostRecentRound, ConsolidatedValue aValue, long aNodeId) {
+    public Last(long aSeqNum, long aLowWatermark, long aMostRecentRound, ConsolidatedValue aValue,
+                InetSocketAddress aNodeId) {
         _seqNum = aSeqNum;
         _low = aLowWatermark;
         _rndNumber = aMostRecentRound;
@@ -39,7 +42,7 @@ public class Last implements PaxosMessage {
         return _value;
     }
 
-    public long getNodeId() {
+    public InetSocketAddress getNodeId() {
     	return _nodeId;
     }
     
@@ -66,7 +69,7 @@ public class Last implements PaxosMessage {
 
     public int hashCode() {
     	return new Long(_seqNum).hashCode() ^ new Long(_low).hashCode() ^ 
-    		new Long(_rndNumber).hashCode() ^ new Long(_nodeId).hashCode();
+    		new Long(_rndNumber).hashCode() ^ _nodeId.hashCode();
     }
     
     public boolean equals(Object anObject) {
@@ -74,7 +77,7 @@ public class Last implements PaxosMessage {
     		Last myOther = (Last) anObject;
     		
     		return (_seqNum == myOther._seqNum) && (_low == myOther._low) && (_rndNumber == myOther._rndNumber) &&
-    			(_nodeId == myOther._nodeId);
+    			(_nodeId.equals(myOther._nodeId));
     	}
     	
     	return false;

@@ -35,8 +35,8 @@ public class NoMajorityTest {
 
         Thread.sleep(5000);
 
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalNodeId().asLong()), 
-        		_tport1.getLocalNodeId());
+        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        		_tport1.getLocalAddress());
 
         PaxosMessage myMsg = myClient.getNext(10000);
 

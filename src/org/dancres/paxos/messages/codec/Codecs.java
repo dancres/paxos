@@ -1,5 +1,8 @@
 package org.dancres.paxos.messages.codec;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.messages.PaxosMessage;
@@ -29,4 +32,40 @@ public class Codecs {
         return (PaxosMessage) myCodec.decode(myBuffer);
     }
 
+    static long flatten(InetSocketAddress anAddr) {
+        byte[] myAddress = anAddr.getAddress().getAddress();
+        long myNodeId = 0;
+
+        // Only cope with IPv4 right now
+        //
+        assert (myAddress.length == 4);
+
+        for (int i = 0; i < 4; i++) {
+            myNodeId = myNodeId << 8;
+            myNodeId |= (int) myAddress[i] & 0xFF;
+        }
+
+        myNodeId = myNodeId << 32;
+        myNodeId |= anAddr.getPort();
+
+        return myNodeId;        
+    }
+
+    static InetSocketAddress expand(long anAddr) {
+        byte[] myAddrBytes = new byte[4];
+        int myPort = (int) anAddr & 0xFFFFFFFF;
+
+        long myAddr = (anAddr >> 32) & 0xFFFFFFFF;
+
+        for (int i = 3; i > -1; i--) {
+            myAddrBytes[i] = (byte) (myAddr & 0xFF);
+            myAddr = myAddr >> 8;
+        }
+
+        try {
+            return new InetSocketAddress(InetAddress.getByAddress(myAddrBytes), myPort);
+        } catch (UnknownHostException aUHE) {
+            throw new IllegalArgumentException("Can't convert to an address: " + anAddr, aUHE);
+        }
+    }
 }

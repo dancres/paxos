@@ -3,10 +3,11 @@ package org.dancres.paxos.impl.faildet;
 import org.dancres.paxos.LivenessListener;
 import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.Membership;
+
+import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.HashSet;
 
-import org.dancres.paxos.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,12 +26,12 @@ class MembershipImpl implements Membership, LivenessListener {
     /**
      * Tracks the membership that forms the base for each round
      */
-    private Set<NodeId> _initialMemberAddresses = new HashSet<NodeId>();
+    private Set<InetSocketAddress> _initialMemberAddresses = new HashSet<InetSocketAddress>();
 
     /**
      * Tracks the members that have yet to respond in a round
      */
-    private Set<NodeId> _outstandingMemberAddresses;
+    private Set<InetSocketAddress> _outstandingMemberAddresses;
 
     private FailureDetectorImpl _parent;
     private boolean _populated = false;
@@ -65,7 +66,7 @@ class MembershipImpl implements Membership, LivenessListener {
         }
     }
 
-    public boolean receivedResponse(NodeId anAddress) {
+    public boolean receivedResponse(InetSocketAddress anAddress) {
         synchronized(this) {
             if (_outstandingMemberAddresses.remove(anAddress)) {
                 ++_receivedResponses;
@@ -78,11 +79,11 @@ class MembershipImpl implements Membership, LivenessListener {
         }
     }
 
-    public void alive(NodeId aProcess) {
+    public void alive(InetSocketAddress aProcess) {
         // Not interested in new arrivals
     }
 
-    public void dead(NodeId aProcess) {
+    public void dead(InetSocketAddress aProcess) {
         _logger.warn("Death detected: " + aProcess);
 
         synchronized(this) {
@@ -105,7 +106,7 @@ class MembershipImpl implements Membership, LivenessListener {
         }
     }
 
-    void populate(Set<NodeId> anActiveAddresses) {
+    void populate(Set<InetSocketAddress> anActiveAddresses) {
         _logger.debug("Populating membership");
 
         synchronized(this) {
