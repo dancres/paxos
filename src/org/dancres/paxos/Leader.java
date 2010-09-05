@@ -577,6 +577,8 @@ public class Leader implements MembershipListener {
     /**
      * Used to process all core paxos protocol messages.
      *
+     * @todo We could optimise the move to commit by counting ACKS and transitioning as soon as we have enough.
+     * 
      * @param aMessage is a message from some acceptor/learner
      */
     public void messageReceived(PaxosMessage aMessage) {
