@@ -93,13 +93,15 @@ public class CodecTest {
     }
 
     @Test public void heartbeat() throws Exception {
-        Heartbeat myHeartbeat = new Heartbeat(_testAddress);
+        String myMeta = "MetaData";
+        Heartbeat myHeartbeat = new Heartbeat(_testAddress, myMeta.getBytes());
 
         byte[] myBuffer = Codecs.encode(myHeartbeat);
 
         Heartbeat myHeartbeat2 = (Heartbeat) Codecs.decode(myBuffer);
         
         Assert.assertEquals(myHeartbeat.getNodeId(), myHeartbeat2.getNodeId());
+        Assert.assertEquals(myMeta, new String(myHeartbeat.getMetaData()));
     }
 
     @Test public void last() throws Exception {

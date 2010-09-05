@@ -1,6 +1,7 @@
 package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
+import java.util.Set;
 
 /**
  * Base interface for failure detector implementations.  For more on failure detectors read: Unreliable Failure Detectors for
@@ -12,6 +13,8 @@ public interface FailureDetector {
     public void add(LivenessListener aListener);
     public long getUnresponsivenessThreshold();
     public Membership getMembers(MembershipListener aListener);
+    public Set<InetSocketAddress> getMemberSet();
+    public byte[] getMetaData(InetSocketAddress aNode);    
     public boolean isLive(InetSocketAddress aNodeId);
     
     /**

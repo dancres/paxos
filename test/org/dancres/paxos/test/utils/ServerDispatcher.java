@@ -17,9 +17,15 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Metadata passed to the <code>ServerDispatcher</code> constructors will be advertised via Heartbeats.
+ *
+ * @see org.dancres.paxos.impl.faildet.Heartbeater
+ */
 public class ServerDispatcher implements TransportImpl.Dispatcher {
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
+    private byte[] _meta = null;
     private AcceptorLearner _al;
     private Leader _ld;
     private FailureDetectorImpl _fd;
@@ -31,16 +37,25 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
 
     private long _unresponsivenessThreshold;
     private LogStorage _log;
-    
+
+    public ServerDispatcher(long anUnresponsivenessThreshold, byte[] aMeta) {
+        this(anUnresponsivenessThreshold, new MemoryLogStorage(), aMeta);
+    }
+
     public ServerDispatcher(long anUnresponsivenessThreshold) {
     	this(anUnresponsivenessThreshold, new MemoryLogStorage());
     }
 
     public ServerDispatcher(long anUnresponsivenessThreshold, LogStorage aLogger) {
-    	_unresponsivenessThreshold = anUnresponsivenessThreshold;
-    	_log = aLogger;
+        this(anUnresponsivenessThreshold, aLogger, null);
     }
-    
+
+    public ServerDispatcher(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta) {
+        _unresponsivenessThreshold = anUnresponsivenessThreshold;
+        _log = aLogger;
+        _meta = aMeta;
+    }
+
 	public void messageReceived(PaxosMessage aMessage) {
 		try {
 			switch (aMessage.getClassification()) {
@@ -85,8 +100,12 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
 
 	public void setTransport(Transport aTransport) {
 		_tp = aTransport;
-		
-        _hb = new Heartbeater(_tp);
+
+        if (_meta == null)
+            _hb = new Heartbeater(_tp, _tp.getLocalAddress().toString().getBytes());
+        else
+            _hb = new Heartbeater(_tp, _meta);
+
         _fd = new FailureDetectorImpl(_unresponsivenessThreshold);
         _al = new AcceptorLearner(_log, _fd, _tp);
         _ld = new Leader(_fd, _tp, _al);

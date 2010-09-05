@@ -12,9 +12,11 @@ import java.net.InetSocketAddress;
  */
 public class Heartbeat implements PaxosMessage {
     private InetSocketAddress _addr;
+    private byte[] _metaData;
     
-    public Heartbeat(InetSocketAddress anAddr) {
+    public Heartbeat(InetSocketAddress anAddr, byte[] metaData) {
     	_addr = anAddr;
+        _metaData = metaData;
     }
     
     public InetSocketAddress getNodeId() {
@@ -33,6 +35,10 @@ public class Heartbeat implements PaxosMessage {
         throw new RuntimeException("No sequence number on a heartbeat");
     }
 
+    public byte[] getMetaData() {
+        return _metaData;
+    }
+    
     public String toString() {
         return "Hbeat";
     }

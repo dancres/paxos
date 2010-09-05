@@ -6,6 +6,8 @@ import org.dancres.paxos.Membership;
 import org.dancres.paxos.MembershipListener;
 
 import java.net.InetSocketAddress;
+import java.util.HashSet;
+import java.util.Set;
 
 public class NullFailureDetector implements FailureDetector {
 
@@ -24,7 +26,15 @@ public class NullFailureDetector implements FailureDetector {
 		return new MembershipImpl(aListener);
 	}
 
-	class MembershipImpl implements Membership {
+    public Set<InetSocketAddress> getMemberSet() {
+        return new HashSet<InetSocketAddress>();
+    }
+
+    public byte[] getMetaData(InetSocketAddress aNode) {
+        return null;
+    }
+
+    class MembershipImpl implements Membership {
 		private MembershipListener _listener;
 		private int _responseCount = 2;
 		

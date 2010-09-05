@@ -7,10 +7,14 @@ import org.dancres.paxos.messages.Operations;
 
 public class HeartbeatCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
-        ByteBuffer myBuffer = ByteBuffer.allocate(12);
+        Heartbeat myHB = (Heartbeat) anObject;
+        int myMetaDataLength = myHB.getMetaData().length;
+        ByteBuffer myBuffer = ByteBuffer.allocate(16 + myMetaDataLength);
 
         myBuffer.putInt(Operations.HEARTBEAT);
-        myBuffer.putLong(Codecs.flatten(((Heartbeat) anObject).getNodeId()));
+        myBuffer.putInt(myMetaDataLength);
+        myBuffer.putLong(Codecs.flatten(myHB.getNodeId()));
+        myBuffer.put(myHB.getMetaData());
         myBuffer.flip();
         
         return myBuffer;
@@ -19,6 +23,12 @@ public class HeartbeatCodec implements Codec {
     public Object decode(ByteBuffer aBuffer) {
         aBuffer.getInt();
 
-        return new Heartbeat(Codecs.expand(aBuffer.getLong()));
+        int myMetaSize = aBuffer.getInt();
+        long myAddr = aBuffer.getLong();
+
+        byte[] myBytes = new byte[myMetaSize];
+        aBuffer.get(myBytes);
+
+        return new Heartbeat(Codecs.expand(myAddr), myBytes);
     }
 }

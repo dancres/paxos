@@ -25,13 +25,23 @@ import org.dancres.paxos.FailureDetector;
  * other messages sent by a node for a suitable period of time.
  */
 public class FailureDetectorImpl implements FailureDetector, Runnable {
-    private Map<InetSocketAddress, Long> _lastHeartbeats = new HashMap<InetSocketAddress, Long>();
+    private Map<InetSocketAddress, MetaData> _lastHeartbeats = new HashMap<InetSocketAddress, MetaData>();
     private ExecutorService _executor = Executors.newFixedThreadPool(1);
     private Thread _scanner;
     private CopyOnWriteArraySet<LivenessListener> _listeners;
     private long _maximumPeriodOfUnresponsiveness;
     private boolean _stopping;
-    
+
+    class MetaData {
+        public long _timestamp;
+        public byte[] _metaData;
+
+        MetaData(long aTimestamp, byte[] aMeta) {
+            _timestamp = aTimestamp;
+            _metaData = aMeta;
+        }
+    }
+
     private Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
 
     /**
@@ -78,7 +88,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
 
                 while (myProcesses.hasNext()) {
                     InetSocketAddress myAddress = myProcesses.next();
-                    Long myTimeout = _lastHeartbeats.get(myAddress);
+                    long myTimeout = _lastHeartbeats.get(myAddress)._timestamp;
 
                     // No heartbeat since myMinTime means we assume dead
                     //
@@ -111,13 +121,18 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
      */
     public void processMessage(PaxosMessage aMessage) throws Exception {
         if (aMessage.getType() == Operations.HEARTBEAT) {
-            Long myLast;
+            MetaData myLast;
 
             Heartbeat myHeartbeat = (Heartbeat) aMessage;
             
             synchronized (this) {
-                myLast = _lastHeartbeats.put(myHeartbeat.getNodeId(),
-                        new Long(System.currentTimeMillis()));
+                myLast = _lastHeartbeats.get(myHeartbeat.getNodeId());
+
+                if (myLast == null) {
+                    _lastHeartbeats.put(myHeartbeat.getNodeId(),
+                            new MetaData(System.currentTimeMillis(), myHeartbeat.getMetaData()));
+                } else
+                    myLast._timestamp = System.currentTimeMillis();
             }
 
             if (myLast == null)
@@ -134,6 +149,27 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     public boolean couldComplete() {
         synchronized(this) {
             return MembershipImpl.haveMajority(_lastHeartbeats.size());
+        }
+    }
+
+    public Set<InetSocketAddress> getMemberSet() {
+        Set myActives = new HashSet();
+
+        synchronized (this) {
+            myActives.addAll(_lastHeartbeats.keySet());
+        }
+
+        return myActives;
+    }
+
+    public byte[] getMetaData(InetSocketAddress aNode) {
+        synchronized(this) {
+            MetaData myMeta = _lastHeartbeats.get(aNode);
+
+            if (myMeta != null)
+                return myMeta._metaData;
+            else
+                return null;
         }
     }
 
