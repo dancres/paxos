@@ -343,21 +343,11 @@ public class Leader implements MembershipListener {
                 Iterator<PaxosMessage> myMessages = _messages.iterator();
 
                 while (myMessages.hasNext()) {
-                    PaxosMessage myMessage = myMessages.next();
+                    Last myLast = (Last) myMessages.next();
 
-                    if (myMessage.getType() == Operations.OLDROUND) {
-                        /*
-                         * An OldRound here indicates some other leader is present, give up.
-                         */
-                        oldRound(myMessage);
-                        return;
-                    } else {
-                        Last myLast = (Last) myMessage;
-                        
-                        if (! myLast.getConsolidatedValue().equals(LogStorage.NO_VALUE)) {
-                        	if (myLast.getRndNumber() > myMaxProposal)
-                        		myValue = myLast.getConsolidatedValue();
-                        }
+                    if (!myLast.getConsolidatedValue().equals(LogStorage.NO_VALUE)) {
+                        if (myLast.getRndNumber() > myMaxProposal)
+                            myValue = myLast.getConsolidatedValue();
                     }
                 }
 
@@ -384,13 +374,7 @@ public class Leader implements MembershipListener {
                 Iterator<PaxosMessage> myMessages = _messages.iterator();
                 while (myMessages.hasNext()) {
                     PaxosMessage myMessage = myMessages.next();
-
-                    if (myMessage.getType() == Operations.OLDROUND) {
-                        oldRound(myMessage);
-                        return;
-                    } else {
-                        myAcceptCount++;
-                    }
+                    myAcceptCount++;
                 }
 
                 if (myAcceptCount >= _detector.getMajority()) {
