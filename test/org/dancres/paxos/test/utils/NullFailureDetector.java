@@ -34,6 +34,10 @@ public class NullFailureDetector implements FailureDetector {
         return null;
     }
 
+    public int getMajority() {
+        return 2;
+    }
+
     class MembershipImpl implements Membership {
 		private MembershipListener _listener;
 		private int _responseCount = 2;
@@ -43,10 +47,6 @@ public class NullFailureDetector implements FailureDetector {
 		}
 		
 		public void dispose() {
-		}
-
-		public int getMajority() {
-			return 2;
 		}
 
 		public int getSize() {
@@ -63,7 +63,7 @@ public class NullFailureDetector implements FailureDetector {
 			return true;
 		}
 
-		public boolean startInteraction() {
+        public boolean startInteraction() {
 			return true;
 		}			
 	};

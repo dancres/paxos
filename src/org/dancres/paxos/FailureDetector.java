@@ -24,6 +24,11 @@ public interface FailureDetector {
      * @return true if at this point, available membership would allow for a majority
      */
     public boolean couldComplete();
-    
-    public void stop();    
+
+    /**
+     * @return the size of membership required for a majority
+     */
+    public int getMajority();
+
+    public void stop();
 }

@@ -19,11 +19,6 @@ import org.slf4j.LoggerFactory;
  */
 class MembershipImpl implements Membership, LivenessListener {
     /**
-     * @todo Fix up this majority to be more dynamic
-     */
-    private static final int MAJORITY = 2;
-
-    /**
      * Tracks the membership that forms the base for each round
      */
     private Set<InetSocketAddress> _initialMemberAddresses = new HashSet<InetSocketAddress>();
@@ -43,10 +38,6 @@ class MembershipImpl implements Membership, LivenessListener {
     private Logger _logger = LoggerFactory.getLogger(MembershipImpl.class);
 
     private boolean _disposed = false;
-
-    static boolean haveMajority(int aSize) {
-        return (aSize >= MAJORITY);
-    }
 
     MembershipImpl(FailureDetectorImpl aParent, MembershipListener aListener) {
         _listener = aListener;
@@ -97,6 +88,9 @@ class MembershipImpl implements Membership, LivenessListener {
 
             _outstandingMemberAddresses.remove(aProcess);
             _initialMemberAddresses.remove(aProcess);
+
+            // startInteraction will reset this so if we get a dead before then, it should be recorded
+            //
             --_expectedResponses;
 
             if (abort())
@@ -139,12 +133,8 @@ class MembershipImpl implements Membership, LivenessListener {
         }
     }
 
-    public int getMajority() {
-        return MAJORITY;
-    }
-
     private boolean interactionComplete() {
-        if (_receivedResponses == _expectedResponses) {
+        if ((_receivedResponses == _expectedResponses) || (_receivedResponses >= _parent.getMajority())) {
             _listener.allReceived();
             return true;
         }
@@ -153,7 +143,7 @@ class MembershipImpl implements Membership, LivenessListener {
     }
 
     private boolean abort() {
-        if (_initialMemberAddresses.size() < MAJORITY) {
+        if (_initialMemberAddresses.size() < _parent.getMajority()) {
             _listener.abort();
             return true;
         }

@@ -32,9 +32,4 @@ public interface Membership {
      * Indicate this membership will be used no more
      */
     public void dispose();
-
-    /**
-     * @return the size of membership required for a majority
-     */
-    public int getMajority();
 }

@@ -25,12 +25,18 @@ import org.dancres.paxos.FailureDetector;
  * other messages sent by a node for a suitable period of time.
  */
 public class FailureDetectorImpl implements FailureDetector, Runnable {
+    /**
+     * @todo Fix up this majority to be more dynamic
+     */
+    private static final int DEFAULT_MAJORITY = 2;
+
     private Map<InetSocketAddress, MetaData> _lastHeartbeats = new HashMap<InetSocketAddress, MetaData>();
     private ExecutorService _executor = Executors.newFixedThreadPool(1);
     private Thread _scanner;
     private CopyOnWriteArraySet<LivenessListener> _listeners;
     private long _maximumPeriodOfUnresponsiveness;
     private boolean _stopping;
+    private int _majority;
 
     class MetaData {
         public long _timestamp;
@@ -47,12 +53,17 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     /**
      * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
      */
-    public FailureDetectorImpl(long anUnresponsivenessThreshold) {
+    public FailureDetectorImpl(int aMajority, long anUnresponsivenessThreshold) {
+        _majority = aMajority;
         _scanner = new Thread(this);
         _scanner.setDaemon(true);
         _scanner.start();
         _listeners = new CopyOnWriteArraySet();
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
+    }
+
+    public FailureDetectorImpl(long anUnresponsivenessThreshold) {
+        this(DEFAULT_MAJORITY, anUnresponsivenessThreshold);
     }
 
     public void stop() {
@@ -148,8 +159,16 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
      */
     public boolean couldComplete() {
         synchronized(this) {
-            return MembershipImpl.haveMajority(_lastHeartbeats.size());
+            return isMajority(_lastHeartbeats.size());
         }
+    }
+
+    private boolean isMajority(int aSize) {
+        return (aSize >= _majority);
+    }
+
+    public int getMajority() {
+        return _majority;
     }
 
     public Set<InetSocketAddress> getMemberSet() {
