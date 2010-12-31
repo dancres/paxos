@@ -393,7 +393,7 @@ public class Leader implements MembershipListener {
                     }
                 }
 
-                if (myAcceptCount >= _membership.getMajority()) {
+                if (myAcceptCount >= _detector.getMajority()) {
                     // Send success, wait for acks
                     //
                     _state = COMMITTED;
@@ -414,7 +414,7 @@ public class Leader implements MembershipListener {
                 /*
                  * If ACK messages total more than majority we're happy otherwise try again.
                  */
-                if (_messages.size() >= _membership.getMajority()) {
+                if (_messages.size() >= _detector.getMajority()) {
                     successful(Event.Reason.DECISION, null);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
@@ -532,7 +532,7 @@ public class Leader implements MembershipListener {
         synchronized(this) {
             // If there are enough messages we might get a majority continue
             //
-            if (_messages.size() >= _membership.getMajority())
+            if (_messages.size() >= _detector.getMajority())
                 process();
             else {
                 error(Event.Reason.VOTE_TIMEOUT, null);
@@ -577,8 +577,13 @@ public class Leader implements MembershipListener {
     /**
      * Used to process all core paxos protocol messages.
      *
-     * @todo We could optimise the move to commit by counting ACKS and transitioning as soon as we have enough.
-     * 
+     * We could optimise by counting messages and transitioning as soon as we have enough and detecting failure
+     * immediately. But what if we miss an oldRound? If we miss an OldRound it can only be because a minority is seeing
+     * another leader and when it runs into our majority, it will be forced to resync seqNum/learnedValues etc. In
+     * essence if we've progressed through enough phases to get a majority commit we can go ahead and set the value as
+     * any future leader wading in will pick up our value. NOTE: This optimisation requires the membership impl to
+     * understand the concept of minimum acceptable majority.
+     *
      * @param aMessage is a message from some acceptor/learner
      */
     public void messageReceived(PaxosMessage aMessage) {
@@ -590,10 +595,17 @@ public class Leader implements MembershipListener {
         
         synchronized (this) {
             if ((aMessage.getSeqNum() == _seqNum) && _msgValidator.acceptable(aMessage, _state)) {
-                _messages.add(aMessage);
-                _membership.receivedResponse(aMessage.getNodeId());
+                if (_msgValidator.fail(aMessage, _state)) {
+
+                    // Can only be an oldRound right now...
+                    //
+                    oldRound(aMessage);
+                } else {
+                    _messages.add(aMessage);
+                    _membership.receivedResponse(aMessage.getNodeId());
+                }
             } else {
-                _logger.warn(this + ": Unexpected message received: " + aMessage.getSeqNum());
+                _logger.warn(this + ": Unexpected message received: " + aMessage);
             }
         }
     }
@@ -611,21 +623,42 @@ public class Leader implements MembershipListener {
 
     private static class MessageValidator {
         private static final Map<Integer, Class[]> _acceptableResponses = new HashMap<Integer, Class[]>();
-
+        private static final Map<Integer, Class[]> _failResponses = new HashMap<Integer, Class[]>();
         static {
             _acceptableResponses.put(new Integer(COMMITTED), new Class[]{Ack.class});
             _acceptableResponses.put(new Integer(SUCCESS), new Class[]{OldRound.class, Accept.class});
             _acceptableResponses.put(new Integer(BEGIN), new Class[]{OldRound.class, Last.class});
+
+            _failResponses.put(new Integer(SUCCESS), new Class[]{OldRound.class});
+            _failResponses.put(new Integer(BEGIN), new Class[]{OldRound.class});
+            _failResponses.put(new Integer(COMMITTED), new Class[]{});
+        }
+
+        Class[] getTypes(Map<Integer, Class[]> aTypes, int aLeaderState) {
+            Class[] myTypes = aTypes.get(new Integer(aLeaderState));
+
+            if (myTypes == null)
+                throw new RuntimeException("Not got a set of expected types for this state :(");
+
+            return myTypes;
         }
 
         boolean acceptable(PaxosMessage aMessage, int aLeaderState) {
-            Class[] myAcceptableTypes = _acceptableResponses.get(new Integer(aLeaderState));
-
-            if (myAcceptableTypes == null)
-                throw new RuntimeException("Not got a set of expected types for this state :(");
+            Class[] myAcceptableTypes = getTypes(_acceptableResponses, aLeaderState);
 
             for (int i = 0; i < myAcceptableTypes.length; i++) {
                 if (aMessage.getClass().equals(myAcceptableTypes[i]))
+                    return true;
+            }
+
+            return false;
+        }
+
+        boolean fail(PaxosMessage aMessage, int aLeaderState) {
+            Class[] myFailTypes = getTypes(_failResponses, aLeaderState);
+
+            for (int i = 0; i < myFailTypes.length; i++) {
+                if (aMessage.getClass().equals(myFailTypes[i]))
                     return true;
             }
 
