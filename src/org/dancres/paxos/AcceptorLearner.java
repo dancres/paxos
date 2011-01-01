@@ -229,6 +229,10 @@ public class AcceptorLearner {
 	}
 
 	/**
+     * @todo Need to implement a watchdog which will cause exit from recovery if we don't get a response to NEED within
+     * some period of time. This will cause the AL to re-enter recovery when another packet is received and thus a new
+     * NEED will be issued.
+     *
 	 * @param aMessage
 	 */
 	public void messageReceived(PaxosMessage aMessage) {
@@ -322,8 +326,8 @@ public class AcceptorLearner {
 	
 	/**
 	 * @todo Implement too-out-of-date response which will be picked up by the requesting AL and cause it to
-	 * do a full by-file resync.
-	 * 
+	 * do a full by-file resync or inform client too far out of date and to get another checkpoint etc.
+	 *
 	 * @param aMessage is the message to process
 	 * @return is any message to send
 	 */
