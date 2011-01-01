@@ -5,12 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -30,18 +27,16 @@ import java.util.TimerTask;
  * that round with the partially agreed value.  It's likely that will be done with the originating client absent so
  * as per the leader failed to report case, the client will need to retry with the appropriate protocol.
  * @todo Add a test for validating multiple sequence number recovery.
- * 
+ * @todo Add a test for validating retries on dropped packets in later leader states.
+ *
  * @author dan
  */
 public class Leader implements MembershipListener {
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
 
-    /*
-     * Used to compute the timeout period for watchdog tasks.  In order to behave sanely we want the failure 
-     * detector to be given the best possible chance of detecting problems with the members.  Thus the timeout for the
-     * watchdog is computed as the unresponsiveness threshold of the failure detector plus a grace period.
-     */
-    private static final long FAILURE_DETECTOR_GRACE_PERIOD = 2000;
+    private static final long GRACE_PERIOD = 500;
+
+    private static final long MAX_TRIES = 3;
 
     /*
      * Internal states
@@ -97,11 +92,13 @@ public class Leader implements MembershipListener {
     private long _seqNum = AcceptorLearner.UNKNOWN_SEQ;
 
     /**
-     * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without 
+     * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without
      * risking breaking the collect protocol (the al could suddenly believe it's seen a collect it hasn't and become
      * noisy when it should be silent). This field can be updated as the result of OldRound messages.
      */
     private long _rndNumber = 0;
+
+    private long _tries = 0;
 
     /**
      * This alarm is used to limit the amount of time the leader will wait for responses from all apparently live
@@ -121,7 +118,7 @@ public class Leader implements MembershipListener {
     private Membership _membership;
 
     private int _state = EXIT;
-    
+
     /**
      * In cases of ABORT, indicates the reason
      */
@@ -140,14 +137,14 @@ public class Leader implements MembershipListener {
     public void shutdown() {
     	_watchdog.cancel();
     }
-    
+
     private long calculateLeaderRefresh() {
         long myExpiry = _al.getLeaderLeaseDuration();
         return myExpiry - (myExpiry * 20 / 100);
     }
 
     private long calculateInteractionTimeout() {
-        return _detector.getUnresponsivenessThreshold() + FAILURE_DETECTOR_GRACE_PERIOD;    	
+        return GRACE_PERIOD;
     }
 
     public long getCurrentRound() {
@@ -173,11 +170,11 @@ public class Leader implements MembershipListener {
         switch(_state) {
             case ABORT : {
             	assert (_queue.size() != 0);
-            	
+
                 _logger.info(this + ": ABORT " + _event, new RuntimeException());
 
                 _messages.clear();
-                
+
                 if (_membership != null)
                     _membership.dispose();
 
@@ -198,11 +195,11 @@ public class Leader implements MembershipListener {
             	_logger.info(this + ": EXIT " + _event);
 
                 _messages.clear();
-                
+
                 // Remove the just processed item
                 //                
                 _queue.remove(0);
-                
+
                 if (_membership != null)
                     _membership.dispose();
 
@@ -213,7 +210,7 @@ public class Leader implements MembershipListener {
                     process();
 
                 } else {
-                	
+
                 	// If we got here, we're leader, setup for a heartbeat if there's no other activity
                 	//
                     _heartbeatAlarm = new TimerTask() {
@@ -233,6 +230,7 @@ public class Leader implements MembershipListener {
             case SUBMITTED : {
             	assert (_queue.size() != 0);
 
+                _tries = 0;
                 _membership = _detector.getMembers(this);
 
                 _logger.info(this + ": got membership: (" +
@@ -258,12 +256,12 @@ public class Leader implements MembershipListener {
              */
             case COLLECT : {
             	assert (_queue.size() != 0);
-            	
+
             	// We've got activity, cancel heartbeat until we're done. Note this may be a heartbeat, that's okay.
             	//
             	if (_heartbeatAlarm != null)
             		_heartbeatAlarm.cancel();
-            	
+
             	Collect myLastCollect = _al.getLastCollect();
 
             	// Collect is INITIAL means no leader known so try to become leader
@@ -275,7 +273,7 @@ public class Leader implements MembershipListener {
             	} else {
             		InetSocketAddress myOtherLeader = myLastCollect.getNodeId();
             		boolean isUs = myOtherLeader.equals(_transport.getLocalAddress());
-            		
+
             		/*
             		 * If the leader is us we needn't update our round number and we can proceed, otherwise
             		 * we ascertain liveness of last known leader and proceed if it appears dead.
@@ -289,12 +287,12 @@ public class Leader implements MembershipListener {
             		 *
             		 * The above behaviour has another benefit which is a client can connect to any member of the
             		 * paxos co-operative and be re-directed to the leader node. This means clients don't have to
-            		 * perform any specialised behaviours for selecting a leader.  
+            		 * perform any specialised behaviours for selecting a leader.
             		 */
             		if (! isUs) {
-            			
+
             			_logger.info(this + ": leader is not us");
-            			
+
             			if (_detector.isLive(myOtherLeader)) {
                             _logger.info(this + ": other leader is alive");
 
@@ -323,13 +321,13 @@ public class Leader implements MembershipListener {
 
             	_state = BEGIN;
                 emit(new Collect(_seqNum, _rndNumber, _transport.getLocalAddress()));
-            	
+
             	break;
             }
 
             case BEGIN : {
             	assert (_queue.size() != 0);
-            	
+
             	long myMaxProposal = -1;
             	ConsolidatedValue myValue = null;
 
@@ -343,7 +341,7 @@ public class Leader implements MembershipListener {
                 }
 
                 /*
-                 * If we have a value from a LAST message and it's not the same as the one we want to propose, 
+                 * If we have a value from a LAST message and it's not the same as the one we want to propose,
                  * we've hit an outstanding paxos instance and must now drive it to completion. Put it at the head of 
                  * the queue ready for the BEGIN. Note we must compare the consolidated value we want to propose
                  * as the one in the LAST message will be a consolidated value.
@@ -360,7 +358,7 @@ public class Leader implements MembershipListener {
 
             case SUCCESS : {
             	assert (_queue.size() != 0);
-            	
+
                 if (_messages.size() >= _detector.getMajority()) {
                     // Send success, wait for acks
                     //
@@ -370,7 +368,6 @@ public class Leader implements MembershipListener {
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    _state = SUCCESS;
                     emit(new Begin(_seqNum, _rndNumber, _queue.get(0),
                             _transport.getLocalAddress()));
                 }
@@ -380,7 +377,7 @@ public class Leader implements MembershipListener {
 
             case COMMITTED : {
             	assert (_queue.size() != 0);
-            	
+
                 /*
                  * If ACK messages total more than majority we're happy otherwise try again.
                  */
@@ -389,7 +386,6 @@ public class Leader implements MembershipListener {
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    _state = COMMITTED;
                     emit(new Success(_seqNum, _rndNumber,
                             _queue.get(0), _transport.getLocalAddress()));
                 }
@@ -399,6 +395,10 @@ public class Leader implements MembershipListener {
 
             default : throw new RuntimeException("Invalid state: " + _state);
         }
+    }
+
+    private boolean canRetry() {
+        return (_state == SUCCESS) || (_state == COMMITTED);
     }
 
     /**
@@ -413,13 +413,14 @@ public class Leader implements MembershipListener {
          * If we're getting an OldRound, the other leader's lease has expired. We may be about to become leader
          * but if we're proposing against an already settled sequence number we need to get up to date. If we were
          * about to become leader but our sequence number is out of date, the response we'll get from an AL is an
-         * OldRound where the round number is less than ours but the sequence number is greater.
+         * OldRound where the round number is less than ours but the sequence number is greater. Note that updating
+         * our _seqNum will drive our own AL to recover missing state should that be necessary.
          */
         if (myOldRound.getLastRound() < _rndNumber) {
             if (myOldRound.getSeqNum() > _seqNum) {
-                _seqNum = myOldRound.getSeqNum();
-
         	    _logger.info(this + ": This leader is out of date: " + _seqNum + " < " + myOldRound.getSeqNum());
+
+                _seqNum = myOldRound.getSeqNum();
 
                 _state = COLLECT;
                 process();
@@ -476,21 +477,27 @@ public class Leader implements MembershipListener {
         _logger.info(this + ": Membership requested abort");
 
         _interactionAlarm.cancel();
-        
+
         synchronized(this) {
             error(Event.Reason.BAD_MEMBERSHIP, null);
         }
     }
 
-    /**
-     * @todo There is code within leader to retry in absence of sufficient responses but we don't exploit that here.
-     */
     private void expired() {
         // _interactionAlarm will be cancelled automatically
         //
         _logger.info(this + ": Watchdog requested abort: ");
 
         synchronized(this) {
+            if (canRetry()) {
+                ++_tries;
+
+                if (_tries < MAX_TRIES) {
+                    process();
+                    return;
+                }
+            }
+
             error(Event.Reason.VOTE_TIMEOUT, null);
         }
     }
@@ -499,6 +506,7 @@ public class Leader implements MembershipListener {
         _interactionAlarm.cancel();
 
         synchronized(this) {
+            _tries = 0;
             process();
         }
     }
@@ -515,7 +523,7 @@ public class Leader implements MembershipListener {
     private void submit(ConsolidatedValue aValue) {
         synchronized (this) {
         	_queue.add(aValue);
-        	
+
             if (! isReady()) {
                 _logger.info(this + ": Queued operation (already active): " + aValue);
             } else {
@@ -544,7 +552,7 @@ public class Leader implements MembershipListener {
         assert (aMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";
 
 		_logger.info(this + " received message: " + aMessage);
-        
+
         synchronized (this) {
             if ((aMessage.getSeqNum() == _seqNum) && MessageValidator.getValidator(_state).acceptable(aMessage)) {
                 if (MessageValidator.getValidator(_state).fail(aMessage)) {
@@ -561,7 +569,7 @@ public class Leader implements MembershipListener {
             }
         }
     }
-    
+
     public String toString() {
         int myState;
 
@@ -570,7 +578,8 @@ public class Leader implements MembershipListener {
         }
 
     	return "Leader: " + _transport.getLocalAddress() +
-    		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState;
+    		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState +
+                " tries: " + _tries + "/" + MAX_TRIES;
     }
 
     private static abstract class MessageValidator {
