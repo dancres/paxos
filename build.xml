@@ -80,7 +80,21 @@
   	</junit>
   </target>
 
-  <target name="jars" depends="serverjar"/>
+  <target name="haltingtest" depends="compile">
+    <junit printsummary="on" haltonfailure="on" showoutput="false" filtertrace="off">
+      <jvmarg value="-ea"/>
+      <classpath refid="allclasses"/>
+      <batchtest fork="yes" todir="${reports.tests}">
+        <formatter type="plain" usefile="true">
+        </formatter>
+        <fileset dir="${testsrc}">
+          <include name="**/junit/**/*Test*.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
+
+    <target name="jars" depends="serverjar"/>
 
   <target name="serviceuijar" depends="compile" description="generate dashboard serviceui jar">
     <mkdir dir="${lib}"/>
