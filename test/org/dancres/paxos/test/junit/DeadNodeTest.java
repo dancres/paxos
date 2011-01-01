@@ -74,7 +74,8 @@ public class DeadNodeTest {
 
         Fail myFail = (Fail) myMsg;
 
-        Assert.assertTrue(myFail.getReason() == Event.Reason.BAD_MEMBERSHIP);
+        Assert.assertTrue((myFail.getReason() == Event.Reason.BAD_MEMBERSHIP) ||
+                (myFail.getReason() == Event.Reason.VOTE_TIMEOUT));
     }
 
     static class DroppingTransportImpl extends TransportImpl {
