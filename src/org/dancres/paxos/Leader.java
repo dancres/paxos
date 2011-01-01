@@ -335,8 +335,10 @@ public class Leader implements MembershipListener {
                     Last myLast = (Last) m;
 
                     if (!myLast.getConsolidatedValue().equals(LogStorage.NO_VALUE)) {
-                        if (myLast.getRndNumber() > myMaxProposal)
+                        if (myLast.getRndNumber() > myMaxProposal) {
                             myValue = myLast.getConsolidatedValue();
+                            myMaxProposal = myLast.getRndNumber();
+                        }
                     }
                 }
 
