@@ -93,7 +93,6 @@ public class Leader implements MembershipListener {
     private final FailureDetector _detector;
     private final Transport _transport;
     private final AcceptorLearner _al;
-    private final MessageValidator _msgValidator = new MessageValidator();
 
     private long _seqNum = AcceptorLearner.UNKNOWN_SEQ;
 
@@ -179,17 +178,11 @@ public class Leader implements MembershipListener {
 
                 _messages.clear();
                 
-                // Remove the just processed item
-                //
-                _queue.remove(0);
-                
                 if (_membership != null)
                     _membership.dispose();
 
-                _al.signal(_event);
-
                 /*
-                 * If there are any queued operations we must fail those also - use the same completion code...
+                 * We must fail all queued operations - use the same completion code...
                  */
                 while (_queue.size() > 0) {
                     _al.signal(new Event(_event.getResult(), _event.getSeqNum(),
@@ -329,7 +322,7 @@ public class Leader implements MembershipListener {
             		_seqNum = _seqNum + 1;
 
             	_state = BEGIN;
-            	emitCollect();
+                emit(new Collect(_seqNum, _rndNumber, _transport.getLocalAddress()));
             	
             	break;
             }
@@ -339,11 +332,9 @@ public class Leader implements MembershipListener {
             	
             	long myMaxProposal = -1;
             	ConsolidatedValue myValue = null;
-            	
-                Iterator<PaxosMessage> myMessages = _messages.iterator();
 
-                while (myMessages.hasNext()) {
-                    Last myLast = (Last) myMessages.next();
+                for(PaxosMessage m : _messages) {
+                    Last myLast = (Last) m;
 
                     if (!myLast.getConsolidatedValue().equals(LogStorage.NO_VALUE)) {
                         if (myLast.getRndNumber() > myMaxProposal)
@@ -361,32 +352,27 @@ public class Leader implements MembershipListener {
                 	_queue.add(myValue);
 
                 _state = SUCCESS;
-                emitBegin();
-                
+                emit(new Begin(_seqNum, _rndNumber, _queue.get(0),
+                        _transport.getLocalAddress()));
+
                 break;
             }
 
             case SUCCESS : {
             	assert (_queue.size() != 0);
             	
-                int myAcceptCount = 0;
-
-                Iterator<PaxosMessage> myMessages = _messages.iterator();
-                while (myMessages.hasNext()) {
-                    PaxosMessage myMessage = myMessages.next();
-                    myAcceptCount++;
-                }
-
-                if (myAcceptCount >= _detector.getMajority()) {
+                if (_messages.size() >= _detector.getMajority()) {
                     // Send success, wait for acks
                     //
                     _state = COMMITTED;
-                    emitSuccess();
+                    emit(new Success(_seqNum, _rndNumber,
+                            _queue.get(0), _transport.getLocalAddress()));
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
                     _state = SUCCESS;
-                    emitBegin();
+                    emit(new Begin(_seqNum, _rndNumber, _queue.get(0),
+                            _transport.getLocalAddress()));
                 }
 
                 break;
@@ -404,7 +390,8 @@ public class Leader implements MembershipListener {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
                     _state = COMMITTED;
-                    emitSuccess();
+                    emit(new Success(_seqNum, _rndNumber,
+                            _queue.get(0), _transport.getLocalAddress()));
                 }
 
                 break;
@@ -460,29 +447,14 @@ public class Leader implements MembershipListener {
         process();
     }
 
-    private void emitCollect() {
-        emit(new Collect(_seqNum, _rndNumber, _transport.getLocalAddress()));
-    }
-
-    private void emitBegin() {
-        emit(new Begin(_seqNum, _rndNumber, _queue.get(0),
-        		_transport.getLocalAddress()));
-    }
-
-    private void emitSuccess() {
-        emit(new Success(_seqNum, _rndNumber,
-        		_queue.get(0), _transport.getLocalAddress()));
-    }
-
     private void emit(PaxosMessage aMessage) {
         _messages.clear();
 
-        if (!startInteraction())
-        	return;
+        if (startInteraction()) {
+            _logger.info(this + ": sending: " + aMessage);
 
-        _logger.info(this + ": sending: " + aMessage);
-
-        _transport.send(aMessage, _transport.getBroadcastAddress());
+            _transport.send(aMessage, _transport.getBroadcastAddress());
+        }
     }
 
     private boolean startInteraction() {
@@ -510,17 +482,16 @@ public class Leader implements MembershipListener {
         }
     }
 
+    /**
+     * @todo There is code within leader to retry in absence of sufficient responses but we don't exploit that here.
+     */
     private void expired() {
+        // _interactionAlarm will be cancelled automatically
+        //
         _logger.info(this + ": Watchdog requested abort: ");
 
         synchronized(this) {
-            // If there are enough messages we might get a majority continue
-            //
-            if (_messages.size() >= _detector.getMajority())
-                process();
-            else {
-                error(Event.Reason.VOTE_TIMEOUT, null);
-            }
+            error(Event.Reason.VOTE_TIMEOUT, null);
         }
     }
 
@@ -547,21 +518,20 @@ public class Leader implements MembershipListener {
         	
             if (! isReady()) {
                 _logger.info(this + ": Queued operation (already active): " + aValue);
-                return;
+            } else {
+                _logger.info(this + ": Queued operation (initialising leader)");
+
+                _state = SUBMITTED;
+
+                process();
             }
-
-            _logger.info(this + ": Queued operation (initialising leader)");
-
-            _state = SUBMITTED;
-
-            process();
         }
     }
 
     /**
      * Used to process all core paxos protocol messages.
      *
-     * We could optimise by counting messages and transitioning as soon as we have enough and detecting failure
+     * We optimise by counting messages and transitioning as soon as we have enough and detecting failure
      * immediately. But what if we miss an oldRound? If we miss an OldRound it can only be because a minority is seeing
      * another leader and when it runs into our majority, it will be forced to resync seqNum/learnedValues etc. In
      * essence if we've progressed through enough phases to get a majority commit we can go ahead and set the value as
@@ -571,15 +541,13 @@ public class Leader implements MembershipListener {
      * @param aMessage is a message from some acceptor/learner
      */
     public void messageReceived(PaxosMessage aMessage) {
-    	if (aMessage.getClassification() == PaxosMessage.CLIENT) {
-            throw new IllegalArgumentException("Not going to handle that CLIENT message for you");
-    	}
-    	
+        assert (aMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";
+
 		_logger.info(this + " received message: " + aMessage);
         
         synchronized (this) {
-            if ((aMessage.getSeqNum() == _seqNum) && _msgValidator.acceptable(aMessage, _state)) {
-                if (_msgValidator.fail(aMessage, _state)) {
+            if ((aMessage.getSeqNum() == _seqNum) && MessageValidator.getValidator(_state).acceptable(aMessage)) {
+                if (MessageValidator.getValidator(_state).fail(aMessage)) {
 
                     // Can only be an oldRound right now...
                     //
@@ -605,44 +573,51 @@ public class Leader implements MembershipListener {
     		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState;
     }
 
-    private static class MessageValidator {
-        private static final Map<Integer, Class[]> _acceptableResponses = new HashMap<Integer, Class[]>();
-        private static final Map<Integer, Class[]> _failResponses = new HashMap<Integer, Class[]>();
-        static {
-            _acceptableResponses.put(new Integer(COMMITTED), new Class[]{Ack.class});
-            _acceptableResponses.put(new Integer(SUCCESS), new Class[]{OldRound.class, Accept.class});
-            _acceptableResponses.put(new Integer(BEGIN), new Class[]{OldRound.class, Last.class});
+    private static abstract class MessageValidator {
+        private static final MessageValidator _commitValidator =
+                new MessageValidator(new Class[]{Ack.class}, new Class[]{}) {};
 
-            _failResponses.put(new Integer(SUCCESS), new Class[]{OldRound.class});
-            _failResponses.put(new Integer(BEGIN), new Class[]{OldRound.class});
-            _failResponses.put(new Integer(COMMITTED), new Class[]{});
+        private static final MessageValidator _beginValidator =
+                new MessageValidator(new Class[]{OldRound.class, Last.class}, new Class[]{OldRound.class}) {};
+
+        private static final MessageValidator _successValidator =
+                new MessageValidator(new Class[]{OldRound.class, Accept.class}, new Class[]{OldRound.class}){};
+
+        private static final MessageValidator _nullValidator =
+                new MessageValidator(new Class[]{}, new Class[]{}) {};
+
+        static MessageValidator getValidator(int aLeaderState) {
+            switch(aLeaderState) {
+                case BEGIN : return _beginValidator;
+
+                case COMMITTED : return _commitValidator;
+
+                case SUCCESS : return _successValidator;
+
+                default : throw new RuntimeException("No validator for state: " + aLeaderState);
+            }
         }
 
-        Class[] getTypes(Map<Integer, Class[]> aTypes, int aLeaderState) {
-            Class[] myTypes = aTypes.get(new Integer(aLeaderState));
+        private Class[] _acceptable;
+        private Class[] _fail;
 
-            if (myTypes == null)
-                throw new RuntimeException("Not got a set of expected types for this state :(");
-
-            return myTypes;
+        private MessageValidator(Class[] acceptable, Class[] fail) {
+            _acceptable = acceptable;
+            _fail = fail;
         }
 
-        boolean acceptable(PaxosMessage aMessage, int aLeaderState) {
-            Class[] myAcceptableTypes = getTypes(_acceptableResponses, aLeaderState);
-
-            for (int i = 0; i < myAcceptableTypes.length; i++) {
-                if (aMessage.getClass().equals(myAcceptableTypes[i]))
+        boolean acceptable(PaxosMessage aMessage) {
+            for (Class c: _acceptable) {
+                if (aMessage.getClass().equals(c))
                     return true;
             }
 
             return false;
         }
 
-        boolean fail(PaxosMessage aMessage, int aLeaderState) {
-            Class[] myFailTypes = getTypes(_failResponses, aLeaderState);
-
-            for (int i = 0; i < myFailTypes.length; i++) {
-                if (aMessage.getClass().equals(myFailTypes[i]))
+        boolean fail(PaxosMessage aMessage) {
+            for (Class c: _fail) {
+                if (aMessage.getClass().equals(c))
                     return true;
             }
 
