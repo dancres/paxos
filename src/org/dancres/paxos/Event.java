@@ -5,10 +5,10 @@ package org.dancres.paxos;
  */
 public class Event {
 	public interface Reason {
-		public static final int DECISION = 0;
-		public static final int OTHER_LEADER = -1;
-		public static final int VOTE_TIMEOUT = -2;
-		public static final int BAD_MEMBERSHIP = -3;
+		public static final int DECISION = -1;
+		public static final int OTHER_LEADER = -2;
+		public static final int VOTE_TIMEOUT = -3;
+		public static final int BAD_MEMBERSHIP = -4;
 	}
 	
     private int _result;
