@@ -111,7 +111,7 @@ public class ALRecoveryTransitionTest {
 
 		// Commit this instance
 		//
-		myAl.messageReceived(new Success(mySeqNum, myRndNum + 1, myValue, _nodeId));
+		myAl.messageReceived(new Success(mySeqNum, myRndNum, myValue, _nodeId));
 
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACK);
