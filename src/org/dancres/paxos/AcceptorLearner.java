@@ -1,10 +1,7 @@
 package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Ack;
@@ -68,6 +65,7 @@ public class AcceptorLearner {
 	
 	private final long _leaderLease;
 	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
+    private final Map<Long, Begin> _cachedBegins = new HashMap<Long, Begin>();
 	
 	private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
 
@@ -119,13 +117,13 @@ public class AcceptorLearner {
 	}
 	
 	public void add(AcceptorLearnerListener aListener) {
-		synchronized (_listeners) {
+		synchronized(_listeners) {
 			_listeners.add(aListener);
 		}
 	}
 
 	public void remove(AcceptorLearnerListener aListener) {
-		synchronized (_listeners) {
+		synchronized(_listeners) {
 			_listeners.remove(aListener);
 		}
 	}
@@ -143,7 +141,7 @@ public class AcceptorLearner {
 	}
 
 	private void updateLowWatermark(long aSeqNum, long aLogOffset) {
-		synchronized (this) {
+		synchronized(this) {
 			if (_lowSeqNumWatermark.getSeqNum() == (aSeqNum - 1)) {
 				_lowSeqNumWatermark = new Watermark(aSeqNum, aLogOffset);
 
@@ -153,13 +151,13 @@ public class AcceptorLearner {
 	}
 
 	public Watermark getLowWatermark() {
-		synchronized (this) {
+		synchronized(this) {
 			return _lowSeqNumWatermark;
 		}
 	}
 
 	public Collect getLastCollect() {
-		synchronized (this) {
+		synchronized(this) {
 			return _lastCollect;
 		}
 	}
@@ -170,7 +168,7 @@ public class AcceptorLearner {
 	 * @return <code>true</code> if it supercedes, <code>false</code> otherwise
 	 */
 	private boolean supercedes(Collect aCollect) {
-		synchronized (this) {
+		synchronized(this) {
 			if (aCollect.supercedes(_lastCollect)) {
 				_lastCollect = aCollect;
 
@@ -182,13 +180,13 @@ public class AcceptorLearner {
 	}
 
 	private boolean originates(Begin aBegin) {
-		synchronized (this) {
+		synchronized(this) {
 			return aBegin.originates(_lastCollect);
 		}
 	}
 
 	private boolean precedes(Begin aBegin) {
-		synchronized (this) {
+		synchronized(this) {
 			return aBegin.precedes(_lastCollect);
 		}
 	}
@@ -200,7 +198,7 @@ public class AcceptorLearner {
 	 *         <code>false</code>
 	 */
 	private boolean amAccepting(Collect aCollect, long aCurrentTime) {
-		synchronized (this) {
+		synchronized(this) {
 			if (_lastCollect.isInitial()) {
 				return true;
 			} else {
@@ -214,7 +212,7 @@ public class AcceptorLearner {
 	}
 
 	private boolean isFromCurrentLeader(Collect aCollect) {
-		synchronized (this) {
+		synchronized(this) {
 			return aCollect.sameLeader(_lastCollect);
 		}
 	}
@@ -222,11 +220,23 @@ public class AcceptorLearner {
 	private void updateLastActionTime(long aTime) {
 		_logger.info("AL:Updating last action time: " + aTime);
 
-		synchronized (this) {
+		synchronized(this) {
 			if (aTime > _lastLeaderActionTime)
 				_lastLeaderActionTime = aTime;
 		}
 	}
+
+    private void cacheBegin(Begin aBegin) {
+        synchronized(this) {
+            _cachedBegins.put(new Long(aBegin.getSeqNum()), aBegin);
+        }
+    }
+
+    private Begin expungeBegin(long aSeqNum) {
+        synchronized(this) {
+            return _cachedBegins.remove(new Long(aSeqNum));
+        }
+    }
 
 	/**
      * @todo Need to implement a watchdog which will cause exit from recovery if we don't get a response to NEED within
@@ -301,7 +311,7 @@ public class AcceptorLearner {
 				if (aMessage.getType() != Operations.COLLECT)
 					return;
 				
-				synchronized (this) {
+				synchronized(this) {
 					// Must store up the packet which triggered recovery for later replay
 					//
 					_packetBuffer.add(aMessage);
@@ -410,6 +420,8 @@ public class AcceptorLearner {
 				//
 				if (originates(myBegin)) {
 					updateLastActionTime(myCurrentTime);
+                    cacheBegin(myBegin);
+                    
 					write(aMessage, true);
 
 					send(new Accept(mySeqNum, getLastCollect().getRndNumber(), 
@@ -438,33 +450,40 @@ public class AcceptorLearner {
 
 				updateLastActionTime(myCurrentTime);
 
-				if (mySuccess.getSeqNum() <= getLowWatermark().getSeqNum()) {
-					_logger.info("AL:Discarded known value: " + mySuccess.getSeqNum());
-					send(new Ack(mySuccess.getSeqNum(), _transport.getLocalAddress()), myNodeId);
+				if (mySeqNum <= getLowWatermark().getSeqNum()) {
+					_logger.info("AL:Discarded known value: " + mySeqNum);
 				} else {
-					_logger.info("AL:Learnt value: " + mySuccess.getSeqNum());
+                    Begin myBegin = expungeBegin(mySeqNum);
 
-					// Always record the value even if it's the heartbeat so there are
-					// no gaps in the Paxos sequence
-					//
-					long myLogOffset = write(aMessage, true);
+                    if ((myBegin == null) || (myBegin.getRndNumber() != mySuccess.getRndNum())) {
+                        // We never saw the appropriate begin
+                        //
+                        _logger.info("AL: Discarding success: " + myBegin + ", " + mySuccess);
+                    } else {
+                        // Always record the success even if it's the heartbeat so there are
+                        // no gaps in the Paxos sequence
+                        //
+                        long myLogOffset = write(aMessage, true);
 
-					updateLowWatermark(mySuccess.getSeqNum(), myLogOffset);
+                        updateLowWatermark(mySeqNum, myLogOffset);
 
-					if (mySuccess.getConsolidatedValue().equals(HEARTBEAT)) {
-						_receivedHeartbeats.incrementAndGet();
+                        if (myBegin.getConsolidatedValue().equals(HEARTBEAT)) {
+                            _receivedHeartbeats.incrementAndGet();
 
-						_logger.info("AL: discarded heartbeat: "
-								+ System.currentTimeMillis() + ", "
-								+ getHeartbeatCount());
-					} else {
-						signal(new Event(Event.Reason.DECISION, mySuccess.getSeqNum(),
-								mySuccess.getConsolidatedValue(), null));
-					}
+                            _logger.info("AL: discarded heartbeat: "
+                                    + System.currentTimeMillis() + ", "
+                                    + getHeartbeatCount());
+                        } else {
+                            _logger.info("AL:Learnt value: " + mySeqNum);
 
-					send(new Ack(mySuccess.getSeqNum(), _transport.getLocalAddress()), myNodeId);
+                            signal(new Event(Event.Reason.DECISION, mySeqNum,
+                                    myBegin.getConsolidatedValue(), null));
+                        }
+                    }
 				}
-				
+
+                send(new Ack(mySeqNum, _transport.getLocalAddress()), myNodeId);
+
 				break;
 			}
 
@@ -528,7 +547,7 @@ public class AcceptorLearner {
 	void signal(Event aStatus) {
 		List<AcceptorLearnerListener> myListeners;
 
-		synchronized (_listeners) {
+		synchronized(_listeners) {
 			myListeners = new ArrayList<AcceptorLearnerListener>(_listeners);
 		}
 
@@ -600,14 +619,7 @@ public class AcceptorLearner {
         }
 
         Begin getLastValue() {
-            if (_lastSuccess != null) {
-                return new Begin(_lastSuccess.getSeqNum(), _lastSuccess.getRndNum(),
-                        _lastSuccess.getConsolidatedValue(), _lastSuccess.getNodeId());
-            } else if (_lastBegin != null) {
-                return _lastBegin;
-            } else {
-                return null;
-            }
+            return _lastBegin;
         }
 
         public String toString() {
