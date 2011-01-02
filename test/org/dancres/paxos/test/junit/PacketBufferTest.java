@@ -74,8 +74,8 @@ public class PacketBufferTest {
 	@Test public void testSuccess() {
 		PacketBuffer myBuffer = new PacketBuffer();
 		
-		Success mySuccess1 = new Success(1, 1, new ConsolidatedValue(new byte[0], new byte[0]), Utils.getTestAddress());
-		Success mySuccess2 = new Success(2, 1, new ConsolidatedValue(new byte[0], new byte[0]), Utils.getTestAddress());
+		Success mySuccess1 = new Success(1, 1, Utils.getTestAddress());
+		Success mySuccess2 = new Success(2, 1, Utils.getTestAddress());
 		
 		myBuffer.add(mySuccess1);
 		myBuffer.add(mySuccess2);

@@ -111,11 +111,8 @@ public class ALRecoveryTransitionTest {
 
 		// Commit this instance
 		//
-		myAl.messageReceived(new Success(mySeqNum, myRndNum, myValue, _nodeId));
+		myAl.messageReceived(new Success(mySeqNum, myRndNum, _nodeId));
 
-		myResponse = myTransport.getNextMsg();
-		Assert.assertTrue(myResponse.getType() == Operations.ACK);
-		
 		// Now start an instance which should trigger recovery - happens on collect boundary
 		//
 		myAl.messageReceived(new Collect(mySeqNum + 5, myRndNum + 2, _nodeId));

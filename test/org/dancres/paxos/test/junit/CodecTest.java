@@ -3,7 +3,6 @@ package org.dancres.paxos.test.junit;
 import org.dancres.paxos.ConsolidatedValue;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.messages.Accept;
-import org.dancres.paxos.messages.Ack;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Need;
@@ -51,17 +50,6 @@ public class CodecTest {
         Assert.assertTrue(myAccept.getRndNumber() == myAccept2.getRndNumber());
         Assert.assertTrue(myAccept.getSeqNum() == myAccept2.getSeqNum());
         Assert.assertTrue(myAccept.getNodeId().equals( myAccept2.getNodeId()));
-    }
-
-    @Test public void ack() throws Exception {
-        Ack myAck = new Ack(1, _testAddress);
-
-        byte[] myBuffer = Codecs.encode(myAck);
-
-        Ack myAck2 = (Ack) Codecs.decode(myBuffer);
-
-        Assert.assertTrue(myAck.getSeqNum() == myAck2.getSeqNum());
-        Assert.assertTrue(myAck.getNodeId().equals( myAck2.getNodeId()));
     }
 
     @Test public void begin() throws Exception {
@@ -152,7 +140,7 @@ public class CodecTest {
         byte[] myData = {55};
         byte[] myHandback = {56};
 
-        Success mySuccess = new Success(1, 2, new ConsolidatedValue(myData, myHandback), _testAddress);
+        Success mySuccess = new Success(1, 2, _testAddress);
 
         byte[] myBuffer = Codecs.encode(mySuccess);
 
@@ -161,7 +149,6 @@ public class CodecTest {
         Assert.assertEquals(mySuccess.getSeqNum(), mySuccess2.getSeqNum());
         Assert.assertEquals(mySuccess.getRndNum(), mySuccess2.getRndNum());
         Assert.assertEquals(mySuccess.getNodeId(), mySuccess2.getNodeId());
-        Assert.assertEquals(mySuccess.getConsolidatedValue(), mySuccess2.getConsolidatedValue());
     }
 
     @Test public void need() throws Exception {

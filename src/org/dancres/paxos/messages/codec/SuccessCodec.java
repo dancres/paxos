@@ -9,18 +9,15 @@ import org.dancres.paxos.messages.Operations;
 public class SuccessCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
         Success mySuccess = (Success) anObject;
-        byte[] myBytes = mySuccess.getConsolidatedValue().marshall();
 
         ByteBuffer myBuffer;
 
-        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + 8 + myBytes.length);
+        myBuffer = ByteBuffer.allocate(4 + 8 + 8 + 8);
 
         myBuffer.putInt(Operations.SUCCESS);
-        myBuffer.putInt(myBytes.length);
         myBuffer.putLong(mySuccess.getSeqNum());
         myBuffer.putLong(mySuccess.getRndNum());
         myBuffer.putLong(Codecs.flatten(mySuccess.getNodeId()));
-        myBuffer.put(myBytes);
 
         myBuffer.flip();
         return myBuffer;
@@ -30,14 +27,10 @@ public class SuccessCodec implements Codec {
         // Discard type
         aBuffer.getInt();
 
-        int myArrLength = aBuffer.getInt();
         long mySeqNum = aBuffer.getLong();
         long myRndNum = aBuffer.getLong();
         long myNodeId = aBuffer.getLong();
         
-        byte[] myBytes = new byte[myArrLength];
-        aBuffer.get(myBytes);
-
-        return new Success(mySeqNum, myRndNum, new ConsolidatedValue(myBytes), Codecs.expand(myNodeId));
+        return new Success(mySeqNum, myRndNum, Codecs.expand(myNodeId));
     }
 }

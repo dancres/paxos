@@ -9,12 +9,9 @@ public class Success implements PaxosMessage {
     private long _rndNum;
     private InetSocketAddress _nodeId;
     
-    private ConsolidatedValue _value;
-
-    public Success(long aSeqNum, long aRndNumber, ConsolidatedValue aValue, InetSocketAddress aNodeId) {
+    public Success(long aSeqNum, long aRndNumber, InetSocketAddress aNodeId) {
         _seqNum = aSeqNum;
         _rndNum = aRndNumber;
-        _value = aValue;
         _nodeId = aNodeId;
     }
 
@@ -36,10 +33,6 @@ public class Success implements PaxosMessage {
     
     public InetSocketAddress getNodeId() {
     	return _nodeId;
-    }
-    
-    public ConsolidatedValue getConsolidatedValue() {
-        return _value;
     }
     
     public int hashCode() {

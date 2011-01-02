@@ -74,12 +74,6 @@ public class Leader implements MembershipListener {
     private static final int ABORT = 4;
 
     /**
-     * Leader has completed the necessary steps to secure an entry in storage for a particular sequence number
-     * and is now processing ACKs to ensure enough nodes have seen the committed value.
-     */
-    private static final int COMMITTED = 6;
-
-    /**
      * Leader has been given a value and should attempt to complete a paxos instance.
      */
     private static final int SUBMITTED = 7;
@@ -352,8 +346,7 @@ public class Leader implements MembershipListener {
                 	_queue.add(myValue);
 
                 _state = SUCCESS;
-                emit(new Begin(_seqNum, _rndNumber, _queue.get(0),
-                        _transport.getLocalAddress()));
+                emit(new Begin(_seqNum, _rndNumber, _queue.get(0), _transport.getLocalAddress()));
 
                 break;
             }
@@ -362,34 +355,16 @@ public class Leader implements MembershipListener {
             	assert (_queue.size() != 0);
 
                 if (_messages.size() >= _detector.getMajority()) {
-                    // Send success, wait for acks
+                    // Send success
                     //
-                    _state = COMMITTED;
-                    emit(new Success(_seqNum, _rndNumber,
-                            _queue.get(0), _transport.getLocalAddress()));
-                } else {
-                    // Need another try, didn't get enough accepts but didn't get leader conflict
-                    //
-                    emit(new Begin(_seqNum, _rndNumber, _queue.get(0),
-                            _transport.getLocalAddress()));
-                }
+                    emit(new Success(_seqNum, _rndNumber, _transport.getLocalAddress()));
+                    cancelInteraction();
 
-                break;
-            }
-
-            case COMMITTED : {
-            	assert (_queue.size() != 0);
-
-                /*
-                 * If ACK messages total more than majority we're happy otherwise try again.
-                 */
-                if (_messages.size() >= _detector.getMajority()) {
                     successful(Event.Reason.DECISION, null);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    emit(new Success(_seqNum, _rndNumber,
-                            _queue.get(0), _transport.getLocalAddress()));
+                    emit(new Begin(_seqNum, _rndNumber, _queue.get(0), _transport.getLocalAddress()));
                 }
 
                 break;
@@ -400,7 +375,7 @@ public class Leader implements MembershipListener {
     }
 
     private boolean canRetry() {
-        return (_state == SUCCESS) || (_state == COMMITTED);
+        return (_state == SUCCESS);
     }
 
     /**
@@ -461,6 +436,8 @@ public class Leader implements MembershipListener {
     }
 
     private boolean startInteraction() {
+        assert _interactionAlarm == null;
+
         _interactionAlarm = new TimerTask() {
             public void run() {
                 expired();
@@ -478,15 +455,31 @@ public class Leader implements MembershipListener {
     public void abort() {
         _logger.info(this + ": Membership requested abort");
 
-        _interactionAlarm.cancel();
+        cancelInteraction();
 
         synchronized(this) {
             error(Event.Reason.BAD_MEMBERSHIP, null);
         }
     }
 
+    public void allReceived() {
+        cancelInteraction();
+
+        synchronized(this) {
+            _tries = 0;
+            process();
+        }
+    }
+
+    private void cancelInteraction() {
+        assert _interactionAlarm != null;
+
+        _interactionAlarm.cancel();
+        _interactionAlarm = null;
+    }
+
     private void expired() {
-        // _interactionAlarm will be cancelled automatically
+        // _interactionAlarm will be cancelled automatically by watchdog
         //
         _logger.info(this + ": Watchdog requested abort: ");
 
@@ -501,15 +494,6 @@ public class Leader implements MembershipListener {
             }
 
             error(Event.Reason.VOTE_TIMEOUT, null);
-        }
-    }
-
-    public void allReceived() {
-        _interactionAlarm.cancel();
-
-        synchronized(this) {
-            _tries = 0;
-            process();
         }
     }
 
@@ -585,9 +569,6 @@ public class Leader implements MembershipListener {
     }
 
     private static abstract class MessageValidator {
-        private static final MessageValidator _commitValidator =
-                new MessageValidator(new Class[]{Ack.class}, new Class[]{}) {};
-
         private static final MessageValidator _beginValidator =
                 new MessageValidator(new Class[]{OldRound.class, Last.class}, new Class[]{OldRound.class}) {};
 
@@ -600,8 +581,6 @@ public class Leader implements MembershipListener {
         static MessageValidator getValidator(int aLeaderState) {
             switch(aLeaderState) {
                 case BEGIN : return _beginValidator;
-
-                case COMMITTED : return _commitValidator;
 
                 case SUCCESS : return _successValidator;
 

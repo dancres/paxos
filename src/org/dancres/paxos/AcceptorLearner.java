@@ -4,7 +4,6 @@ import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import org.dancres.paxos.messages.Accept;
-import org.dancres.paxos.messages.Ack;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Last;
@@ -481,8 +480,6 @@ public class AcceptorLearner {
                         }
                     }
 				}
-
-                send(new Ack(mySeqNum, _transport.getLocalAddress()), myNodeId);
 
 				break;
 			}
