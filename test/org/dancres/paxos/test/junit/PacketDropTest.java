@@ -34,9 +34,6 @@ public class PacketDropTest {
     }
     
     /**
-     * @todo Decide if timing out the leader and returning fail is appropriate.  It might be better to keep trying, unless
-     * a suitable method for patching up half-agreed operations in the global order (gaps in the sequence numbers).
-     * 
      * @throws java.lang.Exception
      */
     @Test public void post() throws Exception {
