@@ -1,18 +1,9 @@
 package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
-import org.dancres.paxos.messages.Accept;
-import org.dancres.paxos.messages.Begin;
-import org.dancres.paxos.messages.Collect;
-import org.dancres.paxos.messages.Need;
 import org.dancres.paxos.impl.faildet.Heartbeat;
-import org.dancres.paxos.messages.Last;
-import org.dancres.paxos.messages.OldRound;
-import org.dancres.paxos.messages.Post;
-import org.dancres.paxos.messages.Success;
-import org.dancres.paxos.messages.Complete;
-import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.test.utils.Utils;
 import org.junit.*;
 
@@ -20,6 +11,15 @@ import java.net.InetSocketAddress;
 
 public class CodecTest {
     private InetSocketAddress _testAddress = Utils.getTestAddress();
+
+    @Test public void outOfDate() throws Exception {
+        OutOfDate myOOD = new OutOfDate(_testAddress);
+
+        byte[] myBuffer = Codecs.encode(myOOD);
+
+        OutOfDate myOOD2 = (OutOfDate) Codecs.decode(myBuffer);
+        Assert.assertTrue(myOOD.getNodeId().equals(myOOD2.getNodeId()));
+    }
 
 	@Test public void fail() throws Exception {
 		Fail myFail = new Fail(1, 2);

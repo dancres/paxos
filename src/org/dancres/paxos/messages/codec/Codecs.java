@@ -9,7 +9,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 
 public class Codecs {
     public static final Codec[] CODECS = new Codec[] {
-        new HeartbeatCodec(), new EmptyCodec(), new PostCodec(), new CollectCodec(), new LastCodec(),
+        new HeartbeatCodec(), new OutOfDateCodec(), new PostCodec(), new CollectCodec(), new LastCodec(),
             new BeginCodec(), new AcceptCodec(), new SuccessCodec(), new EmptyCodec(), new OldRoundCodec(),
             new NeedCodec(), new FailCodec(), new CompleteCodec()
     };

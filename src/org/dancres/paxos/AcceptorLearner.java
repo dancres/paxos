@@ -3,15 +3,8 @@ package org.dancres.paxos;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-import org.dancres.paxos.messages.Accept;
-import org.dancres.paxos.messages.Begin;
-import org.dancres.paxos.messages.Collect;
-import org.dancres.paxos.messages.Last;
-import org.dancres.paxos.messages.Need;
-import org.dancres.paxos.messages.OldRound;
-import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Success;
+
+import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +25,9 @@ public class AcceptorLearner {
 	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue(
 			"org.dancres.paxos.Heartbeat".getBytes(), new byte[] {});
 
+    public static final ConsolidatedValue OUT_OF_DATE = new ConsolidatedValue(
+            "org.dancres.paxos.OOD".getBytes(), new byte[] {});
+
 	private static long DEFAULT_LEASE = 30 * 1000;
 	private static Logger _logger = LoggerFactory
 			.getLogger(AcceptorLearner.class);
@@ -44,10 +40,16 @@ public class AcceptorLearner {
 	private AtomicLong _ignoredCollects = new AtomicLong();
 	private AtomicLong _receivedHeartbeats = new AtomicLong();
 
+    private OutOfDate _outOfDate = null;
 	private RecoveryWindow _recoveryWindow = null;
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
 	
 	/**
+     * Tracks the last collect we accepted and thus represents our view of the current leader for instances.
+     * Other leaders wishing to take over must present a round number greater than this and after expiry of the
+     * lease for the previous leader. The last collect is also used to validate begins and ensure we don't accept
+     * any from other leaders whilst we're not in sync with the majority.
+     *
 	 * @todo Must checkpoint _lastCollect, as it'll only be written in the log
 	 *       file the first time it appears and thus when we hit a checkpoint it
 	 *       will be discarded. This is because we implement the optimisation
@@ -64,8 +66,22 @@ public class AcceptorLearner {
 	
 	private final long _leaderLease;
 	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
+
+    /**
+     * Begins contain the values being proposed. These values must be remembered from round to round of an instance
+     * until it has been committed. For any instance we believe is unresolved we keep the last value proposed (from
+     * the last acceptable Begin) cached (the begins are also logged to disk) such that when we see Success for an
+     * instance we remove the value from the cache and send it to any listeners. This saves us having to disk scans
+     * for values and also placing the value in the Success message.
+     */
     private final Map<Long, Begin> _cachedBegins = new HashMap<Long, Begin>();
-	
+
+    /**
+     * Low watermark tracks the last successfully committed paxos instance (seqNum and position in log).
+     * This is used as a means to filter out repeats of earlier instances and helps identify times where recovery is
+     * needed. E.g. Our low watermark is 3 but the next instance we see is 5 indicating that instance 4 has likely
+     * occurred without us present and we should take recovery action.
+     */
 	private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
 
 	public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport) {
@@ -108,6 +124,12 @@ public class AcceptorLearner {
 	public long getLeaderLeaseDuration() {
 		return _leaderLease;
 	}
+
+    public boolean isOutOfDate() {
+        synchronized(this) {
+            return (_outOfDate != null);
+        }
+    }
 
 	public boolean isRecovering() {
 		synchronized(this) {
@@ -247,12 +269,30 @@ public class AcceptorLearner {
 	public void messageReceived(PaxosMessage aMessage) {
 		long mySeqNum = aMessage.getSeqNum();
 
+        // So far out of date, we need cleaning up and reatarting with new state so wait for that to happen.
+        //
+        if (isOutOfDate())
+            return;
+
 		if (isRecovering()) {
 			// If the packet is a recovery request, ignore it
 			//
 			if (aMessage.getType() == Operations.NEED)
 				return;
-			
+
+            // If the packet is out of date, we need a state restore
+            //
+            if (aMessage.getType() == Operations.OUTOFDATE) {
+                synchronized(this) {
+                    _outOfDate = (OutOfDate) aMessage;
+                    _recoveryWindow = null;
+                    _packetBuffer.clear();
+                }
+
+                signal(new Event(Event.Reason.OUT_OF_DATE, mySeqNum, OUT_OF_DATE, null));
+                return;
+            }
+
 			// If the packet is for a sequence number above the recovery window - save it for later
 			//
 			if (mySeqNum > _recoveryWindow.getMaxSeqNum()) {
@@ -435,7 +475,7 @@ public class AcceptorLearner {
 							myLastCollect.getRndNumber(), _transport.getLocalAddress()), myNodeId);
 				} else {
 					// Quiet, didn't see the collect, leader hasn't accounted for
-					// our values, it hasn't seen our last
+					// our values, it hasn't seen our last and we're likely out of sync with the majority
 					//
 					_logger.info("AL:Missed collect, going silent: " + mySeqNum
 							+ " [ " + myBegin.getRndNumber() + " ]");

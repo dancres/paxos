@@ -9,6 +9,7 @@ public class Event {
 		public static final int OTHER_LEADER = -2;
 		public static final int VOTE_TIMEOUT = -3;
 		public static final int BAD_MEMBERSHIP = -4;
+        public static final int OUT_OF_DATE = -5;
 	}
 	
     private int _result;
