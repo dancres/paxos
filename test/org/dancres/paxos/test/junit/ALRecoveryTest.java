@@ -100,6 +100,7 @@ public class ALRecoveryTest {
         
         _node3 = new ServerDispatcher(5000, new HowlLogger(_node3Log));
         _tport3 = new TransportImpl(_node3);
+        _node3.getAcceptorLearner().setRecoveryGracePeriod(1000);
         
         ensureFD(_node3.getFailureDetector());
 

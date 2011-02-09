@@ -16,10 +16,16 @@ import org.slf4j.LoggerFactory;
  * packets from the leader. Thus if a leader declares SUCCESS then the local
  * instance will receive those packets. This can be useful for processing client
  * requests correctly and signalling interested parties as necessary.
- * 
+ *
+ * @todo Implement recovery from any node. With the timeout mechanism in place it's possible to retry multiple nodes
+ * rather than rely on leader. When recovery first triggers, select a node from membership at random and send it a
+ * need request. If we timeout select a node and try again.
+ *
  * @author dan
  */
 public class AcceptorLearner {
+    private static final long DEFAULT_GRACE_PERIOD = 30 * 1000;
+
     public static final long UNKNOWN_SEQ = -1;
     
 	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue(
@@ -32,6 +38,9 @@ public class AcceptorLearner {
 	private static Logger _logger = LoggerFactory
 			.getLogger(AcceptorLearner.class);
 
+    private final Timer _watchdog = new Timer("AcceptorLearner timers");
+    private TimerTask _recoveryAlarm = null;
+
 	/**
 	 * Statistic that tracks the number of Collects this AcceptorLearner ignored
 	 * from competing leaders within DEFAULT_LEASE ms of activity from the
@@ -39,6 +48,8 @@ public class AcceptorLearner {
 	 */
 	private AtomicLong _ignoredCollects = new AtomicLong();
 	private AtomicLong _receivedHeartbeats = new AtomicLong();
+
+    private long _gracePeriod = DEFAULT_GRACE_PERIOD;
 
     private OutOfDate _outOfDate = null;
 	private RecoveryWindow _recoveryWindow = null;
@@ -260,10 +271,6 @@ public class AcceptorLearner {
     }
 
 	/**
-     * @todo Need to implement a watchdog which will cause exit from recovery if we don't get a response to NEED within
-     * some period of time. This will cause the AL to re-enter recovery when another packet is received and thus a new
-     * NEED will be issued.
-     *
 	 * @param aMessage
 	 */
 	public void messageReceived(PaxosMessage aMessage) {
@@ -285,8 +292,7 @@ public class AcceptorLearner {
             if (aMessage.getType() == Operations.OUTOFDATE) {
                 synchronized(this) {
                     _outOfDate = (OutOfDate) aMessage;
-                    _recoveryWindow = null;
-                    _packetBuffer.clear();
+                    completedRecovery();
                 }
 
                 signal(new Event(Event.Reason.OUT_OF_DATE, mySeqNum, OUT_OF_DATE, null));
@@ -326,8 +332,7 @@ public class AcceptorLearner {
 								process(myMessage);
 						}
 						
-						_recoveryWindow = null;
-						_packetBuffer.clear();
+                        completedRecovery();
 					}
 				}
 			} else {			
@@ -367,12 +372,96 @@ public class AcceptorLearner {
 					// Declare recovery active - which stops this AL emitting responses
 					//
 					_recoveryWindow = myWindow;
+
+                    // Startup recovery watchdog
+                    //
+                    reschedule();
 				}
 			} else
 				process(aMessage);
 		}
 	}
-	
+
+    private class Watchdog extends TimerTask {
+        private final Watermark _past = getLowWatermark();
+
+        public void run() {
+            if (! isRecovering()) {
+                // Someone else will do cleanup
+                //
+                return;
+            }
+
+            /*
+             * If the watermark has advanced since we were started recovery made some progress so we'll schedule a
+             * future check otherwise fail.
+             */
+            if (! _past.equals(getLowWatermark())) {
+                _logger.info("Recovery is progressing");
+
+                reschedule();
+            } else {
+                _logger.info("Recovery is NOT progressing - terminate");
+
+                terminateRecovery();
+            }
+        }
+    }
+
+    private void reschedule() {
+        _logger.info("Rescheduling");
+
+        synchronized(this) {
+            _recoveryAlarm = new Watchdog();
+            _watchdog.schedule(_recoveryAlarm, calculateInteractionTimeout());
+        }
+    }
+
+    public void setRecoveryGracePeriod(long aPeriod) {
+        synchronized(this) {
+            _gracePeriod = aPeriod;
+        }
+    }
+
+    private long calculateInteractionTimeout() {
+        synchronized(this) {
+            return _gracePeriod;
+        }
+    }
+
+    private void terminateRecovery() {
+        _logger.info("Recovery terminate");
+
+        /*
+         * This will cause the AL to re-enter recovery when another packet is received and thus a new
+         * NEED will be issued. Eventually we'll get too out-of-date or updated
+         */
+        synchronized(this) {
+            _recoveryAlarm = null;
+            postRecovery();
+        }
+    }
+
+    private void completedRecovery() {
+        _logger.info("Recovery complete");
+
+        synchronized(this) {
+            if (_recoveryAlarm != null) {
+                _recoveryAlarm.cancel();
+                _recoveryAlarm = null;
+            }
+
+            postRecovery();
+        }
+    }
+
+    private void postRecovery() {
+        synchronized(this) {
+            _recoveryWindow = null;
+            _packetBuffer.clear();
+        }
+    }
+
 	/**
 	 * @todo Implement too-out-of-date response which will be picked up by the requesting AL and cause it to
 	 * do a full by-file resync or inform client too far out of date and to get another checkpoint etc.
