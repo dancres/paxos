@@ -30,6 +30,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
      */
     private static final int DEFAULT_MAJORITY = 2;
 
+    private Random _random = new Random();
     private Map<InetSocketAddress, MetaData> _lastHeartbeats = new HashMap<InetSocketAddress, MetaData>();
     private ExecutorService _executor = Executors.newFixedThreadPool(1);
     private Thread _scanner;
@@ -208,6 +209,17 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         
         myMembership.populate(myActives);
         return myMembership;
+    }
+
+    public InetSocketAddress getRandomMember(InetSocketAddress aLocalAddress) {
+        LinkedList<InetSocketAddress> myMembers = new LinkedList<InetSocketAddress>();
+
+        synchronized(this) {
+            myMembers.addAll(_lastHeartbeats.keySet());
+        }
+
+        myMembers.remove(aLocalAddress);
+        return myMembers.get(_random.nextInt(myMembers.size()));
     }
 
     private void sendDead(InetSocketAddress aProcess) {

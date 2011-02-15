@@ -17,10 +17,6 @@ import org.slf4j.LoggerFactory;
  * instance will receive those packets. This can be useful for processing client
  * requests correctly and signalling interested parties as necessary.
  *
- * @todo Implement recovery from any node. With the timeout mechanism in place it's possible to retry multiple nodes
- * rather than rely on leader. When recovery first triggers, select a node from membership at random and send it a
- * need request. If we timeout select a node and try again.
- *
  * @author dan
  */
 public class AcceptorLearner {
@@ -38,9 +34,6 @@ public class AcceptorLearner {
 	private static Logger _logger = LoggerFactory
 			.getLogger(AcceptorLearner.class);
 
-    private final Timer _watchdog = new Timer("AcceptorLearner timers");
-    private TimerTask _recoveryAlarm = null;
-
 	/**
 	 * Statistic that tracks the number of Collects this AcceptorLearner ignored
 	 * from competing leaders within DEFAULT_LEASE ms of activity from the
@@ -51,10 +44,13 @@ public class AcceptorLearner {
 
     private long _gracePeriod = DEFAULT_GRACE_PERIOD;
 
+    private final Timer _watchdog = new Timer("AcceptorLearner timers");
+    private TimerTask _recoveryAlarm = null;
+
     private OutOfDate _outOfDate = null;
 	private RecoveryWindow _recoveryWindow = null;
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
-	
+
 	/**
      * Tracks the last collect we accepted and thus represents our view of the current leader for instances.
      * Other leaders wishing to take over must present a round number greater than this and after expiry of the
@@ -177,7 +173,7 @@ public class AcceptorLearner {
 			if (_lowSeqNumWatermark.getSeqNum() == (aSeqNum - 1)) {
 				_lowSeqNumWatermark = new Watermark(aSeqNum, aLogOffset);
 
-				_logger.info("AL:Low :" + _lowSeqNumWatermark);
+				_logger.info("AL:Low :" + _lowSeqNumWatermark + ", " + _transport.getLocalAddress());
 			}
 		}
 	}
@@ -250,7 +246,7 @@ public class AcceptorLearner {
 	}
 
 	private void updateLastActionTime(long aTime) {
-		_logger.info("AL:Updating last action time: " + aTime);
+		_logger.info("AL:Updating last action time: " + aTime + ", " + _transport.getLocalAddress());
 
 		synchronized(this) {
 			if (aTime > _lastLeaderActionTime)
@@ -364,9 +360,14 @@ public class AcceptorLearner {
 					//
 					RecoveryWindow myWindow = new RecoveryWindow(getLowWatermark().getSeqNum(), mySeqNum - 1);
 					
-					// Ask the current leader to bring us back up to speed
-					//
-					send(new Need(myWindow.getMinSeqNum(), myWindow.getMaxSeqNum(), 
+					/*
+					 * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
+					 * If that's the case, it won't stream at all or will only stream some part of our recovery
+					 * window. As the recovery watchdog measures progress through the recovery window, a partial
+					 * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
+					 */
+                    InetSocketAddress myClient = _fd.getRandomMember(_transport.getLocalAddress());
+					send(new Need(myWindow.getMinSeqNum(), myWindow.getMaxSeqNum(),
 							_transport.getLocalAddress()), aMessage.getNodeId());
 
 					// Declare recovery active - which stops this AL emitting responses
@@ -397,11 +398,11 @@ public class AcceptorLearner {
              * future check otherwise fail.
              */
             if (! _past.equals(getLowWatermark())) {
-                _logger.info("Recovery is progressing");
+                _logger.info("Recovery is progressing, " + _transport.getLocalAddress());
 
                 reschedule();
             } else {
-                _logger.info("Recovery is NOT progressing - terminate");
+                _logger.info("Recovery is NOT progressing - terminate, " + _transport.getLocalAddress());
 
                 terminateRecovery();
             }
@@ -409,7 +410,7 @@ public class AcceptorLearner {
     }
 
     private void reschedule() {
-        _logger.info("Rescheduling");
+        _logger.info("Rescheduling, " + _transport.getLocalAddress());
 
         synchronized(this) {
             _recoveryAlarm = new Watchdog();
@@ -430,7 +431,7 @@ public class AcceptorLearner {
     }
 
     private void terminateRecovery() {
-        _logger.info("Recovery terminate");
+        _logger.info("Recovery terminate, " + _transport.getLocalAddress());
 
         /*
          * This will cause the AL to re-enter recovery when another packet is received and thus a new
@@ -443,7 +444,7 @@ public class AcceptorLearner {
     }
 
     private void completedRecovery() {
-        _logger.info("Recovery complete");
+        _logger.info("Recovery complete, " + _transport.getLocalAddress());
 
         synchronized(this) {
             if (_recoveryAlarm != null) {
@@ -474,7 +475,7 @@ public class AcceptorLearner {
 		long myCurrentTime = System.currentTimeMillis();
 		long mySeqNum = aMessage.getSeqNum();
 
-		_logger.info("AL: got [ " + mySeqNum + " ] : " + aMessage);
+		_logger.info("AL: got [ " + mySeqNum + " ] : " + aMessage + ", " + _transport.getLocalAddress());
 
 		switch (aMessage.getType()) {
 			case Operations.NEED : {
@@ -483,7 +484,7 @@ public class AcceptorLearner {
 				// Make sure we can dispatch the recovery request
 				//
 				if (myNeed.getMaxSeq() <= getLowWatermark().getSeqNum()) {
-					_logger.info("Running streamer");
+					_logger.info("Running streamer: " + _transport.getLocalAddress());
 					
 					new Streamer(myNeed).run();
 				}
@@ -498,7 +499,7 @@ public class AcceptorLearner {
 					_ignoredCollects.incrementAndGet();
 
 					_logger.info("AL:Not accepting: " + myCollect + ", "
-							+ getIgnoredCollectsCount());
+							+ getIgnoredCollectsCount() + ", " + _transport.getLocalAddress());
 					return;
 				}
 
@@ -567,7 +568,7 @@ public class AcceptorLearner {
 					// our values, it hasn't seen our last and we're likely out of sync with the majority
 					//
 					_logger.info("AL:Missed collect, going silent: " + mySeqNum
-							+ " [ " + myBegin.getRndNumber() + " ]");
+							+ " [ " + myBegin.getRndNumber() + " ], " + _transport.getLocalAddress());
 				}
 				
 				break;
@@ -579,14 +580,15 @@ public class AcceptorLearner {
 				updateLastActionTime(myCurrentTime);
 
 				if (mySeqNum <= getLowWatermark().getSeqNum()) {
-					_logger.info("AL:Discarded known value: " + mySeqNum);
+					_logger.info("AL:Discarded known value: " + mySeqNum + ", " + _transport.getLocalAddress());
 				} else {
                     Begin myBegin = expungeBegin(mySeqNum);
 
                     if ((myBegin == null) || (myBegin.getRndNumber() != mySuccess.getRndNum())) {
                         // We never saw the appropriate begin
                         //
-                        _logger.info("AL: Discarding success: " + myBegin + ", " + mySuccess);
+                        _logger.info("AL: Discarding success: " + myBegin + ", " + mySuccess +
+                                ", " + _transport.getLocalAddress());
                     } else {
                         // Always record the success even if it's the heartbeat so there are
                         // no gaps in the Paxos sequence
@@ -600,9 +602,9 @@ public class AcceptorLearner {
 
                             _logger.info("AL: discarded heartbeat: "
                                     + System.currentTimeMillis() + ", "
-                                    + getHeartbeatCount());
+                                    + getHeartbeatCount() + ", " + _transport.getLocalAddress());
                         } else {
-                            _logger.info("AL:Learnt value: " + mySeqNum);
+                            _logger.info("AL:Learnt value: " + mySeqNum + ", " + _transport.getLocalAddress());
 
                             signal(new Event(Event.Reason.DECISION, mySeqNum,
                                     myBegin.getConsolidatedValue(), null));
@@ -614,7 +616,7 @@ public class AcceptorLearner {
 			}
 
 			default:
-				throw new RuntimeException("Unexpected message");
+				throw new RuntimeException("Unexpected message" + ", " + _transport.getLocalAddress());
 		}
 	}
 
@@ -640,8 +642,8 @@ public class AcceptorLearner {
 			} else 
 				myState = new ReplayListenerImpl(aSeqNum, myLow.getLogOffset()).getState();
 		} catch (Exception anE) {
-			_logger.error("Failed to replay log", anE);
-			throw new RuntimeException("Failed to replay log", anE);
+			_logger.error("Failed to replay log" + ", " + _transport.getLocalAddress(), anE);
+			throw new RuntimeException("Failed to replay log" + ", " + _transport.getLocalAddress(), anE);
 		}
 		
 		if ((myState == null) || (myState.getLastValue() == null)) {
@@ -665,7 +667,7 @@ public class AcceptorLearner {
 			
 			return myLogOffset;
 		} catch (Exception anE) {
-			_logger.error("AL: cannot log: " + System.currentTimeMillis(), anE);
+			_logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " + _transport.getLocalAddress(), anE);
 			throw new RuntimeException(anE);
 		}
 	}
@@ -792,7 +794,7 @@ public class AcceptorLearner {
         }
 
         public void run() {
-            _logger.info("Streamer starting");
+            _logger.info("Streamer starting, " + _transport.getLocalAddress());
 
             _stream = _transport.connectTo(_need.getNodeId());
 

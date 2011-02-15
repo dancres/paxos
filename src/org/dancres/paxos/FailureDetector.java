@@ -14,6 +14,13 @@ public interface FailureDetector {
     public long getUnresponsivenessThreshold();
     public Membership getMembers(MembershipListener aListener);
     public Set<InetSocketAddress> getMemberSet();
+
+    /**
+     * Return a random member that the FD believes is live, excluding the local address specified
+     *
+     * @param aLocal the address of the node to exclude from the result
+     */
+    public InetSocketAddress getRandomMember(InetSocketAddress aLocal);
     public byte[] getMetaData(InetSocketAddress aNode);    
     public boolean isLive(InetSocketAddress aNodeId);
     

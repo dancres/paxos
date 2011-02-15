@@ -14,20 +14,16 @@ public class NullFailureDetector implements FailureDetector {
 	public void add(LivenessListener aListener) {
 	}
 
-	public boolean amLeader(InetSocketAddress aInetSocketAddress) {
-		return false;
-	}
-
-	public InetSocketAddress getLeader() {
-		return null;
-	}
-
 	public Membership getMembers(MembershipListener aListener) {
 		return new MembershipImpl(aListener);
 	}
 
     public Set<InetSocketAddress> getMemberSet() {
         return new HashSet<InetSocketAddress>();
+    }
+
+    public InetSocketAddress getRandomMember(InetSocketAddress aLocal) {
+        return null;
     }
 
     public byte[] getMetaData(InetSocketAddress aNode) {
