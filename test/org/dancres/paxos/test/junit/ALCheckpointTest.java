@@ -12,7 +12,7 @@ import org.dancres.paxos.test.utils.Utils;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,6 +74,21 @@ public class ALCheckpointTest {
         myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
 
         myAl.open(myHandle);
+        myAl.close();
+
+        ByteArrayOutputStream myBAOS = new ByteArrayOutputStream();
+        ObjectOutputStream myOOS = new ObjectOutputStream(myBAOS);
+
+        myOOS.writeObject(myHandle);
+        myOOS.close();
+
+        ByteArrayInputStream myBAIS = new ByteArrayInputStream(myBAOS.toByteArray());
+        ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
+        CheckpointHandle myRecoveredHandle = (CheckpointHandle) myOIS.readObject();
+
+        myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
+
+        myAl.open(myRecoveredHandle);
         myAl.close();
     }
 
