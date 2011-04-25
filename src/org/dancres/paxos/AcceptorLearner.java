@@ -486,7 +486,7 @@ public class AcceptorLearner {
 				if (myNeed.getMaxSeq() <= getLowWatermark().getSeqNum()) {
 					_logger.info("Running streamer: " + _transport.getLocalAddress());
 					
-					new Streamer(myNeed).run();
+					new RemoteStreamer(myNeed).run();
 				}
 				
 				break;
@@ -768,36 +768,27 @@ public class AcceptorLearner {
         }
     }
 
-    /**
-     * Recovers all state since a particular instance of Paxos up to and including a specified maximum instance.
-     */
-    private class Streamer extends Thread implements RecordListener {
-        private Need _need;
-        private Stream _stream;
+    public interface Consumer {
+        public void process(PaxosMessage aMsg);
+    }
 
-        Streamer(Need aNeed) {
-            _need = aNeed;
+    public interface Producer {
+        public void produce() throws Exception;
+    }
+
+    private class LogRangeProducer implements RecordListener, Producer {
+        private long _lowerBoundSeq;
+        private long _maximumSeq;
+        private Consumer _consumer;
+
+        LogRangeProducer(long aLowerBoundSeq, long aMaximumSeq, Consumer aConsumer) {
+            _lowerBoundSeq = aLowerBoundSeq;
+            _maximumSeq = aMaximumSeq;
+            _consumer = aConsumer;
         }
 
-        public void run() {
-            _logger.info("Streamer starting, " + _transport.getLocalAddress());
-
-            _stream = _transport.connectTo(_need.getNodeId());
-
-            // Check we got a connection
-            //
-            if (_stream == null) {
-                _logger.warn("Stream couldn't connect: " + _need.getNodeId());
-                return;
-            }
-
-            try {
-                _storage.replay(this, 0);
-            } catch (Exception anE) {
-                _logger.error("Failed to replay log", anE);
-            }
-
-            _stream.close();
+        public void produce() throws Exception {
+            _storage.replay(this, 0);
         }
 
         public void onRecord(long anOffset, byte[] aRecord) {
@@ -805,13 +796,52 @@ public class AcceptorLearner {
 
             // Only send messages in the recovery window
             //
-            if ((myMessage.getSeqNum() > _need.getMinSeq())
-                    && (myMessage.getSeqNum() <= _need.getMaxSeq())) {
-                _logger.debug("Streaming: " + myMessage);
-                _stream.send(myMessage);
+            if ((myMessage.getSeqNum() > _lowerBoundSeq)
+                    && (myMessage.getSeqNum() <= _maximumSeq)) {
+                _logger.debug("Producing: " + myMessage);
+                _consumer.process(myMessage);
             } else {
-                _logger.debug("Not streaming: " + myMessage);
+                _logger.debug("Not producing: " + myMessage);
             }
+        }
+    }
+
+    /**
+     * Recovers all state since a particular instance of Paxos up to and including a specified maximum instance
+     * and dispatches them to a particular remote node.
+     */
+    private class RemoteStreamer extends Thread implements Consumer {
+        private Need _need;
+        private Stream _stream;
+
+        RemoteStreamer(Need aNeed) {
+            _need = aNeed;
+        }
+
+        public void run() {
+            _logger.info("RemoteStreamer starting, " + _transport.getLocalAddress());
+
+            _stream = _transport.connectTo(_need.getNodeId());
+
+            // Check we got a connection
+            //
+            if (_stream == null) {
+                _logger.warn("RemoteStreamer couldn't connect: " + _need.getNodeId());
+                return;
+            }
+
+            try {
+                new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this).produce();
+            } catch (Exception anE) {
+                _logger.error("Failed to replay log", anE);
+            }
+
+            _stream.close();
+        }
+
+        public void process(PaxosMessage aMsg) {
+            _logger.debug("Streaming: " + aMsg);
+            _stream.send(aMsg);
         }
     }
 
