@@ -57,11 +57,12 @@ public class ALStartupTest {
     	FileSystem.deleteDirectory(new File(DIRECTORY));    	
 	}
 	
-	@Test public void test() {
+	@Test public void test() throws Exception {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
 		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
+        myAl.open();
 		myAl.close();
 	}
 	

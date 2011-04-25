@@ -98,7 +98,7 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
     }
 
 
-	public void setTransport(Transport aTransport) {
+	public void setTransport(Transport aTransport) throws Exception {
 		_tp = aTransport;
 
         if (_meta == null)
@@ -108,6 +108,7 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
 
         _fd = new FailureDetectorImpl(_unresponsivenessThreshold);
         _al = new AcceptorLearner(_log, _fd, _tp);
+        _al.open();
         _ld = new Leader(_fd, _tp, _al);
         _al.add(new PacketBridge());  
         _hb.start();

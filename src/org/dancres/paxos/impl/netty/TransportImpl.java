@@ -83,7 +83,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     private InetSocketAddress _broadcastAddr;
 	
 	public interface Dispatcher {
-		public void setTransport(Transport aTransport);
+		public void setTransport(Transport aTransport) throws Exception;
 		public void messageReceived(PaxosMessage aMessage);
 	}
 	

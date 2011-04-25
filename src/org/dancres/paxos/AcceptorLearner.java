@@ -99,23 +99,10 @@ public class AcceptorLearner {
 		_storage = aStore;
 		_transport = aTransport;
 		_fd = anFD;
-		
-		try {
-			restore();
-		} catch (Exception anE) {
-			_logger.error("Failed to open logger", anE);
-			throw new RuntimeException(anE);
-		}
-		
 		_leaderLease = aLeaderLease;
 	}
 	
-	/**
-	 * @todo Replay state, reload checkpoint etc
-	 * 
-	 * @throws Exception
-	 */
-	private void restore() throws Exception {
+	public void open() throws Exception {
 		_storage.open();		
 	}
 	
@@ -658,14 +645,8 @@ public class AcceptorLearner {
 	}
 
 	private long write(PaxosMessage aMessage, boolean aForceRequired) {
-		long myLogOffset;
-		
 		try {
-			myLogOffset = getStorage().put(Codecs.encode(aMessage), aForceRequired); 
-			
-			// dump("Writing @ " + Long.toHexString(myLogOffset) + " : ", Codecs.encode(aMessage));
-			
-			return myLogOffset;
+		    return getStorage().put(Codecs.encode(aMessage), aForceRequired);
 		} catch (Exception anE) {
 			_logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " + _transport.getLocalAddress(), anE);
 			throw new RuntimeException(anE);

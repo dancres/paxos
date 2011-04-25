@@ -86,6 +86,7 @@ public class ALRecoveryTransitionTest {
 		TransportImpl myTransport = new TransportImpl(_nodeId, _broadcastId);
 		
 		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
+        myAl.open();
 		
 		Assert.assertFalse(myAl.isRecovering());
 		
