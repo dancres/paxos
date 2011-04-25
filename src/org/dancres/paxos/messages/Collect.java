@@ -12,7 +12,7 @@ public class Collect implements PaxosMessage {
     public static final Collect INITIAL = new Collect(AcceptorLearner.UNKNOWN_SEQ, Long.MIN_VALUE);
 
     private Collect(long aSeqNum, long aRndNumber) {
-        this(aSeqNum, aRndNumber, null);
+        this(aSeqNum, aRndNumber, new InetSocketAddress(0));
     }
 
     public Collect(long aSeqNum, long aRndNumber, InetSocketAddress aNodeId) {
@@ -55,7 +55,7 @@ public class Collect implements PaxosMessage {
     }
     
     public boolean isInitial() {
-    	return this == INITIAL;
+    	return this.equals(INITIAL);
     }
     
     public int hashCode() {
