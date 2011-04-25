@@ -34,7 +34,7 @@ import java.util.TimerTask;
 public class Leader implements MembershipListener {
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
 
-    private static final long GRACE_PERIOD = 500;
+    private static final long GRACE_PERIOD = 1000;
 
     private static final long MAX_TRIES = 3;
 
