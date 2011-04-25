@@ -165,22 +165,22 @@ public class AcceptorLearner {
      */
 	private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
 
-	public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport) {
-		this(aStore, anFD, aTransport, DEFAULT_LEASE);
-	}
-
-	public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport, long aLeaderLease) {
-		_storage = aStore;
-		_transport = aTransport;
-		_fd = anFD;
-		_leaderLease = aLeaderLease;
-	}
-
     /* ********************************************************************************************
      *
      * Lifecycle, checkpointing and open/close
      *
      ******************************************************************************************** */
+
+    public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport) {
+        this(aStore, anFD, aTransport, DEFAULT_LEASE);
+    }
+
+    public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport, long aLeaderLease) {
+        _storage = aStore;
+        _transport = aTransport;
+        _fd = anFD;
+        _leaderLease = aLeaderLease;
+    }
 
     static class ALCheckpointHandle extends CheckpointHandle {
         private transient Watermark _lowWatermark;
@@ -215,6 +215,14 @@ public class AcceptorLearner {
         public void saved() throws Exception {
             _al.saved(_lowWatermark);
         }
+
+        Watermark getLowWatermark() {
+            return _lowWatermark;
+        }
+
+        Collect getLastCollect() {
+            return _lastCollect;
+        }
     }
 
     public CheckpointHandle newCheckpoint() {
@@ -244,13 +252,47 @@ public class AcceptorLearner {
         _storage.open();
 
         if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
+            // Restore logs from the beginning
+            //
+            _logger.info("No checkpoint - replay from the beginning");
+
+            try {
+                new LogRangeProducer(-1, Long.MAX_VALUE, new LocalStreamer()).produce();
+            } catch (Exception anE) {
+                _logger.error("Failed to replay log", anE);
+            }
 
         } else if (aHandle instanceof ALCheckpointHandle) {
+            long myMin = -1;
+
+            ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
+
+            _lowSeqNumWatermark = myHandle.getLowWatermark();
+            _lastCollect = myHandle.getLastCollect();
+
+            _logger.info("Checkpoint supplied: " + _lastCollect + " @ " + _lowSeqNumWatermark);
+
+            if (! _lowSeqNumWatermark.equals(Watermark.INITIAL)) {
+                myMin = _lowSeqNumWatermark.getSeqNum();
+            }
+
+            try {
+                new LogRangeProducer(myMin, Long.MAX_VALUE, new LocalStreamer()).produce();
+            } catch (Exception anE) {
+                _logger.error("Failed to replay log", anE);
+            }
 
         } else
             throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
     }
-	
+
+    private class LocalStreamer implements Consumer {
+
+        public void process(PaxosMessage aMsg) {
+            AcceptorLearner.this.process(aMsg);
+        }
+    }
+
 	public void close() {
 		try {
 			_storage.close();
