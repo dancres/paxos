@@ -1,5 +1,8 @@
 package org.dancres.paxos;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -101,10 +104,76 @@ public class AcceptorLearner {
 		_fd = anFD;
 		_leaderLease = aLeaderLease;
 	}
-	
+
+
+    static class ALCheckpointHandle extends CheckpointHandle {
+        private transient Watermark _lowWatermark;
+        private transient Collect _lastCollect;
+        private transient AcceptorLearner _al;
+
+        ALCheckpointHandle(Watermark aLowWatermark, Collect aCollect, AcceptorLearner anAl) {
+            _lowWatermark = aLowWatermark;
+            _lastCollect = aCollect;
+            _al = anAl;
+        }
+
+        private void readObject(ObjectInputStream aStream) throws IOException, ClassNotFoundException {
+            aStream.defaultReadObject();
+            _lowWatermark = new Watermark(aStream.readLong(), aStream.readLong());
+
+            byte[] myBytes = new byte[aStream.readInt()];
+            aStream.readFully(myBytes);
+            _lastCollect = (Collect) Codecs.decode(myBytes);
+        }
+
+        private void writeObject(ObjectOutputStream aStream) throws IOException {
+            aStream.defaultWriteObject();
+            aStream.writeLong(_lowWatermark.getSeqNum());
+            aStream.writeLong(_lowWatermark.getLogOffset());
+
+            byte[] myCollect = Codecs.encode(_lastCollect);
+            aStream.writeInt(myCollect.length);
+            aStream.write(Codecs.encode(_lastCollect));
+        }
+
+        public void saved() throws Exception {
+            _al.saved(_lowWatermark);
+        }
+    }
+
+    public CheckpointHandle newCheckpoint() {
+        // Can't allow watermark and last collect to vary independently
+        //
+        synchronized (this) {
+            return new ALCheckpointHandle(getLowWatermark(), getLastCollect(), this);
+        }
+    }
+
+    private void saved(Watermark aWatermark) throws Exception {
+        if (! aWatermark.equals(Watermark.INITIAL))
+            _storage.mark(aWatermark.getLogOffset(), true);
+    }
+
 	public void open() throws Exception {
-		_storage.open();		
+		open(CheckpointHandle.NO_CHECKPOINT);
 	}
+
+    /**
+     * If this method fails be sure to invoke close regardless.
+     *
+     * @param aHandle
+     * @throws Exception
+     */
+    public void open(CheckpointHandle aHandle) throws Exception {
+        _storage.open();
+
+        if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
+
+        } else if (aHandle instanceof ALCheckpointHandle) {
+
+        } else
+            throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
+    }
 	
 	public void close() {
 		try {
@@ -839,6 +908,10 @@ public class AcceptorLearner {
         private long _seqNum;
         private long _logOffset;
 
+        /**
+         * @param aSeqNum the current sequence
+         * @param aLogOffset the log offset of the success record for this sequence number
+         */
         private Watermark(long aSeqNum, long aLogOffset) {
             _seqNum = aSeqNum;
             _logOffset = aLogOffset;
