@@ -51,6 +51,32 @@ public class AcceptorLearner {
     private TimerTask _recoveryAlarm = null;
 
     private OutOfDate _outOfDate = null;
+
+    /*
+     * If the sequence number of the collect we're seeing is for a sequence number >
+     * lwm + 1, we've missed some packets. Recovery range r is lwm < r
+     * <= x (where x = currentMessage.seqNum) so that the round we're
+     * seeing right now is complete and we need save packets only after
+     * that point.
+     */
+    private static class RecoveryWindow {
+        private long _minSeqNum;
+        private long _maxSeqNum;
+
+        RecoveryWindow(long aMin, long aMax) {
+            _minSeqNum = aMin;
+            _maxSeqNum = aMax;
+        }
+
+        long getMinSeqNum() {
+            return _minSeqNum;
+        }
+
+        long getMaxSeqNum() {
+            return _maxSeqNum;
+        }
+    }
+
 	private RecoveryWindow _recoveryWindow = null;
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
 
@@ -87,6 +113,51 @@ public class AcceptorLearner {
     private final Map<Long, Begin> _cachedBegins = new HashMap<Long, Begin>();
 
     /**
+     * Tracks the last contiguous sequence number for which we have a value.
+     *
+     * When we receive a success, if it's seqNum is this field + 1, increment
+     * this field. Acts as the low watermark for leader recovery, essentially we
+     * want to recover from the last contiguous sequence number in the stream of
+     * paxos instances.
+     */
+    public static class Watermark {
+        static final Watermark INITIAL = new Watermark(UNKNOWN_SEQ, -1);
+        private long _seqNum;
+        private long _logOffset;
+
+        /**
+         * @param aSeqNum the current sequence
+         * @param aLogOffset the log offset of the success record for this sequence number
+         */
+        private Watermark(long aSeqNum, long aLogOffset) {
+            _seqNum = aSeqNum;
+            _logOffset = aLogOffset;
+        }
+
+        public long getSeqNum() {
+            return _seqNum;
+        }
+
+        public long getLogOffset() {
+            return _logOffset;
+        }
+
+        public boolean equals(Object anObject) {
+            if (anObject instanceof Watermark) {
+                Watermark myOther = (Watermark) anObject;
+
+                return (myOther._seqNum == _seqNum) && (myOther._logOffset == _logOffset);
+            }
+
+            return false;
+        }
+
+        public String toString() {
+            return "Watermark: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_logOffset);
+        }
+    }
+
+    /**
      * Low watermark tracks the last successfully committed paxos instance (seqNum and position in log).
      * This is used as a means to filter out repeats of earlier instances and helps identify times where recovery is
      * needed. E.g. Our low watermark is 3 but the next instance we see is 5 indicating that instance 4 has likely
@@ -105,6 +176,11 @@ public class AcceptorLearner {
 		_leaderLease = aLeaderLease;
 	}
 
+    /* ********************************************************************************************
+     *
+     * Lifecycle, checkpointing and open/close
+     *
+     ******************************************************************************************** */
 
     static class ALCheckpointHandle extends CheckpointHandle {
         private transient Watermark _lowWatermark;
@@ -184,6 +260,12 @@ public class AcceptorLearner {
 		}
 	}
 
+    /* ********************************************************************************************
+     *
+     * Utility methods
+     *
+     ******************************************************************************************** */
+
 	public long getLeaderLeaseDuration() {
 		return _leaderLease;
 	}
@@ -212,6 +294,20 @@ public class AcceptorLearner {
 		}
 	}
 
+    void signal(Event aStatus) {
+        List<AcceptorLearnerListener> myListeners;
+
+        synchronized(_listeners) {
+            myListeners = new ArrayList<AcceptorLearnerListener>(_listeners);
+        }
+
+        Iterator<AcceptorLearnerListener> myTargets = myListeners.iterator();
+
+        while (myTargets.hasNext()) {
+            myTargets.next().done(aStatus);
+        }
+    }
+
 	public long getHeartbeatCount() {
 		return _receivedHeartbeats.longValue();
 	}
@@ -239,6 +335,24 @@ public class AcceptorLearner {
 			return _lowSeqNumWatermark;
 		}
 	}
+
+    private void cacheBegin(Begin aBegin) {
+        synchronized(this) {
+            _cachedBegins.put(new Long(aBegin.getSeqNum()), aBegin);
+        }
+    }
+
+    private Begin expungeBegin(long aSeqNum) {
+        synchronized(this) {
+            return _cachedBegins.remove(new Long(aSeqNum));
+        }
+    }
+
+    /* ********************************************************************************************
+     *
+     * Leader reasoning
+     *
+     ******************************************************************************************** */
 
 	public Collect getLastCollect() {
 		synchronized(this) {
@@ -310,17 +424,11 @@ public class AcceptorLearner {
 		}
 	}
 
-    private void cacheBegin(Begin aBegin) {
-        synchronized(this) {
-            _cachedBegins.put(new Long(aBegin.getSeqNum()), aBegin);
-        }
-    }
-
-    private Begin expungeBegin(long aSeqNum) {
-        synchronized(this) {
-            return _cachedBegins.remove(new Long(aSeqNum));
-        }
-    }
+    /* ********************************************************************************************
+     *
+     * Core message processing
+     *
+     ******************************************************************************************** */
 
 	/**
 	 * @param aMessage
@@ -439,6 +547,12 @@ public class AcceptorLearner {
 		}
 	}
 
+    /* ********************************************************************************************
+     *
+     * Recovery logic - watchdogs, catchup and such
+     *
+     ******************************************************************************************** */
+
     private class Watchdog extends TimerTask {
         private final Watermark _past = getLowWatermark();
 
@@ -518,6 +632,12 @@ public class AcceptorLearner {
             _packetBuffer.clear();
         }
     }
+
+    /* ********************************************************************************************
+     *
+     * Core state machine
+     *
+     ******************************************************************************************** */
 
 	/**
 	 * @todo Implement too-out-of-date response which will be picked up by the requesting AL and cause it to
@@ -676,13 +796,6 @@ public class AcceptorLearner {
 		}
 	}
 
-	private void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
-        // Stay silent during recovery to avoid producing out-of-date responses
-        //
-		if (! isRecovering())
-			_transport.send(aMessage, aNodeId);
-	}
-	
 	private Last constructLast(long aSeqNum) {
 		Watermark myLow = getLowWatermark();
 		
@@ -713,29 +826,13 @@ public class AcceptorLearner {
 		}
 	}
 
-	private long write(PaxosMessage aMessage, boolean aForceRequired) {
-		try {
-		    return getStorage().put(Codecs.encode(aMessage), aForceRequired);
-		} catch (Exception anE) {
-			_logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " + _transport.getLocalAddress(), anE);
-			throw new RuntimeException(anE);
-		}
-	}
+    private void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
+        // Stay silent during recovery to avoid producing out-of-date responses
+        //
+        if (! isRecovering())
+            _transport.send(aMessage, aNodeId);
+    }
 
-	void signal(Event aStatus) {
-		List<AcceptorLearnerListener> myListeners;
-
-		synchronized(_listeners) {
-			myListeners = new ArrayList<AcceptorLearnerListener>(_listeners);
-		}
-
-		Iterator<AcceptorLearnerListener> myTargets = myListeners.iterator();
-
-		while (myTargets.hasNext()) {
-			myTargets.next().done(aStatus);
-		}
-	}
-	
     private static void dump(String aMessage, byte[] aBuffer) {
     	System.err.print(aMessage + " ");
     	
@@ -745,6 +842,21 @@ public class AcceptorLearner {
 
         System.err.println();
     }	
+
+    /* ********************************************************************************************
+     *
+     * Operation log handling
+     *
+     ******************************************************************************************** */
+
+    private long write(PaxosMessage aMessage, boolean aForceRequired) {
+        try {
+            return getStorage().put(Codecs.encode(aMessage), aForceRequired);
+        } catch (Exception anE) {
+            _logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " + _transport.getLocalAddress(), anE);
+            throw new RuntimeException(anE);
+        }
+    }
 
     private static class Instance {
         private Begin _lastBegin;
@@ -892,76 +1004,6 @@ public class AcceptorLearner {
         public void process(PaxosMessage aMsg) {
             _logger.debug("Streaming: " + aMsg);
             _stream.send(aMsg);
-        }
-    }
-
-    /**
-     * Tracks the last contiguous sequence number for which we have a value.
-     *
-     * When we receive a success, if it's seqNum is this field + 1, increment
-     * this field. Acts as the low watermark for leader recovery, essentially we
-     * want to recover from the last contiguous sequence number in the stream of
-     * paxos instances.
-     */
-    public static class Watermark {
-        static final Watermark INITIAL = new Watermark(UNKNOWN_SEQ, -1);
-        private long _seqNum;
-        private long _logOffset;
-
-        /**
-         * @param aSeqNum the current sequence
-         * @param aLogOffset the log offset of the success record for this sequence number
-         */
-        private Watermark(long aSeqNum, long aLogOffset) {
-            _seqNum = aSeqNum;
-            _logOffset = aLogOffset;
-        }
-
-        public long getSeqNum() {
-            return _seqNum;
-        }
-
-        public long getLogOffset() {
-            return _logOffset;
-        }
-
-        public boolean equals(Object anObject) {
-            if (anObject instanceof Watermark) {
-                Watermark myOther = (Watermark) anObject;
-
-                return (myOther._seqNum == _seqNum) && (myOther._logOffset == _logOffset);
-            }
-
-            return false;
-        }
-
-        public String toString() {
-            return "Watermark: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_logOffset);
-        }
-    }
-
-    /*
-     * If the sequence number of the collect we're seeing is for a sequence number >
-     * lwm + 1, we've missed some packets. Recovery range r is lwm < r
-     * <= x (where x = currentMessage.seqNum) so that the round we're
-     * seeing right now is complete and we need save packets only after
-     * that point.
-     */
-    private static class RecoveryWindow {
-        private long _minSeqNum;
-        private long _maxSeqNum;
-
-        RecoveryWindow(long aMin, long aMax) {
-            _minSeqNum = aMin;
-            _maxSeqNum = aMax;
-        }
-
-        long getMinSeqNum() {
-            return _minSeqNum;
-        }
-
-        long getMaxSeqNum() {
-            return _maxSeqNum;
         }
     }
 }
