@@ -634,19 +634,19 @@ public class AcceptorLearner {
 		 * If the sequence number is less than the current low watermark, we've got to check through the log file for
 		 * the value otherwise if it's present, it will be since the low watermark offset.
 		 */
-		InstanceState myState;
+		Instance myState;
 		
 		try {
 			if ((myLow.equals(Watermark.INITIAL)) || (aSeqNum <= myLow.getSeqNum())) {
-				myState = new ReplayListenerImpl(aSeqNum, 0).getState();
+				myState = new StateFinder(aSeqNum, 0).getState();
 			} else 
-				myState = new ReplayListenerImpl(aSeqNum, myLow.getLogOffset()).getState();
+				myState = new StateFinder(aSeqNum, myLow.getLogOffset()).getState();
 		} catch (Exception anE) {
 			_logger.error("Failed to replay log" + ", " + _transport.getLocalAddress(), anE);
 			throw new RuntimeException("Failed to replay log" + ", " + _transport.getLocalAddress(), anE);
 		}
 		
-		if ((myState == null) || (myState.getLastValue() == null)) {
+		if (myState.getLastValue() == null) {
 			return new Last(aSeqNum, myLow.getSeqNum(), Long.MIN_VALUE,
 					LogStorage.NO_VALUE, _transport.getLocalAddress());
 		} else {			
@@ -696,20 +696,10 @@ public class AcceptorLearner {
         System.err.println();
     }	
 
-    private static class InstanceState {
+    private static class Instance {
         private Begin _lastBegin;
-        private long _lastBeginOffset;
 
-        private Success _lastSuccess;
-        private long _lastSuccessOffset;
-
-        private long _seqNum;
-
-        InstanceState(long aSeqNum) {
-            _seqNum = aSeqNum;
-        }
-
-        void add(PaxosMessage aMessage, long aLogOffset) {
+        void add(PaxosMessage aMessage) {
             switch(aMessage.getType()) {
                 case Operations.COLLECT : {
                     // Nothing to do
@@ -723,22 +713,16 @@ public class AcceptorLearner {
 
                     if (_lastBegin == null) {
                         _lastBegin = myBegin;
-                        _lastBeginOffset = aLogOffset;
                     } else if (myBegin.getRndNumber() > _lastBegin.getRndNumber() ){
                         _lastBegin = myBegin;
-                        _lastBeginOffset = aLogOffset;
                     }
 
                     break;
                 }
 
                 case Operations.SUCCESS : {
-
-                    Success myLastSuccess = (Success) aMessage;
-
-                    _lastSuccess = myLastSuccess;
-                    _lastSuccessOffset = aLogOffset;
-
+                    // Nothing to do
+                    //
                     break;
                 }
 
@@ -751,21 +735,23 @@ public class AcceptorLearner {
         }
 
         public String toString() {
-            return "LoggedInstance: " + _seqNum + " " + _lastBegin + " @ " + Long.toHexString(_lastBeginOffset) +
-                " " + _lastSuccess + " @ " + Long.toHexString(_lastSuccessOffset);
+            return "LoggedInstance: " + _lastBegin.getSeqNum() + " " + _lastBegin;
         }
     }
 
-    private class ReplayListenerImpl implements RecordListener {
+    /**
+     * Used to locate the recorded state of a specified instance of Paxos.
+     */
+    private class StateFinder implements RecordListener {
         private long _seqNum;
-        private InstanceState _state = null;
+        private Instance _state = new Instance();
 
-        ReplayListenerImpl(long aSeqNum, long aLogOffset) throws Exception {
+        StateFinder(long aSeqNum, long aLogOffset) throws Exception {
             _seqNum = aSeqNum;
             _storage.replay(this, aLogOffset);
         }
 
-        InstanceState getState() {
+        Instance getState() {
             return _state;
         }
 
@@ -777,14 +763,14 @@ public class AcceptorLearner {
             PaxosMessage myMessage = Codecs.decode(aRecord);
 
             if (myMessage.getSeqNum() == _seqNum) {
-                if (_state == null)
-                    _state = new InstanceState(_seqNum);
-
-                _state.add(myMessage, anOffset);
+                _state.add(myMessage);
             }
         }
     }
 
+    /**
+     * Recovers all state since a particular instance of Paxos up to and including a specified maximum instance.
+     */
     private class Streamer extends Thread implements RecordListener {
         private Need _need;
         private Stream _stream;
