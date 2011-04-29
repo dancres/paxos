@@ -40,7 +40,7 @@ public class ALNonRecoveryTest {
 
         _node1 = new ServerDispatcher(5000, new HowlLogger(_node1Log));
         _node2 = new ServerDispatcher(5000, new HowlLogger(_node2Log));
-        _tport1 = new TransportImpl(_node1);
+        _tport1 = new DropTransportImpl(_node1);
         _tport2 = new DropTransportImpl(_node2);
     }
 

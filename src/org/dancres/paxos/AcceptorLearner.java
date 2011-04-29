@@ -85,13 +85,6 @@ public class AcceptorLearner {
      * Other leaders wishing to take over must present a round number greater than this and after expiry of the
      * lease for the previous leader. The last collect is also used to validate begins and ensure we don't accept
      * any from other leaders whilst we're not in sync with the majority.
-     *
-	 * @todo Must checkpoint _lastCollect, as it'll only be written in the log
-	 *       file the first time it appears and thus when we hit a checkpoint it
-	 *       will be discarded. This is because we implement the optimisation
-	 *       for multi-paxos described in "Paxos Made Simple" such that we
-	 *       needn't sync to disk for a Collect that is identical to and comes
-	 *       from the same Leader as for previous rounds.
 	 */
 	private Collect _lastCollect = Collect.INITIAL;
 	private long _lastLeaderActionTime = 0;
@@ -458,7 +451,7 @@ public class AcceptorLearner {
 	}
 
 	private void updateLastActionTime(long aTime) {
-		_logger.info("AL:Updating last action time: " + aTime + ", " + _transport.getLocalAddress());
+		_logger.debug("AL:Updating last action time: " + aTime + ", " + _transport.getLocalAddress());
 
 		synchronized(this) {
 			if (aTime > _lastLeaderActionTime)
@@ -572,9 +565,8 @@ public class AcceptorLearner {
 					 * window. As the recovery watchdog measures progress through the recovery window, a partial
 					 * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
 					 */
-                    InetSocketAddress myClient = _fd.getRandomMember(_transport.getLocalAddress());
 					send(new Need(myWindow.getMinSeqNum(), myWindow.getMaxSeqNum(),
-							_transport.getLocalAddress()), aMessage.getNodeId());
+							_transport.getLocalAddress()), _fd.getRandomMember(_transport.getLocalAddress()));
 
 					// Declare recovery active - which stops this AL emitting responses
 					//
