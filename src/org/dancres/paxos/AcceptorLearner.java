@@ -94,7 +94,7 @@ public class AcceptorLearner {
 	private FailureDetector _fd;
 	
 	private final long _leaderLease;
-	private final List<AcceptorLearnerListener> _listeners = new ArrayList<AcceptorLearnerListener>();
+	private final List<Listener> _listeners = new ArrayList<Listener>();
 
     /**
      * Begins contain the values being proposed. These values must be remembered from round to round of an instance
@@ -317,26 +317,26 @@ public class AcceptorLearner {
 		}
 	}
 	
-	public void add(AcceptorLearnerListener aListener) {
+	public void add(Listener aListener) {
 		synchronized(_listeners) {
 			_listeners.add(aListener);
 		}
 	}
 
-	public void remove(AcceptorLearnerListener aListener) {
+	public void remove(Listener aListener) {
 		synchronized(_listeners) {
 			_listeners.remove(aListener);
 		}
 	}
 
     void signal(Event aStatus) {
-        List<AcceptorLearnerListener> myListeners;
+        List<Listener> myListeners;
 
         synchronized(_listeners) {
-            myListeners = new ArrayList<AcceptorLearnerListener>(_listeners);
+            myListeners = new ArrayList<Listener>(_listeners);
         }
 
-        Iterator<AcceptorLearnerListener> myTargets = myListeners.iterator();
+        Iterator<Listener> myTargets = myListeners.iterator();
 
         while (myTargets.hasNext()) {
             myTargets.next().done(aStatus);

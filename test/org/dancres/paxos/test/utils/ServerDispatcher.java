@@ -136,7 +136,7 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
     	_ld.shutdown();
     }
     	
-    class PacketBridge implements AcceptorLearnerListener {
+    class PacketBridge implements Listener {
 
         public void done(Event anEvent) {
             // If we're not the originating node for the post, because we're not leader, we won't have an addressed stored up

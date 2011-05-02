@@ -5,6 +5,6 @@ package org.dancres.paxos;
  *
  * @author dan
  */
-public interface AcceptorLearnerListener {
+public interface Listener {
     public void done(Event anEvent);
 }
