@@ -2,13 +2,13 @@ package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.HowlLogger;
+import org.dancres.paxos.impl.net.ClientDispatcher;
+import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
-import org.dancres.paxos.test.utils.ClientDispatcher;
 import org.dancres.paxos.test.utils.FileSystem;
-import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
 import org.junit.After;

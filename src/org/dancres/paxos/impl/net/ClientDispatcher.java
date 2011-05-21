@@ -1,15 +1,14 @@
-package org.dancres.paxos.test.utils;
+package org.dancres.paxos.impl.net;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.Transport;
-import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
-public class ClientDispatcher implements TransportImpl.Dispatcher {
+public class ClientDispatcher implements Transport.Dispatcher {
 	private Transport _transport;
 	private List<PaxosMessage> _queue = new ArrayList<PaxosMessage>();
 	

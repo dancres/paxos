@@ -4,12 +4,12 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.Listener;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.net.ClientDispatcher;
+import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.netty.TransportImpl;
-import org.dancres.paxos.test.utils.ClientDispatcher;
-import org.dancres.paxos.test.utils.ServerDispatcher;
 import org.junit.*;
 
 public class LeaderListenerTest {

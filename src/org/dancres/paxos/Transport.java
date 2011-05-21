@@ -23,4 +23,9 @@ public interface Transport {
     public Stream connectTo(InetSocketAddress anAddr);
     
     public void shutdown();
+
+    public interface Dispatcher {
+        public void setTransport(Transport aTransport) throws Exception;
+        public void messageReceived(PaxosMessage aMessage);
+    }
 }

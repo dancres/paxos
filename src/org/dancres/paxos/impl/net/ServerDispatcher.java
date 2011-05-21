@@ -1,9 +1,8 @@
-package org.dancres.paxos.test.utils;
+package org.dancres.paxos.impl.net;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;
-import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Fail;
@@ -22,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @see org.dancres.paxos.impl.faildet.Heartbeater
  */
-public class ServerDispatcher implements TransportImpl.Dispatcher {
+public class ServerDispatcher implements Transport.Dispatcher {
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     private byte[] _meta = null;
@@ -69,7 +68,7 @@ public class ServerDispatcher implements TransportImpl.Dispatcher {
                     String myHandback = Long.toString(_handbackGenerator.getAndIncrement());
                     _requestMap.put(myHandback, aMessage.getNodeId());
 
-                    Post myPost = (Post) aMessage;                            
+                    Post myPost = (Post) aMessage;
                     _ld.submit(myPost.getValue(), myHandback.getBytes());
 
 					break;	
