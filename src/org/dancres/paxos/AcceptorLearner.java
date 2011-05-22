@@ -25,6 +25,10 @@ import org.slf4j.LoggerFactory;
 public class AcceptorLearner {
     private static final long DEFAULT_GRACE_PERIOD = 30 * 1000;
 
+    // Pause should be less than DEFAULT_GRACE_PERIOD
+    //
+    private static final long SHUTDOWN_PAUSE = 1 * 1000;
+
     public static final long UNKNOWN_SEQ = -1;
     
 	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue(
@@ -256,21 +260,10 @@ public class AcceptorLearner {
             }
 
         } else if (aHandle instanceof ALCheckpointHandle) {
-            long myMin = -1;
-
             ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
 
-            _lowSeqNumWatermark = myHandle.getLowWatermark();
-            _lastCollect = myHandle.getLastCollect();
-
-            _logger.info("Checkpoint supplied: " + _lastCollect + " @ " + _lowSeqNumWatermark);
-
-            if (! _lowSeqNumWatermark.equals(Watermark.INITIAL)) {
-                myMin = _lowSeqNumWatermark.getSeqNum();
-            }
-
             try {
-                new LogRangeProducer(myMin, Long.MAX_VALUE, new LocalStreamer()).produce();
+                new LogRangeProducer(installCheckpoint(myHandle), Long.MAX_VALUE, new LocalStreamer()).produce();
             } catch (Exception anE) {
                 _logger.error("Failed to replay log", anE);
             }
@@ -286,14 +279,95 @@ public class AcceptorLearner {
         }
     }
 
-	public void close() {
-		try {
-			_storage.close();
-		} catch (Exception anE) {
-			_logger.error("Failed to close logger", anE);
-			throw new RuntimeException(anE);
-		}
-	}
+    public void close() {
+        try {
+            /*
+             * Allow for the fact we might be actively processing packets - Mark ourselves out of date so we
+             * cease processing, then clean up.
+             */
+            synchronized(this) {
+                _outOfDate = new OutOfDate(_transport.getLocalAddress());
+            }
+
+            try {
+                Thread.sleep(SHUTDOWN_PAUSE);
+            } catch (Exception anE) {}
+
+            synchronized(this) {
+                _watchdog.cancel();
+                _recoveryAlarm = null;
+                _recoveryWindow = null;
+                _packetBuffer.clear();
+                _lastCollect = Collect.INITIAL;
+                _lastLeaderActionTime = 0;
+                _cachedBegins.clear();
+                _lowSeqNumWatermark = Watermark.INITIAL;
+            }
+
+            _storage.close();
+
+        } catch (Exception anE) {
+            _logger.error("Failed to close logger", anE);
+            throw new Error(anE);
+        }
+    }
+
+    private long installCheckpoint(ALCheckpointHandle aHandle) {
+        long myMin = -1;
+
+        _lowSeqNumWatermark = aHandle.getLowWatermark();
+        _lastCollect = aHandle.getLastCollect();
+
+        _logger.info("Checkpoint installed: " + _lastCollect + " @ " + _lowSeqNumWatermark);
+
+        if (!_lowSeqNumWatermark.equals(Watermark.INITIAL)) {
+            myMin = _lowSeqNumWatermark.getSeqNum();
+        }
+
+        return myMin;
+    }
+
+    /**
+     * When an AL is out of date, call this method to bring it back into sync from a remotely sourced
+     * checkpoint.
+     *
+     * @param aHandle obtained from the remote checkpoint.
+     * @throws Exception
+     */
+    public void bringUpToDate(CheckpointHandle aHandle) throws Exception {
+        if (! isOutOfDate())
+            throw new IllegalStateException("Not out of date");
+
+        if (! (aHandle instanceof ALCheckpointHandle))
+            throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
+
+        ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
+
+        if (myHandle.equals(CheckpointHandle.NO_CHECKPOINT))
+            throw new IllegalArgumentException("Cannot update to initial checkpoint: " + myHandle);
+
+        /*
+         * If we're out of date, there will be no active timers and no activity on the log.
+         * We should install the checkpoint and clear out all state associated with known instances
+         * of Paxos. Additional state will be obtained from another AL via the lightweight recovery protocol.
+         * Out of date means that the existing log has no useful data within it implying it can be discarded.
+         */
+        synchronized(this) {
+            installCheckpoint(myHandle);
+            _storage.mark(myHandle.getLowWatermark().getLogOffset(), true);
+
+            _outOfDate = null;
+            _recoveryWindow = null;
+            _packetBuffer.clear();
+            _cachedBegins.clear();
+
+            /*
+             * We do not want to allow a leader to immediately over-rule us, make it work a bit,
+             * otherwise we risk leader jitter
+             */
+            _lastLeaderActionTime = System.currentTimeMillis();
+        }
+    }
 
     /* ********************************************************************************************
      *
@@ -653,6 +727,7 @@ public class AcceptorLearner {
         synchronized(this) {
             if (_recoveryAlarm != null) {
                 _recoveryAlarm.cancel();
+                _watchdog.purge();
                 _recoveryAlarm = null;
             }
 
