@@ -64,10 +64,6 @@ public class NullFailureDetector implements FailureDetector {
 		}			
 	};
 
-	public long getUnresponsivenessThreshold() {
-		return 0;
-	}
-
 	public boolean isLive(InetSocketAddress aInetSocketAddress) {
 		return false;
 	}

@@ -11,7 +11,6 @@ import java.util.Set;
  */
 public interface FailureDetector {
     public void add(LivenessListener aListener);
-    public long getUnresponsivenessThreshold();
     public Membership getMembers(MembershipListener aListener);
     public Set<InetSocketAddress> getMemberSet();
 
