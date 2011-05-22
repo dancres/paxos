@@ -253,8 +253,10 @@ public class Leader implements MembershipListener {
 
             	// We've got activity, cancel heartbeat until we're done. Note this may be a heartbeat, that's okay.
             	//
-            	if (_heartbeatAlarm != null)
+            	if (_heartbeatAlarm != null) {
             		_heartbeatAlarm.cancel();
+                    _watchdog.purge();
+                }
 
             	Collect myLastCollect = _al.getLastCollect();
 
@@ -475,6 +477,7 @@ public class Leader implements MembershipListener {
         assert _interactionAlarm != null;
 
         _interactionAlarm.cancel();
+        _watchdog.purge();
         _interactionAlarm = null;
     }
 
