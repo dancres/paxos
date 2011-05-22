@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @see org.dancres.paxos.impl.faildet.Heartbeater
  */
-public class ServerDispatcher implements Transport.Dispatcher {
+public class ServerDispatcher implements Transport.Dispatcher, Listener {
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     private byte[] _meta = null;
@@ -109,7 +109,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
         _al = new AcceptorLearner(_log, _fd, _tp);
         _al.open();
         _ld = new Leader(_fd, _tp, _al);
-        _al.add(new PacketBridge());  
+        _al.add(this);
         _hb.start();
 	}
 	
@@ -134,27 +134,24 @@ public class ServerDispatcher implements Transport.Dispatcher {
     	_al.close();
     	_ld.shutdown();
     }
-    	
-    class PacketBridge implements Listener {
 
-        public void done(Event anEvent) {
-            // If we're not the originating node for the post, because we're not leader, we won't have an addressed stored up
-            //
-            String myHandback = new String(anEvent.getHandback());
-            InetSocketAddress myAddr = _requestMap.remove(myHandback);
+    public void done(Event anEvent) {
+        // If we're not the originating node for the post, because we're not leader, we won't have an addressed stored up
+        //
+        String myHandback = new String(anEvent.getHandback());
+        InetSocketAddress myAddr = _requestMap.remove(myHandback);
 
-            if (myAddr == null)
-                return;
+        if (myAddr == null)
+            return;
 
-            if (anEvent.getResult() == Event.Reason.DECISION) {
-                _tp.send(new Complete(anEvent.getSeqNum()), myAddr);
-            } else {
-                _tp.send(new Fail(anEvent.getSeqNum(), anEvent.getResult()), myAddr);
-            }
+        if (anEvent.getResult() == Event.Reason.DECISION) {
+            _tp.send(new Complete(anEvent.getSeqNum()), myAddr);
+        } else {
+            _tp.send(new Fail(anEvent.getSeqNum(), anEvent.getResult()), myAddr);
         }
     }
 
-	public AcceptorLearner getAcceptorLearner() {
+    public AcceptorLearner getAcceptorLearner() {
 		return _al;
 	}
 
