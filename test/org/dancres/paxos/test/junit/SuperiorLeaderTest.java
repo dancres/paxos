@@ -25,8 +25,10 @@ public class SuperiorLeaderTest {
         _node1 = new ServerDispatcher(5000);
         _node2 = new OldRoundDispatcher(5000);
 
-        _tport1 = new TransportImpl(_node1);
-        _tport2 = new TransportImpl(_node2);
+        _tport1 = new TransportImpl();
+        _tport1.add(_node1);
+        _tport2 = new TransportImpl();
+        _tport2.add(_node2);
     }
 
     @After public void stop() throws Exception {
@@ -36,7 +38,8 @@ public class SuperiorLeaderTest {
     
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
-    	TransportImpl myTransport = new TransportImpl(myClient);
+    	TransportImpl myTransport = new TransportImpl();
+        myTransport.add(myClient);
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);

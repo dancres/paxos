@@ -40,7 +40,10 @@ public class OldAlStateTest {
         private InetSocketAddress _broadcast = Utils.getTestAddress();
 
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
-		
+
+        public void add(Dispatcher aDispatcher) {
+        }
+
 		public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
 			synchronized(_messages) {
 				_messages.add(aMessage);

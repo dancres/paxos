@@ -40,8 +40,10 @@ public class ALNonRecoveryTest {
 
         _node1 = new ServerDispatcher(5000, new HowlLogger(_node1Log));
         _node2 = new ServerDispatcher(5000, new HowlLogger(_node2Log));
-        _tport1 = new DropTransportImpl(_node1);
-        _tport2 = new DropTransportImpl(_node2);
+        _tport1 = new DropTransportImpl();
+        _tport1.add(_node1);
+        _tport2 = new DropTransportImpl();
+        _tport2.add(_node2);
     }
 
     @After
@@ -68,7 +70,8 @@ public class ALNonRecoveryTest {
     @Test
     public void post() throws Exception {
         ClientDispatcher myClient = new ClientDispatcher();
-        TransportImpl myTransport = new TransportImpl(myClient);
+        TransportImpl myTransport = new TransportImpl();
+        myTransport.add(myClient);
 
         ensureFD(_node1.getFailureDetector());
         ensureFD(_node2.getFailureDetector());
@@ -102,7 +105,9 @@ public class ALNonRecoveryTest {
         System.err.println("Start node3");
 
         _node3 = new ServerDispatcher(5000, new HowlLogger(_node3Log));
-        _tport3 = new TransportImpl(_node3);
+        _tport3 = new TransportImpl();
+        _tport3.add(_node3);
+
         _node3.getAcceptorLearner().setRecoveryGracePeriod(5000);
 
         ensureFD(_node3.getFailureDetector());
@@ -155,8 +160,8 @@ public class ALNonRecoveryTest {
     }
 
     static class DropTransportImpl extends TransportImpl {
-        DropTransportImpl(Dispatcher aDispatcher) throws Exception {
-            super(aDispatcher);
+        DropTransportImpl() throws Exception {
+            super();
         }
 
         public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {

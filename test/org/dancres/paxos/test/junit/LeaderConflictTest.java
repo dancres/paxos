@@ -28,8 +28,10 @@ public class LeaderConflictTest {
 
         _node1 = new ServerDispatcher(5000);
         _node2 = new ServerDispatcher(5000);
-        _tport1 = new TransportImpl(_node1);
-        _tport2 = new TransportImpl(_node2);
+        _tport1 = new TransportImpl();
+        _tport1.add(_node1);
+        _tport2 = new TransportImpl();
+        _tport2.add(_node2);
     }
 
     @After public void stop() throws Exception {
@@ -52,10 +54,12 @@ public class LeaderConflictTest {
 
     @Test public void post() throws Exception {
         ClientDispatcher myClient1 = new ClientDispatcher();
-        TransportImpl myTransport1 = new TransportImpl(myClient1);
+        TransportImpl myTransport1 = new TransportImpl();
+        myTransport1.add(myClient1);
 
         ClientDispatcher myClient2 = new ClientDispatcher();
-        TransportImpl myTransport2 = new TransportImpl(myClient2);
+        TransportImpl myTransport2 = new TransportImpl();
+        myTransport2.add(myClient2);
 
         ensureFD(_node1.getFailureDetector());
         ensureFD(_node2.getFailureDetector());

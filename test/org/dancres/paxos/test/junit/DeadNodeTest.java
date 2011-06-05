@@ -27,8 +27,10 @@ public class DeadNodeTest {
     @Before public void init() throws Exception {
     	_node1 = new ServerDispatcher(5000);
     	_node2 = new ServerDispatcher(5000);
-        _tport1 = new TransportImpl(_node1);
-        _tport2 = new DroppingTransportImpl(_node2);
+        _tport1 = new TransportImpl();
+        _tport1.add(_node1);
+        _tport2 = new DroppingTransportImpl();
+        _tport2.add(_node2);
     }
 
     @After public void stop() throws Exception {
@@ -38,7 +40,8 @@ public class DeadNodeTest {
     
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
-    	TransportImpl myTransport = new TransportImpl(myClient);
+    	TransportImpl myTransport = new TransportImpl();
+        myTransport.add(myClient);
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
@@ -81,8 +84,8 @@ public class DeadNodeTest {
     static class DroppingTransportImpl extends TransportImpl {
         private boolean _drop;
 
-        DroppingTransportImpl(Dispatcher aDispatcher) throws Exception {
-            super(aDispatcher);
+        DroppingTransportImpl() throws Exception {
+            super();
         }
 
         public void send(PaxosMessage aMessage, InetSocketAddress anAddress) {

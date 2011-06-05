@@ -23,8 +23,10 @@ public class SuccessfulSequenceTest {
 
     	_node1 = new ServerDispatcher(5000);
     	_node2 = new ServerDispatcher(5000);
-        _tport1 = new TransportImpl(_node1);
-        _tport2 = new TransportImpl(_node2);
+        _tport1 = new TransportImpl();
+        _tport1.add(_node1);
+        _tport2 = new TransportImpl();
+        _tport2.add(_node2);
     }
 
     @After public void stop() throws Exception {
@@ -34,7 +36,8 @@ public class SuccessfulSequenceTest {
     
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
-    	TransportImpl myTransport = new TransportImpl(myClient);
+    	TransportImpl myTransport = new TransportImpl();
+        myTransport.add(myClient);
 
         FailureDetector myFd = _node1.getFailureDetector();
 

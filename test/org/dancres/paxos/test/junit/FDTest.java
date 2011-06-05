@@ -23,8 +23,10 @@ public class FDTest implements MembershipListener {
     @Before public void init() throws Exception {
     	_node1 = new ServerDispatcher(5000, "node1".getBytes());
     	_node2 = new ServerDispatcher(5000, "node2".getBytes());
-        _tport1 = new TransportImpl(_node1);
-        _tport2 = new TransportImpl(_node2);
+        _tport1 = new TransportImpl();
+        _tport1.add(_node1);
+        _tport2 = new TransportImpl();
+        _tport2.add(_node2);
     }
 
     @After public void stop() throws Exception {

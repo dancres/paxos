@@ -24,6 +24,9 @@ public class ALCheckpointTest {
     private InetSocketAddress _broadcastId = Utils.getTestAddress();
 
     private class TransportImpl implements Transport {
+        public void add(Dispatcher aDispatcher) {
+        }
+
         private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
         public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {

@@ -10,6 +10,8 @@ import java.net.InetSocketAddress;
  * @author dan
  */
 public interface Transport {
+    public void add(Dispatcher aDispatcher) throws Exception;
+
 	public InetSocketAddress getLocalAddress();
 
     public InetSocketAddress getBroadcastAddress();

@@ -43,7 +43,10 @@ public class ALRecoveryTransitionTest {
 			_nodeId = aNodeId;
             _broadcastId = aBroadcastId;
 		}
-		
+
+        public void add(Dispatcher aDispatcher) {
+        }
+
 		public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
 			synchronized(_messages) {
 				_messages.add(aMessage);

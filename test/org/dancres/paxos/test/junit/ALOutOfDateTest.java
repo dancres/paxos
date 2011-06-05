@@ -42,8 +42,10 @@ public class ALOutOfDateTest {
 
         _node1 = new ServerDispatcher(5000, new HowlLogger(_node1Log));
         _node2 = new ServerDispatcher(5000, new HowlLogger(_node2Log));
-        _tport1 = new OODTransportImpl(_node1);
-        _tport2 = new OODTransportImpl(_node2);
+        _tport1 = new OODTransportImpl();
+        _tport1.add(_node1);
+        _tport2 = new OODTransportImpl();
+        _tport2.add(_node2);
     }
 
     @After
@@ -70,7 +72,8 @@ public class ALOutOfDateTest {
     @Test
     public void post() throws Exception {
         ClientDispatcher myClient = new ClientDispatcher();
-        TransportImpl myTransport = new TransportImpl(myClient);
+        TransportImpl myTransport = new TransportImpl();
+        myTransport.add(myClient);
 
         ensureFD(_node1.getFailureDetector());
         ensureFD(_node2.getFailureDetector());
@@ -106,7 +109,8 @@ public class ALOutOfDateTest {
         Listener myListener = new Listener();
 
         _node3 = new ServerDispatcher(5000, new HowlLogger(_node3Log));
-        _tport3 = new TransportImpl(_node3);
+        _tport3 = new TransportImpl();
+        _tport3.add(_node3);
         _node3.getAcceptorLearner().add(myListener);
 
         ensureFD(_node3.getFailureDetector());
@@ -171,8 +175,8 @@ public class ALOutOfDateTest {
     }
 
     static class OODTransportImpl extends TransportImpl {
-        OODTransportImpl(Dispatcher aDispatcher) throws Exception {
-            super(aDispatcher);
+        OODTransportImpl() throws Exception {
+            super();
         }
 
         public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {

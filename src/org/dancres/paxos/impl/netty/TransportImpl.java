@@ -82,7 +82,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private InetSocketAddress _unicastAddr;
     private InetSocketAddress _broadcastAddr;
 	
-	public TransportImpl(Dispatcher aDispatcher) throws Exception {
+	public TransportImpl() throws Exception {
         _broadcastAddr = new InetSocketAddress(NetworkUtils.getBroadcastAddress(), 255);
 
 		InetSocketAddress myMcastTarget = new InetSocketAddress((InetAddress) null,
@@ -115,13 +115,17 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		
 		_clientStreamFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(),
 				Executors.newCachedThreadPool());
-		
-		synchronized(this) {
-			_dispatcher = aDispatcher;
-			_dispatcher.setTransport(this);
-		}
-	}
+    }
 
+    public void add(Dispatcher aDispatcher) throws Exception {
+        synchronized(this) {
+            if (_dispatcher != null)
+                throw new RuntimeException("Dispatcher is already set!");
+
+            _dispatcher = aDispatcher;
+            _dispatcher.setTransport(this);
+        }
+    }
 	public void shutdown() {
 		try {
 			_logger.debug("Close mcast");
@@ -335,8 +339,11 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 	
 	public static void main(String[] anArgs) throws Exception {
-		Transport _tport1 = new TransportImpl(new DispatcherImpl());
-		Transport _tport2 = new TransportImpl(new DispatcherImpl());
+		Transport _tport1 = new TransportImpl();
+        _tport1.add(new DispatcherImpl());
+
+		Transport _tport2 = new TransportImpl();
+        _tport2.add(new DispatcherImpl());
 		
 		_tport1.send(new Accept(1, 2, _tport1.getLocalAddress()), _tport1.getBroadcastAddress());
 		_tport1.send(new Accept(2, 3, _tport2.getLocalAddress()), _tport2.getLocalAddress());
