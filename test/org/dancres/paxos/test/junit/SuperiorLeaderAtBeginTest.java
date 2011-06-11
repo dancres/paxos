@@ -77,12 +77,10 @@ public class SuperiorLeaderAtBeginTest {
             super(anUnresponsivenessThreshold);
         }
 
-        public void messageReceived(PaxosMessage aMessage) {
+        public boolean messageReceived(PaxosMessage aMessage) {
             switch (aMessage.getClassification()) {
                 case PaxosMessage.FAILURE_DETECTOR : {
-                    super.messageReceived(aMessage);
-
-                    break;
+                    return super.messageReceived(aMessage);
                 }
 
                 case PaxosMessage.LEADER: {
@@ -93,16 +91,17 @@ public class SuperiorLeaderAtBeginTest {
                                 new OldRound(myBegin.getSeqNum(), getTransport().getLocalAddress(),
                                 		myBegin.getRndNumber() + 1, getTransport().getLocalAddress()),
                                 aMessage.getNodeId());
+
+                        return true;
                     } else {
                     	getAcceptorLearner().messageReceived(aMessage);
+                        return true;
                     }
-
-                    break;
                 }
 
                 default: {
                     getLeader().messageReceived(aMessage);
-                    break;
+                    return true;
                 }
             }
         }

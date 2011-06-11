@@ -3,6 +3,8 @@ package org.dancres.paxos.impl.netty;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Executors;
 
 import org.dancres.paxos.Stream;
@@ -78,7 +80,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private NioServerSocketChannelFactory _serverStreamFactory; 
 	private ServerSocketChannel _serverStreamChannel;
 	private NioClientSocketChannelFactory _clientStreamFactory;
-	private Dispatcher _dispatcher;
+	private Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
 	private InetSocketAddress _unicastAddr;
     private InetSocketAddress _broadcastAddr;
 	
@@ -119,11 +121,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
     public void add(Dispatcher aDispatcher) throws Exception {
         synchronized(this) {
-            if (_dispatcher != null)
-                throw new RuntimeException("Dispatcher is already set!");
-
-            _dispatcher = aDispatcher;
-            _dispatcher.setTransport(this);
+            _dispatcher.add(aDispatcher);
+            aDispatcher.setTransport(this);
         }
     }
 	public void shutdown() {
@@ -199,14 +198,12 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 	
     public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {
-    	Dispatcher myDispatcher;
-    	
     	synchronized(this) {
-    		myDispatcher = _dispatcher;
+            for(Dispatcher d : _dispatcher) {
+                if (d.messageReceived((PaxosMessage) anEvent.getMessage()))
+                    break;
+            }
     	}
-    	
-    	if (myDispatcher != null)
-    		myDispatcher.messageReceived((PaxosMessage) anEvent.getMessage());
     }
 
     public void exceptionCaught(ChannelHandlerContext aContext, ExceptionEvent anEvent) {
@@ -354,8 +351,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 	
 	static class DispatcherImpl implements Dispatcher {
-		public void messageReceived(PaxosMessage aMessage) {
+		public boolean messageReceived(PaxosMessage aMessage) {
 			System.err.println("Message received: " + aMessage);
+
+            return true;
 		}
 
 		public void setTransport(Transport aTransport) {

@@ -77,12 +77,10 @@ public class SuperiorLeaderTest {
             super(anUnresponsivenessThreshold);
         }
 
-        public void messageReceived(PaxosMessage aMessage) {
+        public boolean messageReceived(PaxosMessage aMessage) {
             switch (aMessage.getType()) {
                 case Operations.HEARTBEAT: {
-                    super.messageReceived(aMessage);
-
-                    break;
+                    return super.messageReceived(aMessage);
                 }
 
                 case Operations.COLLECT: {
@@ -93,12 +91,12 @@ public class SuperiorLeaderTest {
                 					myCollect.getRndNumber() + 1, getTransport().getLocalAddress()),
                 					aMessage.getNodeId());
 
-                	break;
+                    return true;
                 }
 
                 default: {
                     getLeader().messageReceived(aMessage);
-                    break;
+                    return true;
                 }
             }
         }

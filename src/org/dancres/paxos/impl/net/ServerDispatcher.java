@@ -107,34 +107,36 @@ public class ServerDispatcher implements Transport.Dispatcher, Listener {
         }
 
 
-        public void messageReceived(PaxosMessage aMessage) {
+        public boolean messageReceived(PaxosMessage aMessage) {
             try {
                 switch (aMessage.getClassification()) {
                     case PaxosMessage.FAILURE_DETECTOR : {
                         _fd.processMessage(aMessage);
 
-                        break;
+                        return true;
                     }
 
                     case PaxosMessage.LEADER:
                     case PaxosMessage.RECOVERY : {
                         _al.messageReceived(aMessage);
 
-                        break;
+                        return true;
                     }
 
                     case PaxosMessage.ACCEPTOR_LEARNER: {
                         _ld.messageReceived(aMessage);
 
-                        break;
+                        return true;
                     }
 
                     default : {
                         _logger.error("Unrecognised message:" + aMessage);
+                        return false;
                     }
                 }
             } catch (Exception anE) {
                 _logger.error("Unexpected exception", anE);
+                return false;
             }
         }
 
@@ -163,7 +165,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Listener {
      *
      * @param aMessage
      */
-	public void messageReceived(PaxosMessage aMessage) {
+	public boolean messageReceived(PaxosMessage aMessage) {
 		try {
 			switch (aMessage.getClassification()) {
 				case PaxosMessage.FAILURE_DETECTOR :
@@ -171,9 +173,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Listener {
                 case PaxosMessage.RECOVERY :
                 case PaxosMessage.ACCEPTOR_LEARNER: {
 
-                    _core.messageReceived(aMessage);
-
-					break;
+                    return _core.messageReceived(aMessage);
 				}
 
 				case PaxosMessage.CLIENT : {
@@ -183,7 +183,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Listener {
                     Post myPost = (Post) aMessage;
                     _core.submit(myPost.getValue(), myHandback.getBytes());
 
-					break;	
+                    return true;
 				}
 
 
@@ -194,6 +194,8 @@ public class ServerDispatcher implements Transport.Dispatcher, Listener {
 		} catch (Exception anE) {
         	_logger.error("Unexpected exception", anE);
         }
+
+        return false;
     }
 
 

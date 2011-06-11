@@ -28,6 +28,12 @@ public interface Transport {
 
     public interface Dispatcher {
         public void setTransport(Transport aTransport) throws Exception;
-        public void messageReceived(PaxosMessage aMessage);
+
+        /**
+         * @param aMessage
+         * @return <code>true</code> to indicate that this packet has been processed and should not be given to
+         * other handlers.
+         */
+        public boolean messageReceived(PaxosMessage aMessage);
     }
 }

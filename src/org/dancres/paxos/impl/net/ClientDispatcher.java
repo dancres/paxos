@@ -12,7 +12,7 @@ public class ClientDispatcher implements Transport.Dispatcher {
 	private Transport _transport;
 	private List<PaxosMessage> _queue = new ArrayList<PaxosMessage>();
 	
-	public void messageReceived(PaxosMessage aMessage) {
+	public boolean messageReceived(PaxosMessage aMessage) {
 		synchronized(this) {
 	        switch (aMessage.getType()) {
 	        	case Operations.COMPLETE :
@@ -23,6 +23,8 @@ public class ClientDispatcher implements Transport.Dispatcher {
 	        	}
             }
         }
+
+        return true;
 	}
 
 	public void send(PaxosMessage aMessage, InetSocketAddress aTarget) {
