@@ -23,6 +23,10 @@ import org.slf4j.LoggerFactory;
  * @author dan
  */
 public class AcceptorLearner {
+    public interface Listener {
+        public void done(Event anEvent);
+    }
+
     private static final long DEFAULT_GRACE_PERIOD = 30 * 1000;
 
     // Pause should be less than DEFAULT_GRACE_PERIOD

@@ -1,7 +1,6 @@
 package org.dancres.paxos.test.utils;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.LivenessListener;
 import org.dancres.paxos.Membership;
 import org.dancres.paxos.MembershipListener;
 

@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @see org.dancres.paxos.impl.faildet.Heartbeater
  */
-public class ServerDispatcher implements Transport.Dispatcher, Listener {
+public class ServerDispatcher implements Transport.Dispatcher, AcceptorLearner.Listener {
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     protected Core _core;

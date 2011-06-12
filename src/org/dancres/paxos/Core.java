@@ -10,7 +10,7 @@ public class Core implements Transport.Dispatcher {
     private static Logger _logger = LoggerFactory.getLogger(Core.class);
 
     private Transport _tp;
-    private Listener _listener;
+    private AcceptorLearner.Listener _listener;
     private byte[] _meta = null;
     private AcceptorLearner _al;
     private Leader _ld;
@@ -19,7 +19,8 @@ public class Core implements Transport.Dispatcher {
     private long _unresponsivenessThreshold;
     private LogStorage _log;
 
-    public Core(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta, Listener aListener) {
+    public Core(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta,
+                AcceptorLearner.Listener aListener) {
         _meta = aMeta;
         _listener = aListener;
         _log = aLogger;

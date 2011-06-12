@@ -10,6 +10,11 @@ import java.util.Set;
  * @author dan
  */
 public interface FailureDetector {
+    public interface LivenessListener {
+        public void alive(InetSocketAddress aProcess);
+        public void dead(InetSocketAddress aProcess);
+    }
+
     public void add(LivenessListener aListener);
     public Membership getMembers(MembershipListener aListener);
     public Set<InetSocketAddress> getMemberSet();

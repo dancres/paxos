@@ -1,7 +1,8 @@
 package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
-import org.dancres.paxos.Listener;
+
+import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.net.ClientDispatcher;
@@ -80,7 +81,7 @@ public class LeaderListenerTest {
         Assert.assertTrue("Listener count should be 5 but is: " + myListener.getCount(), myListener.testCount(5));
     }
 
-    private class ListenerImpl implements Listener {
+    private class ListenerImpl implements AcceptorLearner.Listener {
         private int _readyCount = 0;
 
         int getCount() {

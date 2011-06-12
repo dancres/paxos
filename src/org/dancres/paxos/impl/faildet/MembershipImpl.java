@@ -1,6 +1,6 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.dancres.paxos.LivenessListener;
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.Membership;
 
@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author dan
  */
-class MembershipImpl implements Membership, LivenessListener {
+class MembershipImpl implements Membership, FailureDetector.LivenessListener {
     /**
      * Tracks the membership that forms the base for each round
      */
