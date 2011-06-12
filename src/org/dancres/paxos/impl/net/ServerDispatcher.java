@@ -1,8 +1,6 @@
 package org.dancres.paxos.impl.net;
 
 import org.dancres.paxos.*;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 import org.dancres.paxos.messages.Complete;
 import org.dancres.paxos.messages.Fail;
