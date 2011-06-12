@@ -1,16 +1,14 @@
 package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
+
+import org.dancres.paxos.Core;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
-import org.dancres.paxos.messages.Collect;
-import org.dancres.paxos.messages.Fail;
-import org.dancres.paxos.messages.OldRound;
-import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Post;
+import org.dancres.paxos.messages.*;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.*;
 
@@ -77,26 +75,44 @@ public class SuperiorLeaderTest {
             super(anUnresponsivenessThreshold);
         }
 
-        public boolean messageReceived(PaxosMessage aMessage) {
-            switch (aMessage.getType()) {
-                case Operations.HEARTBEAT: {
-                    return super.messageReceived(aMessage);
-                }
+        /*
+         * Override original setTransport which sets Core as a direct listener
+         */
+        public void setTransport(Transport aTransport) throws Exception {
+            _tp = aTransport;
+            _tp.add(new DroppingListenerImpl(_core));
+        }
 
-                case Operations.COLLECT: {
-                	Collect myCollect = (Collect) aMessage;
+        class DroppingListenerImpl implements Transport.Dispatcher {
+            private Core _core;
 
-                	getTransport().send(
-                			new OldRound(myCollect.getSeqNum(), getTransport().getLocalAddress(),
-                					myCollect.getRndNumber() + 1, getTransport().getLocalAddress()),
-                					aMessage.getNodeId());
+            DroppingListenerImpl(Core aCore) {
+                _core = aCore;
+            }
 
-                    return true;
-                }
+            public void setTransport(Transport aTransport) throws Exception {
+                _core.setTransport(aTransport);
+            }
 
-                default: {
-                    getLeader().messageReceived(aMessage);
-                    return true;
+            public boolean messageReceived(PaxosMessage aMessage) {
+                switch (aMessage.getClassification()) {
+                    case PaxosMessage.LEADER : {
+                        if (aMessage.getType() == Operations.COLLECT) {
+                            Collect myCollect = (Collect) aMessage;
+
+                            getTransport().send(
+                                    new OldRound(myCollect.getSeqNum(), getTransport().getLocalAddress(),
+                                            myCollect.getRndNumber() + 1, getTransport().getLocalAddress()),
+                                            aMessage.getNodeId());
+
+                            return true;
+                        } else
+                            return _core.messageReceived(aMessage);
+                    }
+
+                    default : {
+                        return _core.messageReceived(aMessage);
+                    }
                 }
             }
         }

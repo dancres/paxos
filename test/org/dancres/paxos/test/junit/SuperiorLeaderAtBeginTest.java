@@ -1,8 +1,11 @@
 package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
+
+import org.dancres.paxos.Core;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.Transport;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.messages.Begin;
@@ -77,31 +80,44 @@ public class SuperiorLeaderAtBeginTest {
             super(anUnresponsivenessThreshold);
         }
 
-        public boolean messageReceived(PaxosMessage aMessage) {
-            switch (aMessage.getClassification()) {
-                case PaxosMessage.FAILURE_DETECTOR : {
-                    return super.messageReceived(aMessage);
-                }
+        /*
+         * Override original setTransport which sets Core as a direct listener
+         */
+        public void setTransport(Transport aTransport) throws Exception {
+            _tp = aTransport;
+            _tp.add(new DroppingListenerImpl(_core));
+        }
 
-                case PaxosMessage.LEADER: {
-                    if (aMessage.getType() == Operations.BEGIN) {
-                        Begin myBegin = (Begin) aMessage;
+        class DroppingListenerImpl implements Transport.Dispatcher {
+            private Core _core;
 
-                        getTransport().send(
-                                new OldRound(myBegin.getSeqNum(), getTransport().getLocalAddress(),
-                                		myBegin.getRndNumber() + 1, getTransport().getLocalAddress()),
-                                aMessage.getNodeId());
+            DroppingListenerImpl(Core aCore) {
+                _core = aCore;
+            }
 
-                        return true;
-                    } else {
-                    	getAcceptorLearner().messageReceived(aMessage);
-                        return true;
+            public void setTransport(Transport aTransport) throws Exception {
+                _core.setTransport(aTransport);
+            }
+
+            public boolean messageReceived(PaxosMessage aMessage) {
+                switch (aMessage.getClassification()) {
+                    case PaxosMessage.LEADER : {
+                        if (aMessage.getType() == Operations.BEGIN) {
+                            Begin myBegin = (Begin) aMessage;
+
+                            getTransport().send(
+                                    new OldRound(myBegin.getSeqNum(), getTransport().getLocalAddress(),
+                                            myBegin.getRndNumber() + 1, getTransport().getLocalAddress()),
+                                    aMessage.getNodeId());
+
+                            return true;
+                        } else
+                            return _core.messageReceived(aMessage);
                     }
-                }
 
-                default: {
-                    getLeader().messageReceived(aMessage);
-                    return true;
+                    default : {
+                        return _core.messageReceived(aMessage);
+                    }
                 }
             }
         }
