@@ -1,8 +1,8 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.AcceptorLearner;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.Paxos;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
@@ -160,7 +160,7 @@ public class ALOutOfDateTest {
         myTest.stop();
     }
 
-    static class Listener implements AcceptorLearner.Listener {
+    static class Listener implements Paxos.Listener {
         private volatile boolean _receivedOOD = false;
 
         public boolean didOOD() {

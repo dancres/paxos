@@ -23,10 +23,6 @@ import org.slf4j.LoggerFactory;
  * @author dan
  */
 public class AcceptorLearner {
-    public interface Listener {
-        public void done(Event anEvent);
-    }
-
     private static final long DEFAULT_GRACE_PERIOD = 30 * 1000;
 
     // Pause should be less than DEFAULT_GRACE_PERIOD
@@ -102,7 +98,7 @@ public class AcceptorLearner {
 	private FailureDetector _fd;
 	
 	private final long _leaderLease;
-	private final List<Listener> _listeners = new ArrayList<Listener>();
+	private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
 
     /**
      * Begins contain the values being proposed. These values must be remembered from round to round of an instance
@@ -395,26 +391,26 @@ public class AcceptorLearner {
 		}
 	}
 	
-	public void add(Listener aListener) {
+	public void add(Paxos.Listener aListener) {
 		synchronized(_listeners) {
 			_listeners.add(aListener);
 		}
 	}
 
-	public void remove(Listener aListener) {
+	public void remove(Paxos.Listener aListener) {
 		synchronized(_listeners) {
 			_listeners.remove(aListener);
 		}
 	}
 
     void signal(Event aStatus) {
-        List<Listener> myListeners;
+        List<Paxos.Listener> myListeners;
 
         synchronized(_listeners) {
-            myListeners = new ArrayList<Listener>(_listeners);
+            myListeners = new ArrayList<Paxos.Listener>(_listeners);
         }
 
-        Iterator<Listener> myTargets = myListeners.iterator();
+        Iterator<Paxos.Listener> myTargets = myListeners.iterator();
 
         while (myTargets.hasNext()) {
             myTargets.next().done(aStatus);
