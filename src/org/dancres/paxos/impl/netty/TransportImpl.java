@@ -9,7 +9,7 @@ import java.util.concurrent.Executors;
 
 import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.Transport;
-import org.dancres.paxos.impl.NetworkUtils;
+import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.codec.Codecs;
@@ -85,7 +85,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     private InetSocketAddress _broadcastAddr;
 	
 	public TransportImpl() throws Exception {
-        _broadcastAddr = new InetSocketAddress(NetworkUtils.getBroadcastAddress(), 255);
+        _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
 
 		InetSocketAddress myMcastTarget = new InetSocketAddress((InetAddress) null,
 				BROADCAST_PORT);
@@ -101,7 +101,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		_unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool());
 		
 		_unicast = _unicastFactory.newChannel(newPipeline());
-		myFuture = _unicast.bind(new InetSocketAddress(NetworkUtils.getWorkableInterface(), 0));
+		myFuture = _unicast.bind(new InetSocketAddress(Utils.getWorkableInterface(), 0));
 		myFuture.await();
 		
 		_unicastAddr = _unicast.getLocalAddress();

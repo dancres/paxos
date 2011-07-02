@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl;
+package org.dancres.paxos.impl.net;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 import java.net.*;
 import java.util.*;
 
-public class NetworkUtils {
-    private static Logger _logger = LoggerFactory.getLogger(NetworkUtils.class);
+public class Utils {
+    private static Logger _logger = LoggerFactory.getLogger(Utils.class);
 
     private static NetworkInterface _workableInterface = null;
     private static InetAddress _workableAddress = null;
