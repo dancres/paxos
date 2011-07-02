@@ -4,12 +4,10 @@ import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.dancres.paxos.LogStorage;
-import org.dancres.paxos.RecordListener;
+import org.dancres.paxos.impl.LogStorage;
+import org.dancres.paxos.impl.RecordListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.sun.tools.javac.util.Log;
 
 public class MemoryLogStorage implements LogStorage {
     private Logger _logger = LoggerFactory.getLogger(MemoryLogStorage.class);

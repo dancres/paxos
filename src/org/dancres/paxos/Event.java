@@ -17,13 +17,13 @@ public class Event {
     private ConsolidatedValue _consolidatedValue;
     private Object _context;
 
-    Event(int aResult, long aSeqNum, ConsolidatedValue aValue) {
+    public Event(int aResult, long aSeqNum, ConsolidatedValue aValue) {
         _result = aResult;
         _seqNum = aSeqNum;
         _consolidatedValue = aValue;
     }
 
-    Event(int aResult, long aSeqNum, ConsolidatedValue aValue, Object aContext) {
+    public Event(int aResult, long aSeqNum, ConsolidatedValue aValue, Object aContext) {
         this(aResult, aSeqNum, aValue);
         _context = aContext;
     }

@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;

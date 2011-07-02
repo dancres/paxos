@@ -1,8 +1,8 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.MembershipListener;
-import org.dancres.paxos.Membership;
+import org.dancres.paxos.impl.FailureDetector;
+import org.dancres.paxos.impl.MembershipListener;
+import org.dancres.paxos.impl.Membership;
 
 import java.net.InetSocketAddress;
 import java.util.Set;

@@ -7,8 +7,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
-import org.dancres.paxos.Stream;
-import org.dancres.paxos.Transport;
+import org.dancres.paxos.impl.Stream;
+import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.NetworkUtils;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.PaxosMessage;

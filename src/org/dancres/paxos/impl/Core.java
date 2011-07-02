@@ -1,5 +1,6 @@
-package org.dancres.paxos;
+package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Paxos;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.messages.PaxosMessage;

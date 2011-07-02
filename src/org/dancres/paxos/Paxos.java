@@ -1,5 +1,7 @@
 package org.dancres.paxos;
 
+import org.dancres.paxos.impl.CheckpointHandle;
+
 /**
  * An instance of Paxos is initialised as follows:
  *

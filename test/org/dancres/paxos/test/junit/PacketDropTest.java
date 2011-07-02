@@ -10,7 +10,7 @@ import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Post;
 import org.dancres.paxos.impl.netty.TransportImpl;
-import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.Event;
 import org.junit.*;
 

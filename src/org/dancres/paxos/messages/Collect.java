@@ -1,6 +1,6 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.AcceptorLearner;
+import org.dancres.paxos.impl.AcceptorLearner;
 
 import java.net.InetSocketAddress;
 

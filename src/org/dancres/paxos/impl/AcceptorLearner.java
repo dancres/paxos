@@ -1,4 +1,4 @@
-package org.dancres.paxos;
+package org.dancres.paxos.impl;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -7,6 +7,9 @@ import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Event;
+import org.dancres.paxos.Paxos;
 import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;

@@ -1,8 +1,8 @@
 package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
-import org.dancres.paxos.AcceptorLearner;
-import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.AcceptorLearner;
+import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.messages.Operations;

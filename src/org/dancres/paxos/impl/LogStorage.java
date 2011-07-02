@@ -1,4 +1,6 @@
-package org.dancres.paxos;
+package org.dancres.paxos.impl;
+
+import org.dancres.paxos.ConsolidatedValue;
 
 /**
  * Standard abstraction for the log required to maintain essential paxos state to ensure appropriate recovery.
@@ -6,7 +8,7 @@ package org.dancres.paxos;
  * @author dan
  */
 public interface LogStorage {
-    public static final ConsolidatedValue NO_VALUE = 
+    public static final ConsolidatedValue NO_VALUE =
     	new ConsolidatedValue("org.dancres.paxos.NoValue".getBytes(), new byte[0]);
 
     public byte[] get(long mark) throws Exception;

@@ -1,7 +1,7 @@
 package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.ConsolidatedValue;
-import org.dancres.paxos.PacketBuffer;
+import org.dancres.paxos.impl.PacketBuffer;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.PaxosMessage;

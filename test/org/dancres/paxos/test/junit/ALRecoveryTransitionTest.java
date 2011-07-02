@@ -5,11 +5,10 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.dancres.paxos.AcceptorLearner;
+import org.dancres.paxos.impl.*;
 import org.dancres.paxos.ConsolidatedValue;
-import org.dancres.paxos.Stream;
-import org.dancres.paxos.Transport;
-import org.dancres.paxos.impl.HowlLogger;
+import org.dancres.paxos.impl.Stream;
+import org.dancres.paxos.impl.AcceptorLearner;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Need;

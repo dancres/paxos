@@ -1,5 +1,7 @@
-package org.dancres.paxos;
+package org.dancres.paxos.impl;
 
+import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Event;
 import org.dancres.paxos.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

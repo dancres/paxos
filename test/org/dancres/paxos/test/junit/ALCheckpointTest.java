@@ -1,9 +1,9 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.AcceptorLearner;
-import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.Stream;
-import org.dancres.paxos.Transport;
+import org.dancres.paxos.impl.AcceptorLearner;
+import org.dancres.paxos.impl.CheckpointHandle;
+import org.dancres.paxos.impl.Stream;
+import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;

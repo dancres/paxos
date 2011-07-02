@@ -1,4 +1,4 @@
-package org.dancres.paxos;
+package org.dancres.paxos.impl;
 
 import org.dancres.paxos.messages.PaxosMessage;
 
