@@ -257,7 +257,7 @@ public class AcceptorLearner {
             _logger.info("No checkpoint - replay from the beginning");
 
             try {
-                new LogRangeProducer(-1, Long.MAX_VALUE, new LocalStreamer()).produce();
+                new LogRangeProducer(-1, Long.MAX_VALUE, new LocalStreamer()).produce(0);
             } catch (Exception anE) {
                 _logger.error("Failed to replay log", anE);
             }
@@ -266,7 +266,7 @@ public class AcceptorLearner {
             ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
 
             try {
-                new LogRangeProducer(installCheckpoint(myHandle), Long.MAX_VALUE, new LocalStreamer()).produce();
+                new LogRangeProducer(installCheckpoint(myHandle), Long.MAX_VALUE, new LocalStreamer()).produce(0);
             } catch (Exception anE) {
                 _logger.error("Failed to replay log", anE);
             }
@@ -413,11 +413,8 @@ public class AcceptorLearner {
             myListeners = new ArrayList<Paxos.Listener>(_listeners);
         }
 
-        Iterator<Paxos.Listener> myTargets = myListeners.iterator();
-
-        while (myTargets.hasNext()) {
-            myTargets.next().done(aStatus);
-        }
+        for (Paxos.Listener myTarget : myListeners)
+            myTarget.done(aStatus);
     }
 
 	public long getHeartbeatCount() {
@@ -1013,41 +1010,12 @@ public class AcceptorLearner {
         }
     }
 
-    /**
-     * Used to locate the recorded state of a specified instance of Paxos.
-     */
-    private class StateFinder implements RecordListener {
-        private long _seqNum;
-        private Instance _state = new Instance();
-
-        StateFinder(long aSeqNum, long aLogOffset) throws Exception {
-            _seqNum = aSeqNum;
-            _storage.replay(this, aLogOffset);
-        }
-
-        Instance getState() {
-            return _state;
-        }
-
-        public void onRecord(long anOffset, byte[] aRecord) {
-            // dump("Read:", aRecord);
-
-            // All records we write are leader messages and they all have no length
-            //
-            PaxosMessage myMessage = Codecs.decode(aRecord);
-
-            if (myMessage.getSeqNum() == _seqNum) {
-                _state.add(myMessage);
-            }
-        }
-    }
-
     public interface Consumer {
         public void process(PaxosMessage aMsg);
     }
 
     public interface Producer {
-        public void produce() throws Exception;
+        public void produce(long aLogOffset) throws Exception;
     }
 
     private class LogRangeProducer implements RecordListener, Producer {
@@ -1061,7 +1029,7 @@ public class AcceptorLearner {
             _consumer = aConsumer;
         }
 
-        public void produce() throws Exception {
+        public void produce(long aLogOffset) throws Exception {
             _storage.replay(this, 0);
         }
 
@@ -1079,6 +1047,30 @@ public class AcceptorLearner {
             }
         }
     }
+
+    /**
+     * Used to locate the recorded state of a specified instance of Paxos.
+     */
+    private class StateFinder implements Consumer {
+        private Instance _state = new Instance();
+
+        StateFinder(long aSeqNum, long aLogOffset) throws Exception {
+            new LogRangeProducer(aSeqNum - 1, aSeqNum, this).produce(aLogOffset);
+        }
+
+        Instance getState() {
+            return _state;
+        }
+
+        public void process(PaxosMessage aMessage) {
+            // dump("Read:", aRecord);
+
+            // All records we write are leader messages and they all have no length
+            //
+            _state.add(aMessage);
+        }
+    }
+
 
     /**
      * Recovers all state since a particular instance of Paxos up to and including a specified maximum instance
@@ -1105,7 +1097,7 @@ public class AcceptorLearner {
             }
 
             try {
-                new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this).produce();
+                new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this).produce(0);
             } catch (Exception anE) {
                 _logger.error("Failed to replay log", anE);
             }
