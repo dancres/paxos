@@ -16,9 +16,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Metadata passed to the <code>ServerDispatcher</code> constructors will be advertised via Heartbeats.
+ * <p></p>Handles interactions between server and client. Assumes client is using a <code>ClientDispatcher</code>.
+ * This constitutes a default server implementation. It shares the transport used by core for internal messaging
+ * related to paxos instances, membership, failure detection etc.</p>
+ *
+ * <p>Metadata passed to the <code>ServerDispatcher</code> constructors will be advertised via Heartbeats.</p>
  *
  * @see org.dancres.paxos.impl.faildet.Heartbeater
+ *
+ * @todo Implement client failover across leadership plus client discovery of servers in cluster.
  */
 public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);

@@ -7,6 +7,10 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Constitutes the core implementation of paxos. Requires a <code>Transport</code> to use for membership,
+ * failure detection and paxos rounds.
+ */
 public class Core implements Transport.Dispatcher {
     private static Logger _logger = LoggerFactory.getLogger(Core.class);
 
@@ -20,6 +24,16 @@ public class Core implements Transport.Dispatcher {
     private long _unresponsivenessThreshold;
     private LogStorage _log;
 
+    /**
+     * @param anUnresponsivenessThreshold is the minimum period of time a node must be unresponsive for before being
+     * declared dead by the cluster
+     *
+     * @param aLogger is the logger implementation to use for recording paxos transitions.
+     * @param aMeta is the data to be advertised by this core to others. Might be used for server discovery in cases
+     * where the server/client do not use the "well known" addresses of the core.
+     * @param aListener is the handler for paxos outcomes. There can be many of these but there must be at least one at
+     * initialisation time.
+     */
     public Core(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta,
                 Paxos.Listener aListener) {
         _meta = aMeta;
