@@ -32,11 +32,11 @@ public class Event {
      * @return the value submitted to the vote
      */
     public byte[] getValue() {
-        return _consolidatedValue.getValue();
+        return (_consolidatedValue != null) ? _consolidatedValue.getValue() : null;
     }
 
     public byte[] getHandback() {
-        return _consolidatedValue.getHandback();
+        return (_consolidatedValue != null) ? _consolidatedValue.getHandback() : null;
     }
 
     /**

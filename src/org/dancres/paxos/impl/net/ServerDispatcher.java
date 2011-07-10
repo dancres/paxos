@@ -96,8 +96,9 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
     public void done(Event anEvent) {
         // If we're not the originating node for the post, because we're not leader, we won't have an address stored up
         //
-        String myHandback = new String(anEvent.getHandback());
-        InetSocketAddress myAddr = _requestMap.remove(myHandback);
+        InetSocketAddress myAddr =
+                (anEvent.getHandback() != null) ? _requestMap.remove(new String(anEvent.getHandback())) :
+                        null;
 
         if (myAddr == null)
             return;
