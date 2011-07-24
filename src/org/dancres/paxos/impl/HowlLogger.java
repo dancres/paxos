@@ -33,9 +33,6 @@ public class HowlLogger implements LogStorage {
 		_logger.mark(key, force);
 	}
 
-	/**
-	 * @todo Set a filename/directory
-	 */
 	public void open() throws Exception {
 		Configuration myConfig = new Configuration();
 		myConfig.setLogFileDir(_dir);
