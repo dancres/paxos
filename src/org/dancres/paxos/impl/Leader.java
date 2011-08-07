@@ -16,6 +16,14 @@ import java.util.TimerTask;
 /**
  * Implements the leader state machine.
  *
+ * Optimisation - if the leader state machine successfully closed the last sequence number out, it can
+ * in state COLLECT issue a BEGIN and go to state success. The leader can deduce if it succeeded by recording the
+ * round number of it's last successful instance. It then compares that with the AL's view and if they match proceeds
+ * with the optimisation attempt. Note that the local AL may be out of date, that's okay as the
+ * Leader when it emits the BEGIN will be told OTHER_LEADER. It should then discard the last successful round number
+ * and when it retries, because it has no recollection of a previously successful round, it will issue a COLLECT
+ * as usual.
+ *
  * @todo State recovery - basic model will be to resolve memory state from the last checkpoint and then replay the log
  * to bring that memory state up-to-date (possibly by re-announcing completions via the AcceptorLearner).  Once that
  * is done, we could become the leader.
@@ -94,6 +102,10 @@ public class Leader implements MembershipListener {
      */
     private long _rndNumber = 0;
 
+    private static final long NO_ROUND = -1;
+
+    private long _lastSuccessfulRndNumber = NO_ROUND;
+
     private long _tries = 0;
 
     /**
@@ -155,12 +167,22 @@ public class Leader implements MembershipListener {
         }
     }
 
+    private void updateSeqNum() {
+        // Possibility we're starting from scratch
+        //
+        if (_seqNum == AcceptorLearner.UNKNOWN_SEQ)
+            _seqNum = 0;
+        else
+            _seqNum = _seqNum + 1;
+    }
+
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
      * we expect ACCEPT or OLDROUND
      *
      * @todo Increment round number via heartbeats every so often - see note below about jittering collects.
+     * @todo Fix up handling of round number in case where last collect is INITIAL.
      */
     private void process() {
         switch(_state) {
@@ -307,15 +329,27 @@ public class Leader implements MembershipListener {
                             if (_rndNumber <= myLastCollect.getRndNumber())
                                 _rndNumber = myLastCollect.getRndNumber() + 1;
             			}
-            		}
+            		} else {
+                        /*
+                         * If we think the leader is still us, we can apply a multi-paxos optimisation and go
+                         * straight to begin so long as our last successful round number matches that of the
+                         * last collect our AL knows about.
+                         */
+                        if (_lastSuccessfulRndNumber == myLastCollect.getRndNumber()) {
+                            _logger.info(this + ": applying multi-paxos");
+
+                            updateSeqNum();
+
+                            _state = BEGIN;
+
+                            process();
+
+                            return;
+                        }
+                    }
             	}
 
-            	// Possibility we're starting from scratch
-            	//
-            	if (_seqNum == AcceptorLearner.UNKNOWN_SEQ)
-            		_seqNum = 0;
-            	else
-            		_seqNum = _seqNum + 1;
+                updateSeqNum();
 
             	_state = BEGIN;
                 emit(new Collect(_seqNum, _rndNumber, _transport.getLocalAddress()));
@@ -363,6 +397,7 @@ public class Leader implements MembershipListener {
                     //
                     emit(new Success(_seqNum, _rndNumber, _transport.getLocalAddress()));
                     cancelInteraction();
+                    _lastSuccessfulRndNumber = _rndNumber;
 
                     successful(Event.Reason.DECISION, null);
                 } else {
@@ -389,6 +424,8 @@ public class Leader implements MembershipListener {
         OldRound myOldRound = (OldRound) aMessage;
 
         InetSocketAddress myCompetingNodeId = myOldRound.getLeaderNodeId();
+
+        _lastSuccessfulRndNumber = NO_ROUND;
 
         /*
          * If we're getting an OldRound, the other leader's lease has expired. We may be about to become leader
