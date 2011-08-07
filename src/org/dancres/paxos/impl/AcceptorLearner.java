@@ -248,28 +248,38 @@ public class AcceptorLearner {
     public void open(CheckpointHandle aHandle) throws Exception {
         _storage.open();
 
-        if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
-            // Restore logs from the beginning
-            //
-            _logger.info("No checkpoint - replay from the beginning");
-
-            try {
-                new LogRangeProducer(-1, Long.MAX_VALUE, new LocalStreamer()).produce(0);
-            } catch (Exception anE) {
-                _logger.error("Failed to replay log", anE);
+        try {
+            synchronized(this) {
+                _recoveryWindow = new RecoveryWindow(-1, Long.MAX_VALUE);
             }
 
-        } else if (aHandle instanceof ALCheckpointHandle) {
-            ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
+            if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
+                // Restore logs from the beginning
+                //
+                _logger.info("No checkpoint - replay from the beginning");
 
-            try {
-                new LogRangeProducer(installCheckpoint(myHandle), Long.MAX_VALUE, new LocalStreamer()).produce(0);
-            } catch (Exception anE) {
-                _logger.error("Failed to replay log", anE);
+                try {
+                    new LogRangeProducer(-1, Long.MAX_VALUE, new LocalStreamer()).produce(0);
+                } catch (Exception anE) {
+                    _logger.error("Failed to replay log", anE);
+                }
+
+            } else if (aHandle instanceof ALCheckpointHandle) {
+                ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
+
+                try {
+                    new LogRangeProducer(installCheckpoint(myHandle), Long.MAX_VALUE, new LocalStreamer()).produce(0);
+                } catch (Exception anE) {
+                    _logger.error("Failed to replay log", anE);
+                }
+
+            } else
+                throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
+        } finally {
+            synchronized (this) {
+                _recoveryWindow = null;
             }
-
-        } else
-            throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
+        }
     }
 
     private class LocalStreamer implements Consumer {
@@ -615,18 +625,20 @@ public class AcceptorLearner {
 			 */
 			if (mySeqNum > getLowWatermark().getSeqNum() + 1) {
 				/*
-				 * We need to catchup to the end of a complete paxos instance so we must wait for a COLLECT that is
-				 * > lwm + 1 which will thus contain a sequence number to bound the recovery.  
+				 * Ideally we catch up to the end of a complete instance but we don't have to. The AL state machine
+				 * will simply discard some packets and then trigger another recovery.
+				 *
+				 * It's possible that, for example, we miss a collect but catch a begin and a success. In such a
+				 * case we'd drop the messages and then issue another recovery. In the case of the multi-paxos
+				 * optimisation a similar thing would happen should a new leader have just taken over. Otherwise,
+				 * we'll likely recover the collect from another AL and thus apply all the packets since successfully.
 				 */
-				if (aMessage.getType() != Operations.COLLECT)
-					return;
-				
 				synchronized(this) {
 					// Must store up the packet which triggered recovery for later replay
 					//
 					_packetBuffer.add(aMessage);
 					
-					// Boundary is a collect which starts next round - we need up to and including previous round
+					// Boundary is up to and including previous round
 					//
 					RecoveryWindow myWindow = new RecoveryWindow(getLowWatermark().getSeqNum(), mySeqNum - 1);
 					
