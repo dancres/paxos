@@ -122,9 +122,6 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
 
     /**
      * Examine a received {@link PaxosMessage} and update liveness information as appropriate.
-     *
-     * @todo Modify this to use any packet for liveness and arrange for clients to heartbeat if they don't send
-     * any other packet within the heartbeat period.
      */
     public void processMessage(PaxosMessage aMessage) throws Exception {
         if (aMessage.getType() == Operations.HEARTBEAT) {
