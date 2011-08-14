@@ -24,18 +24,6 @@ import java.util.TimerTask;
  * and when it retries, because it has no recollection of a previously successful round, it will issue a COLLECT
  * as usual.
  *
- * @todo State recovery - basic model will be to resolve memory state from the last checkpoint and then replay the log
- * to bring that memory state up-to-date (possibly by re-announcing completions via the AcceptorLearner).  Once that
- * is done, we could become the leader.
- * @todo If some other leader failed, we need to resolve any previous slots outstanding. It's possible the old leader
- * secured a slot and declared a value but didn't report back to the client. In that case, the client would see it's
- * leader fail to respond and have to either submit an operation to determine whether it's previous attempt succeeded
- * or submit an idempotent operation that could be retried safely multiple times. Other cases include the leader
- * reserving a slot but not filling in a value in which case we need to fill it with a null value (which AcceptorLearner
- * would need to drop silently rather than deliver it to a listener). It's also possible the leader proposed a value
- * but didn't reach a majority due to network issues and then died. In such a case, the new leader will have to settle
- * that round with the partially agreed value.  It's likely that will be done with the originating client absent so
- * as per the leader failed to report case, the client will need to retry with the appropriate protocol.
  * @todo Add a test for validating multiple sequence number recovery.
  * @todo Add a test for validating retries on dropped packets in later leader states.
  *
@@ -182,7 +170,6 @@ public class Leader implements MembershipListener {
      * we expect ACCEPT or OLDROUND
      *
      * @todo Increment round number via heartbeats every so often - see note below about jittering collects.
-     * @todo Fix up handling of round number in case where last collect is INITIAL.
      */
     private void process() {
         switch(_state) {
@@ -289,7 +276,7 @@ public class Leader implements MembershipListener {
             	if (myLastCollect.isInitial()) {
             		_logger.info(this + ": collect is initial");
 
-                    _rndNumber = myLastCollect.getRndNumber() + 1;
+                    _rndNumber = 0;
             	} else {
             		InetSocketAddress myOtherLeader = myLastCollect.getNodeId();
             		boolean isUs = myOtherLeader.equals(_transport.getLocalAddress());
