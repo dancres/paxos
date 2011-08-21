@@ -90,12 +90,9 @@ public class AcceptorLearner {
      * lease for the previous leader. The last collect is also used to validate begins and ensure we don't accept
      * any from other leaders whilst we're not in sync with the majority.
 	 */
-	private Collect _lastCollect = Collect.INITIAL;
-	private long _lastLeaderActionTime = 0;
-
-	private LogStorage _storage;
-	private Transport _transport;
-	private FailureDetector _fd;
+	private final LogStorage _storage;
+	private final Transport _transport;
+	private final FailureDetector _fd;
 	
 	private final long _leaderLease;
 	private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
@@ -162,24 +159,12 @@ public class AcceptorLearner {
      */
 	private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
 
-    /* ********************************************************************************************
-     *
-     * Lifecycle, checkpointing and open/close
-     *
-     ******************************************************************************************** */
-
-    public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport) {
-        this(aStore, anFD, aTransport, DEFAULT_LEASE);
-    }
-
-    public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport, long aLeaderLease) {
-        _storage = aStore;
-        _transport = aTransport;
-        _fd = anFD;
-        _leaderLease = aLeaderLease;
-    }
+	private Collect _lastCollect = Collect.INITIAL;
+	private long _lastLeaderActionTime = 0;
 
     static class ALCheckpointHandle extends CheckpointHandle {
+    	static final ALCheckpointHandle NO_CHECKPOINT = new ALCheckpointHandle(Watermark.INITIAL, Collect.INITIAL, null);
+    	
         private transient Watermark _lowWatermark;
         private transient Collect _lastCollect;
         private transient AcceptorLearner _al;
@@ -210,7 +195,7 @@ public class AcceptorLearner {
         }
 
         public void saved() throws Exception {
-            _al.saved(_lowWatermark);
+            _al.saved(this);
         }
 
         Watermark getLowWatermark() {
@@ -220,6 +205,35 @@ public class AcceptorLearner {
         Collect getLastCollect() {
             return _lastCollect;
         }
+        
+        public boolean equals(Object anObject) {
+        	if (anObject instanceof ALCheckpointHandle) {
+        		ALCheckpointHandle myOther = (ALCheckpointHandle) anObject;
+        		
+        		return ((_lowWatermark.equals(myOther._lowWatermark)) && (_lastCollect.equals(myOther._lastCollect)));
+        	}
+        	
+        	return false;
+        }
+    }
+	
+	private ALCheckpointHandle _lastCheckpoint = ALCheckpointHandle.NO_CHECKPOINT;
+	
+    /* ********************************************************************************************
+     *
+     * Lifecycle, checkpointing and open/close
+     *
+     ******************************************************************************************** */
+
+    public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport) {
+        this(aStore, anFD, aTransport, DEFAULT_LEASE);
+    }
+
+    public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport, long aLeaderLease) {
+        _storage = aStore;
+        _transport = aTransport;
+        _fd = anFD;
+        _leaderLease = aLeaderLease;
     }
 
     public CheckpointHandle newCheckpoint() {
@@ -230,9 +244,20 @@ public class AcceptorLearner {
         }
     }
 
-    private void saved(Watermark aWatermark) throws Exception {
-        if (! aWatermark.equals(Watermark.INITIAL))
-            _storage.mark(aWatermark.getLogOffset(), true);
+    private void saved(ALCheckpointHandle aHandle) throws Exception {
+    	if (aHandle.getLowWatermark().equals(Watermark.INITIAL))
+    		return;
+    	
+    	// If the checkpoint we're installing is newer...
+    	//
+    	synchronized(this) {
+    		if (_lastCheckpoint.getLowWatermark().getSeqNum() < aHandle.getLowWatermark().getSeqNum())
+    			_lastCheckpoint = aHandle;
+    		else
+    			return;
+    	}
+    	
+		_storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
     }
 
 	public void open() throws Exception {
@@ -325,6 +350,7 @@ public class AcceptorLearner {
     private long installCheckpoint(ALCheckpointHandle aHandle) {
         long myMin = -1;
 
+        _lastCheckpoint = aHandle;
         _lowSeqNumWatermark = aHandle.getLowWatermark();
         _lastCollect = aHandle.getLastCollect();
 
@@ -382,7 +408,7 @@ public class AcceptorLearner {
     /* ********************************************************************************************
      *
      * Utility methods
-     *
+     * 
      ******************************************************************************************** */
 
 	public long getLeaderLeaseDuration() {
@@ -758,9 +784,6 @@ public class AcceptorLearner {
      ******************************************************************************************** */
 
 	/**
-	 * @todo Implement too-out-of-date response which will be picked up by the requesting AL and cause it to
-	 * do a full by-file resync or inform client too far out of date and to get another checkpoint etc.
-	 *
 	 * @param aMessage is the message to process
 	 * @return is any message to send
 	 */
@@ -777,6 +800,9 @@ public class AcceptorLearner {
 				
 				// Make sure we can dispatch the recovery request
 				//
+				if (myNeed.getMinSeq() < _lastCheckpoint.getLowWatermark().getSeqNum())
+					_transport.send(new OutOfDate(_transport.getLocalAddress()), myNeed.getNodeId());
+				
 				if (myNeed.getMaxSeq() <= getLowWatermark().getSeqNum()) {
 					_logger.info("Running streamer: " + _transport.getLocalAddress());
 					
