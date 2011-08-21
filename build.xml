@@ -1,120 +1,123 @@
 <project name="Paxos Implementation" default="init">
-    <description>
+	<description>
         Main build file for Paxos Implementation
     </description>
-  <!-- set global properties for this build -->
-  <property name="src" location="src"/>
-  <property name="testsrc" location="test"/>
-  <property name="build" location="build"/>
-  <property name="lib" location="lib"/>
-  <property name="otherlib" location="thirdpartylib"/>
-  <property name="reports.tests" location="reports/tests"/>
+	<!-- set global properties for this build -->
+	<property name="src" location="src"/>
+	<property name="testsrc" location="test"/>
+	<property name="build" location="build"/>
+	<property name="lib" location="lib"/>
+	<property name="otherlib" location="thirdpartylib"/>
+	<property name="macext" location="/System/Library/Java/Extensions"/>
+	<property name="reports.tests" location="reports/tests"/>
 
-  <target name="init">
-    <!-- Create the time stamp -->
-    <tstamp/>
-    <!-- Create the build directory structure used by compile -->
-    <mkdir dir="${build}"/>
-    <mkdir dir="dbfiles"/>
-    <mkdir dir="docs/javadocs"/>
-    <mkdir dir="${lib}"/>
-  	<mkdir dir="${reports.tests}"/>
-  </target>
+	<target name="init">
+		<!-- Create the time stamp -->
+		<tstamp/>
+		<!-- Create the build directory structure used by compile -->
+		<mkdir dir="${build}"/>
+		<mkdir dir="dbfiles"/>
+		<mkdir dir="docs/javadocs"/>
+		<mkdir dir="${lib}"/>
+		<mkdir dir="${reports.tests}"/>
+	</target>
 
-  <target name="clean"
+	<target name="clean"
         description="clean up" >
-    <delete dir="${build}"/>
-    <delete dir="dbfiles"/>
-    <delete dir="${lib}"/>
-    <delete dir="installer_build"/>
-    <delete file="installer.jar"/>
-  </target>
+		<delete dir="${build}"/>
+		<delete dir="dbfiles"/>
+		<delete dir="${lib}"/>
+		<delete dir="installer_build"/>
+		<delete file="installer.jar"/>
+	</target>
 
-  <target name="all"
+	<target name="all"
           depends="pristine,compile,javadoc,jars"/>
 
-  <target name="pristine" description="Restore to pristine build"
+	<target name="pristine" description="Restore to pristine build"
           depends="clean">
-    <delete dir="docs/javadocs"/>
-  </target>
+		<delete dir="docs/javadocs"/>
+	</target>
 
-    <path id="allclasses">
-        <pathelement location="${build}"/>
-        <pathelement location="${otherlib}/netty-3.1.5.GA.jar"/>
-        <pathelement location="${otherlib}/slf4j-api-1.5.0.jar"/>
-        <pathelement location="${otherlib}/slf4j-jdk14-1.5.0.jar"/>
-    	<pathelement location="${otherlib}/jmdns.jar"/>
-    	<pathelement location="${otherlib}/junit-4.5.jar"/>
-    	<pathelement location="${otherlib}/howl-1.0.2.jar"/>
-    </path>
+	<path id="allclasses">
+		<pathelement location="${build}" />
+		<pathelement location="${macext}/dns_sd.jar" />
+		<pathelement location="${otherlib}/netty-3.1.5.GA.jar" />
+		<pathelement location="${otherlib}/slf4j-api-1.5.0.jar" />
+		<pathelement location="${otherlib}/slf4j-jdk14-1.5.0.jar" />
+		<pathelement location="${otherlib}/jmdns.jar" />
+		<pathelement location="${otherlib}/junit-4.5.jar" />
+		<pathelement location="${otherlib}/howl-1.0.2.jar" />
+	</path>
 
-  <target name="depend">
-	<depend srcdir="${src}:${testsrc}" destdir="${build}" closure="yes">
-	</depend>
-  </target>
-	
-  <target name="compile" depends="init,depend"
+	<target name="depend">
+		<depend srcdir="${src}:${testsrc}" destdir="${build}" closure="yes">
+		</depend>
+	</target>
+
+	<target name="compile" depends="init,depend"
         description="compile the source " >
-  <!-- Compile the java code from ${src} into ${build} -->
-    <javac destdir="${build}" debug="true" deprecation="on"
+		<!-- Compile the java code from ${src} into ${build} -->
+		<javac destdir="${build}" debug="true" deprecation="on"
       source="1.5"
       target="1.5"
       debuglevel="lines,vars,source"
       classpathref="allclasses">
-        <src path="${src}"/>
-        <src path="${testsrc}"/>
-    </javac>
-  </target>
+			<src path="${src}"/>
+			<src path="${testsrc}"/>
+		</javac>
+	</target>
 
-  <target name="test" depends="compile">
-  	<junit printsummary="on" haltonfailure="off" showoutput="false" filtertrace="off">
-          <jvmarg value="-ea"/>
-  	  <classpath refid="allclasses"/>
-  	  <batchtest fork="yes" todir="${reports.tests}">
-  	  	<formatter type="plain" usefile="true">
-  	    </formatter>
-  	    <fileset dir="${testsrc}">
-  	      <include name="**/junit/**/*Test*.java"/>
-  	    </fileset>
-  	  </batchtest>
-  	</junit>
-  </target>
+	<target name="test" depends="compile">
+		<junit printsummary="on" haltonfailure="off" showoutput="false" filtertrace="off">
+			<jvmarg value="-ea"/>
+			<classpath refid="allclasses"/>
+			<batchtest fork="yes" todir="${reports.tests}">
+				<formatter type="plain" usefile="true">
+				</formatter>
+				<fileset dir="${testsrc}">
+					<include name="**/junit/**/*Test*.java"/>
+				</fileset>
+			</batchtest>
+		</junit>
+	</target>
 
-  <target name="haltingtest" depends="compile">
-    <junit printsummary="on" haltonfailure="on" showoutput="false" filtertrace="off">
-      <jvmarg value="-ea"/>
-      <classpath refid="allclasses"/>
-      <batchtest fork="yes" todir="${reports.tests}">
-        <formatter type="plain" usefile="true">
-        </formatter>
-        <fileset dir="${testsrc}">
-          <include name="**/junit/**/*Test*.java"/>
-        </fileset>
-      </batchtest>
-    </junit>
-  </target>
+	<target name="haltingtest" depends="compile">
+		<junit printsummary="on" haltonfailure="on" showoutput="false" filtertrace="off">
+			<jvmarg value="-ea"/>
+			<classpath refid="allclasses"/>
+			<batchtest fork="yes" todir="${reports.tests}">
+				<formatter type="plain" usefile="true">
+				</formatter>
+				<fileset dir="${testsrc}">
+					<include name="**/junit/**/*Test*.java"/>
+				</fileset>
+			</batchtest>
+		</junit>
+	</target>
 
-    <target name="jars" depends="serverjar"/>
+	<target name="jars" depends="serverjar"/>
 
-  <target name="serviceuijar" depends="compile" description="generate dashboard serviceui jar">
-    <mkdir dir="${lib}"/>
-    <jar jarfile="${lib}/blitzui.jar" basedir="${build}"
+	<target name="serviceuijar" depends="compile" description="generate dashboard serviceui jar">
+		<mkdir dir="${lib}"/>
+		<jar jarfile="${lib}/blitzui.jar" basedir="${build}"
          includes="org/dancres/jini/**,org/dancres/blitz/tools/dash/**,org/dancres/blitz/serviceui/**, org/dancres/blitz/remote/StatsAdmin.class, org/dancres/blitz/remote/BlitzAdmin.class, org/dancres/blitz/stats/**"/>
-  </target>
+	</target>
 
-  <target name="serverjar" depends="compile"
+	<target name="serverjar" depends="compile"
         description="generate blitz server .jar" >
-    <mkdir dir="${lib}"/>
-    <jar jarfile="${lib}/blitz.jar" basedir="${build}"/>
-  </target>
+		<mkdir dir="${lib}"/>
+		<jar jarfile="${lib}/blitz.jar" basedir="${build}"/>
+	</target>
 
-  <target name="javadoc" depends="compile" description="Generate developer grade docos for the code">
-    <javadoc sourcepath="${testsrc}:${src}" classpathref="allclasses"
+	<target name="javadoc" depends="compile" description="Generate developer grade docos for the code">
+		<javadoc sourcepath="${testsrc}:${src}" classpathref="allclasses"
 	   maxmemory="256m"
        destdir="docs/javadocs"
        private="true"
        packagenames="org.*">
-       <tag name="todo" scope="all" description="todo:"/> </javadoc>
-  </target>
+			<tag name="todo" scope="all" description="todo:"/>
+		</javadoc>
+	</target>
 
 </project>
