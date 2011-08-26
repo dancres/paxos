@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.impl.faildet.Heartbeat;
@@ -55,7 +55,7 @@ public class CodecTest {
     @Test public void begin() throws Exception {
         byte[] myData = {55};
         byte[] myHandback = {56};
-        ConsolidatedValue myVal = new ConsolidatedValue();
+        Proposal myVal = new Proposal();
         myVal.put("data", myData);
         myVal.put("handback", myHandback);
         
@@ -98,7 +98,7 @@ public class CodecTest {
     @Test public void last() throws Exception {
         byte[] myData = {55};
         byte[] myHandback = {56};
-        ConsolidatedValue myVal = new ConsolidatedValue();
+        Proposal myVal = new Proposal();
         myVal.put("data", myData);
         myVal.put("handback", myHandback);
         

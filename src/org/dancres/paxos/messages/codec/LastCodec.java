@@ -2,7 +2,7 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.Last;
 
@@ -53,6 +53,6 @@ public class LastCodec implements Codec {
 		byte[] myBytes = new byte[myArrLength];
 		aBuffer.get(myBytes);
 
-		return new Last(mySeqNum, myLow, myRndNum, new ConsolidatedValue(myBytes), Codecs.expand(myNodeId));
+		return new Last(mySeqNum, myLow, myRndNum, new Proposal(myBytes), Codecs.expand(myNodeId));
     }
 }

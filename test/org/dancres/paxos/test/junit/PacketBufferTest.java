@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.PacketBuffer;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
@@ -46,8 +46,8 @@ public class PacketBufferTest {
 	@Test public void testBegin() {
 		PacketBuffer myBuffer = new PacketBuffer();
 		
-		Begin myBegin1 = new Begin(1, 1, new ConsolidatedValue(), Utils.getTestAddress());
-		Begin myBegin2 = new Begin(2, 1, new ConsolidatedValue(), Utils.getTestAddress());
+		Begin myBegin1 = new Begin(1, 1, new Proposal(), Utils.getTestAddress());
+		Begin myBegin2 = new Begin(2, 1, new Proposal(), Utils.getTestAddress());
 		
 		myBuffer.add(myBegin1);
 		myBuffer.add(myBegin2);

@@ -7,7 +7,7 @@ import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.messages.*;
@@ -34,7 +34,7 @@ public class AcceptorLearner {
 
     public static final long UNKNOWN_SEQ = -1;
     
-	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue("heartbeat",
+	public static final Proposal HEARTBEAT = new Proposal("heartbeat",
 			"org.dancres.paxos.Heartbeat".getBytes());
 
 	private static long DEFAULT_LEASE = 30 * 1000;
@@ -597,7 +597,7 @@ public class AcceptorLearner {
                     completedRecovery();
                 }
 
-                signal(new Event(Event.Reason.OUT_OF_DATE, mySeqNum, new ConsolidatedValue()));
+                signal(new Event(Event.Reason.OUT_OF_DATE, mySeqNum, new Proposal()));
                 return;
             }
 

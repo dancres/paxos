@@ -14,10 +14,10 @@ public class Event {
 	
     private int _result;
     private long _seqNum;
-    private ConsolidatedValue _consolidatedValue;
+    private Proposal _consolidatedValue;
     private Object _context;
 
-    public Event(int aResult, long aSeqNum, ConsolidatedValue aValue) {
+    public Event(int aResult, long aSeqNum, Proposal aValue) {
     	assert(aValue != null);
     	
         _result = aResult;
@@ -25,12 +25,12 @@ public class Event {
         _consolidatedValue = aValue;
     }
 
-    public Event(int aResult, long aSeqNum, ConsolidatedValue aValue, Object aContext) {
+    public Event(int aResult, long aSeqNum, Proposal aValue, Object aContext) {
         this(aResult, aSeqNum, aValue);
         _context = aContext;
     }
 
-    public ConsolidatedValue getValues() {
+    public Proposal getValues() {
     	return _consolidatedValue;
     }
     

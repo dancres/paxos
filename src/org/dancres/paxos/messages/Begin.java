@@ -1,6 +1,6 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.LogStorage;
 
 import java.net.InetSocketAddress;
@@ -9,9 +9,9 @@ public class Begin implements PaxosMessage {
     private long _seqNum;
     private long _rndNumber;
     private InetSocketAddress _nodeId;
-    private ConsolidatedValue _consolidatedValue;
+    private Proposal _consolidatedValue;
     
-    public Begin(long aSeqNum, long aRndNumber, ConsolidatedValue aValue, InetSocketAddress aNodeId) {
+    public Begin(long aSeqNum, long aRndNumber, Proposal aValue, InetSocketAddress aNodeId) {
         _seqNum = aSeqNum;
         _rndNumber = aRndNumber;
         _nodeId = aNodeId;
@@ -34,7 +34,7 @@ public class Begin implements PaxosMessage {
         return _rndNumber;
     }
 
-    public ConsolidatedValue getConsolidatedValue() {
+    public Proposal getConsolidatedValue() {
     	return _consolidatedValue;
     }
     

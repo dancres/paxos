@@ -1,6 +1,6 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.messages.*;
 import org.slf4j.Logger;
@@ -122,7 +122,7 @@ public class Leader implements MembershipListener {
 
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
-    private List<ConsolidatedValue> _queue = new LinkedList<ConsolidatedValue>();
+    private List<Proposal> _queue = new LinkedList<Proposal>();
 
     public Leader(FailureDetector aDetector, Transport aTransport, AcceptorLearner anAcceptorLearner) {
         _detector = aDetector;
@@ -348,7 +348,7 @@ public class Leader implements MembershipListener {
             	assert (_queue.size() != 0);
 
             	long myMaxProposal = -1;
-            	ConsolidatedValue myValue = null;
+            	Proposal myValue = null;
 
                 for(PaxosMessage m : _messages) {
                     Last myLast = (Last) m;
@@ -535,7 +535,7 @@ public class Leader implements MembershipListener {
      *
      * @param aValue is the value to attempt to agree upon
      */
-    public void submit(ConsolidatedValue aValue) {
+    public void submit(Proposal aValue) {
         synchronized (this) {
         	_queue.add(aValue);
 

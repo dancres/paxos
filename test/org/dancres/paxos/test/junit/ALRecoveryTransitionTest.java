@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.impl.*;
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.AcceptorLearner;
 import org.dancres.paxos.messages.Begin;
@@ -105,7 +105,7 @@ public class ALRecoveryTransitionTest {
 		// Now push a value into the Al, also held in packet buffer
 		//
 		byte[] myData = new byte[] {1};
-		ConsolidatedValue myValue = new ConsolidatedValue();
+		Proposal myValue = new Proposal();
 		myValue.put("data", myData);
 		myValue.put("handback", HANDBACK);
 		

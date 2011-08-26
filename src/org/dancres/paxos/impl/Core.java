@@ -1,6 +1,6 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;
@@ -120,7 +120,7 @@ public class Core implements Transport.Dispatcher {
         }
     }
 
-    public void submit(ConsolidatedValue aVal) {
+    public void submit(Proposal aVal) {
         _ld.submit(aVal);
     }
 }

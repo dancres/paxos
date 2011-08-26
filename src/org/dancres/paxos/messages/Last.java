@@ -1,6 +1,6 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.LogStorage;
 
 import java.net.InetSocketAddress;
@@ -10,7 +10,7 @@ public class Last implements PaxosMessage {
     private long _low;
     private long _rndNumber;
     private InetSocketAddress _nodeId;
-    private ConsolidatedValue _value;
+    private Proposal _value;
 
     /**
      * @param aSeqNum is the sequence number received in the related collect
@@ -18,7 +18,7 @@ public class Last implements PaxosMessage {
      * @param aMostRecentRound is the most recent leader round seen
      * @param aValue is the value, if any, associated with the sequence number of the related collect
      */
-    public Last(long aSeqNum, long aLowWatermark, long aMostRecentRound, ConsolidatedValue aValue,
+    public Last(long aSeqNum, long aLowWatermark, long aMostRecentRound, Proposal aValue,
                 InetSocketAddress aNodeId) {
         _seqNum = aSeqNum;
         _low = aLowWatermark;
@@ -38,7 +38,7 @@ public class Last implements PaxosMessage {
     /**
      * @return the value associated with the sequence number returned by <code>getSeqNum</code>
      */
-    public ConsolidatedValue getConsolidatedValue() {
+    public Proposal getConsolidatedValue() {
         return _value;
     }
 

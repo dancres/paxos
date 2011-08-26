@@ -62,7 +62,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
                     _requestMap.put(myHandback, aMessage.getNodeId());
 
                     Post myPost = (Post) aMessage;
-                    ConsolidatedValue myVal = new ConsolidatedValue();
+                    Proposal myVal = new Proposal();
                     myVal.put(DATA_KEY, myPost.getValue());
                     myVal.put(HANDBACK_KEY, myHandback.getBytes());
                     _core.submit(myVal);

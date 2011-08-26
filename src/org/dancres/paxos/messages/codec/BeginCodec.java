@@ -2,7 +2,7 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.Begin;
 
@@ -42,6 +42,6 @@ class BeginCodec implements Codec {
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
         
-        return new Begin(mySeqNum, myRndNum, new ConsolidatedValue(myBytes), Codecs.expand(myNodeId));
+        return new Begin(mySeqNum, myRndNum, new Proposal(myBytes), Codecs.expand(myNodeId));
     }
 }

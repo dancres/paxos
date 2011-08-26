@@ -2,7 +2,7 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.ConsolidatedValue;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.Post;
 

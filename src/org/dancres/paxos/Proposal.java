@@ -2,23 +2,22 @@ package org.dancres.paxos;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
  * A convenient representation of a handback/user-value pair that can be (un)marshalled to(from) a single value.
  */
-public class ConsolidatedValue {
+public class Proposal {
 	private final Map<String, byte[]> _values = new HashMap<String, byte[]>();
 	
-	public ConsolidatedValue() {
+	public Proposal() {
 	}
 	
-	public ConsolidatedValue(String aKey, byte[] aValue) {
+	public Proposal(String aKey, byte[] aValue) {
 		_values.put(aKey, aValue);
 	}
 	
-	public ConsolidatedValue(byte[] aMarshalled) {
+	public Proposal(byte[] aMarshalled) {
         ByteBuffer myBuffer = ByteBuffer.wrap(aMarshalled);
         int myNumValues = myBuffer.getInt();
 
@@ -73,8 +72,8 @@ public class ConsolidatedValue {
 	}
 	
 	public boolean equals(Object anObject) {
-		if (anObject instanceof ConsolidatedValue) {
-			ConsolidatedValue myOther = (ConsolidatedValue) anObject;
+		if (anObject instanceof Proposal) {
+			Proposal myOther = (Proposal) anObject;
 	
 			if (myOther.getSize() == getSize()) {
 				for (Map.Entry<String, byte[]>kv : _values.entrySet()) {
