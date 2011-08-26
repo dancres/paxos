@@ -386,7 +386,7 @@ public class Leader implements MembershipListener {
                     cancelInteraction();
                     _lastSuccessfulRndNumber = _rndNumber;
 
-                    successful(Event.Reason.DECISION, null);
+                    successful(Event.Reason.DECISION);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
@@ -439,13 +439,17 @@ public class Leader implements MembershipListener {
         }
     }
 
-    private void successful(int aReason, Object aContext) {
+    private void successful(int aReason) {
         _state = EXIT;
-        _event = new Event(aReason, _seqNum, _queue.get(0), aContext);
+        _event = new Event(aReason, _seqNum, _queue.get(0));
 
         process();
     }
 
+    private void error(int aReason) {
+    	error(aReason, null);
+    }
+    
     private void error(int aReason, Object aContext) {
         _state = ABORT;
         _event = new Event(aReason, _seqNum, _queue.get(0), aContext);
@@ -486,7 +490,7 @@ public class Leader implements MembershipListener {
         cancelInteraction();
 
         synchronized(this) {
-            error(Event.Reason.BAD_MEMBERSHIP, null);
+            error(Event.Reason.BAD_MEMBERSHIP);
         }
     }
 
@@ -522,7 +526,7 @@ public class Leader implements MembershipListener {
                 }
             }
 
-            error(Event.Reason.VOTE_TIMEOUT, null);
+            error(Event.Reason.VOTE_TIMEOUT);
         }
     }
 
