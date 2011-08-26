@@ -46,8 +46,8 @@ public class PacketBufferTest {
 	@Test public void testBegin() {
 		PacketBuffer myBuffer = new PacketBuffer();
 		
-		Begin myBegin1 = new Begin(1, 1, new ConsolidatedValue(new byte[0], new byte[0]), Utils.getTestAddress());
-		Begin myBegin2 = new Begin(2, 1, new ConsolidatedValue(new byte[0], new byte[0]), Utils.getTestAddress());
+		Begin myBegin1 = new Begin(1, 1, new ConsolidatedValue(), Utils.getTestAddress());
+		Begin myBegin2 = new Begin(2, 1, new ConsolidatedValue(), Utils.getTestAddress());
 		
 		myBuffer.add(myBegin1);
 		myBuffer.add(myBegin2);

@@ -27,6 +27,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * @todo Implement client failover across leadership plus client discovery of servers in cluster.
  */
 public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
+	private static final String DATA_KEY = "data";
+	private static final String HANDBACK_KEY = "handback";
+	
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     protected Core _core;
@@ -59,7 +62,10 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
                     _requestMap.put(myHandback, aMessage.getNodeId());
 
                     Post myPost = (Post) aMessage;
-                    _core.submit(myPost.getValue(), myHandback.getBytes());
+                    ConsolidatedValue myVal = new ConsolidatedValue();
+                    myVal.put(DATA_KEY, myPost.getValue());
+                    myVal.put(HANDBACK_KEY, myHandback.getBytes());
+                    _core.submit(myVal);
 
                     return true;
 				}
@@ -97,7 +103,8 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
         // If we're not the originating node for the post, because we're not leader, we won't have an address stored up
         //
         InetSocketAddress myAddr =
-                (anEvent.getHandback() != null) ? _requestMap.remove(new String(anEvent.getHandback())) :
+                (anEvent.getValues().get(HANDBACK_KEY) != null) ? 
+                		_requestMap.remove(new String(anEvent.getValues().get(HANDBACK_KEY))) :
                         null;
 
         if (myAddr == null)

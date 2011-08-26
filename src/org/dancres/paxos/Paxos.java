@@ -11,7 +11,7 @@ public interface Paxos {
 
     public void close();
     public CheckpointHandle newCheckpoint();
-    public void submit(byte[] aValue, byte[] aHandback);
+    public void submit(ConsolidatedValue aValue);
     public void register(Listener aListener);
     public void bringUpToDate(CheckpointHandle aHandle) throws Exception;
     public byte[] getMetaData(InetSocketAddress anAddress);

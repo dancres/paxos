@@ -34,8 +34,8 @@ public class AcceptorLearner {
 
     public static final long UNKNOWN_SEQ = -1;
     
-	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue(
-			"org.dancres.paxos.Heartbeat".getBytes(), new byte[] {});
+	public static final ConsolidatedValue HEARTBEAT = new ConsolidatedValue("heartbeat",
+			"org.dancres.paxos.Heartbeat".getBytes());
 
 	private static long DEFAULT_LEASE = 30 * 1000;
 	private static Logger _logger = LoggerFactory
@@ -597,7 +597,7 @@ public class AcceptorLearner {
                     completedRecovery();
                 }
 
-                signal(new Event(Event.Reason.OUT_OF_DATE, mySeqNum, null));
+                signal(new Event(Event.Reason.OUT_OF_DATE, mySeqNum, new ConsolidatedValue()));
                 return;
             }
 

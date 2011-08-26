@@ -18,6 +18,8 @@ public class Event {
     private Object _context;
 
     public Event(int aResult, long aSeqNum, ConsolidatedValue aValue) {
+    	assert(aValue != null);
+    	
         _result = aResult;
         _seqNum = aSeqNum;
         _consolidatedValue = aValue;
@@ -28,17 +30,10 @@ public class Event {
         _context = aContext;
     }
 
-    /**
-     * @return the value submitted to the vote
-     */
-    public byte[] getValue() {
-        return (_consolidatedValue != null) ? _consolidatedValue.getValue() : null;
+    public ConsolidatedValue getValues() {
+    	return _consolidatedValue;
     }
-
-    public byte[] getHandback() {
-        return (_consolidatedValue != null) ? _consolidatedValue.getHandback() : null;
-    }
-
+    
     /**
      * @return the completion code for a requested vote, one of {@link Reason}
      */

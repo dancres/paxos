@@ -530,16 +530,12 @@ public class Leader implements MembershipListener {
         }
     }
 
-    public void submit(byte[] aValue, byte[] aHandback) {
-        submit(new ConsolidatedValue(aValue, aHandback));
-    }
-
     /**
      * Request a vote on a value.
      *
      * @param aValue is the value to attempt to agree upon
      */
-    private void submit(ConsolidatedValue aValue) {
+    public void submit(ConsolidatedValue aValue) {
         synchronized (this) {
         	_queue.add(aValue);
 

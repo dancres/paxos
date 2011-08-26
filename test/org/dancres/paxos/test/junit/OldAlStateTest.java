@@ -99,8 +99,12 @@ public class OldAlStateTest {
 		// Now push a value into the Al
 		//
 		byte[] myData = new byte[] {1};
+		ConsolidatedValue myValue = new ConsolidatedValue();
+		myValue.put("data", myData);
+		myValue.put("handback", HANDBACK);
+		
 		myAl.messageReceived(
-				new Begin(mySeqNum, myRndNum, new ConsolidatedValue(myData, HANDBACK), _nodeId));
+				new Begin(mySeqNum, myRndNum, myValue, _nodeId));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);

@@ -1,42 +1,73 @@
 package org.dancres.paxos;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * A convenient representation of a handback/user-value pair that can be (un)marshalled to(from) a single value.
  */
 public class ConsolidatedValue {
-	private byte[] _value;
-	private byte[] _handback;
+	private final Map<String, byte[]> _values = new HashMap<String, byte[]>();
 	
-	public ConsolidatedValue(byte[] aValue, byte[] aHandback) {
-		_value = aValue;
-		_handback = aHandback;
+	public ConsolidatedValue() {
+	}
+	
+	public ConsolidatedValue(String aKey, byte[] aValue) {
+		_values.put(aKey, aValue);
 	}
 	
 	public ConsolidatedValue(byte[] aMarshalled) {
         ByteBuffer myBuffer = ByteBuffer.wrap(aMarshalled);
-        int myValueSize = myBuffer.getInt();
+        int myNumValues = myBuffer.getInt();
 
-        _value = new byte[myValueSize];
-        _handback = new byte[aMarshalled.length - 4 - myValueSize];
-        myBuffer.get(_value);
-        myBuffer.get(_handback);    	
+        for (int i = 0; i < myNumValues; i++) {
+        	int myKeySize = myBuffer.getInt();        	
+        	byte[] myKey = new byte[myKeySize];
+        	
+        	myBuffer.get(myKey);
+        	
+        	int myValSize = myBuffer.getInt();        	
+        	byte[] myVal = new byte[myValSize];
+        	
+        	myBuffer.get(myVal);
+        	
+        	_values.put(new String(myKey), myVal);
+        }
+	}
+
+	public void put(String aKey, byte[] aValue) {
+		_values.put(aKey, aValue);
 	}
 	
-	public byte[] getValue() {
-		return _value;
-	}
-	
-	public byte[] getHandback() {
-		return _handback;
+	public byte[] get(String aKey) {
+		return _values.get(aKey);
 	}
 	
 	public byte[] marshall() {
-        ByteBuffer myBuffer = ByteBuffer.allocate(4 + _handback.length + _value.length);
-        myBuffer.putInt(_value.length);
-        myBuffer.put(_value);
-        myBuffer.put(_handback);
+		int myBase = 0;
+		
+		for (Map.Entry<String, byte[]>kv : _values.entrySet()) {
+			myBase += kv.getKey().getBytes().length;
+			myBase += kv.getValue().length;
+			
+			// Include the per entry ints to represent length of key and value
+			myBase += 8;
+		}
+		
+        ByteBuffer myBuffer = ByteBuffer.allocate(4 + myBase);
+        myBuffer.putInt(_values.size());
+        
+		for (Map.Entry<String, byte[]>kv : _values.entrySet()) {
+			byte[] myKeyBytes = kv.getKey().getBytes();
+			
+			myBuffer.putInt(myKeyBytes.length);
+			myBuffer.put(myKeyBytes);
+			
+			myBuffer.putInt(kv.getValue().length);
+			myBuffer.put(kv.getValue());			
+		}
 
         return myBuffer.array();		
 	}
@@ -44,12 +75,24 @@ public class ConsolidatedValue {
 	public boolean equals(Object anObject) {
 		if (anObject instanceof ConsolidatedValue) {
 			ConsolidatedValue myOther = (ConsolidatedValue) anObject;
-			
-			if (compare(myOther._handback, _handback))
-				return compare(myOther._value, _value);
+	
+			if (myOther.getSize() == getSize()) {
+				for (Map.Entry<String, byte[]>kv : _values.entrySet()) {
+					byte[] myOtherVal = myOther.get(kv.getKey());
+					
+					if ((myOtherVal == null) || (! compare(myOtherVal, kv.getValue())))
+						break;
+				}
+				
+				return true;
+			}
 		}
 		
 		return false;
+	}
+	
+	public int getSize() {
+		return _values.size();
 	}
 	
 	private boolean compare(byte[] aFirst, byte[] aSecond) {

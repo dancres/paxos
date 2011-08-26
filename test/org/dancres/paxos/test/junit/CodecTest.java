@@ -55,8 +55,11 @@ public class CodecTest {
     @Test public void begin() throws Exception {
         byte[] myData = {55};
         byte[] myHandback = {56};
+        ConsolidatedValue myVal = new ConsolidatedValue();
+        myVal.put("data", myData);
+        myVal.put("handback", myHandback);
         
-        Begin myBegin = new Begin(1, 2, new ConsolidatedValue(myData, myHandback), _testAddress);
+        Begin myBegin = new Begin(1, 2, myVal, _testAddress);
 
         byte[] myBuffer = Codecs.encode(myBegin);
 
@@ -95,8 +98,11 @@ public class CodecTest {
     @Test public void last() throws Exception {
         byte[] myData = {55};
         byte[] myHandback = {56};
-
-        Last myLast = new Last(0, 1, 2, new ConsolidatedValue(myData, myHandback), _testAddress);
+        ConsolidatedValue myVal = new ConsolidatedValue();
+        myVal.put("data", myData);
+        myVal.put("handback", myHandback);
+        
+        Last myLast = new Last(0, 1, 2, myVal, _testAddress);
 
         byte[] myBuffer = Codecs.encode(myLast);
 

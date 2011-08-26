@@ -105,7 +105,10 @@ public class ALRecoveryTransitionTest {
 		// Now push a value into the Al, also held in packet buffer
 		//
 		byte[] myData = new byte[] {1};
-		ConsolidatedValue myValue = new ConsolidatedValue(myData, HANDBACK);
+		ConsolidatedValue myValue = new ConsolidatedValue();
+		myValue.put("data", myData);
+		myValue.put("handback", HANDBACK);
+		
 		myAl.messageReceived(
 				new Begin(mySeqNum, myRndNum, myValue, _nodeId));
 		
