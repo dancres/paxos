@@ -4,9 +4,6 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * A convenient representation of a handback/user-value pair that can be (un)marshalled to(from) a single value.
- */
 public class Proposal {
 	private final Map<String, byte[]> _values = new HashMap<String, byte[]>();
 	
