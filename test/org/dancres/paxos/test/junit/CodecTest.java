@@ -1,5 +1,6 @@
 package org.dancres.paxos.test.junit;
 
+import org.dancres.paxos.Event;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
@@ -33,6 +34,25 @@ public class CodecTest {
         Assert.assertTrue(myAccept.getNodeId().equals( myAccept2.getNodeId()));
     }
 
+    @Test public void event() throws Exception {
+        byte[] myData = {55};
+        byte[] myHandback = {56};
+        Proposal myVal = new Proposal();
+        myVal.put("data", myData);
+        myVal.put("handback", myHandback);
+        
+        Event myEvent = new Event(1, 2, myVal, _testAddress);
+
+        byte[] myBuffer = Codecs.encode(myEvent);
+
+        Event myEvent2 = (Event) Codecs.decode(myBuffer);
+
+        Assert.assertEquals(myEvent.getSeqNum(), myEvent2.getSeqNum());
+        Assert.assertEquals(myEvent.getResult(), myEvent2.getResult());
+        Assert.assertEquals(myEvent.getNodeId(), myEvent2.getNodeId());
+        Assert.assertEquals(myEvent.getValues(), myEvent2.getValues());
+    }
+    
     @Test public void begin() throws Exception {
         byte[] myData = {55};
         byte[] myHandback = {56};

@@ -79,15 +79,14 @@ public class LeaderConflictTest {
         myClient2.send(new Envelope(myProp2, myTransport2.getLocalAddress()),
                 _tport2.getLocalAddress());
 
-        Envelope myMsg1 = myClient1.getNext(10000);
-        Envelope myMsg2 = myClient2.getNext(10000);
+        Event myMsg1 = myClient1.getNext(10000);
+        Event myMsg2 = myClient2.getNext(10000);
 
         myClient1.shutdown();
         myClient2.shutdown();
 
-        Assert.assertTrue((ServerDispatcher.getResult(myMsg1) == Event.Reason.OTHER_LEADER && 
-        		ServerDispatcher.getResult(myMsg2) == Event.Reason.DECISION) ||
-        		(ServerDispatcher.getResult(myMsg1) == Event.Reason.DECISION && 
-        		ServerDispatcher.getResult(myMsg2) == Event.Reason.OTHER_LEADER));        
+        Assert.assertTrue(
+        		(myMsg1.getResult() == Event.Reason.OTHER_LEADER && myMsg2.getResult() == Event.Reason.DECISION) ||
+        		(myMsg1.getResult() == Event.Reason.DECISION && myMsg2.getResult() == Event.Reason.OTHER_LEADER));        
     }
 }

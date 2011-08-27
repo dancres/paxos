@@ -62,11 +62,11 @@ public class IgnoreCollectsTest {
         myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        Envelope myEnv = myClient.getNext(10000);
+        Event myEv = myClient.getNext(10000);
 
-        Assert.assertFalse((myEnv == null));
+        Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(ServerDispatcher.getResult(myEnv) == Event.Reason.DECISION);
+        Assert.assertTrue(myEv.getResult() == Event.Reason.DECISION);
 
         // Now we have an active leader, make sure acceptor learners ignore contenders
         AcceptorLearner myAl = _node2.getAcceptorLearner();

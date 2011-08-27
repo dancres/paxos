@@ -2,10 +2,13 @@ package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
 
+import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
+
 /**
  * Status indication returned from the state machine for each vote requested
  */
-public class Event {
+public class Event implements PaxosMessage {
 	public interface Reason {
 		public static final int DECISION = -1;
 		public static final int OTHER_LEADER = -2;
@@ -57,4 +60,16 @@ public class Event {
         return "Event: " + _result + ", " + Long.toHexString(_seqNum) + ", " + 
         	_consolidatedValue + ", " + _leader;
     }
+
+	public int getType() {
+		return Operations.EVENT;
+	}
+
+	public short getClassification() {
+		return CLIENT;
+	}
+
+	public InetSocketAddress getNodeId() {
+		return _leader;
+	}
 }

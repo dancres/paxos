@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 	private static final String HANDBACK_KEY = "org.dancres.paxos.handback";
-	private static final String COMPLETION_KEY = "org.dancres.paxos.completion";
 	
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
@@ -108,12 +107,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
         if (myAddr == null)
             return;
 
-		Proposal myProposal = anEvent.getValues();
-		ByteBuffer myBuffer = ByteBuffer.allocate(4);
-		myBuffer.putInt(anEvent.getResult());
-
-		myProposal.put(COMPLETION_KEY, myBuffer.array());
-		_tp.send(new Envelope(anEvent.getSeqNum(), myProposal, _tp.getLocalAddress()), myAddr);
+		_tp.send(anEvent, myAddr);
     }
 
     public AcceptorLearner getAcceptorLearner() {
@@ -122,10 +116,5 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 
 	public Leader getLeader() {
 		return _core.getLeader();
-	}	
-	
-	public static int getResult(Envelope anEnvelope) {
-		ByteBuffer myBuffer = ByteBuffer.wrap(anEnvelope.getValue().get(COMPLETION_KEY));
-		return myBuffer.getInt();
-	}
+	}		
 }

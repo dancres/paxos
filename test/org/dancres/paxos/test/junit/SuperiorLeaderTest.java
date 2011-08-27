@@ -59,11 +59,11 @@ public class SuperiorLeaderTest {
         myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        Envelope myEnv = myClient.getNext(10000);
+        Event myEv = myClient.getNext(10000);
 
-        Assert.assertFalse((myEnv == null));
+        Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(ServerDispatcher.getResult(myEnv) == Event.Reason.OTHER_LEADER);
+        Assert.assertTrue(myEv.getResult() == Event.Reason.OTHER_LEADER);
     }
 
     private static class OldRoundDispatcher extends ServerDispatcher {

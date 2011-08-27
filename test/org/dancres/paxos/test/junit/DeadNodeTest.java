@@ -71,12 +71,12 @@ public class DeadNodeTest {
         //
         myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
-        Envelope myEnv = myClient.getNext(10000);
+        Event myEv = myClient.getNext(10000);
 
-        Assert.assertFalse(myEnv == null);
+        Assert.assertFalse(myEv == null);
 
-        Assert.assertTrue((ServerDispatcher.getResult(myEnv) == Event.Reason.BAD_MEMBERSHIP) ||
-        		(ServerDispatcher.getResult(myEnv) == Event.Reason.VOTE_TIMEOUT));
+        Assert.assertTrue((myEv.getResult() == Event.Reason.BAD_MEMBERSHIP) ||
+        		(myEv.getResult() == Event.Reason.VOTE_TIMEOUT));
     }
 
     static class DroppingTransportImpl extends TransportImpl {

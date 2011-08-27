@@ -60,11 +60,11 @@ public class SimpleSuccessTest {
         myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        Envelope myEnv = myClient.getNext(10000);
+        Event myEv = myClient.getNext(10000);
 
-        Assert.assertFalse((myEnv == null));
+        Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(ServerDispatcher.getResult(myEnv) == Event.Reason.DECISION);
+        Assert.assertTrue(myEv.getResult() == Event.Reason.DECISION);
         
         myClient.shutdown();
     }

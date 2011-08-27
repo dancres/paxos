@@ -67,11 +67,11 @@ public class PacketDropTest {
         myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        Envelope myEnv = myClient.getNext(15000);
+        Event myEv = myClient.getNext(15000);
 
-        Assert.assertFalse((myEnv == null));
+        Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(ServerDispatcher.getResult(myEnv) == Event.Reason.VOTE_TIMEOUT);
+        Assert.assertTrue(myEv.getResult() == Event.Reason.VOTE_TIMEOUT);
     }
 
     static class DroppingTransportImpl extends TransportImpl {
