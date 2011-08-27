@@ -5,13 +5,13 @@ import java.nio.ByteBuffer;
 
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
-import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Post;
+import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.Event;
+import org.dancres.paxos.Proposal;
 import org.junit.*;
 
 public class PacketDropTest {
@@ -46,6 +46,7 @@ public class PacketDropTest {
     	ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
+        Proposal myProposal = new Proposal("data", myBuffer.array());
         FailureDetector myFd = _node1.getFailureDetector();
 
         int myChances = 0;
@@ -63,20 +64,14 @@ public class PacketDropTest {
          * If there is no stable majority and we cannot circumvent packet loss we expect the leader to ultimately
          * give up.
          */
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        PaxosMessage myMsg = myClient.getNext(15000);
+        Envelope myEnv = myClient.getNext(15000);
 
-        Assert.assertFalse((myMsg == null));
+        Assert.assertFalse((myEnv == null));
 
-        Assert.assertTrue(myMsg.getType() == Operations.FAIL);
-
-        Fail myFail = (Fail) myMsg;
-
-        System.err.println("Failure was: " + myFail.getReason());
-
-        Assert.assertTrue(myFail.getReason() == Event.Reason.VOTE_TIMEOUT);
+        Assert.assertTrue(ServerDispatcher.getResult(myEnv) == Event.Reason.VOTE_TIMEOUT);
     }
 
     static class DroppingTransportImpl extends TransportImpl {

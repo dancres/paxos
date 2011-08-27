@@ -6,12 +6,12 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
-import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Post;
+import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.Event;
+import org.dancres.paxos.Proposal;
 import org.junit.*;
 
 /**
@@ -45,6 +45,8 @@ public class DeadNodeTest {
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
+        
+        Proposal myProp = new Proposal("data", myBuffer.array());
 
         FailureDetector myFd = _node1.getFailureDetector();
 
@@ -67,18 +69,14 @@ public class DeadNodeTest {
 
         // And perform the test
         //
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
-        PaxosMessage myMsg = myClient.getNext(10000);
+        Envelope myEnv = myClient.getNext(10000);
 
-        Assert.assertFalse((myMsg == null));
+        Assert.assertFalse(myEnv == null);
 
-        Assert.assertTrue(myMsg.getType() == Operations.FAIL);
-
-        Fail myFail = (Fail) myMsg;
-
-        Assert.assertTrue((myFail.getReason() == Event.Reason.BAD_MEMBERSHIP) ||
-                (myFail.getReason() == Event.Reason.VOTE_TIMEOUT));
+        Assert.assertTrue((ServerDispatcher.getResult(myEnv) == Event.Reason.BAD_MEMBERSHIP) ||
+        		(ServerDispatcher.getResult(myEnv) == Event.Reason.VOTE_TIMEOUT));
     }
 
     static class DroppingTransportImpl extends TransportImpl {

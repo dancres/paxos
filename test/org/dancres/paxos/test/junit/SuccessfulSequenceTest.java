@@ -2,12 +2,14 @@ package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.Event;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Post;
+import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.*;
 
@@ -54,19 +56,17 @@ public class SuccessfulSequenceTest {
         for (int i = 0; i < 5; i++) {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
+            Proposal myProposal = new Proposal("data", myBuffer.array());
 
-            myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+            myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
             		_tport1.getLocalAddress());
 
-            PaxosMessage myMsg = myClient.getNext(10000);
+            Envelope myEnv = myClient.getNext(10000);
 
-            Assert.assertFalse((myMsg == null));
+            Assert.assertFalse((myEnv == null));
 
-            System.err.println("Got message: " + myMsg.getType());
-
-            Assert.assertTrue(myMsg.getType() == Operations.COMPLETE);
-
-            Assert.assertTrue(myMsg.getSeqNum() == i);
+            Assert.assertTrue(ServerDispatcher.getResult(myEnv) == Event.Reason.DECISION);
+            Assert.assertTrue(myEnv.getSeqNum() == i);
         }
         
         /*

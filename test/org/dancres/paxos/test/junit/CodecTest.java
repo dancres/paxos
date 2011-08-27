@@ -21,25 +21,6 @@ public class CodecTest {
         Assert.assertTrue(myOOD.getNodeId().equals(myOOD2.getNodeId()));
     }
 
-	@Test public void fail() throws Exception {
-		Fail myFail = new Fail(1, 2);
-		
-		byte[] myBuffer = Codecs.encode(myFail);
-		
-		Fail myFail2 = (Fail) Codecs.decode(myBuffer);
-		Assert.assertTrue(myFail.getReason() == myFail2.getReason());
-		Assert.assertTrue(myFail.getSeqNum() == myFail2.getSeqNum());
-	}
-	
-	@Test public void complete() throws Exception {
-		Complete myComp = new Complete(1);
-		
-		byte[] myBuffer = Codecs.encode(myComp);
-		
-		Complete myComp2 = (Complete) Codecs.decode(myBuffer);
-		Assert.assertTrue(myComp.getSeqNum() == myComp2.getSeqNum());		
-	}
-	
     @Test public void accept() throws Exception {
         Accept myAccept = new Accept(1, 2, _testAddress);
 
@@ -130,16 +111,16 @@ public class CodecTest {
 
     @Test public void post() throws Exception {
         byte[] myData = {55};
+        Proposal myProp = new Proposal("data", myData);
 
-        Post myPost = new Post(myData, _testAddress);
+        Envelope myEnv = new Envelope(myProp, _testAddress);
 
-        byte[] myBuffer = Codecs.encode(myPost);
+        byte[] myBuffer = Codecs.encode(myEnv);
 
-        Post myPost2 = (Post) Codecs.decode(myBuffer);
+        Envelope myEnv2 = (Envelope) Codecs.decode(myBuffer);
 
-        Assert.assertEquals(myPost.getValue().length, myPost2.getValue().length);
-        Assert.assertEquals(myPost.getValue()[0], myPost2.getValue()[0]);
-        Assert.assertEquals(myPost.getNodeId(), myPost2.getNodeId());
+        Assert.assertEquals(myEnv.getValue(), myEnv2.getValue());
+        Assert.assertEquals(myEnv.getNodeId(), myEnv2.getNodeId());
     }
 
     @Test public void success() throws Exception {

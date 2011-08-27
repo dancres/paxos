@@ -4,20 +4,21 @@ import java.nio.ByteBuffer;
 
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.messages.Post;
+import org.dancres.paxos.messages.Envelope;
 
-public class PostCodec implements Codec {
+public class EnvelopeCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
-        Post myPost = (Post) anObject;
-        byte[] myBytes = myPost.getValue();
+        Envelope myEnvelope = (Envelope) anObject;
+        byte[] myBytes = myEnvelope.getValue().marshall();
 
-        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + myBytes.length);
+        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + 8 + myBytes.length);
 
         // Length count does not include length bytes themselves
         //
-        myBuffer.putInt(Operations.POST);
+        myBuffer.putInt(Envelope.TYPE);
         myBuffer.putInt(myBytes.length);
-        myBuffer.putLong(Codecs.flatten(myPost.getNodeId()));
+        myBuffer.putLong(myEnvelope.getSeqNum());
+        myBuffer.putLong(Codecs.flatten(myEnvelope.getNodeId()));
         myBuffer.put(myBytes);
         myBuffer.flip();
         return myBuffer;
@@ -27,14 +28,13 @@ public class PostCodec implements Codec {
         // Discard type
         aBuffer.getInt();
 
-        // Discard the length and operation so remaining data can be processed
-        // separately
         int myArrLength = aBuffer.getInt();
 
+        long mySeqNum = aBuffer.getLong();
         long myNodeId = aBuffer.getLong();
         
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
-        return new Post(myBytes, Codecs.expand(myNodeId));
+        return new Envelope(mySeqNum, new Proposal(myBytes), Codecs.expand(myNodeId));
     }
 }

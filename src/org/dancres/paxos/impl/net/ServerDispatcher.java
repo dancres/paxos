@@ -3,14 +3,13 @@ package org.dancres.paxos.impl.net;
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
-import org.dancres.paxos.messages.Complete;
-import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Post;
+import org.dancres.paxos.messages.Envelope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -27,8 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * @todo Implement client failover across leadership plus client discovery of servers in cluster.
  */
 public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
-	private static final String DATA_KEY = "data";
-	private static final String HANDBACK_KEY = "handback";
+	private static final String HANDBACK_KEY = "org.dancres.paxos.handback";
+	private static final String COMPLETION_KEY = "org.dancres.paxos.completion";
 	
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
@@ -61,11 +60,10 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
                     String myHandback = Long.toString(_handbackGenerator.getAndIncrement());
                     _requestMap.put(myHandback, aMessage.getNodeId());
 
-                    Post myPost = (Post) aMessage;
-                    Proposal myVal = new Proposal();
-                    myVal.put(DATA_KEY, myPost.getValue());
-                    myVal.put(HANDBACK_KEY, myHandback.getBytes());
-                    _core.submit(myVal);
+                    Envelope myEnvelope = (Envelope) aMessage;
+                    Proposal myProposal = myEnvelope.getValue();
+                    myProposal.put(HANDBACK_KEY, myHandback.getBytes());
+                    _core.submit(myProposal);
 
                     return true;
 				}
@@ -110,11 +108,12 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
         if (myAddr == null)
             return;
 
-        if (anEvent.getResult() == Event.Reason.DECISION) {
-            _tp.send(new Complete(anEvent.getSeqNum()), myAddr);
-        } else {
-            _tp.send(new Fail(anEvent.getSeqNum(), anEvent.getResult()), myAddr);
-        }
+		Proposal myProposal = anEvent.getValues();
+		ByteBuffer myBuffer = ByteBuffer.allocate(4);
+		myBuffer.putInt(anEvent.getResult());
+
+		myProposal.put(COMPLETION_KEY, myBuffer.array());
+		_tp.send(new Envelope(anEvent.getSeqNum(), myProposal, _tp.getLocalAddress()), myAddr);
     }
 
     public AcceptorLearner getAcceptorLearner() {
@@ -124,4 +123,9 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 	public Leader getLeader() {
 		return _core.getLeader();
 	}	
+	
+	public static int getResult(Envelope anEnvelope) {
+		ByteBuffer myBuffer = ByteBuffer.wrap(anEnvelope.getValue().get(COMPLETION_KEY));
+		return myBuffer.getInt();
+	}
 }

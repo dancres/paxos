@@ -597,7 +597,7 @@ public class AcceptorLearner {
                     completedRecovery();
                 }
 
-                signal(new Event(Event.Reason.OUT_OF_DATE, mySeqNum, new Proposal()));
+                signal(new Event(Event.Reason.OUT_OF_DATE, mySeqNum, new Proposal(), getLastCollect().getNodeId()));
                 return;
             }
 
@@ -927,7 +927,7 @@ public class AcceptorLearner {
                             _logger.info("AL:Learnt value: " + mySeqNum + ", " + _transport.getLocalAddress());
 
                             signal(new Event(Event.Reason.DECISION, mySeqNum,
-                                    myBegin.getConsolidatedValue()));
+                                    myBegin.getConsolidatedValue(), myBegin.getNodeId()));
                         }
                     }
 				}

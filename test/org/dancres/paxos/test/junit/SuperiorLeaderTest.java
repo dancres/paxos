@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import org.dancres.paxos.impl.Core;
 import org.dancres.paxos.Event;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.net.ClientDispatcher;
@@ -42,6 +43,7 @@ public class SuperiorLeaderTest {
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
+        Proposal myProposal = new Proposal("data", myBuffer.array());
         FailureDetector myFd = _node1.getFailureDetector();
 
         int myChances = 0;
@@ -54,20 +56,14 @@ public class SuperiorLeaderTest {
             Thread.sleep(5000);
         }
 
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        PaxosMessage myMsg = myClient.getNext(10000);
+        Envelope myEnv = myClient.getNext(10000);
 
-        Assert.assertFalse((myMsg == null));
+        Assert.assertFalse((myEnv == null));
 
-        System.err.println("Got message: " + myMsg.getType());
-
-        Assert.assertTrue(myMsg.getType() == Operations.FAIL);
-
-        Fail myFail = (Fail) myMsg;
-
-        Assert.assertTrue(myFail.getReason() == Event.Reason.OTHER_LEADER);
+        Assert.assertTrue(ServerDispatcher.getResult(myEnv) == Event.Reason.OTHER_LEADER);
     }
 
     private static class OldRoundDispatcher extends ServerDispatcher {

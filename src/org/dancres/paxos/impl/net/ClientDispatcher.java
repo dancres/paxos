@@ -5,19 +5,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
 public class ClientDispatcher implements Transport.Dispatcher {
 	private Transport _transport;
-	private List<PaxosMessage> _queue = new ArrayList<PaxosMessage>();
+	private List<Envelope> _queue = new ArrayList<Envelope>();
 	
 	public boolean messageReceived(PaxosMessage aMessage) {
 		synchronized(this) {
 	        switch (aMessage.getType()) {
-	        	case Operations.COMPLETE :
-	        	case Operations.FAIL : {
-	        		_queue.add(aMessage);
+	        	case Operations.ENVELOPE : {
+	        		_queue.add((Envelope) aMessage);
 	        		notifyAll();
 	        		break;
 	        	}
@@ -31,7 +31,7 @@ public class ClientDispatcher implements Transport.Dispatcher {
 		_transport.send(aMessage, aTarget);
 	}
 	
-	public PaxosMessage getNext(long aTimeout) {
+	public Envelope getNext(long aTimeout) {
 		synchronized(this) {
 			while (_queue.isEmpty()) {
 				try {

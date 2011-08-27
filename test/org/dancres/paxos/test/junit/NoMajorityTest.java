@@ -5,11 +5,11 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
-import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Post;
+import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.Event;
+import org.dancres.paxos.Proposal;
 import org.junit.*;
 
 public class NoMajorityTest {
@@ -34,20 +34,17 @@ public class NoMajorityTest {
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
+        Proposal myProposal = new Proposal("data", myBuffer.array());
 
         Thread.sleep(5000);
 
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        PaxosMessage myMsg = myClient.getNext(10000);
+        Envelope myEnv = myClient.getNext(10000);
 
-        Assert.assertFalse((myMsg == null));
+        Assert.assertFalse((myEnv == null));
 
-        Assert.assertTrue(myMsg.getType() == Operations.FAIL);
-
-        Fail myFail = (Fail) myMsg;
-
-        Assert.assertTrue(myFail.getReason() == Event.Reason.BAD_MEMBERSHIP);
+        Assert.assertTrue(ServerDispatcher.getResult(myEnv) == Event.Reason.BAD_MEMBERSHIP);
     }
 }

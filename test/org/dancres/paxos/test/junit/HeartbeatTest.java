@@ -1,13 +1,16 @@
 package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
+
+import org.dancres.paxos.Event;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.AcceptorLearner;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Post;
+import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.*;
 
@@ -52,19 +55,19 @@ public class HeartbeatTest {
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
+        Proposal myProp = new Proposal("data", myBuffer.array());
+        
         ensureFD(_node1.getFailureDetector());
         ensureFD(_node2.getFailureDetector());
 
-        myClient.send(new Post(myBuffer.array(), myTransport.getLocalAddress()),
+        myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
         		_tport2.getLocalAddress());
 
-        PaxosMessage myMsg = myClient.getNext(10000);
+        Envelope myEnv = myClient.getNext(10000);
 
-        Assert.assertFalse((myMsg == null));
+        Assert.assertFalse(myEnv == null);
 
-        System.err.println("Got message: " + myMsg.getType());
-
-        Assert.assertTrue(myMsg.getType() == Operations.COMPLETE);
+        Assert.assertTrue(ServerDispatcher.getResult(myEnv) == Event.Reason.DECISION);
 
         // Now we have an active leader, make sure acceptor learners see heartbeats
         //

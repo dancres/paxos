@@ -1,14 +1,14 @@
 package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.Event;
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
-import org.dancres.paxos.messages.Fail;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Post;
+import org.dancres.paxos.messages.Envelope;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -69,30 +69,25 @@ public class LeaderConflictTest {
 
         myBuffer1.putInt(1);
         myBuffer2.putInt(2);
+        
+        Proposal myProp1 = new Proposal("data", myBuffer1.array());
+        Proposal myProp2 = new Proposal("data", myBuffer2.array());
 
-        myClient1.send(new Post(myBuffer1.array(), myTransport1.getLocalAddress()),
+        myClient1.send(new Envelope(myProp1, myTransport1.getLocalAddress()),
                 _tport1.getLocalAddress());
 
-        myClient2.send(new Post(myBuffer2.array(), myTransport2.getLocalAddress()),
+        myClient2.send(new Envelope(myProp2, myTransport2.getLocalAddress()),
                 _tport2.getLocalAddress());
 
-        PaxosMessage myMsg1 = myClient1.getNext(10000);
-        PaxosMessage myMsg2 = myClient2.getNext(10000);
+        Envelope myMsg1 = myClient1.getNext(10000);
+        Envelope myMsg2 = myClient2.getNext(10000);
 
         myClient1.shutdown();
         myClient2.shutdown();
 
-        Assert.assertTrue((myMsg1.getType() == Operations.FAIL && myMsg2.getType() == Operations.COMPLETE) ||
-            (myMsg1.getType() == Operations.COMPLETE && myMsg2.getType() == Operations.FAIL));
-
-        if (myMsg1.getType() == Operations.FAIL) {
-            Fail myFail = (Fail) myMsg1;
-
-            assert(myFail.getReason() == Event.Reason.OTHER_LEADER);
-        } else {
-            Fail myFail = (Fail) myMsg2;
-
-            assert(myFail.getReason() == Event.Reason.OTHER_LEADER);
-        }
+        Assert.assertTrue((ServerDispatcher.getResult(myMsg1) == Event.Reason.OTHER_LEADER && 
+        		ServerDispatcher.getResult(myMsg2) == Event.Reason.DECISION) ||
+        		(ServerDispatcher.getResult(myMsg1) == Event.Reason.DECISION && 
+        		ServerDispatcher.getResult(myMsg2) == Event.Reason.OTHER_LEADER));        
     }
 }

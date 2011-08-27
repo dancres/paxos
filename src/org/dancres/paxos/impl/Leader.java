@@ -188,7 +188,7 @@ public class Leader implements MembershipListener {
                  */
                 while (_queue.size() > 0) {
                     _al.signal(new Event(_event.getResult(), _event.getSeqNum(),
-                            _queue.remove(0)));
+                            _queue.remove(0), _al.getLastCollect().getNodeId()));
                 }
 
                 return;
@@ -441,7 +441,7 @@ public class Leader implements MembershipListener {
 
     private void successful(int aReason) {
         _state = EXIT;
-        _event = new Event(aReason, _seqNum, _queue.get(0));
+        _event = new Event(aReason, _seqNum, _queue.get(0), _transport.getLocalAddress());
 
         process();
     }
@@ -450,9 +450,9 @@ public class Leader implements MembershipListener {
     	error(aReason, null);
     }
     
-    private void error(int aReason, Object aContext) {
+    private void error(int aReason, InetSocketAddress aLeader) {
         _state = ABORT;
-        _event = new Event(aReason, _seqNum, _queue.get(0), aContext);
+        _event = new Event(aReason, _seqNum, _queue.get(0), aLeader);
 
         process();
     }

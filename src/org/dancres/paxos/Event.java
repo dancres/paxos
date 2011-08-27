@@ -1,5 +1,7 @@
 package org.dancres.paxos;
 
+import java.net.InetSocketAddress;
+
 /**
  * Status indication returned from the state machine for each vote requested
  */
@@ -15,19 +17,15 @@ public class Event {
     private int _result;
     private long _seqNum;
     private Proposal _consolidatedValue;
-    private Object _context;
+    private InetSocketAddress _leader;
 
-    public Event(int aResult, long aSeqNum, Proposal aValue) {
+    public Event(int aResult, long aSeqNum, Proposal aValue, InetSocketAddress aLeader) {
     	assert(aValue != null);
     	
         _result = aResult;
         _seqNum = aSeqNum;
         _consolidatedValue = aValue;
-    }
-
-    public Event(int aResult, long aSeqNum, Proposal aValue, Object aContext) {
-        this(aResult, aSeqNum, aValue);
-        _context = aContext;
+        _leader = aLeader;
     }
 
     public Proposal getValues() {
@@ -51,12 +49,12 @@ public class Event {
     /**
      * @return additional information associated with the reason returned from <code>getResult()</code>.
      */
-    public Object getContext() {
-        return _context;
+    public InetSocketAddress getLeader() {
+        return _leader;
     }
 
     public String toString() {
         return "Event: " + _result + ", " + Long.toHexString(_seqNum) + ", " + 
-        	_consolidatedValue + ", " + _context;
+        	_consolidatedValue + ", " + _leader;
     }
 }
