@@ -5,8 +5,6 @@ import java.net.InetSocketAddress;
 import org.dancres.paxos.Proposal;
 
 public class Envelope implements PaxosMessage {
-    public static final int TYPE = Operations.ENVELOPE;
-
     private long _seqNum = -1;
     private Proposal _proposal;
     private InetSocketAddress _nodeId;
@@ -27,7 +25,7 @@ public class Envelope implements PaxosMessage {
     }
 
     public int getType() {
-        return TYPE;
+        return Operations.ENVELOPE;
     }
 
     public short getClassification() {
