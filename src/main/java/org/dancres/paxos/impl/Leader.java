@@ -183,6 +183,8 @@ public class Leader implements MembershipListener {
                 if (_membership != null)
                     _membership.dispose();
 
+                cancelInteraction();
+                
                 /*
                  * We must fail all queued operations - use the same completion code...
                  */
@@ -487,8 +489,6 @@ public class Leader implements MembershipListener {
     public void abort() {
         _logger.info(this + ": Membership requested abort");
 
-        cancelInteraction();
-
         synchronized(this) {
             error(Event.Reason.BAD_MEMBERSHIP);
         }
@@ -613,7 +613,10 @@ public class Leader implements MembershipListener {
 
                 case SUCCESS : return _successValidator;
 
-                default : throw new RuntimeException("No validator for state: " + aLeaderState);
+                default : {
+                	_logger.warn("No validator for state: " + aLeaderState);
+                	return _nullValidator;
+                }
             }
         }
 
