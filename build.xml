@@ -16,23 +16,18 @@
 		<tstamp/>
 		<!-- Create the build directory structure used by compile -->
 		<mkdir dir="${build}"/>
-		<mkdir dir="dbfiles"/>
 		<mkdir dir="docs/javadocs"/>
-		<mkdir dir="${lib}"/>
 		<mkdir dir="${reports.tests}"/>
 	</target>
 
 	<target name="clean"
         description="clean up" >
 		<delete dir="${build}"/>
-		<delete dir="dbfiles"/>
-		<delete dir="${lib}"/>
-		<delete dir="installer_build"/>
-		<delete file="installer.jar"/>
+		<delete dir="${reports.tests}"/>
 	</target>
 
 	<target name="all"
-          depends="pristine,compile,javadoc,jars"/>
+          depends="pristine,compile,javadoc"/>
 
 	<target name="pristine" description="Restore to pristine build"
           depends="clean">
@@ -94,20 +89,6 @@
 				</fileset>
 			</batchtest>
 		</junit>
-	</target>
-
-	<target name="jars" depends="serverjar"/>
-
-	<target name="serviceuijar" depends="compile" description="generate dashboard serviceui jar">
-		<mkdir dir="${lib}"/>
-		<jar jarfile="${lib}/blitzui.jar" basedir="${build}"
-         includes="org/dancres/jini/**,org/dancres/blitz/tools/dash/**,org/dancres/blitz/serviceui/**, org/dancres/blitz/remote/StatsAdmin.class, org/dancres/blitz/remote/BlitzAdmin.class, org/dancres/blitz/stats/**"/>
-	</target>
-
-	<target name="serverjar" depends="compile"
-        description="generate blitz server .jar" >
-		<mkdir dir="${lib}"/>
-		<jar jarfile="${lib}/blitz.jar" basedir="${build}"/>
 	</target>
 
 	<target name="javadoc" depends="compile" description="Generate developer grade docos for the code">
