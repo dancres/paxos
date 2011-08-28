@@ -6,8 +6,7 @@
 	<property name="src" location="src/main/java"/>
 	<property name="testsrc" location="src/test/java"/>
 	<property name="build" location="build"/>
-	<property name="lib" location="lib"/>
-	<property name="otherlib" location="thirdpartylib"/>
+	<property name="otherlib" location="lib"/>
 	<property name="macext" location="/System/Library/Java/Extensions"/>
 	<property name="reports.tests" location="reports/tests"/>
 
@@ -41,7 +40,7 @@
 		<pathelement location="${otherlib}/slf4j-api-1.5.0.jar" />
 		<pathelement location="${otherlib}/slf4j-jdk14-1.5.0.jar" />
 		<pathelement location="${otherlib}/jmdns.jar" />
-		<pathelement location="${otherlib}/junit-4.5.jar" />
+		<pathelement location="${otherlib}/junit-4.9.jar" />
 		<pathelement location="${otherlib}/howl-1.0.2.jar" />
 	</path>
 
