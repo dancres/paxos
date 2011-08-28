@@ -3,8 +3,8 @@
         Main build file for Paxos Implementation
     </description>
 	<!-- set global properties for this build -->
-	<property name="src" location="src"/>
-	<property name="testsrc" location="test"/>
+	<property name="src" location="src/main/java"/>
+	<property name="testsrc" location="src/test/java"/>
 	<property name="build" location="build"/>
 	<property name="lib" location="lib"/>
 	<property name="otherlib" location="thirdpartylib"/>
