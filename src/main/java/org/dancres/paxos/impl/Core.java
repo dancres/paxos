@@ -44,8 +44,6 @@ public class Core implements Transport.Dispatcher {
     }
 
     public void stop() {
-        _ld.shutdown();
-
         _fd.stop();
         _hb.halt();
 
@@ -55,6 +53,9 @@ public class Core implements Transport.Dispatcher {
         }
 
         _tp.shutdown();
+
+        _ld.shutdown();
+
         _al.close();
     }
 
