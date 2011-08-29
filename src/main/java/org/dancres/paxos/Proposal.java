@@ -102,4 +102,14 @@ public class Proposal {
 		
 		return true;
 	}
+	
+	public String toString() {
+		String mySummary = "Proposal (";
+		
+		for (String k: _values.keySet()) {
+			mySummary = mySummary + " " + k;
+		}
+		
+		return mySummary + " )";
+	}
 }

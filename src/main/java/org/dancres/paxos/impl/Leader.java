@@ -176,7 +176,7 @@ public class Leader implements MembershipListener {
             case ABORT : {
             	assert (_queue.size() != 0);
 
-                _logger.info(this + ": ABORT " + _event, new RuntimeException());
+                _logger.info(this + ": ABORT " + _event);
 
                 _messages.clear();
 
