@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.Transport;
@@ -25,6 +26,8 @@ import org.jboss.netty.channel.ChildChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
+import org.jboss.netty.channel.group.ChannelGroup;
+import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.DatagramChannel;
 import org.jboss.netty.channel.socket.DatagramChannelFactory;
 import org.jboss.netty.channel.socket.ServerSocketChannel;
@@ -83,7 +86,14 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
 	private InetSocketAddress _unicastAddr;
     private InetSocketAddress _broadcastAddr;
+    private AtomicBoolean _isStopping = new AtomicBoolean(false);
 	
+    private ChannelGroup _channels = new DefaultChannelGroup();
+    
+    static {
+    	System.runFinalizersOnExit(true);
+    }
+    
 	public TransportImpl() throws Exception {
         _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
 
@@ -97,53 +107,47 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		ChannelFuture myFuture = _mcast.bind(myMcastTarget);
 		myFuture.await();
 		_mcast.joinGroup(_mcastAddr.getAddress());
+		_channels.add(_mcast);
 		
-		_unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool());
-		
+		_unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool());		
 		_unicast = _unicastFactory.newChannel(newPipeline());
 		myFuture = _unicast.bind(new InetSocketAddress(Utils.getWorkableInterface(), 0));
 		myFuture.await();
+		_channels.add(_unicast);
 		
 		_unicastAddr = _unicast.getLocalAddress();
 		
 		_logger.info("Transport bound on: " + _unicastAddr);
 
 		_serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), 
-				Executors.newCachedThreadPool());
-		
+				Executors.newCachedThreadPool());		
 		_serverStreamChannel = _serverStreamFactory.newChannel(newPipeline());
 		_serverStreamChannel.bind(_unicast.getLocalAddress());
 		_serverStreamChannel.getConfig().setPipelineFactory(Channels.pipelineFactory(newPipeline()));
+		_channels.add(_serverStreamChannel);
 		
 		_clientStreamFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(),
 				Executors.newCachedThreadPool());
     }
 
+	private void guard() {
+		if (_isStopping.get())
+			throw new IllegalStateException("Transport is stopped");
+	}
+	
     public void add(Dispatcher aDispatcher) throws Exception {
+    	guard();
+    	
         synchronized(this) {
             _dispatcher.add(aDispatcher);
             aDispatcher.setTransport(this);
         }
     }
 	public void shutdown() {
+		_isStopping.set(true);
+		
 		try {
-			_logger.debug("Close mcast");
-			_mcast.close().await();
-
-			_logger.debug("Unbind mcast");
-			_mcast.unbind().await();
-
-			_logger.debug("Close unicast");
-			_unicast.close().await();
-
-			_logger.debug("Unbind unicast");
-			_unicast.unbind().await();
-
-			_logger.debug("Close serverstream");
-			_serverStreamChannel.close().await();
-			
-			_logger.debug("Unbind serverstream");
-			_serverStreamChannel.unbind().await();
+			_channels.close().await();
 			
 			_logger.debug("Stop mcast factory");
 			_mcastFactory.releaseExternalResources();
@@ -164,6 +168,11 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 	}
 	
+	protected void finalize() throws Throwable {
+		if (! _isStopping.get())
+			_logger.warn("Failed to close transport before JVM exit");
+	}
+	
 	private ChannelPipeline newPipeline() {
 		ChannelPipeline myPipeline = Channels.pipeline();
 		myPipeline.addLast("framer", new Framer());
@@ -180,18 +189,25 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 
     public InetSocketAddress getBroadcastAddress() {
-        return _broadcastAddr;
+		guard();
+
+		return _broadcastAddr;
     }
     
 	public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
 		_logger.info("Connected: " + ctx + ", " + e);
+		_channels.add(e.getChannel());
 	}
 	
 	public void childChannelOpen(ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception {
-		_logger.info("Stream open: " + ctx + ", " + e);		
+		_logger.info("Stream open: " + ctx + ", " + e);
+		_channels.add(e.getChannel());
 	}
 	
     public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {
+		if (_isStopping.get())
+			return;
+
     	synchronized(this) {
             for(Dispatcher d : _dispatcher) {
                 if (d.messageReceived((PaxosMessage) anEvent.getMessage()))
@@ -206,6 +222,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     }		
 	
 	public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
+		guard();
+		
 		try {
 			if (aNodeId.equals(_broadcastAddr))
 				_mcast.write(aMessage, _mcastAddr);
@@ -217,7 +235,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		}
 	}
 
-	private static class StreamImpl implements Stream {
+	private class StreamImpl implements Stream {
 		private SocketChannel _channel;
 		
 		StreamImpl(SocketChannel aChannel) {
@@ -225,30 +243,30 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		}
 		
 		public void close() {
-			ChannelFuture myFuture = _channel.close();
-			
 			try {
-				myFuture.await();
+				_channels.remove(_channel);
+				_channel.close().await();
 			} catch (InterruptedException anIE) {
 			}
 		}
 		
 		public void send(PaxosMessage aMessage) {
-			ChannelFuture myFuture = _channel.write(aMessage);
-
             try {
-                myFuture.await();
+                _channel.write(aMessage).await();
             } catch (InterruptedException anIE) {
             }
 		}
 	}
 	
 	public Stream connectTo(InetSocketAddress aNodeId) {
+		guard();
+		
 		SocketChannel myChannel = _clientStreamFactory.newChannel(newPipeline());
 		
 		try {
-			ChannelFuture myFuture = myChannel.connect(aNodeId);
-			myFuture.await();
+			myChannel.connect(aNodeId).await();
+			
+			_channels.add(myChannel);
 			
 			return new StreamImpl(myChannel);
 		} catch (Exception anE) {
