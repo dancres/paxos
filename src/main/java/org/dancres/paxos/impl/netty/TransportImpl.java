@@ -128,28 +128,22 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	public void shutdown() {
 		try {
 			_logger.debug("Close mcast");
-			ChannelFuture myFuture = _mcast.close();
-			myFuture.await();
+			_mcast.close().await();
 
 			_logger.debug("Unbind mcast");
-			myFuture = _mcast.unbind();
-			myFuture.await();
+			_mcast.unbind().await();
 
 			_logger.debug("Close unicast");
-			myFuture = _unicast.close();
-			myFuture.await();
+			_unicast.close().await();
 
 			_logger.debug("Unbind unicast");
-			myFuture = _unicast.unbind();
-			myFuture.await();
+			_unicast.unbind().await();
 
 			_logger.debug("Close serverstream");
-			myFuture = _serverStreamChannel.close();
-			myFuture.await();
+			_serverStreamChannel.close().await();
 			
 			_logger.debug("Unbind serverstream");
-			myFuture = _serverStreamChannel.unbind();
-			myFuture.await();
+			_serverStreamChannel.unbind().await();
 			
 			_logger.debug("Stop mcast factory");
 			_mcastFactory.releaseExternalResources();
@@ -163,7 +157,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 			_logger.debug("Stop clientstream factory");
 			_clientStreamFactory.releaseExternalResources();			
 			
-			_logger.debug("Shutdown complete");
+			_logger.info("Shutdown complete");
 		} catch (Exception anE) {
 			_logger.error("Failed to shutdown cleanly", anE);
 		}
@@ -208,7 +202,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
     public void exceptionCaught(ChannelHandlerContext aContext, ExceptionEvent anEvent) {
         _logger.error("Problem in transport", anEvent.getCause());
-        anEvent.getChannel().close();
+        // anEvent.getChannel().close();
     }		
 	
 	public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
