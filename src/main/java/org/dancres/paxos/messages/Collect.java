@@ -1,6 +1,6 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.impl.AcceptorLearner;
+import org.dancres.paxos.impl.Constants;
 
 import java.net.InetSocketAddress;
 
@@ -9,7 +9,7 @@ public class Collect implements PaxosMessage {
     private long _rndNumber;
     private InetSocketAddress _nodeId;
 
-    public static final Collect INITIAL = new Collect(AcceptorLearner.UNKNOWN_SEQ, Long.MIN_VALUE);
+    public static final Collect INITIAL = new Collect(Constants.UNKNOWN_SEQ, Long.MIN_VALUE);
 
     private Collect(long aSeqNum, long aRndNumber) {
         this(aSeqNum, aRndNumber, new InetSocketAddress(0));

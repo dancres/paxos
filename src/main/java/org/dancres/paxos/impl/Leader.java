@@ -16,14 +16,6 @@ import java.util.TimerTask;
 /**
  * Implements the leader state machine.
  *
- * Optimisation - if the leader state machine successfully closed the last sequence number out, it can
- * in state COLLECT issue a BEGIN and go to state success. The leader can deduce if it succeeded by recording the
- * round number of it's last successful instance. It then compares that with the AL's view and if they match proceeds
- * with the optimisation attempt. Note that the local AL may be out of date, that's okay as the
- * Leader when it emits the BEGIN will be told OTHER_LEADER. It should then discard the last successful round number
- * and when it retries, because it has no recollection of a previously successful round, it will issue a COLLECT
- * as usual.
- *
  * @todo Add a test for validating multiple sequence number recovery.
  * @todo Add a test for validating retries on dropped packets in later leader states.
  *
@@ -36,52 +28,36 @@ public class Leader implements MembershipListener {
 
     private static final long MAX_TRIES = 3;
 
-    /*
-     * Internal states
-     */
-
     /**
-     * Leader reaches this state after SUBMITTED. If already leader, a transition to BEGIN will be immediate.
+     * Leader reaches COLLECT after SUBMITTED. If already leader, a transition to BEGIN will be immediate.
      * If not leader and recovery is not active, move to state RECOVER otherwise leader is in recovery and must now
      * settle low to high watermark (as set by RECOVER) before processing any submitted value by repeatedly executing
      * full instances of paxos (including a COLLECT to recover any previous value that was proposed).
+     * 
+     * In BEGIN we attempt to reserve a slot in the sequence of operations. Transition to SUCCESS after emitting begin 
+     * to see if the slot was granted.
+     * 
+     * In SUCCESS, Leader has sent a BEGIN and now determines if it has secured the slot associated with the sequence 
+     * number. If the slot was secured, a value will be sent to all members of the current instance after which there
+     * will be a transition to COMMITTED.
+     * 
+     * In EXIT a paxos instance was completed successfully, clean up is all that remains.
+     * 
+     * In ABORT a paxos isntance failed for some reason (which will be found in </code>_completion</code>).
+     * 
+     * In SUBMITTED, Leader has been given a value and should attempt to complete a paxos instance.
      */
-    private static final int COLLECT = 0;
-
-    /**
-     * Attempt to reserve a slot in the sequence of operations. Transition to SUCCESS after emitting begin to see
-     * if the slot was granted.
-     */
-    private static final int BEGIN = 1;
-
-    /**
-     * Leader has sent a BEGIN and now determines if it has secured the slot associated with the sequence number.
-     * If the slot was secured, a value will be sent to all members of the current instance after which there will
-     * be a transition to COMMITTED.
-     */
-    private static final int SUCCESS = 2;
-
-    /**
-     * A paxos instance was completed successfully, clean up is all that remains.
-     */
-    private static final int EXIT = 3;
-
-    /**
-     * A paxos isntance failed for some reason (which will be found in </code>_completion</code>).
-     */
-    private static final int ABORT = 4;
-
-    /**
-     * Leader has been given a value and should attempt to complete a paxos instance.
-     */
-    private static final int SUBMITTED = 7;
+    enum States {
+    	COLLECT, BEGIN, SUCCESS, EXIT, ABORT, SUBMITTED
+    };
+    
 
     private final Timer _watchdog = new Timer("Leader timers");
     private final FailureDetector _detector;
     private final Transport _transport;
     private final AcceptorLearner _al;
 
-    private long _seqNum = AcceptorLearner.UNKNOWN_SEQ;
+    private long _seqNum = Constants.UNKNOWN_SEQ;
 
     /**
      * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without
@@ -90,9 +66,7 @@ public class Leader implements MembershipListener {
      */
     private long _rndNumber = 0;
 
-    private static final long NO_ROUND = -1;
-
-    private long _lastSuccessfulRndNumber = NO_ROUND;
+    private long _lastSuccessfulRndNumber = Constants.NO_ROUND;
 
     private long _tries = 0;
 
@@ -113,7 +87,7 @@ public class Leader implements MembershipListener {
      */
     private Membership _membership;
 
-    private int _state = EXIT;
+    private States _currentState = States.EXIT;
 
     /**
      * In cases of ABORT, indicates the reason
@@ -151,14 +125,14 @@ public class Leader implements MembershipListener {
 
     public boolean isReady() {
         synchronized(this) {
-            return (_state == EXIT) || (_state == ABORT);
+            return ((_currentState.equals(States.EXIT)) || (_currentState.equals(States.ABORT)));
         }
     }
 
     private void updateSeqNum() {
         // Possibility we're starting from scratch
         //
-        if (_seqNum == AcceptorLearner.UNKNOWN_SEQ)
+        if (_seqNum == Constants.UNKNOWN_SEQ)
             _seqNum = 0;
         else
             _seqNum = _seqNum + 1;
@@ -172,7 +146,7 @@ public class Leader implements MembershipListener {
      * @todo Increment round number via heartbeats every so often - see note below about jittering collects.
      */
     private void process() {
-        switch(_state) {
+        switch(_currentState) {
             case ABORT : {
             	assert (_queue.size() != 0);
 
@@ -213,7 +187,7 @@ public class Leader implements MembershipListener {
                 if (_queue.size() > 0) {
                     _logger.info(this + ": processing op from queue: " + _queue.get(0));
 
-                    _state = SUBMITTED;
+                    _currentState = States.SUBMITTED;
                     process();
 
                 } else {
@@ -245,7 +219,7 @@ public class Leader implements MembershipListener {
 
                 // Collect will decide if it can skip straight to a begin
                 //
-                _state = COLLECT;
+                _currentState = States.COLLECT;
                 process();
 
                 break;
@@ -320,16 +294,21 @@ public class Leader implements MembershipListener {
             			}
             		} else {
                         /*
-                         * If we think the leader is still us, we can apply a multi-paxos optimisation and go
-                         * straight to begin so long as our last successful round number matches that of the
-                         * last collect our AL knows about.
+                         * Optimisation - if the leader state machine successfully closed the last sequence number out,
+                         * it can in state COLLECT issue a BEGIN and go to state success. The leader can deduce if it
+                         * succeeded by recording the round number of it's last successful instance. It then compares
+                         * that with the AL's view and if they match proceeds with the optimisation attempt. Note that
+                         * the local AL may be out of date, that's okay as the Leader when it emits the BEGIN will be
+                         * told OTHER_LEADER. It should then discard the last successful round number and when it
+                         * retries, because it has no recollection of a previously successful round, it will issue a 
+                         * COLLECT as usual. This is the multi-paxos optimisation.
                          */
                         if (_lastSuccessfulRndNumber == myLastCollect.getRndNumber()) {
                             _logger.info(this + ": applying multi-paxos");
 
                             updateSeqNum();
 
-                            _state = BEGIN;
+                            _currentState = States.BEGIN;
 
                             process();
 
@@ -340,7 +319,7 @@ public class Leader implements MembershipListener {
 
                 updateSeqNum();
 
-            	_state = BEGIN;
+            	_currentState = States.BEGIN;
                 emit(new Collect(_seqNum, _rndNumber, _transport.getLocalAddress()));
 
             	break;
@@ -372,7 +351,7 @@ public class Leader implements MembershipListener {
                 if ((myValue != null) && (! myValue.equals(_queue.get(0))))
                 	_queue.add(myValue);
 
-                _state = SUCCESS;
+                _currentState = States.SUCCESS;
                 emit(new Begin(_seqNum, _rndNumber, _queue.get(0), _transport.getLocalAddress()));
 
                 break;
@@ -398,12 +377,12 @@ public class Leader implements MembershipListener {
                 break;
             }
 
-            default : throw new RuntimeException("Invalid state: " + _state);
+            default : throw new RuntimeException("Invalid state: " + _currentState);
         }
     }
 
     private boolean canRetry() {
-        return (_state == SUCCESS);
+        return _currentState.equals(States.SUCCESS);
     }
 
     /**
@@ -414,7 +393,7 @@ public class Leader implements MembershipListener {
 
         InetSocketAddress myCompetingNodeId = myOldRound.getLeaderNodeId();
 
-        _lastSuccessfulRndNumber = NO_ROUND;
+        _lastSuccessfulRndNumber = Constants.NO_ROUND;
 
         /*
          * If we're getting an OldRound, the other leader's lease has expired. We may be about to become leader
@@ -429,7 +408,7 @@ public class Leader implements MembershipListener {
 
                 _seqNum = myOldRound.getSeqNum();
 
-                _state = COLLECT;
+                _currentState = States.COLLECT;
                 process();
             }
         } else {
@@ -442,7 +421,7 @@ public class Leader implements MembershipListener {
     }
 
     private void successful(int aReason) {
-        _state = EXIT;
+        _currentState = States.EXIT;
         _event = new Event(aReason, _seqNum, _queue.get(0), _transport.getLocalAddress());
 
         process();
@@ -453,7 +432,7 @@ public class Leader implements MembershipListener {
     }
     
     private void error(int aReason, InetSocketAddress aLeader) {
-        _state = ABORT;
+        _currentState = States.ABORT;
         _event = new Event(aReason, _seqNum, _queue.get(0), aLeader);
 
         process();
@@ -544,7 +523,7 @@ public class Leader implements MembershipListener {
             } else {
                 _logger.info(this + ": Queued operation (initialising leader)");
 
-                _state = SUBMITTED;
+                _currentState = States.SUBMITTED;
 
                 process();
             }
@@ -569,8 +548,8 @@ public class Leader implements MembershipListener {
 		_logger.info(this + " received message: " + aMessage);
 
         synchronized (this) {
-            if ((aMessage.getSeqNum() == _seqNum) && MessageValidator.getValidator(_state).acceptable(aMessage)) {
-                if (MessageValidator.getValidator(_state).fail(aMessage)) {
+            if ((aMessage.getSeqNum() == _seqNum) && MessageValidator.getValidator(_currentState).acceptable(aMessage)) {
+                if (MessageValidator.getValidator(_currentState).fail(aMessage)) {
 
                     // Can only be an oldRound right now...
                     //
@@ -586,10 +565,10 @@ public class Leader implements MembershipListener {
     }
 
     public String toString() {
-        int myState;
+        States myState;
 
         synchronized(this) {
-            myState = _state;
+            myState = _currentState;
         }
 
     	return "Leader: " + _transport.getLocalAddress() +
@@ -607,7 +586,7 @@ public class Leader implements MembershipListener {
         private static final MessageValidator _nullValidator =
                 new MessageValidator(new Class[]{}, new Class[]{}) {};
 
-        static MessageValidator getValidator(int aLeaderState) {
+        static MessageValidator getValidator(States aLeaderState) {
             switch(aLeaderState) {
                 case BEGIN : return _beginValidator;
 

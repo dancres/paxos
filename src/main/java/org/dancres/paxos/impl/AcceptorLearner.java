@@ -32,8 +32,6 @@ public class AcceptorLearner {
     //
     private static final long SHUTDOWN_PAUSE = 1 * 1000;
 
-    public static final long UNKNOWN_SEQ = -1;
-    
 	public static final Proposal HEARTBEAT = new Proposal("heartbeat",
 			"org.dancres.paxos.Heartbeat".getBytes());
 
@@ -114,7 +112,7 @@ public class AcceptorLearner {
      * paxos instances.
      */
     public static class Watermark {
-        static final Watermark INITIAL = new Watermark(UNKNOWN_SEQ, -1);
+        static final Watermark INITIAL = new Watermark(Constants.UNKNOWN_SEQ, -1);
         private long _seqNum;
         private long _logOffset;
 
