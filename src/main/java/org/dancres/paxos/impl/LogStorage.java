@@ -8,6 +8,11 @@ import org.dancres.paxos.Proposal;
  * @author dan
  */
 public interface LogStorage {
+	
+	public interface RecordListener {
+		public void onRecord(long anOffset, byte[] aRecord);
+	}
+	
     public static final Proposal NO_VALUE =
     	new Proposal("org.dancres.paxos.NoValue", new byte[0]);
 

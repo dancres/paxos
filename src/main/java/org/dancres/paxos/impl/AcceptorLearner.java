@@ -38,8 +38,7 @@ public class AcceptorLearner {
 			"org.dancres.paxos.Heartbeat".getBytes());
 
 	private static long DEFAULT_LEASE = 30 * 1000;
-	private static Logger _logger = LoggerFactory
-			.getLogger(AcceptorLearner.class);
+	private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
 	/**
 	 * Statistic that tracks the number of Collects this AcceptorLearner ignored
@@ -284,7 +283,11 @@ public class AcceptorLearner {
                 _logger.info("No checkpoint - replay from the beginning");
 
                 try {
-                    new LogRangeProducer(-1, Long.MAX_VALUE, new LocalStreamer()).produce(0);
+					new LogRangeProducer(-1, Long.MAX_VALUE, new Consumer() {
+						public void process(PaxosMessage aMsg) {
+							AcceptorLearner.this.process(aMsg);
+						}
+					}, _storage).produce(0);
                 } catch (Exception anE) {
                     _logger.error("Failed to replay log", anE);
                 }
@@ -293,7 +296,12 @@ public class AcceptorLearner {
                 ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
 
                 try {
-                    new LogRangeProducer(installCheckpoint(myHandle), Long.MAX_VALUE, new LocalStreamer()).produce(0);
+					new LogRangeProducer(installCheckpoint(myHandle),
+							Long.MAX_VALUE, new Consumer() {
+								public void process(PaxosMessage aMsg) {
+									AcceptorLearner.this.process(aMsg);
+								}
+							}, _storage).produce(0);
                 } catch (Exception anE) {
                     _logger.error("Failed to replay log", anE);
                 }
@@ -304,13 +312,6 @@ public class AcceptorLearner {
             synchronized (this) {
                 _recoveryWindow = null;
             }
-        }
-    }
-
-    private class LocalStreamer implements Consumer {
-
-        public void process(PaxosMessage aMsg) {
-            AcceptorLearner.this.process(aMsg);
         }
     }
 
@@ -458,10 +459,6 @@ public class AcceptorLearner {
 		return _ignoredCollects.longValue();
 	}
 
-	private LogStorage getStorage() {
-		return _storage;
-	}
-
 	private void updateLowWatermark(long aSeqNum, long aLogOffset) {
 		synchronized(this) {
 			if (_lowSeqNumWatermark.getSeqNum() == (aSeqNum - 1)) {
@@ -516,18 +513,6 @@ public class AcceptorLearner {
 			} else {
 				return false;
 			}
-		}
-	}
-
-	private boolean originates(Begin aBegin) {
-		synchronized(this) {
-			return aBegin.originates(_lastCollect);
-		}
-	}
-
-	private boolean precedes(Begin aBegin) {
-		synchronized(this) {
-			return aBegin.precedes(_lastCollect);
 		}
 	}
 
@@ -727,7 +712,7 @@ public class AcceptorLearner {
 
         synchronized(this) {
             _recoveryAlarm = new Watchdog();
-            _watchdog.schedule(_recoveryAlarm, calculateInteractionTimeout());
+            _watchdog.schedule(_recoveryAlarm, calculateRecoveryGracePeriod());
         }
     }
 
@@ -737,7 +722,7 @@ public class AcceptorLearner {
         }
     }
 
-    private long calculateInteractionTimeout() {
+    private long calculateRecoveryGracePeriod() {
         synchronized(this) {
             return _gracePeriod;
         }
@@ -867,7 +852,7 @@ public class AcceptorLearner {
 
 				// If the begin matches the last round of a collect we're fine
 				//
-				if (originates(myBegin)) {
+				if (myBegin.originates(getLastCollect())) {
 					updateLastActionTime(myCurrentTime);
                     cacheBegin(myBegin);
                     
@@ -875,7 +860,7 @@ public class AcceptorLearner {
 
 					send(new Accept(mySeqNum, getLastCollect().getRndNumber(), 
 							_transport.getLocalAddress()), myNodeId);
-				} else if (precedes(myBegin)) {
+				} else if (myBegin.precedes(getLastCollect())) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
@@ -995,7 +980,7 @@ public class AcceptorLearner {
 
     private long write(PaxosMessage aMessage, boolean aForceRequired) {
         try {
-            return getStorage().put(Codecs.encode(aMessage), aForceRequired);
+            return _storage.put(Codecs.encode(aMessage), aForceRequired);
         } catch (Exception anE) {
             _logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " + _transport.getLocalAddress(), anE);
             throw new RuntimeException(anE);
@@ -1007,12 +992,6 @@ public class AcceptorLearner {
 
         void add(PaxosMessage aMessage) {
             switch(aMessage.getType()) {
-                case Operations.COLLECT : {
-                    // Nothing to do
-                    //
-                    break;
-                }
-
                 case Operations.BEGIN : {
 
                     Begin myBegin = (Begin) aMessage;
@@ -1026,13 +1005,8 @@ public class AcceptorLearner {
                     break;
                 }
 
-                case Operations.SUCCESS : {
-                    // Nothing to do
-                    //
-                    break;
+                default : { // Do nothing
                 }
-
-                default : throw new RuntimeException("Unexpected message: " + aMessage);
             }
         }
 
@@ -1045,44 +1019,6 @@ public class AcceptorLearner {
         }
     }
 
-    public interface Consumer {
-        public void process(PaxosMessage aMsg);
-    }
-
-    public interface Producer {
-        public void produce(long aLogOffset) throws Exception;
-    }
-
-    private class LogRangeProducer implements RecordListener, Producer {
-        private long _lowerBoundSeq;
-        private long _maximumSeq;
-        private Consumer _consumer;
-
-        LogRangeProducer(long aLowerBoundSeq, long aMaximumSeq, Consumer aConsumer) {
-            _lowerBoundSeq = aLowerBoundSeq;
-            _maximumSeq = aMaximumSeq;
-            _consumer = aConsumer;
-        }
-
-        public void produce(long aLogOffset) throws Exception {
-            _storage.replay(this, 0);
-        }
-
-        public void onRecord(long anOffset, byte[] aRecord) {
-            PaxosMessage myMessage = Codecs.decode(aRecord);
-
-            // Only send messages in the recovery window
-            //
-            if ((myMessage.getSeqNum() > _lowerBoundSeq)
-                    && (myMessage.getSeqNum() <= _maximumSeq)) {
-                _logger.debug("Producing: " + myMessage);
-                _consumer.process(myMessage);
-            } else {
-                _logger.debug("Not producing: " + myMessage);
-            }
-        }
-    }
-
     /**
      * Used to locate the recorded state of a specified instance of Paxos.
      */
@@ -1090,7 +1026,7 @@ public class AcceptorLearner {
         private Instance _state = new Instance();
 
         StateFinder(long aSeqNum, long aLogOffset) throws Exception {
-            new LogRangeProducer(aSeqNum - 1, aSeqNum, this).produce(aLogOffset);
+            new LogRangeProducer(aSeqNum - 1, aSeqNum, this, _storage).produce(aLogOffset);
         }
 
         Instance getState() {
@@ -1132,7 +1068,7 @@ public class AcceptorLearner {
             }
 
             try {
-                new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this).produce(0);
+                new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this, _storage).produce(0);
             } catch (Exception anE) {
                 _logger.error("Failed to replay log", anE);
             }

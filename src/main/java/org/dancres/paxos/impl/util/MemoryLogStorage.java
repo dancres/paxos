@@ -5,7 +5,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.dancres.paxos.impl.LogStorage;
-import org.dancres.paxos.impl.RecordListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
