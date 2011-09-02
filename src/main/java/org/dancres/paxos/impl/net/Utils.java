@@ -3,8 +3,12 @@ package org.dancres.paxos.impl.net;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
 import java.net.*;
 import java.util.*;
+import java.io.ObjectOutputStream;
 
 public class Utils {
     private static Logger _logger = LoggerFactory.getLogger(Utils.class);
@@ -129,6 +133,10 @@ public class Utils {
         }
     }
 
+    public static String getNetworkInterface() {
+    	return _workableInterface.getName();
+    }
+    
     public static InetAddress getWorkableInterface() {
         return _workableAddress;
     }
@@ -139,5 +147,22 @@ public class Utils {
 
     public static int getAddressSize() {
         return 4;
+    }
+    
+    public static byte[] marshall(InetSocketAddress anAddr) throws Exception {
+    	ByteArrayOutputStream myBAOS = new ByteArrayOutputStream();
+    	ObjectOutputStream myOOS = new ObjectOutputStream(myBAOS);
+    	
+    	myOOS.writeObject(anAddr);
+    	myOOS.close();
+    	
+    	return myBAOS.toByteArray();
+    }
+    
+    public static InetSocketAddress unmarshallInetSocketAddress(byte[] aBytes) throws Exception {
+    	ByteArrayInputStream myBAIS = new ByteArrayInputStream(aBytes);
+    	ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
+    	
+    	return (InetSocketAddress) myOIS.readObject();
     }
 }
