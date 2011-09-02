@@ -1,5 +1,7 @@
 package org.dancres.paxos.impl.discovery;
 
+import java.net.InetSocketAddress;
+
 public class HostDetails {
 	private String _host;
 	private int _port;
@@ -11,5 +13,9 @@ public class HostDetails {
 	
 	public String toString() {
 		return _host + ":" + _port;
+	}
+	
+	public InetSocketAddress getAddr() {
+		return new InetSocketAddress(_host, _port);
 	}
 }
