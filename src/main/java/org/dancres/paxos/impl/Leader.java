@@ -129,7 +129,14 @@ public class Leader implements MembershipListener {
         }
     }
 
-    private void updateSeqNum() {
+    private long nextSeqNum() {
+    	if (_seqNum == Constants.UNKNOWN_SEQ)
+    		return 0;
+    	else
+    		return _seqNum + 1;
+    }
+    
+    private void advanceSeqNum() {
         // Possibility we're starting from scratch
         //
         if (_seqNum == Constants.UNKNOWN_SEQ)
@@ -164,7 +171,7 @@ public class Leader implements MembershipListener {
                  */
                 while (_queue.size() > 0) {
                     _al.signal(new Event(_event.getResult(), _event.getSeqNum(),
-                            _queue.remove(0), _al.getLastCollect().getNodeId()));
+                            _queue.remove(0), _event.getLeader()));
                 }
 
                 return;
@@ -306,8 +313,6 @@ public class Leader implements MembershipListener {
                         if (_lastSuccessfulRndNumber == myLastCollect.getRndNumber()) {
                             _logger.info(this + ": applying multi-paxos");
 
-                            updateSeqNum();
-
                             _currentState = States.BEGIN;
 
                             process();
@@ -317,10 +322,8 @@ public class Leader implements MembershipListener {
                     }
             	}
 
-                updateSeqNum();
-
             	_currentState = States.BEGIN;
-                emit(new Collect(_seqNum, _rndNumber, _transport.getLocalAddress()));
+                emit(new Collect(nextSeqNum(), _rndNumber, _transport.getLocalAddress()));
 
             	break;
             }
@@ -352,7 +355,7 @@ public class Leader implements MembershipListener {
                 	_queue.add(myValue);
 
                 _currentState = States.SUCCESS;
-                emit(new Begin(_seqNum, _rndNumber, _queue.get(0), _transport.getLocalAddress()));
+                emit(new Begin(nextSeqNum(), _rndNumber, _queue.get(0), _transport.getLocalAddress()));
 
                 break;
             }
@@ -363,15 +366,15 @@ public class Leader implements MembershipListener {
                 if (_messages.size() >= _detector.getMajority()) {
                     // Send success
                     //
-                    emit(new Success(_seqNum, _rndNumber, _transport.getLocalAddress()));
+                    emit(new Success(nextSeqNum(), _rndNumber, _transport.getLocalAddress()));
                     cancelInteraction();
-                    _lastSuccessfulRndNumber = _rndNumber;
-
+                    _lastSuccessfulRndNumber = _rndNumber;                    
                     successful(Event.Reason.DECISION);
+                    advanceSeqNum();
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    emit(new Begin(_seqNum, _rndNumber, _queue.get(0), _transport.getLocalAddress()));
+                    emit(new Begin(nextSeqNum(), _rndNumber, _queue.get(0), _transport.getLocalAddress()));
                 }
 
                 break;
@@ -403,8 +406,8 @@ public class Leader implements MembershipListener {
          * our _seqNum will drive our own AL to recover missing state should that be necessary.
          */
         if (myOldRound.getLastRound() < _rndNumber) {
-            if (myOldRound.getSeqNum() > _seqNum) {
-        	    _logger.info(this + ": This leader is out of date: " + _seqNum + " < " + myOldRound.getSeqNum());
+            if (myOldRound.getSeqNum() > nextSeqNum()) {
+        	    _logger.info(this + ": This leader is out of date: " + nextSeqNum() + " < " + myOldRound.getSeqNum());
 
                 _seqNum = myOldRound.getSeqNum();
 
@@ -422,18 +425,20 @@ public class Leader implements MembershipListener {
 
     private void successful(int aReason) {
         _currentState = States.EXIT;
-        _event = new Event(aReason, _seqNum, _queue.get(0), _transport.getLocalAddress());
+        _event = new Event(aReason, nextSeqNum(), _queue.get(0), _transport.getLocalAddress());
 
         process();
     }
 
     private void error(int aReason) {
-    	error(aReason, null);
+    	error(aReason, _transport.getLocalAddress());
     }
     
     private void error(int aReason, InetSocketAddress aLeader) {
         _currentState = States.ABORT;
-        _event = new Event(aReason, _seqNum, _queue.get(0), aLeader);
+        _event = new Event(aReason, nextSeqNum(), _queue.get(0), aLeader);
+        
+        _logger.info("Leader encountered error: " + _event);
 
         process();
     }
@@ -548,7 +553,8 @@ public class Leader implements MembershipListener {
 		_logger.info(this + " received message: " + aMessage);
 
         synchronized (this) {
-            if ((aMessage.getSeqNum() == _seqNum) && MessageValidator.getValidator(_currentState).acceptable(aMessage)) {
+            if ((aMessage.getSeqNum() == nextSeqNum()) &&
+            		MessageValidator.getValidator(_currentState).acceptable(aMessage)) {
                 if (MessageValidator.getValidator(_currentState).fail(aMessage)) {
 
                     // Can only be an oldRound right now...
@@ -572,7 +578,7 @@ public class Leader implements MembershipListener {
         }
 
     	return "Leader: " + _transport.getLocalAddress() +
-    		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState +
+    		": (" + Long.toHexString(nextSeqNum()) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState +
                 " tries: " + _tries + "/" + MAX_TRIES;
     }
 
