@@ -143,7 +143,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
             aDispatcher.setTransport(this);
         }
     }
-	public void shutdown() {
+
+    public void shutdown() {
 		_isStopping.set(true);
 		
 		try {
