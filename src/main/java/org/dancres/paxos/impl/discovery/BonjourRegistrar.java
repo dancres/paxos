@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 
+import org.dancres.paxos.impl.net.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +27,12 @@ public class BonjourRegistrar implements Registrar, BrowseListener, ResolveListe
     
 	public void register(InetSocketAddress anAddress) throws IOException {
 		try {
-			DNSSD.register(null, Registrar.TYPE, anAddress.getPort(), new RegisterImpl());
+			int myIndex = DNSSD.getIfIndexForName(Utils.getNetworkInterface());
+			
+			_logger.info("Going to register with: " + anAddress.getHostName());
+			
+			DNSSD.register(0, myIndex, null, Registrar.TYPE, null, anAddress.getHostName(), 
+					anAddress.getPort(), null, new RegisterImpl());
 		} catch (DNSSDException anE) {
 			_logger.error("Register failed", anE);
 			
@@ -98,7 +104,11 @@ public class BonjourRegistrar implements Registrar, BrowseListener, ResolveListe
 			String aFullName, String aHostName, int aPort, TXTRecord aDescription) {
 		
 		synchronized(this) {
-			_hosts.add(new HostDetails(aHostName, aPort));
+			String myHost = (aHostName.endsWith(".")) ? aHostName.substring(0, aHostName.length() - 1) : aHostName;
+			
+			_logger.debug("Adding host:"  + myHost + " to list");
+			
+			_hosts.add(new HostDetails(myHost, aPort));
 		}
 	}
 }
