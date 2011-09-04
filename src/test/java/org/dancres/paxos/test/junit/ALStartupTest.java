@@ -64,7 +64,7 @@ public class ALStartupTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
         myAl.open();
 		myAl.close();
 	}

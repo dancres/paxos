@@ -26,13 +26,12 @@ import org.slf4j.LoggerFactory;
  * @author dan
  */
 public class AcceptorLearner {
-    private static final long DEFAULT_GRACE_PERIOD = 30 * 1000;
+    private static final long DEFAULT_RECOVERY_GRACE_PERIOD = 30 * 1000;
 
     // Pause should be less than DEFAULT_GRACE_PERIOD
     //
     private static final long SHUTDOWN_PAUSE = 1 * 1000;
 
-	private static long DEFAULT_LEASE = 30 * 1000;
 	private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
 	/**
@@ -43,39 +42,14 @@ public class AcceptorLearner {
 	private AtomicLong _ignoredCollects = new AtomicLong();
 	private AtomicLong _receivedHeartbeats = new AtomicLong();
 
-    private long _gracePeriod = DEFAULT_GRACE_PERIOD;
+    private long _gracePeriod = DEFAULT_RECOVERY_GRACE_PERIOD;
 
     private final Timer _watchdog = new Timer("AcceptorLearner timers");
     private TimerTask _recoveryAlarm = null;
 
     private OutOfDate _outOfDate = null;
 
-    /*
-     * If the sequence number of the collect we're seeing is for a sequence number >
-     * lwm + 1, we've missed some packets. Recovery range r is lwm < r
-     * <= x (where x = currentMessage.seqNum) so that the round we're
-     * seeing right now is complete and we need save packets only after
-     * that point.
-     */
-    private static class RecoveryWindow {
-        private long _minSeqNum;
-        private long _maxSeqNum;
-
-        RecoveryWindow(long aMin, long aMax) {
-            _minSeqNum = aMin;
-            _maxSeqNum = aMax;
-        }
-
-        long getMinSeqNum() {
-            return _minSeqNum;
-        }
-
-        long getMaxSeqNum() {
-            return _maxSeqNum;
-        }
-    }
-
-	private RecoveryWindow _recoveryWindow = null;
+	private Need _recoveryWindow = null;
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
 
 	/**
@@ -88,7 +62,6 @@ public class AcceptorLearner {
 	private final Transport _transport;
 	private final FailureDetector _fd;
 	
-	private final long _leaderLease;
 	private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
 
     /**
@@ -222,14 +195,9 @@ public class AcceptorLearner {
      ******************************************************************************************** */
 
     public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport) {
-        this(aStore, anFD, aTransport, DEFAULT_LEASE);
-    }
-
-    public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport, long aLeaderLease) {
         _storage = aStore;
         _transport = aTransport;
         _fd = anFD;
-        _leaderLease = aLeaderLease;
     }
 
     public CheckpointHandle newCheckpoint() {
@@ -271,7 +239,7 @@ public class AcceptorLearner {
 
         try {
             synchronized(this) {
-                _recoveryWindow = new RecoveryWindow(-1, Long.MAX_VALUE);
+                _recoveryWindow = new Need(-1, Long.MAX_VALUE, _transport.getLocalAddress());
             }
 
             if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
@@ -346,8 +314,6 @@ public class AcceptorLearner {
     }
 
     private long installCheckpoint(ALCheckpointHandle aHandle) {
-        long myMin = -1;
-
         _lastCheckpoint = aHandle;
         _lastCollect = aHandle.getLastCollect();
 
@@ -408,10 +374,6 @@ public class AcceptorLearner {
     	return _trigger.getLowWatermark();
     }
     
-	public long getLeaderLeaseDuration() {
-		return _leaderLease;
-	}
-
     public boolean isOutOfDate() {
         synchronized(this) {
             return (_outOfDate != null);
@@ -505,20 +467,21 @@ public class AcceptorLearner {
 	private boolean amAccepting(Collect aCollect, long aCurrentTime) {
 		synchronized(this) {
 			if (_lastCollect.isInitial()) {
+				_logger.debug("Current collect is initial - allow leader");
+				
 				return true;
 			} else {
-				if (isFromCurrentLeader(aCollect))
+				if (aCollect.sameLeader(getLastCollect())) {
+					_logger.debug("Current collect is from same leader - allow");
+					
 					return true;
-				else
+				} else
+					_logger.debug("Check leader expiry: " + (aCurrentTime > _lastLeaderActionTime
+							+ Constants.getLeaderLeaseDuration()));
+				
 					return (aCurrentTime > _lastLeaderActionTime
-							+ _leaderLease);
+							+ Constants.getLeaderLeaseDuration());
 			}
-		}
-	}
-
-	private boolean isFromCurrentLeader(Collect aCollect) {
-		synchronized(this) {
-			return aCollect.sameLeader(_lastCollect);
 		}
 	}
 
@@ -584,15 +547,17 @@ public class AcceptorLearner {
 			}
 		}
 		
-		RecoveryWindow shouldRecover(long aProposalSeqNum) {
+		Need shouldRecover(long aProposalSeqNum) {
 			synchronized(this) {
 				// If we haven't got any completions, we may have a huge gap beyond MAX_INFLIGHT in size - catch this
 				//
 				if (_completed.size() == 0) {
 					if (aProposalSeqNum > _lowSeqNumWatermark.getSeqNum() + MAX_INFLIGHT)
-						return new RecoveryWindow(_lowSeqNumWatermark.getSeqNum(), aProposalSeqNum - 1);
+						return new Need(_lowSeqNumWatermark.getSeqNum(), aProposalSeqNum - 1, 
+								_transport.getLocalAddress());
 				} else if (_lowSeqNumWatermark.getSeqNum() + MAX_INFLIGHT < _completed.last().getSeqNum()) {
-					return new RecoveryWindow(_lowSeqNumWatermark.getSeqNum(), _completed.first().getSeqNum() - 1);
+					return new Need(_lowSeqNumWatermark.getSeqNum(), _completed.first().getSeqNum() - 1,
+							_transport.getLocalAddress());
 				}
 				
 				return null;
@@ -648,21 +613,21 @@ public class AcceptorLearner {
 
 			// If the packet is for a sequence number above the recovery window - save it for later
 			//
-			if (mySeqNum > _recoveryWindow.getMaxSeqNum()) {
+			if (mySeqNum > _recoveryWindow.getMaxSeq()) {
 				synchronized(this) {
 					_packetBuffer.add(aMessage);
 				}
 				
 			// If the packet is for a sequence number within the window, process it now for catchup
 			//
-			} else if (mySeqNum > _recoveryWindow.getMinSeqNum()) {
+			} else if (mySeqNum > _recoveryWindow.getMinSeq()) {
 				process(aMessage);
 				
 				/*
 				 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
 				 *  streamed through the packet buffer
 				 */
-				if (_trigger.getLowWatermark().getSeqNum() == _recoveryWindow.getMaxSeqNum()) {
+				if (_trigger.getLowWatermark().getSeqNum() == _recoveryWindow.getMaxSeq()) {
 					synchronized(this) {
 						Iterator<PaxosMessage> myPackets = _packetBuffer.iterator();
 						
@@ -685,7 +650,7 @@ public class AcceptorLearner {
 				//
 			}
 		} else {
-			RecoveryWindow myWindow = _trigger.shouldRecover(aMessage.getSeqNum());
+			Need myWindow = _trigger.shouldRecover(aMessage.getSeqNum());
 
 			if (myWindow != null) {
 				/*
@@ -708,8 +673,7 @@ public class AcceptorLearner {
 					 * window. As the recovery watchdog measures progress through the recovery window, a partial
 					 * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
 					 */
-					send(new Need(myWindow.getMinSeqNum(), myWindow.getMaxSeqNum(),
-							_transport.getLocalAddress()), _fd.getRandomMember(_transport.getLocalAddress()));
+					send(myWindow, _fd.getRandomMember(_transport.getLocalAddress()));
 
 					// Declare recovery active - which stops this AL emitting responses
 					//
@@ -880,7 +844,7 @@ public class AcceptorLearner {
 					 * and node), we apply the multi-paxos optimisation, no need to
 					 * save to disk, just respond with last proposal etc
 					 */
-				} else if (isFromCurrentLeader(myCollect)) {
+				} else if (myCollect.sameLeader(getLastCollect())) {
 					send(constructLast(mySeqNum), myNodeId);
 
 				} else {

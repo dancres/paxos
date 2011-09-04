@@ -67,14 +67,14 @@ public class ALCheckpointTest {
         HowlLogger myLogger = new HowlLogger(DIRECTORY);
         TransportImpl myTransport = new TransportImpl();
 
-        AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
+        AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
 
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
         CheckpointHandle myHandle = myAl.newCheckpoint();
         myHandle.saved();
         myAl.close();
 
-        myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
+        myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
 
         myAl.open(myHandle);
         myAl.close();
@@ -89,7 +89,7 @@ public class ALCheckpointTest {
         ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
         CheckpointHandle myRecoveredHandle = (CheckpointHandle) myOIS.readObject();
 
-        myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
+        myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
 
         myAl.open(myRecoveredHandle);
         myAl.close();

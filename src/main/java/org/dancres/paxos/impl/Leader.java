@@ -119,7 +119,7 @@ public class Leader implements MembershipListener {
     }
 
     private long calculateLeaderRefresh() {
-        long myExpiry = _al.getLeaderLeaseDuration();
+        long myExpiry = Constants.getLeaderLeaseDuration();
         return myExpiry - (myExpiry * 20 / 100);
     }
 

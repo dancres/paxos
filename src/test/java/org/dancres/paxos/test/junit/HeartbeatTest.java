@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.Event;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.AcceptorLearner;
+import org.dancres.paxos.impl.Constants;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
@@ -73,7 +74,7 @@ public class HeartbeatTest {
         //
         AcceptorLearner myAl = _node2.getAcceptorLearner();
 
-        Thread.sleep(5000 + myAl.getLeaderLeaseDuration());
+        Thread.sleep(5000 + Constants.getLeaderLeaseDuration());
 
         Assert.assertTrue(myAl.getHeartbeatCount() == 1);
     }

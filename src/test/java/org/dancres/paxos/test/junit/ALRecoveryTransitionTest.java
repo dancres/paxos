@@ -87,7 +87,7 @@ public class ALRecoveryTransitionTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl(_nodeId, _broadcastId);
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
         myAl.open();
 		
 		Assert.assertFalse(myAl.isRecovering());

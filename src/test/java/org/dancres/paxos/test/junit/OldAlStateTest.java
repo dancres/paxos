@@ -31,6 +31,12 @@ public class OldAlStateTest {
 	
 	private InetSocketAddress _nodeId = Utils.getTestAddress();
 	
+	public static void main(String anArgs[]) throws Exception {
+		OldAlStateTest myTest = new OldAlStateTest();
+		myTest.init();
+		myTest.test();
+	}
+	
 	@Before public void init() throws Exception {
     	FileSystem.deleteDirectory(new File(DIRECTORY));
 	}
@@ -83,7 +89,7 @@ public class OldAlStateTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport, 0);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
         myAl.open();
 		
 		long myRndNum = 1;
