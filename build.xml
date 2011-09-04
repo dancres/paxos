@@ -66,7 +66,7 @@
 		<junit printsummary="on" haltonfailure="off" showoutput="false" filtertrace="off">
 			<jvmarg value="-ea"/>
 			<classpath refid="allclasses"/>
-			<batchtest fork="yes" todir="${reports.tests}">
+			<batchtest fork="no" todir="${reports.tests}">
 				<formatter type="plain" usefile="true">
 				</formatter>
 				<fileset dir="${testsrc}">
@@ -80,7 +80,7 @@
 		<junit printsummary="on" haltonfailure="on" showoutput="false" filtertrace="off">
 			<jvmarg value="-ea"/>
 			<classpath refid="allclasses"/>
-			<batchtest fork="yes" todir="${reports.tests}">
+			<batchtest fork="no" todir="${reports.tests}">
 				<formatter type="plain" usefile="true">
 				</formatter>
 				<fileset dir="${testsrc}">
