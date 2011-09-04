@@ -105,7 +105,14 @@ public class Leader implements MembershipListener {
     }
 
     public void shutdown() {
-    	_watchdog.cancel();
+    	synchronized(this) {
+    		_watchdog.cancel();
+
+    		if (_membership != null)
+    			_membership.dispose();
+    		
+    		_currentState = States.ABORT;
+    	}
     }
 
     private long calculateLeaderRefresh() {
@@ -479,9 +486,9 @@ public class Leader implements MembershipListener {
     }
 
     public void allReceived() {
-        cancelInteraction();
-
         synchronized(this) {
+            cancelInteraction();
+
             _tries = 0;
             process();
         }
@@ -496,8 +503,6 @@ public class Leader implements MembershipListener {
     }
 
     private void expired() {
-        // _interactionAlarm will be cancelled automatically by watchdog
-        //
         _logger.info(this + ": Watchdog requested abort: ");
 
         synchronized(this) {
@@ -505,6 +510,7 @@ public class Leader implements MembershipListener {
                 ++_tries;
 
                 if (_tries < MAX_TRIES) {
+                	cancelInteraction();
                     process();
                     return;
                 }
