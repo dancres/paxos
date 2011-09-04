@@ -51,7 +51,7 @@ public class Collect implements PaxosMessage {
     }
 
     public boolean sameLeader(Collect aCollect) {
-    	return ((_rndNumber == aCollect._rndNumber) && (_nodeId.equals(aCollect._nodeId)));
+    	return ((_rndNumber >= aCollect._rndNumber) && (_nodeId.equals(aCollect._nodeId)));
     }
     
     public boolean isInitial() {
