@@ -32,9 +32,6 @@ public class AcceptorLearner {
     //
     private static final long SHUTDOWN_PAUSE = 1 * 1000;
 
-	public static final Proposal HEARTBEAT = new Proposal("heartbeat",
-			"org.dancres.paxos.Heartbeat".getBytes());
-
 	private static long DEFAULT_LEASE = 30 * 1000;
 	private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
@@ -954,7 +951,7 @@ public class AcceptorLearner {
 
                         _trigger.completed(new Watermark(mySeqNum, myLogOffset));
 
-                        if (myBegin.getConsolidatedValue().equals(HEARTBEAT)) {
+                        if (myBegin.getConsolidatedValue().equals(Leader.HEARTBEAT)) {
                             _receivedHeartbeats.incrementAndGet();
 
                             _logger.info("AL: discarded heartbeat: "
@@ -998,7 +995,7 @@ public class AcceptorLearner {
 		
 		if (myState.getLastValue() == null) {
 			return new Last(aSeqNum, myLow.getSeqNum(), Long.MIN_VALUE,
-					LogStorage.NO_VALUE, _transport.getLocalAddress());
+					Proposal.NO_VALUE, _transport.getLocalAddress());
 		} else {			
 			Begin myBegin = myState.getLastValue();
 			
@@ -1013,16 +1010,6 @@ public class AcceptorLearner {
         if (! isRecovering())
             _transport.send(aMessage, aNodeId);
     }
-
-    private static void dump(String aMessage, byte[] aBuffer) {
-    	System.err.print(aMessage + " ");
-    	
-        for (int i = 0; i < aBuffer.length; i++) {
-            System.err.print(Integer.toHexString(aBuffer[i]) + " ");
-        }
-
-        System.err.println();
-    }	
 
     /* ********************************************************************************************
      *

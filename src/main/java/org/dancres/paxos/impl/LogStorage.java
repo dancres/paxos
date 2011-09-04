@@ -1,7 +1,5 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.Proposal;
-
 /**
  * Standard abstraction for the log required to maintain essential paxos state to ensure appropriate recovery.
  *
@@ -13,9 +11,6 @@ public interface LogStorage {
 		public void onRecord(long anOffset, byte[] aRecord);
 	}
 	
-    public static final Proposal NO_VALUE =
-    	new Proposal("org.dancres.paxos.NoValue", new byte[0]);
-
     public byte[] get(long mark) throws Exception;
     public long put(byte[] data, boolean sync) throws Exception;
     public void mark(long key, boolean force) throws Exception;

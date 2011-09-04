@@ -85,6 +85,6 @@ public class Last implements PaxosMessage {
     
     public String toString() {
         return "Last: " + Long.toHexString(_seqNum) + " " + Long.toHexString(_low) + 
-                " [ " + Long.toHexString(_rndNumber) + " ] " + _value.equals(LogStorage.NO_VALUE);
+                " [ " + Long.toHexString(_rndNumber) + " ] " + _value.equals(Proposal.NO_VALUE);
     }
 }

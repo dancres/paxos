@@ -24,6 +24,9 @@ import java.util.TimerTask;
 public class Leader implements MembershipListener {
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
 
+	public static final Proposal HEARTBEAT = new Proposal("heartbeat",
+			"org.dancres.paxos.Heartbeat".getBytes());
+
     private static final long GRACE_PERIOD = 1000;
 
     private static final long MAX_TRIES = 3;
@@ -212,7 +215,7 @@ public class Leader implements MembershipListener {
                         public void run() {
                             _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
 
-                            submit(AcceptorLearner.HEARTBEAT);
+                            submit(HEARTBEAT);
                         }
                     };
 
@@ -344,7 +347,7 @@ public class Leader implements MembershipListener {
                 for(PaxosMessage m : _messages) {
                     Last myLast = (Last) m;
 
-                    if (!myLast.getConsolidatedValue().equals(LogStorage.NO_VALUE)) {
+                    if (!myLast.getConsolidatedValue().equals(Proposal.NO_VALUE)) {
                         if (myLast.getRndNumber() > myMaxProposal) {
                             myValue = myLast.getConsolidatedValue();
                             myMaxProposal = myLast.getRndNumber();

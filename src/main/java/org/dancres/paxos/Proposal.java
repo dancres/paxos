@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Proposal {
+    public static final Proposal NO_VALUE =
+        	new Proposal("org.dancres.paxos.NoValue", new byte[0]);
+
 	private final Map<String, byte[]> _values = new HashMap<String, byte[]>();
 	
 	public Proposal() {
