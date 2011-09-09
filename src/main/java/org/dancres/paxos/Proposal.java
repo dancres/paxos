@@ -36,8 +36,9 @@ public class Proposal {
         }
 	}
 
-	public void put(String aKey, byte[] aValue) {
+	public Proposal put(String aKey, byte[] aValue) {
 		_values.put(aKey, aValue);
+		return this;
 	}
 	
 	public byte[] get(String aKey) {
@@ -80,7 +81,7 @@ public class Proposal {
 					byte[] myOtherVal = myOther.get(kv.getKey());
 					
 					if ((myOtherVal == null) || (! compare(myOtherVal, kv.getValue())))
-						break;
+						return false;
 				}
 				
 				return true;
