@@ -60,8 +60,6 @@ public class Leader implements MembershipListener {
     private final Transport _transport;
     private final AcceptorLearner _al;
 
-    private long _seqNum = Constants.UNKNOWN_SEQ;
-
     /**
      * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without
      * risking breaking the collect protocol (the al could suddenly believe it's seen a collect it hasn't and become
@@ -97,9 +95,9 @@ public class Leader implements MembershipListener {
      */
     private Event _event;
 
+    private Queue _queue = new Queue();
+    
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
-
-    private List<Proposal> _queue = new LinkedList<Proposal>();
 
     public Leader(FailureDetector aDetector, Transport aTransport, AcceptorLearner anAcceptorLearner) {
         _detector = aDetector;
@@ -139,22 +137,96 @@ public class Leader implements MembershipListener {
         }
     }
 
-    private long nextSeqNum() {
-    	if (_seqNum == Constants.UNKNOWN_SEQ)
-    		return 0;
-    	else
-    		return _seqNum + 1;
+    class Queue {
+        class Job {
+        	Proposal _prop;
+        	long _seqNum;
+        	
+        	Job(long aSeqNum, Proposal aProp) {
+        		_prop = aProp;
+        		_seqNum = aSeqNum;
+        	}
+        	
+        	public String toString() {
+        		return "Job: " + _seqNum + " -> " + _prop;
+        	}
+        	
+        	public boolean equals(Object anObject) {
+        		if (anObject instanceof Job) {
+        			Job myOther = (Job) anObject;
+        			
+        			return _seqNum == myOther._seqNum;
+        		}
+        		
+        		return false;
+        	}
+        }
+        
+    	private List<Job> _jobs = new LinkedList<Job>();
+    	private long _nextSeqNum = 0;
+    	
+    	void resync(long aNewSeq) {
+    		_nextSeqNum = aNewSeq + _jobs.size();
+    		
+    		long myNewSeq = aNewSeq;
+    		
+    		for (Job myJob: _jobs) {
+    			myJob._seqNum = myNewSeq;
+    			myNewSeq++;
+    		}
+    	}
+    	
+    	void push(Proposal aProp) {
+    		long myNextSeqNum = nextSeqNum();
+    		resync(nextSeqNum() + 1);
+    		
+    		List<Job> myNewJobs = new LinkedList<Job>();
+    		myNewJobs.add(new Job(myNextSeqNum, aProp));
+    		myNewJobs.addAll(_jobs);
+    		_jobs = myNewJobs;
+    	}
+    	
+    	List<Job> reset() {
+    		// Restore next seq num to the seqnum of the proposal at queue head
+    		//
+    		if (_jobs.size() == 0)
+    			return new LinkedList<Job>();
+    		
+    		Job myFirst = _jobs.get(0);
+    		
+    		_nextSeqNum = myFirst._seqNum;
+    		
+    		List<Job> myContents = new LinkedList<Job>(_jobs);
+    		_jobs.clear();
+    		
+    		return myContents;
+    	}
+    	
+    	Job head() {
+    		return _jobs.get(0);
+    	}
+    	
+    	Job remove() {
+    		 return _jobs.remove(0);
+    	}
+    	
+    	void add(Proposal aProp) {
+    		_jobs.add(new Job(_nextSeqNum, aProp));
+    		_nextSeqNum++;
+    	}
+    	
+    	int size() {
+    		return _jobs.size();
+    	}
+    	
+    	long nextSeqNum() {
+    		if (_jobs.size() == 0)
+    			return _nextSeqNum;
+    		else
+    			return head()._seqNum;
+    	}
     }
     
-    private void advanceSeqNum() {
-        // Possibility we're starting from scratch
-        //
-        if (_seqNum == Constants.UNKNOWN_SEQ)
-            _seqNum = 0;
-        else
-            _seqNum = _seqNum + 1;
-    }
-
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
@@ -179,9 +251,11 @@ public class Leader implements MembershipListener {
                 /*
                  * We must fail all queued operations - use the same completion code...
                  */
-                while (_queue.size() > 0) {
+                List<Queue.Job> myJobs = _queue.reset();
+                
+                for (Queue.Job myJob: myJobs) {
                     _al.signal(new Event(_event.getResult(), _event.getSeqNum(),
-                            _queue.remove(0), _event.getLeader()));
+                            myJob._prop, _event.getLeader()));                	
                 }
 
                 return;
@@ -196,13 +270,13 @@ public class Leader implements MembershipListener {
 
                 // Remove the just processed item
                 //                
-                _queue.remove(0);
+                _queue.remove();
 
                 if (_membership != null)
                     _membership.dispose();
 
                 if (_queue.size() > 0) {
-                    _logger.info(this + ": processing op from queue: " + _queue.get(0));
+                    _logger.info(this + ": processing op from queue: " + _queue.head());
 
                     _currentState = States.SUBMITTED;
                     process();
@@ -333,7 +407,7 @@ public class Leader implements MembershipListener {
             	}
 
             	_currentState = States.BEGIN;
-                emit(new Collect(nextSeqNum(), _rndNumber, _transport.getLocalAddress()));
+                emit(new Collect(_queue.nextSeqNum(), _rndNumber, _transport.getLocalAddress()));
 
             	break;
             }
@@ -341,7 +415,7 @@ public class Leader implements MembershipListener {
             case BEGIN : {
             	assert (_queue.size() != 0);
 
-            	long myMaxProposal = -1;
+            	long myMaxProposal = Long.MIN_VALUE;
             	Proposal myValue = null;
 
                 for(PaxosMessage m : _messages) {
@@ -361,11 +435,11 @@ public class Leader implements MembershipListener {
                  * the queue ready for the BEGIN. Note we must compare the consolidated value we want to propose
                  * as the one in the LAST message will be a consolidated value.
                  */
-                if ((myValue != null) && (! myValue.equals(_queue.get(0))))
-                	_queue.add(myValue);
+                if ((myValue != null) && (! myValue.equals(_queue.head())))
+                	_queue.push(myValue);
 
                 _currentState = States.SUCCESS;
-                emit(new Begin(nextSeqNum(), _rndNumber, _queue.get(0), _transport.getLocalAddress()));
+                emit(new Begin(_queue.head()._seqNum, _rndNumber, _queue.head()._prop, _transport.getLocalAddress()));
 
                 break;
             }
@@ -376,15 +450,14 @@ public class Leader implements MembershipListener {
                 if (_messages.size() >= _detector.getMajority()) {
                     // Send success
                     //
-                    emit(new Success(nextSeqNum(), _rndNumber, _transport.getLocalAddress()));
+                    emit(new Success(_queue.nextSeqNum(), _rndNumber, _transport.getLocalAddress()));
                     cancelInteraction();
                     _lastSuccessfulRndNumber = _rndNumber;                    
                     successful(Event.Reason.DECISION);
-                    advanceSeqNum();
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    emit(new Begin(nextSeqNum(), _rndNumber, _queue.get(0), _transport.getLocalAddress()));
+                    emit(new Begin(_queue.head()._seqNum, _rndNumber, _queue.head()._prop, _transport.getLocalAddress()));
                 }
 
                 break;
@@ -416,10 +489,12 @@ public class Leader implements MembershipListener {
          * our _seqNum will drive our own AL to recover missing state should that be necessary.
          */
         if (myOldRound.getLastRound() < _rndNumber) {
-            if (myOldRound.getSeqNum() > nextSeqNum()) {
-        	    _logger.info(this + ": This leader is out of date: " + nextSeqNum() + " < " + myOldRound.getSeqNum());
+            if (myOldRound.getSeqNum() > _queue.nextSeqNum()) {
+        	    _logger.info(this + ": This leader is out of date: " + _queue.nextSeqNum() + " < " + myOldRound.getSeqNum());
 
-                _seqNum = myOldRound.getSeqNum();
+        	    // Received seqNum will be the last known settled one so we should start at + 1
+        	    //
+                _queue.resync(myOldRound.getSeqNum() + 1);
 
                 _currentState = States.COLLECT;
                 process();
@@ -435,7 +510,7 @@ public class Leader implements MembershipListener {
 
     private void successful(int aReason) {
         _currentState = States.EXIT;
-        _event = new Event(aReason, nextSeqNum(), _queue.get(0), _transport.getLocalAddress());
+        _event = new Event(aReason, _queue.head()._seqNum, _queue.head()._prop, _transport.getLocalAddress());
 
         process();
     }
@@ -446,7 +521,7 @@ public class Leader implements MembershipListener {
     
     private void error(int aReason, InetSocketAddress aLeader) {
         _currentState = States.ABORT;
-        _event = new Event(aReason, nextSeqNum(), _queue.get(0), aLeader);
+        _event = new Event(aReason, _queue.head()._seqNum, _queue.head()._prop, aLeader);
         
         _logger.info("Leader encountered error: " + _event);
 
@@ -562,7 +637,7 @@ public class Leader implements MembershipListener {
 		_logger.info(this + " received message: " + aMessage);
 
         synchronized (this) {
-            if ((aMessage.getSeqNum() == nextSeqNum()) &&
+            if ((aMessage.getSeqNum() == _queue.nextSeqNum()) &&
             		MessageValidator.getValidator(_currentState).acceptable(aMessage)) {
                 if (MessageValidator.getValidator(_currentState).fail(aMessage)) {
 
@@ -587,7 +662,7 @@ public class Leader implements MembershipListener {
         }
 
     	return "Leader: " + _transport.getLocalAddress() +
-    		": (" + Long.toHexString(nextSeqNum()) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState +
+    		": (" + Long.toHexString(_queue.nextSeqNum()) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState +
                 " tries: " + _tries + "/" + MAX_TRIES;
     }
 
