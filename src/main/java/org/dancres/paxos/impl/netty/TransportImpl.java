@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.dancres.paxos.impl.Stream;
@@ -90,6 +91,15 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	
     private ChannelGroup _channels = new DefaultChannelGroup();
     
+    class Factory implements ThreadFactory {
+		public Thread newThread(Runnable aRunnable) {
+			Thread myThread = new Thread(aRunnable);
+			
+			myThread.setDaemon(true);
+			return myThread;			
+		}
+    }
+    
     static {
     	System.runFinalizersOnExit(true);
     }
@@ -101,7 +111,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 				BROADCAST_PORT);
 		_mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
 
-		_mcastFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool());
+		_mcastFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
 
 		_mcast = _mcastFactory.newChannel(newPipeline());
 		ChannelFuture myFuture = _mcast.bind(myMcastTarget);
@@ -109,7 +119,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		_mcast.joinGroup(_mcastAddr.getAddress());
 		_channels.add(_mcast);
 		
-		_unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool());		
+		_unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));		
 		_unicast = _unicastFactory.newChannel(newPipeline());
 		myFuture = _unicast.bind(new InetSocketAddress(Utils.getWorkableInterface(), 0));
 		myFuture.await();
@@ -119,14 +129,14 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		
 		_logger.info("Transport bound on: " + _unicastAddr);
 
-		_serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), 
+		_serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(new Factory()), 
 				Executors.newCachedThreadPool());		
 		_serverStreamChannel = _serverStreamFactory.newChannel(newPipeline());
 		_serverStreamChannel.bind(_unicast.getLocalAddress());
 		_serverStreamChannel.getConfig().setPipelineFactory(Channels.pipelineFactory(newPipeline()));
 		_channels.add(_serverStreamChannel);
 		
-		_clientStreamFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(),
+		_clientStreamFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(new Factory()),
 				Executors.newCachedThreadPool());
     }
 
