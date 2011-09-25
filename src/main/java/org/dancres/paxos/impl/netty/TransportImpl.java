@@ -127,7 +127,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		
 		_unicastAddr = _unicast.getLocalAddress();
 		
-		_logger.info("Transport bound on: " + _unicastAddr);
+		_logger.debug("Transport bound on: " + _unicastAddr);
 
 		_serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(new Factory()), 
 				Executors.newCachedThreadPool());		
@@ -172,7 +172,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 			_logger.debug("Stop clientstream factory");
 			_clientStreamFactory.releaseExternalResources();			
 			
-			_logger.info("Shutdown complete");
+			_logger.debug("Shutdown complete");
 		} catch (Exception anE) {
 			_logger.error("Failed to shutdown cleanly", anE);
 		}
