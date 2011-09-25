@@ -539,11 +539,11 @@ public class AcceptorLearner {
 					if (_completed.first().getSeqNum() == _lowSeqNumWatermark.getSeqNum() + 1) {
 						_lowSeqNumWatermark = _completed.first();
 						_completed.remove(_lowSeqNumWatermark);
-
-						_logger.info("AL:Low :" + _lowSeqNumWatermark + ", " + _transport.getLocalAddress());					
 					} else
 						break;
 				}
+
+				_logger.debug("AL:Low :" + _lowSeqNumWatermark + ", " + _transport.getLocalAddress());					
 			}
 		}
 		
@@ -790,7 +790,7 @@ public class AcceptorLearner {
 		long myCurrentTime = System.currentTimeMillis();
 		long mySeqNum = aMessage.getSeqNum();
 
-		_logger.info("AL: got [ " + mySeqNum + " ] : " + aMessage + ", " + _transport.getLocalAddress());
+		_logger.info("AL: got " + aMessage + ", " + _transport.getLocalAddress());
 
 		switch (aMessage.getType()) {
 			case Operations.NEED : {
@@ -821,8 +821,10 @@ public class AcceptorLearner {
 					return;
 				}
 
-                // Check the leader is not out of sync
-                //
+                /*
+                 *  Check the leader is not out of sync - if they are we can't let them lead as they don't have
+                 *  up to date state and their AL might even need a checkpoint recovery.
+                 */
                 if ((aMessage.getClassification() == PaxosMessage.LEADER) &&
                         (mySeqNum <= _trigger.getLowWatermark().getSeqNum())) {
                     Collect myLastCollect = getLastCollect();
@@ -957,12 +959,12 @@ public class AcceptorLearner {
 			throw new RuntimeException("Failed to replay log" + ", " + _transport.getLocalAddress(), anE);
 		}
 		
-		if (myState.getLastValue() == null) {
+		Begin myBegin = myState.getLastValue();
+		
+		if (myBegin == null) {
 			return new Last(aSeqNum, myLow.getSeqNum(), Long.MIN_VALUE,
 					Proposal.NO_VALUE, _transport.getLocalAddress());
 		} else {			
-			Begin myBegin = myState.getLastValue();
-			
 			return new Last(aSeqNum, myLow.getSeqNum(), myBegin.getRndNumber(), myBegin.getConsolidatedValue(),
 					_transport.getLocalAddress());
 		}

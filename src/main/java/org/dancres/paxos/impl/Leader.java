@@ -305,7 +305,7 @@ public class Leader implements MembershipListener {
                 _tries = 0;
                 _membership = _detector.getMembers(this);
 
-                _logger.info(this + ": got membership: (" +
+                _logger.debug(this + ": got membership: (" +
                         _membership.getSize() + ")");
 
                 // Collect will decide if it can skip straight to a begin
@@ -532,7 +532,7 @@ public class Leader implements MembershipListener {
         _messages.clear();
 
         if (startInteraction()) {
-            _logger.info(this + ": sending: " + aMessage);
+            _logger.info(this + ": tx: " + aMessage);
 
             _transport.send(aMessage, _transport.getBroadcastAddress());
         }
@@ -634,7 +634,7 @@ public class Leader implements MembershipListener {
     public void messageReceived(PaxosMessage aMessage) {
         assert (aMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";
 
-		_logger.info(this + " received message: " + aMessage);
+		_logger.info(this + " rx: " + aMessage);
 
         synchronized (this) {
             if ((aMessage.getSeqNum() == _queue.nextSeqNum()) &&
@@ -683,7 +683,7 @@ public class Leader implements MembershipListener {
                 case SUCCESS : return _successValidator;
 
                 default : {
-                	_logger.warn("No validator for state: " + aLeaderState);
+                	_logger.debug("No validator for state: " + aLeaderState);
                 	return _nullValidator;
                 }
             }

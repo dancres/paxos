@@ -9,12 +9,22 @@ import org.dancres.paxos.messages.PaxosMessage;
  * Status indication returned from the state machine for each vote requested
  */
 public class Event implements PaxosMessage {
-	public interface Reason {
-		public static final int DECISION = -1;
-		public static final int OTHER_LEADER = -2;
-		public static final int VOTE_TIMEOUT = -3;
-		public static final int BAD_MEMBERSHIP = -4;
-        public static final int OUT_OF_DATE = -5;
+	public static final class Reason {
+		public static final int DECISION = 0;
+		public static final int OTHER_LEADER = 1;
+		public static final int VOTE_TIMEOUT = 2;
+		public static final int BAD_MEMBERSHIP = 3;
+        public static final int OUT_OF_DATE = 4;
+        
+        private static final String[] _names = {"Decision", "Other Leader", "Vote Timeout", "Bad Membership",
+        	"Out of Date"};
+        
+        public static String nameFor(int aCode) {
+        	if (aCode < 0 || aCode > _names.length - 1)
+        		throw new IllegalArgumentException("Code not known:" + aCode);
+        	
+        	return _names[aCode];
+        }
 	}
 	
     private int _result;
@@ -57,8 +67,7 @@ public class Event implements PaxosMessage {
     }
 
     public String toString() {
-        return "Event: " + _result + ", " + Long.toHexString(_seqNum) + ", " + 
-        	_consolidatedValue + ", " + _leader;
+        return "Event: " + Reason.nameFor(_result) + ", " + Long.toHexString(_seqNum) + ", " + _leader;
     }
 
 	public int getType() {
