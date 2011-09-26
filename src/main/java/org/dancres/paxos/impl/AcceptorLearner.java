@@ -349,7 +349,11 @@ public class AcceptorLearner {
          */
         synchronized(this) {
             installCheckpoint(myHandle);
-            _storage.mark(myHandle.getLowWatermark().getLogOffset(), true);
+            
+            // Write the collect we've just found in our new checkpoint and use that as the starting point
+            // for the log
+            //
+            _storage.mark(write(myHandle.getLastCollect(), false), true);
 
             _outOfDate = null;
             _recoveryWindow = null;
