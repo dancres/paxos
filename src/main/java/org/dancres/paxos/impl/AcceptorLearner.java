@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.dancres.paxos.Proposal;
@@ -47,7 +48,7 @@ public class AcceptorLearner {
     private final Timer _watchdog = new Timer("AcceptorLearner timers");
     private TimerTask _recoveryAlarm = null;
 
-    private OutOfDate _outOfDate = null;
+    private AtomicBoolean _suspended = new AtomicBoolean(false);
 
 	private Need _recoveryWindow = null;
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
@@ -286,9 +287,7 @@ public class AcceptorLearner {
              * Allow for the fact we might be actively processing packets - Mark ourselves out of date so we
              * cease processing, then clean up.
              */
-            synchronized(this) {
-                _outOfDate = new OutOfDate(_transport.getLocalAddress());
-            }
+        	_suspended.set(true);
 
             try {
                 Thread.sleep(SHUTDOWN_PAUSE);
@@ -330,8 +329,8 @@ public class AcceptorLearner {
      * @throws Exception
      */
     public void bringUpToDate(CheckpointHandle aHandle) throws Exception {
-        if (! isOutOfDate())
-            throw new IllegalStateException("Not out of date");
+        if (! _suspended.get())
+            throw new IllegalStateException("Not suspended");
 
         if (! (aHandle instanceof ALCheckpointHandle))
             throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
@@ -355,7 +354,7 @@ public class AcceptorLearner {
             //
             _storage.mark(write(myHandle.getLastCollect(), false), true);
 
-            _outOfDate = null;
+            _suspended.set(false);
             _recoveryWindow = null;
             _packetBuffer.clear();
             _cachedBegins.clear();
@@ -380,12 +379,6 @@ public class AcceptorLearner {
     	return _trigger.getLowWatermark();
     }
     
-    public boolean isOutOfDate() {
-        synchronized(this) {
-            return (_outOfDate != null);
-        }
-    }
-
 	public boolean isRecovering() {
 		synchronized(this) {
 			return (_recoveryWindow != null);
@@ -594,9 +587,9 @@ public class AcceptorLearner {
 	public void messageReceived(PaxosMessage aMessage) {
 		long mySeqNum = aMessage.getSeqNum();
 
-        // So far out of date, we need cleaning up and reatarting with new state so wait for that to happen.
+        // If we're not processing packets (perhaps because we're out of date or because we're shutting down)...
         //
-        if (isOutOfDate())
+        if (_suspended.get())
             return;
 
 		if (isRecovering()) {
@@ -609,7 +602,7 @@ public class AcceptorLearner {
             //
             if (aMessage.getType() == Operations.OUTOFDATE) {
                 synchronized(this) {
-                    _outOfDate = (OutOfDate) aMessage;
+                	_suspended.set(true);
                     completedRecovery();
                 }
 
