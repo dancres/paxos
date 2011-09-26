@@ -15,9 +15,10 @@ public class Event implements PaxosMessage {
 		public static final int VOTE_TIMEOUT = 2;
 		public static final int BAD_MEMBERSHIP = 3;
         public static final int OUT_OF_DATE = 4;
+        public static final int UP_TO_DATE = 5;
         
         private static final String[] _names = {"Decision", "Other Leader", "Vote Timeout", "Bad Membership",
-        	"Out of Date"};
+        	"Out of Date", "Up to Date"};
         
         public static String nameFor(int aCode) {
         	if (aCode < 0 || aCode > _names.length - 1)

@@ -365,6 +365,8 @@ public class AcceptorLearner {
              * otherwise we risk leader jitter
              */
             _lastLeaderActionTime = System.currentTimeMillis();
+            signal(new Event(Event.Reason.UP_TO_DATE, myHandle.getLastCollect().getSeqNum(), 
+            		Proposal.NO_VALUE, myHandle.getLastCollect().getNodeId()));
         }
     }
 
