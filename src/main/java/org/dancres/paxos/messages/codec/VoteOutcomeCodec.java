@@ -6,7 +6,7 @@ import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Operations;
 
-public class EventCodec implements Codec {
+public class VoteOutcomeCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
         VoteOutcome myEvent = (VoteOutcome) anObject;
         byte[] myBytes = myEvent.getValues().marshall();
