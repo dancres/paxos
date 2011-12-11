@@ -8,7 +8,7 @@ import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.junit.*;
 
@@ -41,10 +41,10 @@ public class NoMajorityTest {
         myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        Event myEv = myClient.getNext(10000);
+        VoteOutcome myEv = myClient.getNext(10000);
 
         Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(myEv.getResult() == Event.Reason.BAD_MEMBERSHIP);
+        Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.BAD_MEMBERSHIP);
     }
 }

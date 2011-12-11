@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +61,7 @@ public class Leader implements MembershipListener {
     private final AcceptorLearner _al;
 
     /**
+     * @todo Is this correct?
      * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without
      * risking breaking the collect protocol (the al could suddenly believe it's seen a collect it hasn't and become
      * noisy when it should be silent). This field can be updated as the result of OldRound messages.
@@ -93,7 +94,7 @@ public class Leader implements MembershipListener {
     /**
      * In cases of ABORT, indicates the reason
      */
-    private Event _event;
+    private VoteOutcome _event;
 
     private Queue _queue = new Queue();
     
@@ -254,7 +255,7 @@ public class Leader implements MembershipListener {
                 List<Queue.Job> myJobs = _queue.reset();
                 
                 for (Queue.Job myJob: myJobs) {
-                    _al.signal(new Event(_event.getResult(), _event.getSeqNum(),
+                    _al.signal(new VoteOutcome(_event.getResult(), _event.getSeqNum(),
                             myJob._prop, _event.getLeader()));                	
                 }
 
@@ -370,7 +371,7 @@ public class Leader implements MembershipListener {
             			if (_detector.isLive(myOtherLeader)) {
                             _logger.info(this + ": other leader is alive");
 
-            				error(Event.Reason.OTHER_LEADER, myOtherLeader);
+            				error(VoteOutcome.Reason.OTHER_LEADER, myOtherLeader);
             				return;
             			} else {
             				_logger.info(this + ": other leader not alive");
@@ -453,7 +454,7 @@ public class Leader implements MembershipListener {
                     emit(new Success(_queue.nextSeqNum(), _rndNumber, _transport.getLocalAddress()));
                     cancelInteraction();
                     _lastSuccessfulRndNumber = _rndNumber;                    
-                    successful(Event.Reason.DECISION);
+                    successful(VoteOutcome.Reason.DECISION);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
@@ -504,13 +505,13 @@ public class Leader implements MembershipListener {
                 myOldRound.getLastRound() + ", " + _rndNumber + ")");
 
             _rndNumber = myOldRound.getLastRound() + 1;
-            error(Event.Reason.OTHER_LEADER, myCompetingNodeId);
+            error(VoteOutcome.Reason.OTHER_LEADER, myCompetingNodeId);
         }
     }
 
     private void successful(int aReason) {
         _currentState = States.EXIT;
-        _event = new Event(aReason, _queue.head()._seqNum, _queue.head()._prop, _transport.getLocalAddress());
+        _event = new VoteOutcome(aReason, _queue.head()._seqNum, _queue.head()._prop, _transport.getLocalAddress());
 
         process();
     }
@@ -521,7 +522,7 @@ public class Leader implements MembershipListener {
     
     private void error(int aReason, InetSocketAddress aLeader) {
         _currentState = States.ABORT;
-        _event = new Event(aReason, _queue.head()._seqNum, _queue.head()._prop, aLeader);
+        _event = new VoteOutcome(aReason, _queue.head()._seqNum, _queue.head()._prop, aLeader);
         
         _logger.info("Leader encountered error: " + _event);
 
@@ -559,7 +560,7 @@ public class Leader implements MembershipListener {
         _logger.info(this + ": Membership requested abort");
 
         synchronized(this) {
-            error(Event.Reason.BAD_MEMBERSHIP);
+            error(VoteOutcome.Reason.BAD_MEMBERSHIP);
         }
     }
 
@@ -594,7 +595,7 @@ public class Leader implements MembershipListener {
                 }
             }
 
-            error(Event.Reason.VOTE_TIMEOUT);
+            error(VoteOutcome.Reason.VOTE_TIMEOUT);
         }
     }
 

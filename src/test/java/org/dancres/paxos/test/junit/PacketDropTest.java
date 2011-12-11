@@ -10,7 +10,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.impl.FailureDetector;
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.junit.*;
 
@@ -67,11 +67,11 @@ public class PacketDropTest {
         myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        Event myEv = myClient.getNext(15000);
+        VoteOutcome myEv = myClient.getNext(15000);
 
         Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(myEv.getResult() == Event.Reason.VOTE_TIMEOUT);
+        Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VOTE_TIMEOUT);
     }
 
     static class DroppingTransportImpl extends TransportImpl {

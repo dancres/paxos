@@ -6,7 +6,7 @@ import java.net.InetSocketAddress;
 
 public interface Paxos {
     public interface Listener {
-        public void done(Event anEvent);
+        public void done(VoteOutcome anEvent);
     }
 
     public void close();

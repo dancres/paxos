@@ -4,20 +4,20 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
 public class ClientDispatcher implements Transport.Dispatcher {
 	private Transport _transport;
-	private List<Event> _queue = new ArrayList<Event>();
+	private List<VoteOutcome> _queue = new ArrayList<VoteOutcome>();
 	
 	public boolean messageReceived(PaxosMessage aMessage) {
 		synchronized(this) {
 	        switch (aMessage.getType()) {
 	        	case Operations.EVENT : {
-	        		_queue.add((Event) aMessage);
+	        		_queue.add((VoteOutcome) aMessage);
 	        		notifyAll();
 	        		break;
 	        	}
@@ -31,7 +31,7 @@ public class ClientDispatcher implements Transport.Dispatcher {
 		_transport.send(aMessage, aTarget);
 	}
 	
-	public Event getNext(long aTimeout) {
+	public VoteOutcome getNext(long aTimeout) {
 		synchronized(this) {
 			while (_queue.isEmpty()) {
 				try {

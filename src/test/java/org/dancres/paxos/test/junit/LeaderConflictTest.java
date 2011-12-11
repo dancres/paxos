@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.net.ClientDispatcher;
@@ -79,14 +79,14 @@ public class LeaderConflictTest {
         myClient2.send(new Envelope(myProp2, myTransport2.getLocalAddress()),
                 _tport2.getLocalAddress());
 
-        Event myMsg1 = myClient1.getNext(10000);
-        Event myMsg2 = myClient2.getNext(10000);
+        VoteOutcome myMsg1 = myClient1.getNext(10000);
+        VoteOutcome myMsg2 = myClient2.getNext(10000);
 
         myClient1.shutdown();
         myClient2.shutdown();
 
         Assert.assertTrue(
-        		(myMsg1.getResult() == Event.Reason.OTHER_LEADER && myMsg2.getResult() == Event.Reason.DECISION) ||
-        		(myMsg1.getResult() == Event.Reason.DECISION && myMsg2.getResult() == Event.Reason.OTHER_LEADER));        
+        		(myMsg1.getResult() == VoteOutcome.Reason.OTHER_LEADER && myMsg2.getResult() == VoteOutcome.Reason.DECISION) ||
+        		(myMsg1.getResult() == VoteOutcome.Reason.DECISION && myMsg2.getResult() == VoteOutcome.Reason.OTHER_LEADER));        
     }
 }

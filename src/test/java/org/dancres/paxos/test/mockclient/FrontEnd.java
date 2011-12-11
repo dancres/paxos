@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Executors;
 
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.discovery.HostDetails;
 import org.dancres.paxos.impl.discovery.Registrar;
@@ -38,7 +38,7 @@ public class FrontEnd extends SimpleChannelHandler {
 	private DatagramChannel _unicast;
     private ChannelGroup _channels = new DefaultChannelGroup();
     private Registrar _registrar;
-	private List<Event> _queue = new ArrayList<Event>();    
+	private List<VoteOutcome> _queue = new ArrayList<VoteOutcome>();    
 	private InetSocketAddress _leaderAddr = null;
 	private Random _random = new Random();
 	
@@ -55,19 +55,19 @@ public class FrontEnd extends SimpleChannelHandler {
 			
 			mine.submit(myProp);
 
-			Event myResp = mine.getNext(10000);
+			VoteOutcome myResp = mine.getNext(10000);
 
 			if (myResp == null)
 				throw new RuntimeException("No response :(");
 
 			switch (myResp.getResult()) {
-				case Event.Reason.DECISION : {
+				case VoteOutcome.Reason.DECISION : {
 					System.out.println("Wooooo!");
 					exit = true;
 					break;
 				}
 
-				case Event.Reason.OTHER_LEADER : {
+				case VoteOutcome.Reason.OTHER_LEADER : {
 					System.out.println("Try another leader:" + myResp.getLeader());
 					mine.newLeader(myResp.getLeader());
 					break;
@@ -126,7 +126,7 @@ public class FrontEnd extends SimpleChannelHandler {
 		synchronized(this) {
 	        switch (myMessage.getType()) {
 	        	case Operations.EVENT : {
-	        		_queue.add((Event) myMessage);
+	        		_queue.add((VoteOutcome) myMessage);
 	        		notifyAll();
 	        		break;
 	        	}
@@ -144,7 +144,7 @@ public class FrontEnd extends SimpleChannelHandler {
     	_unicast.write(new Envelope(aProposal, _unicastAddr), _leaderAddr);
     }
     
-	public Event getNext(long aTimeout) {
+	public VoteOutcome getNext(long aTimeout) {
 		synchronized(this) {
 			while (_queue.isEmpty()) {
 				try {

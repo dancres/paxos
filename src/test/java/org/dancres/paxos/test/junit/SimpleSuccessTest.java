@@ -2,7 +2,7 @@ package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.net.ClientDispatcher;
@@ -60,11 +60,11 @@ public class SimpleSuccessTest {
         myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        Event myEv = myClient.getNext(10000);
+        VoteOutcome myEv = myClient.getNext(10000);
 
         Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(myEv.getResult() == Event.Reason.DECISION);
+        Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
         
         myClient.shutdown();
     }

@@ -8,7 +8,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 /**
  * Status indication returned from the state machine for each vote requested
  */
-public class Event implements PaxosMessage {
+public class VoteOutcome implements PaxosMessage {
 	public static final class Reason {
 		public static final int DECISION = 0;
 		public static final int OTHER_LEADER = 1;
@@ -33,7 +33,7 @@ public class Event implements PaxosMessage {
     private Proposal _consolidatedValue;
     private InetSocketAddress _leader;
 
-    public Event(int aResult, long aSeqNum, Proposal aValue, InetSocketAddress aLeader) {
+    public VoteOutcome(int aResult, long aSeqNum, Proposal aValue, InetSocketAddress aLeader) {
     	assert(aValue != null);
     	
         _result = aResult;

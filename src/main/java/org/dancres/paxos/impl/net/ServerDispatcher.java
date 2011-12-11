@@ -96,7 +96,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
         _core.stop();
     }
 
-    public void done(Event anEvent) {
+    public void done(VoteOutcome anEvent) {
         // If we're not the originating node for the post, because we're not leader, we won't have an address stored up
         //
         InetSocketAddress myAddr =

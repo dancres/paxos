@@ -77,7 +77,7 @@ public class Backend extends SimpleChannelHandler {
 	}
 	
 	class ListenerImpl implements Paxos.Listener {
-		public void done(Event anEvent) {
+		public void done(VoteOutcome anEvent) {
 	        // If we're not the originating node for the post, because we're not leader, 
 			// we won't have an address stored up
 	        //
@@ -95,7 +95,7 @@ public class Backend extends SimpleChannelHandler {
 	        	InetSocketAddress myBackend = 
 	        			Utils.unmarshallInetSocketAddress(_paxos.getMetaData(anEvent.getLeader()));
 
-	        	_unicast.write(new Event(anEvent.getResult(), anEvent.getSeqNum(), 
+	        	_unicast.write(new VoteOutcome(anEvent.getResult(), anEvent.getSeqNum(), 
 	        			anEvent.getValues(), myBackend), myAddr);
 	        } catch (Exception anE) {
 	        	_logger.error("Got other leader but can't unmarshall address for backend", anE);

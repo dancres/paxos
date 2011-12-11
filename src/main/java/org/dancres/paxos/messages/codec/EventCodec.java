@@ -2,13 +2,13 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Operations;
 
 public class EventCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
-        Event myEvent = (Event) anObject;
+        VoteOutcome myEvent = (VoteOutcome) anObject;
         byte[] myBytes = myEvent.getValues().marshall();
         
         ByteBuffer myBuffer;
@@ -39,6 +39,6 @@ public class EventCodec implements Codec {
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
         
-        return new Event(myResult, mySeqNum, new Proposal(myBytes), Codecs.expand(myNodeId));
+        return new VoteOutcome(myResult, mySeqNum, new Proposal(myBytes), Codecs.expand(myNodeId));
     }
 }

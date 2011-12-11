@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
@@ -41,11 +41,11 @@ public class CodecTest {
         myVal.put("data", myData);
         myVal.put("handback", myHandback);
         
-        Event myEvent = new Event(1, 2, myVal, _testAddress);
+        VoteOutcome myEvent = new VoteOutcome(1, 2, myVal, _testAddress);
 
         byte[] myBuffer = Codecs.encode(myEvent);
 
-        Event myEvent2 = (Event) Codecs.decode(myBuffer);
+        VoteOutcome myEvent2 = (VoteOutcome) Codecs.decode(myBuffer);
 
         Assert.assertEquals(myEvent.getSeqNum(), myEvent2.getSeqNum());
         Assert.assertEquals(myEvent.getResult(), myEvent2.getResult());

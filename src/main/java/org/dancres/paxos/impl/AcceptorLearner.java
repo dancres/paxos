@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
@@ -377,7 +377,7 @@ public class AcceptorLearner {
              * otherwise we risk leader jitter
              */
             _lastLeaderActionTime = System.currentTimeMillis();
-            signal(new Event(Event.Reason.UP_TO_DATE, myHandle.getLastCollect().getSeqNum(), 
+            signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE, myHandle.getLastCollect().getSeqNum(), 
             		Proposal.NO_VALUE, myHandle.getLastCollect().getNodeId()));
         }
     }
@@ -410,7 +410,7 @@ public class AcceptorLearner {
 		}
 	}
 
-    void signal(Event aStatus) {
+    void signal(VoteOutcome aStatus) {
         List<Paxos.Listener> myListeners;
 
         synchronized(_listeners) {
@@ -619,7 +619,7 @@ public class AcceptorLearner {
                     completedRecovery();
                 }
 
-                signal(new Event(Event.Reason.OUT_OF_DATE, mySeqNum, new Proposal(), getLastCollect().getNodeId()));
+                signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum, new Proposal(), getLastCollect().getNodeId()));
                 return;
             }
 
@@ -938,7 +938,7 @@ public class AcceptorLearner {
                         } else {
                             _logger.info("AL:Learnt value: " + mySeqNum + ", " + _localAddress);
 
-                            signal(new Event(Event.Reason.DECISION, mySeqNum,
+                            signal(new VoteOutcome(VoteOutcome.Reason.DECISION, mySeqNum,
                                     myBegin.getConsolidatedValue(), myBegin.getNodeId()));
                         }
                     }

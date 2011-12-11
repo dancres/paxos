@@ -3,7 +3,7 @@ package org.dancres.paxos.test.junit;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.Core;
@@ -66,7 +66,7 @@ public class LastHandlingTest {
             }
         }
 
-        public void done(Event anEvent) {
+        public void done(VoteOutcome anEvent) {
             synchronized(this) {
                 ++_readyCount;
             }
@@ -101,11 +101,11 @@ public class LastHandlingTest {
         myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
         		_tport1.getLocalAddress());
 
-        Event myEv = myClient.getNext(10000);
+        VoteOutcome myEv = myClient.getNext(10000);
 
         Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(myEv.getResult() == Event.Reason.DECISION);
+        Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
         
         Assert.assertTrue("Listener count should be 2 but is: " + myListener.getCount(), myListener.testCount(2));        
     }

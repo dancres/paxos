@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.Event;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.Paxos;
@@ -92,11 +92,11 @@ public class ALOutOfDateTest {
             myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
                 _tport2.getLocalAddress());
 
-            Event myEv = myClient.getNext(10000);
+            VoteOutcome myEv = myClient.getNext(10000);
 
             Assert.assertFalse((myEv == null));
 
-            Assert.assertTrue(myEv.getResult() == Event.Reason.DECISION);
+            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
 
             Assert.assertTrue(myEv.getSeqNum() == i);
         }
@@ -169,8 +169,8 @@ public class ALOutOfDateTest {
             return _receivedOOD;
         }
 
-        public void done(Event anEvent) {
-            if (anEvent.getResult() == Event.Reason.OUT_OF_DATE) {
+        public void done(VoteOutcome anEvent) {
+            if (anEvent.getResult() == VoteOutcome.Reason.OUT_OF_DATE) {
                 System.err.println("OOD Received from AL");
                 _receivedOOD = true;
             }
