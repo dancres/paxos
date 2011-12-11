@@ -24,6 +24,17 @@ import org.slf4j.LoggerFactory;
  * instance will receive those packets. This can be useful for processing client
  * requests correctly and signalling interested parties as necessary.
  *
+ * @todo Send out of date to a NEED'ing AL - this message would be generated when
+ * the low end of the recovery window is below the last checkpoint's sequence number.
+ * <code>bringUpToDate</code> should reject any checkpoint that doesn't contain a
+ * low watermark greater than the one currently known by this AL. This allows user
+ * code to source checkpoints from a list of nodes and be informed if the checkpoints
+ * aren't good enough so eventually a useful one is found. An optimisation would
+ * involve the AL generating the OutOfDate message to include it's last checkpoint
+ * low watermark. This watermark would then be passed in the OUT_OF_DATE event to
+ * user code which could then pass it across to targets AL's so they can validate
+ * they have a useful checkpoint before it's streamed back by the user code.
+ * 
  * @author dan
  */
 public class AcceptorLearner {
