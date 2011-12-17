@@ -32,7 +32,7 @@ public class Codecs {
         return (PaxosMessage) myCodec.decode(myBuffer);
     }
 
-    static long flatten(InetSocketAddress anAddr) {
+    public static long flatten(InetSocketAddress anAddr) {
         byte[] myAddress = anAddr.getAddress().getAddress();
         long myNodeId = 0;
 
@@ -51,7 +51,7 @@ public class Codecs {
         return myNodeId;        
     }
 
-    static InetSocketAddress expand(long anAddr) {
+    public static InetSocketAddress expand(long anAddr) {
         byte[] myAddrBytes = new byte[4];
         int myPort = (int) anAddr & 0xFFFFFFFF;
 

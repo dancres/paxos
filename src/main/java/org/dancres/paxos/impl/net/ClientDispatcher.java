@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
@@ -13,11 +14,13 @@ public class ClientDispatcher implements Transport.Dispatcher {
 	private Transport _transport;
 	private List<VoteOutcome> _queue = new ArrayList<VoteOutcome>();
 	
-	public boolean messageReceived(PaxosMessage aMessage) {
+	public boolean messageReceived(Packet aPacket) {
+		PaxosMessage myMessage = aPacket.getMessage();
+		
 		synchronized(this) {
-	        switch (aMessage.getType()) {
+	        switch (myMessage.getType()) {
 	        	case Operations.EVENT : {
-	        		_queue.add((VoteOutcome) aMessage);
+	        		_queue.add((VoteOutcome) myMessage);
 	        		notifyAll();
 	        		break;
 	        	}

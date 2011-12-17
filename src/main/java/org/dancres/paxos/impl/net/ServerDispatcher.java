@@ -2,6 +2,7 @@ package org.dancres.paxos.impl.net;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.*;
+import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
@@ -52,14 +53,16 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
         _core = new Core(anUnresponsivenessThreshold, aLogger, aMeta, this);
     }
 
-	public boolean messageReceived(PaxosMessage aMessage) {
+	public boolean messageReceived(Packet aPacket) {
+		PaxosMessage myMessage = aPacket.getMessage();
+		
 		try {
-			switch (aMessage.getClassification()) {
+			switch (myMessage.getClassification()) {
 				case PaxosMessage.CLIENT : {
                     String myHandback = Long.toString(_handbackGenerator.getAndIncrement());
-                    _requestMap.put(myHandback, aMessage.getNodeId());
+                    _requestMap.put(myHandback, myMessage.getNodeId());
 
-                    Envelope myEnvelope = (Envelope) aMessage;
+                    Envelope myEnvelope = (Envelope) myMessage;
                     Proposal myProposal = myEnvelope.getValue();
                     myProposal.put(HANDBACK_KEY, myHandback.getBytes());
                     _core.submit(myProposal);
@@ -68,7 +71,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 				}
 
                 default : {
-                    _logger.debug("Unrecognised message:" + aMessage);
+                    _logger.debug("Unrecognised message:" + myMessage);
                     return false;
                 }
 			}

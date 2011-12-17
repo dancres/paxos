@@ -7,6 +7,7 @@ import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.messages.Begin;
@@ -94,24 +95,25 @@ public class SuperiorLeaderAtBeginTest {
                 _core.setTransport(aTransport);
             }
 
-            public boolean messageReceived(PaxosMessage aMessage) {
-                switch (aMessage.getClassification()) {
+            public boolean messageReceived(Packet aPacket) {
+            	PaxosMessage myMessage = aPacket.getMessage();
+                switch (myMessage.getClassification()) {
                     case PaxosMessage.LEADER : {
-                        if (aMessage.getType() == Operations.BEGIN) {
-                            Begin myBegin = (Begin) aMessage;
+                        if (myMessage.getType() == Operations.BEGIN) {
+                            Begin myBegin = (Begin) myMessage;
 
                             getTransport().send(
                                     new OldRound(myBegin.getSeqNum(), getTransport().getLocalAddress(),
                                             myBegin.getRndNumber() + 1, getTransport().getLocalAddress()),
-                                    aMessage.getNodeId());
+                                    myMessage.getNodeId());
 
                             return true;
                         } else
-                            return _core.messageReceived(aMessage);
+                            return _core.messageReceived(aPacket);
                     }
 
                     default : {
-                        return _core.messageReceived(aMessage);
+                        return _core.messageReceived(aPacket);
                     }
                 }
             }

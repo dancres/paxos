@@ -10,6 +10,11 @@ import java.net.InetSocketAddress;
  * @author dan
  */
 public interface Transport {
+	public interface Packet {
+		public InetSocketAddress getSource();
+		public PaxosMessage getMessage();
+	}
+	
     public void add(Dispatcher aDispatcher) throws Exception;
 
 	public InetSocketAddress getLocalAddress();
@@ -34,6 +39,6 @@ public interface Transport {
          * @return <code>true</code> to indicate that this packet has been processed and should not be given to
          * other handlers.
          */
-        public boolean messageReceived(PaxosMessage aMessage);
+        public boolean messageReceived(Packet aPacket);
     }
 }

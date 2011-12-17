@@ -100,6 +100,51 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		}
     }
     
+    static class PacketImpl implements Packet {
+    	private PaxosMessage _msg;
+    	private InetSocketAddress _source;
+    	
+    	PacketImpl(PaxosMessage aMsg, InetSocketAddress aSource) {
+    		_msg = aMsg;
+    		_source = aSource;
+    	}
+    	
+		@Override
+		public InetSocketAddress getSource() {
+    		return _source;
+		}
+
+		@Override
+		public PaxosMessage getMessage() {
+			return _msg;
+		}
+		
+		public byte[] flatten() {
+			byte[] myBytes = Codecs.encode(_msg);
+			ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);
+			
+			myBuffer.putLong(Codecs.flatten(_source));
+			myBuffer.putInt(myBytes.length);
+			myBuffer.put(myBytes);
+			myBuffer.flip();
+			
+			return myBuffer.array();
+		}
+		
+		public static Packet expand(byte[] aBytes) {
+			ByteBuffer myBuffer = ByteBuffer.wrap(aBytes);
+			
+			InetSocketAddress mySource = Codecs.expand(myBuffer.getLong());
+			int myLength = myBuffer.getInt();
+			byte[] myPaxosBytes = new byte[myLength];
+			myBuffer.get(myPaxosBytes);
+			
+			PaxosMessage myMessage = Codecs.decode(myPaxosBytes);
+			
+			return new PacketImpl(myMessage, mySource);
+		}
+    }
+    
     static {
     	System.runFinalizersOnExit(true);
     }
@@ -221,7 +266,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
     	synchronized(this) {
             for(Dispatcher d : _dispatcher) {
-                if (d.messageReceived((PaxosMessage) anEvent.getMessage()))
+                if (d.messageReceived((Packet) anEvent.getMessage()))
                     break;
             }
     	}
@@ -237,9 +282,9 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		
 		try {
 			if (aNodeId.equals(_broadcastAddr))
-				_mcast.write(aMessage, _mcastAddr);
+				_mcast.write(new PacketImpl(aMessage, getLocalAddress()), _mcastAddr);
 			else {
-				_unicast.write(aMessage, aNodeId);
+				_unicast.write(new PacketImpl(aMessage, getLocalAddress()), aNodeId);
 			}
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
@@ -263,7 +308,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		
 		public void send(PaxosMessage aMessage) {
             try {
-                _channel.write(aMessage).await();
+                _channel.write(new PacketImpl(aMessage, getLocalAddress())).await();
             } catch (InterruptedException anIE) {
             }
 		}
@@ -288,18 +333,18 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	
 	private static class Encoder extends OneToOneEncoder {
 		protected Object encode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
-			PaxosMessage myMsg = (PaxosMessage) anObject;
+			PacketImpl myPacket = (PacketImpl) anObject;
 			
-			return ByteBuffer.wrap(Codecs.encode(myMsg));
+			return ByteBuffer.wrap(myPacket.flatten());
 		}
 	}
 	
 	private static class Decoder extends OneToOneDecoder {
 		protected Object decode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
 			ByteBuffer myBuffer = (ByteBuffer) anObject;
-			PaxosMessage myMessage = Codecs.decode(myBuffer.array());
+			Packet myPacket = PacketImpl.expand(myBuffer.array());
 			
-			return myMessage;
+			return myPacket;
 		}		
 	}
 	
@@ -374,8 +419,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 	
 	static class DispatcherImpl implements Dispatcher {
-		public boolean messageReceived(PaxosMessage aMessage) {
-			System.err.println("Message received: " + aMessage);
+		public boolean messageReceived(Packet aPacket) {
+			System.err.println("Message received: " + aPacket.getMessage());
 
             return true;
 		}

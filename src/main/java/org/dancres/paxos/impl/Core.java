@@ -2,6 +2,7 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Paxos;
+import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -88,30 +89,32 @@ public class Core implements Transport.Dispatcher {
     }
 
 
-    public boolean messageReceived(PaxosMessage aMessage) {
+    public boolean messageReceived(Packet aPacket) {
+    	PaxosMessage myMessage = aPacket.getMessage();
+    	
         try {
-            switch (aMessage.getClassification()) {
+            switch (myMessage.getClassification()) {
                 case PaxosMessage.FAILURE_DETECTOR: {
-                    _fd.processMessage(aMessage);
+                    _fd.processMessage(myMessage);
 
                     return true;
                 }
 
                 case PaxosMessage.LEADER:
                 case PaxosMessage.RECOVERY: {
-                    _al.messageReceived(aMessage);
+                    _al.messageReceived(myMessage);
 
                     return true;
                 }
 
                 case PaxosMessage.ACCEPTOR_LEARNER: {
-                    _ld.messageReceived(aMessage);
+                    _ld.messageReceived(myMessage);
 
                     return true;
                 }
 
                 default: {
-                    _logger.debug("Unrecognised message:" + aMessage);
+                    _logger.debug("Unrecognised message:" + myMessage);
                     return false;
                 }
             }

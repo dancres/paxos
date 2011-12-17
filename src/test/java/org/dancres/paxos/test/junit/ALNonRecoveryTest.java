@@ -168,9 +168,9 @@ public class ALNonRecoveryTest {
         }
 
         public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {
-            PaxosMessage myMsg = (PaxosMessage) anEvent.getMessage();
+            Packet myPacket = (Packet) anEvent.getMessage();
 
-            if (myMsg.getType() != Operations.NEED) {
+            if (myPacket.getMessage().getType() != Operations.NEED) {
                 super.messageReceived(aContext, anEvent);
                 return;
             }

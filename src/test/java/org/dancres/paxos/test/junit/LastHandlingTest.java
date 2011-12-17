@@ -10,6 +10,7 @@ import org.dancres.paxos.impl.Core;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.net.ClientDispatcher;
 import org.dancres.paxos.impl.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -134,8 +135,8 @@ public class LastHandlingTest {
                 _core.setTransport(new LastTrapper(aTransport));
             }
 
-            public boolean messageReceived(PaxosMessage aMessage) {
-                return _core.messageReceived(aMessage);
+            public boolean messageReceived(Packet aPacket) {
+                return _core.messageReceived(aPacket);
             }
             
             class LastTrapper implements Transport {
