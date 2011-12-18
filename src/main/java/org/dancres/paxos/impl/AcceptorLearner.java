@@ -252,9 +252,7 @@ public class AcceptorLearner {
         _storage.open();
 
         try {
-            synchronized(this) {
-                _recoveryWindow = new Need(-1, Long.MAX_VALUE, _localAddress);
-            }
+            setRecoveryWindow(new Need(-1, Long.MAX_VALUE, _localAddress));
 
             if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
                 // Restore logs from the beginning
@@ -288,9 +286,7 @@ public class AcceptorLearner {
             } else
                 throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
         } finally {
-            synchronized (this) {
-                _recoveryWindow = null;
-            }
+            clearRecoveryWindow();
         }
     }
 
@@ -309,7 +305,7 @@ public class AcceptorLearner {
             synchronized(this) {
                 _watchdog.cancel();
                 _recoveryAlarm = null;
-                _recoveryWindow = null;
+                clearRecoveryWindow();
                 _packetBuffer.clear();
                 _lastCollect = Collect.INITIAL;
                 _lastLeaderActionTime = 0;
@@ -368,7 +364,8 @@ public class AcceptorLearner {
             _storage.mark(write(myHandle.getLastCollect(), false), true);
 
             _suspended.set(false);
-            _recoveryWindow = null;
+            
+            clearRecoveryWindow();
             _packetBuffer.clear();
             _cachedBegins.clear();
 
@@ -392,10 +389,24 @@ public class AcceptorLearner {
     	return _trigger.getLowWatermark();
     }
     
+    private Need getRecoveryWindow() {
+        synchronized(this) {
+            return _recoveryWindow;
+        }
+    }
+
+    private void clearRecoveryWindow() {
+        setRecoveryWindow(null);
+    }
+
+    private void setRecoveryWindow(Need aNeed) {
+        synchronized(this) {
+            _recoveryWindow = aNeed;            
+        }
+    }
+    
 	public boolean isRecovering() {
-		synchronized(this) {
-			return (_recoveryWindow != null);
-		}
+        return getRecoveryWindow() != null;
 	}
 	
 	public void add(Paxos.Listener aListener) {
@@ -625,21 +636,21 @@ public class AcceptorLearner {
 
 			// If the packet is for a sequence number above the recovery window - save it for later
 			//
-			if (mySeqNum > _recoveryWindow.getMaxSeq()) {
+			if (mySeqNum > getRecoveryWindow().getMaxSeq()) {
 				synchronized(this) {
 					_packetBuffer.add(aMessage);
 				}
 				
 			// If the packet is for a sequence number within the window, process it now for catchup
 			//
-			} else if (mySeqNum > _recoveryWindow.getMinSeq()) {
+			} else if (mySeqNum > getRecoveryWindow().getMinSeq()) {
 				process(aMessage);
 				
 				/*
 				 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
 				 *  streamed through the packet buffer
 				 */
-				if (_trigger.getLowWatermark().getSeqNum() == _recoveryWindow.getMaxSeq()) {
+				if (_trigger.getLowWatermark().getSeqNum() == getRecoveryWindow().getMaxSeq()) {
 					synchronized(this) {
 						Iterator<PaxosMessage> myPackets = _packetBuffer.iterator();
 						
@@ -689,7 +700,7 @@ public class AcceptorLearner {
 
 					// Declare recovery active - which stops this AL emitting responses
 					//
-					_recoveryWindow = myWindow;
+					setRecoveryWindow(myWindow);
 
                     // Startup recovery watchdog
                     //
@@ -782,7 +793,7 @@ public class AcceptorLearner {
 
     private void postRecovery() {
         synchronized(this) {
-            _recoveryWindow = null;
+            clearRecoveryWindow();
             _packetBuffer.clear();
         }
     }
