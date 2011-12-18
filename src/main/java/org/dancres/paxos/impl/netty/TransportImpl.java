@@ -109,12 +109,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     		_source = aSource;
     	}
     	
-		@Override
 		public InetSocketAddress getSource() {
     		return _source;
 		}
 
-		@Override
 		public PaxosMessage getMessage() {
 			return _msg;
 		}
