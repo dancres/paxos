@@ -56,9 +56,7 @@ public class Leader implements MembershipListener {
     
 
     private final Timer _watchdog = new Timer("Leader timers");
-    private final FailureDetector _detector;
-    private final Transport _transport;
-    private final AcceptorLearner _al;
+    private final Common _common;
 
     /**
      * @todo Is this correct?
@@ -100,10 +98,8 @@ public class Leader implements MembershipListener {
     
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
-    public Leader(FailureDetector aDetector, Transport aTransport, AcceptorLearner anAcceptorLearner) {
-        _detector = aDetector;
-        _transport = aTransport;
-        _al = anAcceptorLearner;
+    public Leader(Common aCommon) {
+        _common = aCommon;
     }
 
     public void shutdown() {
@@ -255,7 +251,7 @@ public class Leader implements MembershipListener {
                 List<Queue.Job> myJobs = _queue.reset();
                 
                 for (Queue.Job myJob: myJobs) {
-                    _al.signal(new VoteOutcome(_event.getResult(), _event.getSeqNum(),
+                    _common.signal(new VoteOutcome(_event.getResult(), _event.getSeqNum(),
                             myJob._prop, _event.getLeader()));                	
                 }
 
@@ -304,7 +300,7 @@ public class Leader implements MembershipListener {
             	assert (_queue.size() != 0);
 
                 _tries = 0;
-                _membership = _detector.getMembers(this);
+                _membership = _common.getFD().getMembers(this);
 
                 _logger.debug(this + ": got membership: (" +
                         _membership.getSize() + ")");
@@ -337,7 +333,7 @@ public class Leader implements MembershipListener {
                     _watchdog.purge();
                 }
 
-            	Collect myLastCollect = _al.getLastCollect();
+            	Collect myLastCollect = _common.getLastCollect();
 
             	// Collect is INITIAL means no leader known so try to become leader
             	//
@@ -347,7 +343,7 @@ public class Leader implements MembershipListener {
                     _rndNumber = 0;
             	} else {
             		InetSocketAddress myOtherLeader = myLastCollect.getNodeId();
-            		boolean isUs = myOtherLeader.equals(_transport.getLocalAddress());
+            		boolean isUs = myOtherLeader.equals(_common.getTransport().getLocalAddress());
 
             		/*
             		 * If the leader is us we needn't update our round number and we can proceed, otherwise
@@ -368,7 +364,7 @@ public class Leader implements MembershipListener {
 
             			_logger.info(this + ": leader is not us");
 
-            			if (_detector.isLive(myOtherLeader)) {
+            			if (_common.getFD().isLive(myOtherLeader)) {
                             _logger.info(this + ": other leader is alive");
 
             				error(VoteOutcome.Reason.OTHER_LEADER, myOtherLeader);
@@ -408,7 +404,7 @@ public class Leader implements MembershipListener {
             	}
 
             	_currentState = States.BEGIN;
-                emit(new Collect(_queue.nextSeqNum(), _rndNumber, _transport.getLocalAddress()));
+                emit(new Collect(_queue.nextSeqNum(), _rndNumber, _common.getTransport().getLocalAddress()));
 
             	break;
             }
@@ -440,7 +436,8 @@ public class Leader implements MembershipListener {
                 	_queue.push(myValue);
 
                 _currentState = States.SUCCESS;
-                emit(new Begin(_queue.head()._seqNum, _rndNumber, _queue.head()._prop, _transport.getLocalAddress()));
+                emit(new Begin(_queue.head()._seqNum, _rndNumber, _queue.head()._prop, 
+                        _common.getTransport().getLocalAddress()));
 
                 break;
             }
@@ -448,17 +445,18 @@ public class Leader implements MembershipListener {
             case SUCCESS : {
             	assert (_queue.size() != 0);
 
-                if (_messages.size() >= _detector.getMajority()) {
+                if (_messages.size() >= _common.getFD().getMajority()) {
                     // Send success
                     //
-                    emit(new Success(_queue.nextSeqNum(), _rndNumber, _transport.getLocalAddress()));
+                    emit(new Success(_queue.nextSeqNum(), _rndNumber, _common.getTransport().getLocalAddress()));
                     cancelInteraction();
                     _lastSuccessfulRndNumber = _rndNumber;                    
                     successful(VoteOutcome.Reason.DECISION);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    emit(new Begin(_queue.head()._seqNum, _rndNumber, _queue.head()._prop, _transport.getLocalAddress()));
+                    emit(new Begin(_queue.head()._seqNum, _rndNumber, _queue.head()._prop,
+                            _common.getTransport().getLocalAddress()));
                 }
 
                 break;
@@ -511,13 +509,14 @@ public class Leader implements MembershipListener {
 
     private void successful(int aReason) {
         _currentState = States.EXIT;
-        _event = new VoteOutcome(aReason, _queue.head()._seqNum, _queue.head()._prop, _transport.getLocalAddress());
+        _event = new VoteOutcome(aReason, _queue.head()._seqNum, _queue.head()._prop,
+                _common.getTransport().getLocalAddress());
 
         process();
     }
 
     private void error(int aReason) {
-    	error(aReason, _transport.getLocalAddress());
+    	error(aReason, _common.getTransport().getLocalAddress());
     }
     
     private void error(int aReason, InetSocketAddress aLeader) {
@@ -535,7 +534,7 @@ public class Leader implements MembershipListener {
         if (startInteraction()) {
             _logger.info(this + ": tx: " + aMessage);
 
-            _transport.send(aMessage, _transport.getBroadcastAddress());
+            _common.getTransport().send(aMessage, _common.getTransport().getBroadcastAddress());
         }
     }
 
@@ -662,7 +661,7 @@ public class Leader implements MembershipListener {
             myState = _currentState;
         }
 
-    	return "Leader: " + _transport.getLocalAddress() +
+    	return "Leader: " + _common.getTransport().getLocalAddress() +
     		": (" + Long.toHexString(_queue.nextSeqNum()) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState +
                 " tries: " + _tries + "/" + MAX_TRIES;
     }

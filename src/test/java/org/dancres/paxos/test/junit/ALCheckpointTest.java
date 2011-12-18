@@ -1,10 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.impl.AcceptorLearner;
-import org.dancres.paxos.impl.CheckpointHandle;
-import org.dancres.paxos.impl.Stream;
-import org.dancres.paxos.impl.Transport;
-import org.dancres.paxos.impl.HowlLogger;
+import org.dancres.paxos.impl.*;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
@@ -67,14 +63,14 @@ public class ALCheckpointTest {
         HowlLogger myLogger = new HowlLogger(DIRECTORY);
         TransportImpl myTransport = new TransportImpl();
 
-        AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
+        AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()));
 
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
         CheckpointHandle myHandle = myAl.newCheckpoint();
         myHandle.saved();
         myAl.close();
 
-        myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
+        myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()));
 
         myAl.open(myHandle);
         myAl.close();
@@ -89,7 +85,7 @@ public class ALCheckpointTest {
         ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
         CheckpointHandle myRecoveredHandle = (CheckpointHandle) myOIS.readObject();
 
-        myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
+        myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()));
 
         myAl.open(myRecoveredHandle);
         myAl.close();

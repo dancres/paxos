@@ -1,5 +1,7 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.messages.PaxosMessage;
+
 import java.net.InetSocketAddress;
 import java.util.Set;
 
@@ -27,7 +29,9 @@ public interface FailureDetector {
     public InetSocketAddress getRandomMember(InetSocketAddress aLocal);
     public byte[] getMetaData(InetSocketAddress aNode);    
     public boolean isLive(InetSocketAddress aNodeId);
-    
+
+    public void processMessage(PaxosMessage aMessage) throws Exception;
+
     /**
      * Currently a simple majority test - ultimately we only need one member of the previous majority to be present
      * in this majority for Paxos to work.

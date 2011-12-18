@@ -3,6 +3,7 @@ package org.dancres.paxos.test.utils;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.Membership;
 import org.dancres.paxos.impl.MembershipListener;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;
 import java.util.HashSet;
@@ -31,6 +32,9 @@ public class NullFailureDetector implements FailureDetector {
 
     public int getMajority() {
         return 2;
+    }
+
+    public void processMessage(PaxosMessage aMessage) throws Exception {
     }
 
     class MembershipImpl implements Membership {

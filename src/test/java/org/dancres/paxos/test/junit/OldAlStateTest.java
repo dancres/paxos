@@ -5,11 +5,8 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.dancres.paxos.impl.AcceptorLearner;
+import org.dancres.paxos.impl.*;
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.impl.Stream;
-import org.dancres.paxos.impl.Transport;
-import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Last;
@@ -89,7 +86,7 @@ public class OldAlStateTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new NullFailureDetector(), myTransport);
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()));
         myAl.open();
 		
 		long myRndNum = 1;

@@ -21,10 +21,10 @@ public class Core implements Transport.Dispatcher {
     private byte[] _meta = null;
     private AcceptorLearner _al;
     private Leader _ld;
-    private FailureDetectorImpl _fd;
     private Heartbeater _hb;
     private long _unresponsivenessThreshold;
     private LogStorage _log;
+    private Common _common;
 
     /**
      * @param anUnresponsivenessThreshold is the minimum period of time a node must be unresponsive for before being
@@ -40,12 +40,12 @@ public class Core implements Transport.Dispatcher {
                 Paxos.Listener aListener) {
         _meta = aMeta;
         _listener = aListener;
-        _log = aLogger;
+        _log = aLogger;        
         _unresponsivenessThreshold = anUnresponsivenessThreshold;
     }
 
     public void stop() {
-        _fd.stop();
+        _common.stop();
         _hb.halt();
 
         try {
@@ -62,22 +62,22 @@ public class Core implements Transport.Dispatcher {
 
     public void setTransport(Transport aTransport) throws Exception {
         _tp = aTransport;
+        _common = new Common(aTransport, _unresponsivenessThreshold);
 
         if (_meta == null)
             _hb = new Heartbeater(_tp, _tp.getLocalAddress().toString().getBytes());
         else
             _hb = new Heartbeater(_tp, _meta);
 
-        _fd = new FailureDetectorImpl(_unresponsivenessThreshold);
-        _al = new AcceptorLearner(_log, _fd, _tp);
+        _al = new AcceptorLearner(_log, _common);
         _al.open();
-        _ld = new Leader(_fd, _tp, _al);
+        _ld = new Leader(_common);
         _al.add(_listener);
         _hb.start();
     }
 
     public FailureDetector getFailureDetector() {
-        return _fd;
+        return _common.getFD();
     }
 
     public AcceptorLearner getAcceptorLearner() {
@@ -95,7 +95,7 @@ public class Core implements Transport.Dispatcher {
         try {
             switch (myMessage.getClassification()) {
                 case PaxosMessage.FAILURE_DETECTOR: {
-                    _fd.processMessage(myMessage);
+                    _common.getFD().processMessage(myMessage);
 
                     return true;
                 }

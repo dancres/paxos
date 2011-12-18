@@ -71,11 +71,8 @@ public class AcceptorLearner {
      * any from other leaders whilst we're not in sync with the majority.
 	 */
 	private final LogStorage _storage;
-	private final Transport _transport;
+    private final Common _common;
 	private final InetSocketAddress _localAddress;
-	private final FailureDetector _fd;
-	
-	private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
 
     /**
      * Begins contain the values being proposed. These values must be remembered from round to round of an instance
@@ -141,8 +138,6 @@ public class AcceptorLearner {
     }
 
     private RecoveryTrigger _trigger = new RecoveryTrigger();
-	private Collect _lastCollect = Collect.INITIAL;
-	private long _lastLeaderActionTime = 0;
 
     static class ALCheckpointHandle extends CheckpointHandle {
     	static final ALCheckpointHandle NO_CHECKPOINT = new ALCheckpointHandle(Watermark.INITIAL, Collect.INITIAL, null);
@@ -207,11 +202,10 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-    public AcceptorLearner(LogStorage aStore, FailureDetector anFD, Transport aTransport) {
+    public AcceptorLearner(LogStorage aStore, Common aCommon) {
         _storage = aStore;
-        _transport = aTransport;
-        _fd = anFD;
-        _localAddress = aTransport.getLocalAddress();
+        _localAddress = aCommon.getTransport().getLocalAddress();
+        _common = aCommon;
     }
 
     public CheckpointHandle newCheckpoint() {
@@ -307,9 +301,8 @@ public class AcceptorLearner {
                 _recoveryAlarm = null;
                 clearRecoveryWindow();
                 _packetBuffer.clear();
-                _lastCollect = Collect.INITIAL;
-                _lastLeaderActionTime = 0;
                 _cachedBegins.clear();
+                _common.clear();
                 _trigger.reset();
             }
 
@@ -323,9 +316,9 @@ public class AcceptorLearner {
 
     private long installCheckpoint(ALCheckpointHandle aHandle) {
         _lastCheckpoint = aHandle;
-        _lastCollect = aHandle.getLastCollect();
+        _common.setLastCollect(aHandle.getLastCollect());
 
-        _logger.info("Checkpoint installed: " + _lastCollect + " @ " + aHandle.getLowWatermark());
+        _logger.info("Checkpoint installed: " + _common.getLastCollect() + " @ " + aHandle.getLowWatermark());
 
         return _trigger.install(aHandle.getLowWatermark());
     }
@@ -373,8 +366,8 @@ public class AcceptorLearner {
              * We do not want to allow a leader to immediately over-rule us, make it work a bit,
              * otherwise we risk leader jitter
              */
-            _lastLeaderActionTime = System.currentTimeMillis();
-            signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE, myHandle.getLastCollect().getSeqNum(), 
+            _common.leaderAction();
+            _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE, myHandle.getLastCollect().getSeqNum(),
             		Proposal.NO_VALUE, myHandle.getLastCollect().getNodeId()));
         }
     }
@@ -410,27 +403,12 @@ public class AcceptorLearner {
 	}
 	
 	public void add(Paxos.Listener aListener) {
-		synchronized(_listeners) {
-			_listeners.add(aListener);
-		}
+        _common.add(aListener);
 	}
 
 	public void remove(Paxos.Listener aListener) {
-		synchronized(_listeners) {
-			_listeners.remove(aListener);
-		}
+        _common.remove(aListener);
 	}
-
-    void signal(VoteOutcome aStatus) {
-        List<Paxos.Listener> myListeners;
-
-        synchronized(_listeners) {
-            myListeners = new ArrayList<Paxos.Listener>(_listeners);
-        }
-
-        for (Paxos.Listener myTarget : myListeners)
-            myTarget.done(aStatus);
-    }
 
 	public long getHeartbeatCount() {
 		return _receivedHeartbeats.longValue();
@@ -459,63 +437,9 @@ public class AcceptorLearner {
      ******************************************************************************************** */
 
 	public Collect getLastCollect() {
-		synchronized(this) {
-			return _lastCollect;
-		}
+        return _common.getLastCollect();
 	}
 
-	/**
-	 * @param aCollect
-	 *            should be tested to see if it supercedes the current COLLECT
-	 * @return <code>true</code> if it supercedes, <code>false</code> otherwise
-	 */
-	private boolean supercedes(Collect aCollect) {
-		synchronized(this) {
-			if (aCollect.supercedes(_lastCollect)) {
-				_lastCollect = aCollect;
-
-				return true;
-			} else {
-				return false;
-			}
-		}
-	}
-
-	/**
-	 * @return <code>true</code> if the collect is either from the existing
-	 *         leader, or there is no leader or there's been nothing heard from
-	 *         the current leader within DEFAULT_LEASE milliseconds else
-	 *         <code>false</code>
-	 */
-	private boolean amAccepting(Collect aCollect, long aCurrentTime) {
-		synchronized(this) {
-			if (_lastCollect.isInitial()) {
-				_logger.debug("Current collect is initial - allow leader");
-				
-				return true;
-			} else {
-				if (aCollect.sameLeader(getLastCollect())) {
-					_logger.debug("Current collect is from same leader - allow");
-					
-					return true;
-				} else
-					_logger.debug("Check leader expiry: " + (aCurrentTime > _lastLeaderActionTime
-							+ Constants.getLeaderLeaseDuration()));
-				
-					return (aCurrentTime > _lastLeaderActionTime
-							+ Constants.getLeaderLeaseDuration());
-			}
-		}
-	}
-
-	private void updateLastActionTime(long aTime) {
-		_logger.debug("AL:Updating last action time: " + aTime + ", " + _localAddress);
-
-		synchronized(this) {
-			if (aTime > _lastLeaderActionTime)
-				_lastLeaderActionTime = aTime;
-		}
-	}
 
     /* ********************************************************************************************
      *
@@ -630,7 +554,8 @@ public class AcceptorLearner {
                     completedRecovery();
                 }
 
-                signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum, new Proposal(), getLastCollect().getNodeId()));
+                _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
+                        new Proposal(), getLastCollect().getNodeId()));
                 return;
             }
 
@@ -696,7 +621,7 @@ public class AcceptorLearner {
 					 * window. As the recovery watchdog measures progress through the recovery window, a partial
 					 * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
 					 */
-					send(myWindow, _fd.getRandomMember(_localAddress));
+					send(myWindow, _common.getFD().getRandomMember(_localAddress));
 
 					// Declare recovery active - which stops this AL emitting responses
 					//
@@ -810,7 +735,6 @@ public class AcceptorLearner {
 	 */
 	private void process(PaxosMessage aMessage) {
 		InetSocketAddress myNodeId = aMessage.getNodeId();
-		long myCurrentTime = System.currentTimeMillis();
 		long mySeqNum = aMessage.getSeqNum();
 
 		_logger.info("AL: got " + aMessage + ", " + _localAddress);
@@ -822,7 +746,7 @@ public class AcceptorLearner {
 				// Make sure we can dispatch the recovery request
 				//
 				if (myNeed.getMinSeq() < _lastCheckpoint.getLowWatermark().getSeqNum())
-					_transport.send(new OutOfDate(_localAddress), myNeed.getNodeId());
+					_common.getTransport().send(new OutOfDate(_localAddress), myNeed.getNodeId());
 				
 				if (myNeed.getMaxSeq() <= _trigger.getLowWatermark().getSeqNum()) {
 					_logger.info("Running streamer: " + _localAddress);
@@ -836,7 +760,7 @@ public class AcceptorLearner {
 			case Operations.COLLECT: {
 				Collect myCollect = (Collect) aMessage;
 
-				if (!amAccepting(myCollect, myCurrentTime)) {
+				if (!_common.amAccepting(myCollect)) {
 					_ignoredCollects.incrementAndGet();
 
 					_logger.info("AL:Not accepting: " + myCollect + ", "
@@ -860,7 +784,7 @@ public class AcceptorLearner {
 				// If the collect supercedes our previous collect save it to disk,
 				// return last proposal etc
 				//
-				if (supercedes(myCollect)) {
+				if (_common.supercedes(myCollect)) {
 					write(aMessage, true);
 					send(constructLast(mySeqNum), myNodeId);
 
@@ -891,7 +815,7 @@ public class AcceptorLearner {
 				// If the begin matches the last round of a collect we're fine
 				//
 				if (myBegin.originates(getLastCollect())) {
-					updateLastActionTime(myCurrentTime);
+					_common.leaderAction();
                     cacheBegin(myBegin);
                     
 					write(aMessage, true);
@@ -920,7 +844,7 @@ public class AcceptorLearner {
 			case Operations.SUCCESS: {
 				Success mySuccess = (Success) aMessage;
 
-				updateLastActionTime(myCurrentTime);
+                _common.leaderAction();
 
 				if (mySeqNum <= _trigger.getLowWatermark().getSeqNum()) {
 					_logger.info("AL:Discarded known value: " + mySeqNum + ", " + _localAddress);
@@ -949,7 +873,7 @@ public class AcceptorLearner {
                         } else {
                             _logger.info("AL:Learnt value: " + mySeqNum + ", " + _localAddress);
 
-                            signal(new VoteOutcome(VoteOutcome.Reason.DECISION, mySeqNum,
+                            _common.signal(new VoteOutcome(VoteOutcome.Reason.DECISION, mySeqNum,
                                     myBegin.getConsolidatedValue(), myBegin.getNodeId()));
                         }
                     }
@@ -997,7 +921,7 @@ public class AcceptorLearner {
         // Stay silent during recovery to avoid producing out-of-date responses
         //
         if (! isRecovering())
-            _transport.send(aMessage, aNodeId);
+            _common.getTransport().send(aMessage, aNodeId);
     }
 
     /* ********************************************************************************************
@@ -1086,7 +1010,7 @@ public class AcceptorLearner {
         public void run() {
             _logger.info("RemoteStreamer starting, " + _localAddress);
 
-            _stream = _transport.connectTo(_need.getNodeId());
+            _stream = _common.getTransport().connectTo(_need.getNodeId());
 
             // Check we got a connection
             //
