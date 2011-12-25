@@ -63,6 +63,7 @@ public class AcceptorLearner {
 
 	private Need _recoveryWindow = null;
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
+    private RecoveryTrigger _trigger = new RecoveryTrigger();
 
 	/**
      * Tracks the last collect we accepted and thus represents our view of the current leader for instances.
@@ -137,8 +138,6 @@ public class AcceptorLearner {
         }
     }
 
-    private RecoveryTrigger _trigger = new RecoveryTrigger();
-
     static class ALCheckpointHandle extends CheckpointHandle {
     	static final ALCheckpointHandle NO_CHECKPOINT = new ALCheckpointHandle(Watermark.INITIAL, Collect.INITIAL, null);
     	
@@ -212,7 +211,7 @@ public class AcceptorLearner {
         // Can't allow watermark and last collect to vary independently
         //
         synchronized (this) {
-            return new ALCheckpointHandle(_trigger.getLowWatermark(), getLastCollect(), this);
+            return new ALCheckpointHandle(_trigger.getLowWatermark(), _common.getLastCollect(), this);
         }
     }
 
@@ -302,7 +301,7 @@ public class AcceptorLearner {
                 clearRecoveryWindow();
                 _packetBuffer.clear();
                 _cachedBegins.clear();
-                _common.clear();
+                _common.resetLeader();
                 _trigger.reset();
             }
 
@@ -402,14 +401,6 @@ public class AcceptorLearner {
         return getRecoveryWindow() != null;
 	}
 	
-	public void add(Paxos.Listener aListener) {
-        _common.add(aListener);
-	}
-
-	public void remove(Paxos.Listener aListener) {
-        _common.remove(aListener);
-	}
-
 	public long getHeartbeatCount() {
 		return _receivedHeartbeats.longValue();
 	}
@@ -429,17 +420,6 @@ public class AcceptorLearner {
             return _cachedBegins.remove(new Long(aSeqNum));
         }
     }
-
-    /* ********************************************************************************************
-     *
-     * Leader reasoning
-     *
-     ******************************************************************************************** */
-
-	public Collect getLastCollect() {
-        return _common.getLastCollect();
-	}
-
 
     /* ********************************************************************************************
      *
@@ -555,7 +535,7 @@ public class AcceptorLearner {
                 }
 
                 _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
-                        new Proposal(), getLastCollect().getNodeId()));
+                        new Proposal(), _common.getLastCollect().getNodeId()));
                 return;
             }
 
@@ -774,7 +754,7 @@ public class AcceptorLearner {
                  */
                 if ((aMessage.getClassification() == PaxosMessage.LEADER) &&
                         (mySeqNum <= _trigger.getLowWatermark().getSeqNum())) {
-                    Collect myLastCollect = getLastCollect();
+                    Collect myLastCollect = _common.getLastCollect();
 
                     send(new OldRound(_trigger.getLowWatermark().getSeqNum(), myLastCollect.getNodeId(),
                             myLastCollect.getRndNumber(), _localAddress), myNodeId);
@@ -793,14 +773,14 @@ public class AcceptorLearner {
 					 * and node), we apply the multi-paxos optimisation, no need to
 					 * save to disk, just respond with last proposal etc
 					 */
-				} else if (myCollect.sameLeader(getLastCollect())) {
+				} else if (myCollect.sameLeader(_common.getLastCollect())) {
 					send(constructLast(mySeqNum), myNodeId);
 
 				} else {
 					// Another collect has already arrived with a higher priority,
 					// tell the proposer it has competition
 					//
-					Collect myLastCollect = getLastCollect();
+					Collect myLastCollect = _common.getLastCollect();
 
 					send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
 							myLastCollect.getRndNumber(), _localAddress), myNodeId);
@@ -814,19 +794,19 @@ public class AcceptorLearner {
 
 				// If the begin matches the last round of a collect we're fine
 				//
-				if (myBegin.originates(getLastCollect())) {
+				if (myBegin.originates(_common.getLastCollect())) {
 					_common.leaderAction();
                     cacheBegin(myBegin);
                     
 					write(aMessage, true);
 
-					send(new Accept(mySeqNum, getLastCollect().getRndNumber(), 
+					send(new Accept(mySeqNum, _common.getLastCollect().getRndNumber(), 
 							_localAddress), myNodeId);
-				} else if (myBegin.precedes(getLastCollect())) {
+				} else if (myBegin.precedes(_common.getLastCollect())) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
-					Collect myLastCollect = getLastCollect();
+					Collect myLastCollect = _common.getLastCollect();
 
 					send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
 							myLastCollect.getRndNumber(), _localAddress), myNodeId);

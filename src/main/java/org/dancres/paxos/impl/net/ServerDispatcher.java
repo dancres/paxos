@@ -113,6 +113,10 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 		_tp.send(anEvent, myAddr);
     }
 
+    public void add(Paxos.Listener aListener) {
+    	_core.add(aListener);
+    }
+    
     public AcceptorLearner getAcceptorLearner() {
 		return _core.getAcceptorLearner();
 	}

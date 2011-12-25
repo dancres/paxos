@@ -16,13 +16,10 @@ import org.slf4j.LoggerFactory;
 public class Core implements Transport.Dispatcher {
     private static Logger _logger = LoggerFactory.getLogger(Core.class);
 
-    private Transport _tp;
-    private Paxos.Listener _listener;
     private byte[] _meta = null;
     private AcceptorLearner _al;
     private Leader _ld;
     private Heartbeater _hb;
-    private long _unresponsivenessThreshold;
     private LogStorage _log;
     private Common _common;
 
@@ -39,21 +36,20 @@ public class Core implements Transport.Dispatcher {
     public Core(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta,
                 Paxos.Listener aListener) {
         _meta = aMeta;
-        _listener = aListener;
         _log = aLogger;        
-        _unresponsivenessThreshold = anUnresponsivenessThreshold;
+        _common = new Common(anUnresponsivenessThreshold);
+        _common.add(aListener);
     }
 
     public void stop() {
-        _common.stop();
         _hb.halt();
 
         try {
             _hb.join();
         } catch (InterruptedException anIE) {
         }
-
-        _tp.shutdown();
+        
+        _common.stop();
 
         _ld.shutdown();
 
@@ -61,18 +57,16 @@ public class Core implements Transport.Dispatcher {
     }
 
     public void setTransport(Transport aTransport) throws Exception {
-        _tp = aTransport;
-        _common = new Common(aTransport, _unresponsivenessThreshold);
+        _common.setTransport(aTransport);
 
         if (_meta == null)
-            _hb = new Heartbeater(_tp, _tp.getLocalAddress().toString().getBytes());
+            _hb = new Heartbeater(aTransport, aTransport.getLocalAddress().toString().getBytes());
         else
-            _hb = new Heartbeater(_tp, _meta);
+            _hb = new Heartbeater(aTransport, _meta);
 
         _al = new AcceptorLearner(_log, _common);
         _al.open();
         _ld = new Leader(_common);
-        _al.add(_listener);
         _hb.start();
     }
 
@@ -88,7 +82,10 @@ public class Core implements Transport.Dispatcher {
         return _ld;
     }
 
-
+    public void add(Paxos.Listener aListener) {
+    	_common.add(aListener);
+    }
+    
     public boolean messageReceived(Packet aPacket) {
     	PaxosMessage myMessage = aPacket.getMessage();
     	

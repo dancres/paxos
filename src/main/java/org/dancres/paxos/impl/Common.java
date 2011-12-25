@@ -29,6 +29,14 @@ public class Common {
         _fd = anFD;
     }
 
+    public Common(long anUnresponsivenessThreshold) {
+        _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);    	
+    }
+    
+    void setTransport(Transport aTransport) {
+    	_transport = aTransport;
+    }
+    
     Transport getTransport() {
         return _transport;
     }
@@ -39,9 +47,10 @@ public class Common {
     
     void stop() {
         _fd.stop();
+        _transport.shutdown();
     }
     
-    void clear() {
+    void resetLeader() {
         _lastCollect = Collect.INITIAL;
         _lastLeaderActionTime = 0;        
     }

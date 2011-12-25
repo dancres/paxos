@@ -46,7 +46,7 @@ public class Leader implements MembershipListener {
      * 
      * In EXIT a paxos instance was completed successfully, clean up is all that remains.
      * 
-     * In ABORT a paxos isntance failed for some reason (which will be found in </code>_completion</code>).
+     * In ABORT a paxos instance failed for some reason (which will be found in </code>_completion</code>).
      * 
      * In SUBMITTED, Leader has been given a value and should attempt to complete a paxos instance.
      */

@@ -51,7 +51,7 @@ public class PaxosFactory {
 		}
 
 		public void register(Listener aListener) {
-			_core.getAcceptorLearner().add(aListener);
+			_core.add(aListener);
 		}
 
 		public void bringUpToDate(CheckpointHandle aHandle) throws Exception {

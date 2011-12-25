@@ -112,7 +112,7 @@ public class ALOutOfDateTest {
         _node3 = new ServerDispatcher(5000, new HowlLogger(_node3Log));
         _tport3 = new TransportImpl();
         _tport3.add(_node3);
-        _node3.getAcceptorLearner().add(myListener);
+        _node3.add(myListener);
 
         ensureFD(_node3.getFailureDetector());
 

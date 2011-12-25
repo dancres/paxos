@@ -77,7 +77,7 @@ public class LastHandlingTest {
     @Test public void post() throws Exception {
         ListenerImpl myListener = new ListenerImpl();
         
-        _node2.getAcceptorLearner().add(myListener);
+        _node2.add(myListener);
 
         ClientDispatcher myClient = new ClientDispatcher();
     	TransportImpl myTransport = new TransportImpl();
