@@ -2,7 +2,6 @@ package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
 
-import org.dancres.paxos.impl.Tuple;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
@@ -49,16 +48,6 @@ public class VoteOutcome implements PaxosMessage {
 
     public Proposal getValues() {
     	return _consolidatedValue;
-    }
-    
-    public Tuple<Long, Long> getLeaderBootstrap() {
-        switch (_result) {
-            case Reason.OTHER_LEADER :
-            case Reason.DECISION :
-            case Reason.OTHER_VALUE : return new Tuple<Long, Long>(_seqNum, _rndNumber);
-            
-            default : return null;
-        }
     }
     
     /**
