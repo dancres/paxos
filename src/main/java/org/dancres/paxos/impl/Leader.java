@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import com.sun.tools.javac.util.Abort;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.messages.*;
@@ -9,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -22,10 +22,8 @@ import java.util.TimerTask;
  * @author dan
  */
 public class Leader implements MembershipListener {
+    
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
-
-	public static final Proposal HEARTBEAT = new Proposal("heartbeat",
-			"org.dancres.paxos.Heartbeat".getBytes());
 
     private static final long GRACE_PERIOD = 1000;
 
@@ -46,29 +44,24 @@ public class Leader implements MembershipListener {
      * 
      * In EXIT a paxos instance was completed successfully, clean up is all that remains.
      * 
-     * In ABORT a paxos instance failed for some reason (which will be found in </code>_completion</code>).
+     * In ABORT a paxos instance failed for some reason (which will be found in </code>_event</code>).
      * 
      * In SUBMITTED, Leader has been given a value and should attempt to complete a paxos instance.
      */
-    enum States {
-    	COLLECT, BEGIN, SUCCESS, EXIT, ABORT, SUBMITTED
+    public enum States {
+    	COLLECT, BEGIN, SUCCESS, EXIT, ABORT, SUBMITTED, SHUTDOWN
     };
     
 
-    private final Timer _watchdog = new Timer("Leader timers");
+    private final Timer _watchdog;
     private final Common _common;
+    private final LeaderFactory _factory;
 
-    /**
-     * @todo Is this correct?
-     * Tracks the round number this leader used last. This cannot be stored in the acceptor/learner's version without
-     * risking breaking the collect protocol (the al could suddenly believe it's seen a collect it hasn't and become
-     * noisy when it should be silent). This field can be updated as the result of OldRound messages.
-     */
-    private long _rndNumber = 0;
-
-    private long _lastSuccessfulRndNumber = Constants.NO_ROUND;
-
+    private final long _seqNum;
+    private final long _rndNumber;
     private long _tries = 0;
+
+    private Proposal _prop;
 
     /**
      * This alarm is used to limit the amount of time the leader will wait for responses from all apparently live
@@ -77,16 +70,11 @@ public class Leader implements MembershipListener {
     private TimerTask _interactionAlarm;
 
     /**
-     * This alarm is used to ensure the leader sends regular heartbeats in the face of inactivity so as to extend
-     * its lease with AcceptorLearners.
-     */
-    private TimerTask _heartbeatAlarm;
-
-    /**
      * Tracks membership for an entire paxos instance.
      */
     private Membership _membership;
 
+    private final States _startState;
     private States _currentState = States.EXIT;
 
     /**
@@ -94,148 +82,90 @@ public class Leader implements MembershipListener {
      */
     private VoteOutcome _event;
 
-    private Queue _queue = new Queue();
-    
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
-    public Leader(Common aCommon) {
+    public Leader(Common aCommon, Timer aTimers, LeaderFactory aFactory,
+                  long aNextSeq, long aRndNumber) {
         _common = aCommon;
+        _watchdog = aTimers;
+        _factory = aFactory;
+        _seqNum = aNextSeq;
+        _rndNumber = aRndNumber;
+        _startState = States.COLLECT;
     }
 
-    public void shutdown() {
+    public Leader(Common aCommon, Timer aTimers, LeaderFactory aFactory,
+                  long aNextSeq, long aRndNumber, States aStartState) {
+        _common = aCommon;
+        _watchdog = aTimers;
+        _factory = aFactory;
+        _seqNum = aNextSeq;
+        _rndNumber = aRndNumber;
+        _startState = aStartState;
+    }
+
+    VoteOutcome getOutcome() {
+        synchronized(this) {
+            return _event;
+        }
+    }
+
+    void shutdown() {
     	synchronized(this) {
-    		_watchdog.cancel();
-
-    		if (_membership != null)
-    			_membership.dispose();
-    		
-    		_currentState = States.ABORT;
+            if (! isDone()) {
+    		    _currentState = States.SHUTDOWN;
+                _event = null;
+                process();
+            }
     	}
-    }
-
-    private long calculateLeaderRefresh() {
-        long myExpiry = Constants.getLeaderLeaseDuration();
-        return myExpiry - (myExpiry * 20 / 100);
     }
 
     private long calculateInteractionTimeout() {
         return GRACE_PERIOD;
     }
 
-    public long getCurrentRound() {
+    public long getRound() {
+        return _rndNumber;
+    }
+
+    public long getSeqNum() {
+        return _seqNum;
+    }
+
+    public States getState() {
         synchronized(this) {
-            return _rndNumber;
+            return _currentState;
         }
     }
 
-    public boolean isReady() {
+    boolean isDone() {
         synchronized(this) {
-            return ((_currentState.equals(States.EXIT)) || (_currentState.equals(States.ABORT)));
+            return ((_currentState.equals(States.EXIT)) || (_currentState.equals(States.ABORT)) ||
+                    (_currentState.equals(States.SHUTDOWN)));
         }
     }
 
-    class Queue {
-        class Job {
-        	Proposal _prop;
-        	long _seqNum;
-        	
-        	Job(long aSeqNum, Proposal aProp) {
-        		_prop = aProp;
-        		_seqNum = aSeqNum;
-        	}
-        	
-        	public String toString() {
-        		return "Job: " + _seqNum + " -> " + _prop;
-        	}
-        	
-        	public boolean equals(Object anObject) {
-        		if (anObject instanceof Job) {
-        			Job myOther = (Job) anObject;
-        			
-        			return _seqNum == myOther._seqNum;
-        		}
-        		
-        		return false;
-        	}
-        }
-        
-    	private List<Job> _jobs = new LinkedList<Job>();
-    	private long _nextSeqNum = 0;
-    	
-    	void resync(long aNewSeq) {
-    		_nextSeqNum = aNewSeq + _jobs.size();
-    		
-    		long myNewSeq = aNewSeq;
-    		
-    		for (Job myJob: _jobs) {
-    			myJob._seqNum = myNewSeq;
-    			myNewSeq++;
-    		}
-    	}
-    	
-    	void push(Proposal aProp) {
-    		long myNextSeqNum = nextSeqNum();
-    		resync(nextSeqNum() + 1);
-    		
-    		List<Job> myNewJobs = new LinkedList<Job>();
-    		myNewJobs.add(new Job(myNextSeqNum, aProp));
-    		myNewJobs.addAll(_jobs);
-    		_jobs = myNewJobs;
-    	}
-    	
-    	List<Job> reset() {
-    		// Restore next seq num to the seqnum of the proposal at queue head
-    		//
-    		if (_jobs.size() == 0)
-    			return new LinkedList<Job>();
-    		
-    		Job myFirst = _jobs.get(0);
-    		
-    		_nextSeqNum = myFirst._seqNum;
-    		
-    		List<Job> myContents = new LinkedList<Job>(_jobs);
-    		_jobs.clear();
-    		
-    		return myContents;
-    	}
-    	
-    	Job head() {
-    		return _jobs.get(0);
-    	}
-    	
-    	Job remove() {
-    		 return _jobs.remove(0);
-    	}
-    	
-    	void add(Proposal aProp) {
-    		_jobs.add(new Job(_nextSeqNum, aProp));
-    		_nextSeqNum++;
-    	}
-    	
-    	int size() {
-    		return _jobs.size();
-    	}
-    	
-    	long nextSeqNum() {
-    		if (_jobs.size() == 0)
-    			return _nextSeqNum;
-    		else
-    			return head()._seqNum;
-    	}
-    }
-    
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
      * we expect ACCEPT or OLDROUND
-     *
-     * @todo Increment round number via heartbeats every so often - see note below about jittering collects.
      */
     private void process() {
-        switch(_currentState) {
-            case ABORT : {
-            	assert (_queue.size() != 0);
+        switch (_currentState) {
+            case SHUTDOWN : {
+                _logger.info(this + ": SHUTDOWN");
+                
+                _messages.clear();
+                
+                if (_membership != null)
+                    _membership.dispose();
+                
+                _currentState = States.ABORT;
 
+                return;
+            }
+
+            case ABORT : {
                 _logger.info(this + ": ABORT " + _event);
 
                 _messages.clear();
@@ -244,70 +174,35 @@ public class Leader implements MembershipListener {
                     _membership.dispose();
 
                 cancelInteraction();
-                
-                /*
-                 * We must fail all queued operations - use the same completion code...
-                 */
-                List<Queue.Job> myJobs = _queue.reset();
-                
-                for (Queue.Job myJob: myJobs) {
-                    _common.signal(new VoteOutcome(_event.getResult(), _event.getSeqNum(),
-                            myJob._prop, _event.getLeader()));                	
-                }
 
+                _common.signal(_event);
+
+                _factory.dispose(this);
+                
                 return;
             }
 
             case EXIT : {
-            	assert (_queue.size() != 0);
-
             	_logger.info(this + ": EXIT " + _event);
 
                 _messages.clear();
 
-                // Remove the just processed item
-                //                
-                _queue.remove();
-
                 if (_membership != null)
                     _membership.dispose();
 
-                if (_queue.size() > 0) {
-                    _logger.info(this + ": processing op from queue: " + _queue.head());
-
-                    _currentState = States.SUBMITTED;
-                    process();
-
-                } else {
-
-                	// If we got here, we're leader, setup for a heartbeat if there's no other activity
-                	//
-                    _heartbeatAlarm = new TimerTask() {
-                        public void run() {
-                            _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
-
-                            submit(HEARTBEAT);
-                        }
-                    };
-
-                    _watchdog.schedule(_heartbeatAlarm, calculateLeaderRefresh());
-                }
+                _factory.dispose(this);
 
                 return;
             }
 
             case SUBMITTED : {
-            	assert (_queue.size() != 0);
-
                 _tries = 0;
                 _membership = _common.getFD().getMembers(this);
 
                 _logger.debug(this + ": got membership: (" +
                         _membership.getSize() + ")");
 
-                // Collect will decide if it can skip straight to a begin
-                //
-                _currentState = States.COLLECT;
+                _currentState = _startState;
                 process();
 
                 break;
@@ -324,138 +219,58 @@ public class Leader implements MembershipListener {
              * missing instances to catch-up and recover that state from those around them.
              */
             case COLLECT : {
-            	assert (_queue.size() != 0);
-
-            	// We've got activity, cancel heartbeat until we're done. Note this may be a heartbeat, that's okay.
-            	//
-            	if (_heartbeatAlarm != null) {
-            		_heartbeatAlarm.cancel();
-                    _watchdog.purge();
-                }
-
-            	Collect myLastCollect = _common.getLastCollect();
-
-            	// Collect is INITIAL means no leader known so try to become leader
-            	//
-            	if (myLastCollect.isInitial()) {
-            		_logger.info(this + ": collect is initial");
-
-                    _rndNumber = 0;
-            	} else {
-            		InetSocketAddress myOtherLeader = myLastCollect.getNodeId();
-            		boolean isUs = myOtherLeader.equals(_common.getTransport().getLocalAddress());
-
-            		/*
-            		 * If the leader is us we needn't update our round number and we can proceed, otherwise
-            		 * we ascertain liveness of last known leader and proceed if it appears dead.
-            		 *
-            		 * This potential leader and its associated AL may be unaware of the active leader or indeed
-            		 * it may appear dead. Under such circumstances this potential leader will attempt to
-            		 * become anointed but could fail on an existing leader lease which would lead to a vote
-            		 * timeout. The client would thus re-submit or similar rather than swap to the active leader node.
-            		 * This is okay as eventually this potential leader will decide the active leader is alive and
-            		 * immediately reject the client with an other leader message resulting in the necessary re-routing.
-            		 *
-            		 * The above behaviour has another benefit which is a client can connect to any member of the
-            		 * paxos co-operative and be re-directed to the leader node. This means clients don't have to
-            		 * perform any specialised behaviours for selecting a leader.
-            		 */
-            		if (! isUs) {
-
-            			_logger.info(this + ": leader is not us");
-
-            			if (_common.getFD().isLive(myOtherLeader)) {
-                            _logger.info(this + ": other leader is alive");
-
-            				error(VoteOutcome.Reason.OTHER_LEADER, myOtherLeader);
-            				return;
-            			} else {
-            				_logger.info(this + ": other leader not alive");
-
-                            /*
-                             * If we're going for leadership, make sure we have a credible round number. If this
-                             * round number isn't good enough, we'll find out via OldRound messages and update
-                             * the round number accordingly.
-                             */
-                            if (_rndNumber <= myLastCollect.getRndNumber())
-                                _rndNumber = myLastCollect.getRndNumber() + 1;
-            			}
-            		} else {
-                        /*
-                         * Optimisation - if the leader state machine successfully closed the last sequence number out,
-                         * it can in state COLLECT issue a BEGIN and go to state success. The leader can deduce if it
-                         * succeeded by recording the round number of it's last successful instance. It then compares
-                         * that with the AL's view and if they match proceeds with the optimisation attempt. Note that
-                         * the local AL may be out of date, that's okay as the Leader when it emits the BEGIN will be
-                         * told OTHER_LEADER. It should then discard the last successful round number and when it
-                         * retries, because it has no recollection of a previously successful round, it will issue a 
-                         * COLLECT as usual. This is the multi-paxos optimisation.
-                         */
-                        if (_lastSuccessfulRndNumber == myLastCollect.getRndNumber()) {
-                            _logger.info(this + ": applying multi-paxos");
-
-                            _currentState = States.BEGIN;
-
-                            process();
-
-                            return;
-                        }
-                    }
-            	}
-
             	_currentState = States.BEGIN;
-                emit(new Collect(_queue.nextSeqNum(), _rndNumber, _common.getTransport().getLocalAddress()));
+                emit(new Collect(_seqNum, _rndNumber, _common.getTransport().getLocalAddress()));
 
             	break;
             }
 
             case BEGIN : {
-            	assert (_queue.size() != 0);
-
-            	long myMaxProposal = Long.MIN_VALUE;
-            	Proposal myValue = null;
-
+                Last myLast = null;
+                
                 for(PaxosMessage m : _messages) {
-                    Last myLast = (Last) m;
+                    Last myNewLast = (Last) m;
 
-                    if (!myLast.getConsolidatedValue().equals(Proposal.NO_VALUE)) {
-                        if (myLast.getRndNumber() > myMaxProposal) {
-                            myValue = myLast.getConsolidatedValue();
-                            myMaxProposal = myLast.getRndNumber();
+                    if (!myNewLast.getConsolidatedValue().equals(Proposal.NO_VALUE)) {
+                        if (myLast == null)
+                            myLast = myNewLast;
+                        else if (myNewLast.getRndNumber() > myLast.getRndNumber()) {
+                            myLast = myNewLast;
                         }
                     }
                 }
 
                 /*
                  * If we have a value from a LAST message and it's not the same as the one we want to propose,
-                 * we've hit an outstanding paxos instance and must now drive it to completion. Put it at the head of 
-                 * the queue ready for the BEGIN. Note we must compare the consolidated value we want to propose
-                 * as the one in the LAST message will be a consolidated value.
+                 * we've hit an outstanding paxos instance and must now drive it to completion. Note we must
+                 * compare the consolidated value we want to propose as the one in the LAST message will be a
+                 * consolidated value.
                  */
-                if ((myValue != null) && (! myValue.equals(_queue.head())))
-                	_queue.push(myValue);
+                if ((myLast != null) && (! myLast.getConsolidatedValue().equals(_prop))) {
+                    _common.signal(new VoteOutcome(VoteOutcome.Reason.OTHER_VALUE,
+                            _seqNum, _rndNumber, _prop, myLast.getNodeId()));
+
+                    _prop = myLast.getConsolidatedValue();
+                }
 
                 _currentState = States.SUCCESS;
-                emit(new Begin(_queue.head()._seqNum, _rndNumber, _queue.head()._prop, 
+                emit(new Begin(_seqNum, _rndNumber, _prop,
                         _common.getTransport().getLocalAddress()));
 
                 break;
             }
 
             case SUCCESS : {
-            	assert (_queue.size() != 0);
-
                 if (_messages.size() >= _common.getFD().getMajority()) {
                     // Send success
                     //
-                    emit(new Success(_queue.nextSeqNum(), _rndNumber, _common.getTransport().getLocalAddress()));
+                    emit(new Success(_seqNum, _rndNumber, _common.getTransport().getLocalAddress()));
                     cancelInteraction();
-                    _lastSuccessfulRndNumber = _rndNumber;                    
                     successful(VoteOutcome.Reason.DECISION);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    emit(new Begin(_queue.head()._seqNum, _rndNumber, _queue.head()._prop,
+                    emit(new Begin(_seqNum, _rndNumber, _prop,
                             _common.getTransport().getLocalAddress()));
                 }
 
@@ -478,38 +293,19 @@ public class Leader implements MembershipListener {
 
         InetSocketAddress myCompetingNodeId = myOldRound.getLeaderNodeId();
 
-        _lastSuccessfulRndNumber = Constants.NO_ROUND;
+        _logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
+                Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
-        /*
-         * If we're getting an OldRound, the other leader's lease has expired. We may be about to become leader
-         * but if we're proposing against an already settled sequence number we need to get up to date. If we were
-         * about to become leader but our sequence number is out of date, the response we'll get from an AL is an
-         * OldRound where the round number is less than ours but the sequence number is greater. Note that updating
-         * our _seqNum will drive our own AL to recover missing state should that be necessary.
-         */
-        if (myOldRound.getLastRound() < _rndNumber) {
-            if (myOldRound.getSeqNum() > _queue.nextSeqNum()) {
-        	    _logger.info(this + ": This leader is out of date: " + _queue.nextSeqNum() + " < " + myOldRound.getSeqNum());
+        _currentState = States.ABORT;
+        _event = new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
+                myOldRound.getLastRound(), _prop, myCompetingNodeId);
 
-        	    // Received seqNum will be the last known settled one so we should start at + 1
-        	    //
-                _queue.resync(myOldRound.getSeqNum() + 1);
-
-                _currentState = States.COLLECT;
-                process();
-            }
-        } else {
-        	_logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
-                myOldRound.getLastRound() + ", " + _rndNumber + ")");
-
-            _rndNumber = myOldRound.getLastRound() + 1;
-            error(VoteOutcome.Reason.OTHER_LEADER, myCompetingNodeId);
-        }
+        process();
     }
 
     private void successful(int aReason) {
         _currentState = States.EXIT;
-        _event = new VoteOutcome(aReason, _queue.head()._seqNum, _queue.head()._prop,
+        _event = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
                 _common.getTransport().getLocalAddress());
 
         process();
@@ -521,7 +317,7 @@ public class Leader implements MembershipListener {
     
     private void error(int aReason, InetSocketAddress aLeader) {
         _currentState = States.ABORT;
-        _event = new VoteOutcome(aReason, _queue.head()._seqNum, _queue.head()._prop, aLeader);
+        _event = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader);
         
         _logger.info("Leader encountered error: " + _event);
 
@@ -605,12 +401,14 @@ public class Leader implements MembershipListener {
      */
     public void submit(Proposal aValue) {
         synchronized (this) {
-        	_queue.add(aValue);
+            if (! isDone()) {
+                _logger.info(this + ": Submitted operation (already active): " + aValue);
 
-            if (! isReady()) {
-                _logger.info(this + ": Queued operation (already active): " + aValue);
+                throw new UnsupportedOperationException();
             } else {
-                _logger.info(this + ": Queued operation (initialising leader)");
+                _logger.info(this + ": Submitted operation (initialising leader)");
+
+                _prop = aValue;
 
                 _currentState = States.SUBMITTED;
 
@@ -619,6 +417,10 @@ public class Leader implements MembershipListener {
         }
     }
 
+    boolean isFail(PaxosMessage aMessage) {
+        return (aMessage instanceof OldRound);
+    }
+    
     /**
      * Used to process all core paxos protocol messages.
      *
@@ -634,23 +436,33 @@ public class Leader implements MembershipListener {
     public void messageReceived(PaxosMessage aMessage) {
         assert (aMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";
 
-		_logger.info(this + " rx: " + aMessage);
-
         synchronized (this) {
-            if ((aMessage.getSeqNum() == _queue.nextSeqNum()) &&
-            		MessageValidator.getValidator(_currentState).acceptable(aMessage)) {
-                if (MessageValidator.getValidator(_currentState).fail(aMessage)) {
-
-                    // Can only be an oldRound right now...
-                    //
-                    oldRound(aMessage);
-                } else {
-                    _messages.add(aMessage);
-                    _membership.receivedResponse(aMessage.getNodeId());
+            switch (_currentState) {
+                case ABORT :
+                case EXIT :
+                case SHUTDOWN : {
+                    return;
                 }
-            } else {
-                _logger.warn(this + ": Unexpected message received: " + aMessage);
             }
+
+            _logger.info(this + " rx: " + aMessage);
+
+            if (aMessage instanceof LeaderSelection) {
+                if (((LeaderSelection) aMessage).routeable(this)) {
+                    if (isFail(aMessage)) {
+
+                        // Can only be an oldRound right now...
+                        //
+                        oldRound(aMessage);
+                    } else {
+                        _messages.add(aMessage);
+                        _membership.receivedResponse(aMessage.getNodeId());
+                    }
+                    return;
+                }
+            }
+
+            _logger.warn(this + ": Unexpected message received: " + aMessage);
         }
     }
 
@@ -662,57 +474,7 @@ public class Leader implements MembershipListener {
         }
 
     	return "Leader: " + _common.getTransport().getLocalAddress() +
-    		": (" + Long.toHexString(_queue.nextSeqNum()) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState +
+    		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState +
                 " tries: " + _tries + "/" + MAX_TRIES;
-    }
-
-    private static abstract class MessageValidator {
-        private static final MessageValidator _beginValidator =
-                new MessageValidator(new Class[]{OldRound.class, Last.class}, new Class[]{OldRound.class}) {};
-
-        private static final MessageValidator _successValidator =
-                new MessageValidator(new Class[]{OldRound.class, Accept.class}, new Class[]{OldRound.class}){};
-
-        private static final MessageValidator _nullValidator =
-                new MessageValidator(new Class[]{}, new Class[]{}) {};
-
-        static MessageValidator getValidator(States aLeaderState) {
-            switch(aLeaderState) {
-                case BEGIN : return _beginValidator;
-
-                case SUCCESS : return _successValidator;
-
-                default : {
-                	_logger.debug("No validator for state: " + aLeaderState);
-                	return _nullValidator;
-                }
-            }
-        }
-
-        private Class[] _acceptable;
-        private Class[] _fail;
-
-        private MessageValidator(Class[] acceptable, Class[] fail) {
-            _acceptable = acceptable;
-            _fail = fail;
-        }
-
-        boolean acceptable(PaxosMessage aMessage) {
-            for (Class c: _acceptable) {
-                if (aMessage.getClass().equals(c))
-                    return true;
-            }
-
-            return false;
-        }
-
-        boolean fail(PaxosMessage aMessage) {
-            for (Class c: _fail) {
-                if (aMessage.getClass().equals(c))
-                    return true;
-            }
-
-            return false;
-        }
     }
 }

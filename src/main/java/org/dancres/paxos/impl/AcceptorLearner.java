@@ -63,7 +63,6 @@ public class AcceptorLearner {
 
 	private Need _recoveryWindow = null;
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
-    private RecoveryTrigger _trigger = new RecoveryTrigger();
 
 	/**
      * Tracks the last collect we accepted and thus represents our view of the current leader for instances.
@@ -211,7 +210,8 @@ public class AcceptorLearner {
         // Can't allow watermark and last collect to vary independently
         //
         synchronized (this) {
-            return new ALCheckpointHandle(_trigger.getLowWatermark(), _common.getLastCollect(), this);
+            return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
+                    _common.getLastCollect(), this);
         }
     }
 
@@ -302,7 +302,7 @@ public class AcceptorLearner {
                 _packetBuffer.clear();
                 _cachedBegins.clear();
                 _common.resetLeader();
-                _trigger.reset();
+                _common.getRecoveryTrigger().reset();
             }
 
             _storage.close();
@@ -319,7 +319,7 @@ public class AcceptorLearner {
 
         _logger.info("Checkpoint installed: " + _common.getLastCollect() + " @ " + aHandle.getLowWatermark());
 
-        return _trigger.install(aHandle.getLowWatermark());
+        return _common.getRecoveryTrigger().install(aHandle.getLowWatermark());
     }
 
     /**
@@ -366,7 +366,8 @@ public class AcceptorLearner {
              * otherwise we risk leader jitter
              */
             _common.leaderAction();
-            _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE, myHandle.getLastCollect().getSeqNum(),
+            _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE,
+                    myHandle.getLastCollect().getSeqNum(), myHandle.getLastCollect().getRndNumber(),
             		Proposal.NO_VALUE, myHandle.getLastCollect().getNodeId()));
         }
     }
@@ -378,7 +379,7 @@ public class AcceptorLearner {
      ******************************************************************************************** */
 
     public Watermark getLowWatermark() {
-    	return _trigger.getLowWatermark();
+    	return _common.getRecoveryTrigger().getLowWatermark();
     }
     
     private Need getRecoveryWindow() {
@@ -427,88 +428,6 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-	/*
-	 * We track each completed proposal expecting them to be in approximately linear order.
-	 * Gaps can appear because we miss some packets in which case we ultimately need to close them.
-	 * If we're slightly out of order then that proposal will be settled shortly and we can continue
-	 * processing however, if the gap remains and the proposal sequence number moves too far from the gap
-	 * it is likely we need to recover. In essence the maximum number of concurrent requests forms the
-	 * approx maximum distance from the low watermark that can be tolerated with gaps.
-	 * 
-	 * Gap is measured between low watermark and the lowest above that mark completed recently.
-	 */
-	private class RecoveryTrigger {
-		private static final long MAX_INFLIGHT = 1;
-		
-	    /**
-	     * Low watermark tracks the last successfully committed paxos instance (seqNum and position in log).
-	     * This is used as a means to filter out repeats of earlier instances and helps identify times where recovery is
-	     * needed. E.g. Our low watermark is 3 but the next instance we see is 5 indicating that instance 4 has likely
-	     * occurred without us present and we should take recovery action.
-	     */
-		private Watermark _lowSeqNumWatermark = Watermark.INITIAL;
-		
-		private SortedSet<Watermark> _completed = new TreeSet<Watermark>();
-		
-		Watermark getLowWatermark() {
-			synchronized(this) {
-				return _lowSeqNumWatermark;
-			}
-		}
-		
-		void completed(Watermark aCurrent) {
-			synchronized(this) {
-				_completed.add(aCurrent);
-
-				// See if we can clear some of the completed now
-				//
-				while (_completed.size() > 0) {
-					if (_completed.first().getSeqNum() == _lowSeqNumWatermark.getSeqNum() + 1) {
-						_lowSeqNumWatermark = _completed.first();
-						_completed.remove(_lowSeqNumWatermark);
-					} else
-						break;
-				}
-
-				_logger.debug("AL:Low :" + _lowSeqNumWatermark + ", " + _localAddress);					
-			}
-		}
-		
-		Need shouldRecover(long aProposalSeqNum) {
-			synchronized(this) {
-				// If we haven't got any completions, we may have a huge gap beyond MAX_INFLIGHT in size - catch this
-				//
-				if (_completed.size() == 0) {
-					if (aProposalSeqNum > _lowSeqNumWatermark.getSeqNum() + MAX_INFLIGHT)
-						return new Need(_lowSeqNumWatermark.getSeqNum(), aProposalSeqNum - 1, 
-								_localAddress);
-				} else if (_lowSeqNumWatermark.getSeqNum() + MAX_INFLIGHT < _completed.last().getSeqNum()) {
-					return new Need(_lowSeqNumWatermark.getSeqNum(), _completed.first().getSeqNum() - 1,
-							_localAddress);
-				}
-				
-				return null;
-			}
-		}
-		
-		void reset() {
-			synchronized(this) {
-				_lowSeqNumWatermark = Watermark.INITIAL;
-				_completed.clear();
-			}
-		}
-		
-		long install(Watermark aLow) {
-	        if (!aLow.equals(Watermark.INITIAL)) {
-	        	_lowSeqNumWatermark = aLow;	        	
-	            return _lowSeqNumWatermark.getSeqNum();
-	        }
-
-	        return -1;
-			
-		}
-	}
-	
 	/**
 	 * @param aMessage
 	 */
@@ -535,6 +454,7 @@ public class AcceptorLearner {
                 }
 
                 _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
+                        _common.getLastCollect().getRndNumber(),
                         new Proposal(), _common.getLastCollect().getNodeId()));
                 return;
             }
@@ -555,7 +475,8 @@ public class AcceptorLearner {
 				 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
 				 *  streamed through the packet buffer
 				 */
-				if (_trigger.getLowWatermark().getSeqNum() == getRecoveryWindow().getMaxSeq()) {
+				if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
+                        getRecoveryWindow().getMaxSeq()) {
 					synchronized(this) {
 						Iterator<PaxosMessage> myPackets = _packetBuffer.iterator();
 						
@@ -564,7 +485,7 @@ public class AcceptorLearner {
 							
 							// May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
 							//
-							if (_trigger.shouldRecover(myMessage.getSeqNum()) != null)
+							if (_common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress) != null)
 								break;
 
 							process(myMessage);
@@ -578,7 +499,7 @@ public class AcceptorLearner {
 				//
 			}
 		} else {
-			Need myWindow = _trigger.shouldRecover(aMessage.getSeqNum());
+			Need myWindow = _common.getRecoveryTrigger().shouldRecover(aMessage.getSeqNum(), _localAddress);
 
 			if (myWindow != null) {
 				/*
@@ -623,7 +544,7 @@ public class AcceptorLearner {
      ******************************************************************************************** */
 
     private class Watchdog extends TimerTask {
-        private final Watermark _past = _trigger.getLowWatermark();
+        private final Watermark _past = _common.getRecoveryTrigger().getLowWatermark();
 
         public void run() {
             if (! isRecovering()) {
@@ -636,7 +557,7 @@ public class AcceptorLearner {
              * If the watermark has advanced since we were started recovery made some progress so we'll schedule a
              * future check otherwise fail.
              */
-            if (! _past.equals(_trigger.getLowWatermark())) {
+            if (! _past.equals(_common.getRecoveryTrigger().getLowWatermark())) {
                 _logger.info("Recovery is progressing, " + _localAddress);
 
                 reschedule();
@@ -710,6 +631,10 @@ public class AcceptorLearner {
      ******************************************************************************************** */
 
 	/**
+     * @todo Stop sending Lasts when we can recall no value from the log. If the reason we have no last is because
+     * the leader is running something greater than low watermark, we can say no value otherwise we must say
+     * the leader is out of date.
+     *
 	 * @param aMessage is the message to process
 	 * @return is any message to send
 	 */
@@ -728,7 +653,7 @@ public class AcceptorLearner {
 				if (myNeed.getMinSeq() < _lastCheckpoint.getLowWatermark().getSeqNum())
 					_common.getTransport().send(new OutOfDate(_localAddress), myNeed.getNodeId());
 				
-				if (myNeed.getMaxSeq() <= _trigger.getLowWatermark().getSeqNum()) {
+				if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
 					_logger.info("Running streamer: " + _localAddress);
 					
 					new RemoteStreamer(myNeed).run();
@@ -748,25 +673,22 @@ public class AcceptorLearner {
 					return;
 				}
 
-                /*
-                 *  Check the leader is not out of sync - if they are we can't let them lead as they don't have
-                 *  up to date state and their AL might even need a checkpoint recovery.
-                 */
-                if ((aMessage.getClassification() == PaxosMessage.LEADER) &&
-                        (mySeqNum <= _trigger.getLowWatermark().getSeqNum())) {
-                    Collect myLastCollect = _common.getLastCollect();
-
-                    send(new OldRound(_trigger.getLowWatermark().getSeqNum(), myLastCollect.getNodeId(),
-                            myLastCollect.getRndNumber(), _localAddress), myNodeId);
-                    return;
-                }
-
 				// If the collect supercedes our previous collect save it to disk,
 				// return last proposal etc
 				//
 				if (_common.supercedes(myCollect)) {
 					write(aMessage, true);
-					send(constructLast(mySeqNum), myNodeId);
+                    
+                    PaxosMessage myLast = constructLast(mySeqNum);
+
+                    if (myLast != null)
+					    send(myLast, myNodeId);
+
+                    /*
+                    else
+                        send(new Last(mySeqNum, _common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+                            Long.MIN_VALUE, Proposal.NO_VALUE, _localAddress), myNodeId);
+                     */
 
 					/*
 					 * If the collect comes from the current leader (has same rnd
@@ -774,7 +696,16 @@ public class AcceptorLearner {
 					 * save to disk, just respond with last proposal etc
 					 */
 				} else if (myCollect.sameLeader(_common.getLastCollect())) {
-					send(constructLast(mySeqNum), myNodeId);
+                    PaxosMessage myLast = constructLast(mySeqNum);
+
+                    if (myLast != null)
+                        send(myLast, myNodeId);
+
+                    /*
+                    else
+                        send(new Last(mySeqNum, _common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+                                Long.MIN_VALUE, Proposal.NO_VALUE, _localAddress), myNodeId);
+                    */
 
 				} else {
 					// Another collect has already arrived with a higher priority,
@@ -782,8 +713,8 @@ public class AcceptorLearner {
 					//
 					Collect myLastCollect = _common.getLastCollect();
 
-					send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
-							myLastCollect.getRndNumber(), _localAddress), myNodeId);
+					send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+                            myLastCollect.getNodeId(), myLastCollect.getRndNumber(), _localAddress), myNodeId);
 				}
 				
 				break;
@@ -808,8 +739,8 @@ public class AcceptorLearner {
 					//
 					Collect myLastCollect = _common.getLastCollect();
 
-					send(new OldRound(mySeqNum, myLastCollect.getNodeId(),
-							myLastCollect.getRndNumber(), _localAddress), myNodeId);
+					send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+                            myLastCollect.getNodeId(), myLastCollect.getRndNumber(), _localAddress), myNodeId);
 				} else {
 					// Quiet, didn't see the collect, leader hasn't accounted for
 					// our values, it hasn't seen our last and we're likely out of sync with the majority
@@ -826,7 +757,7 @@ public class AcceptorLearner {
 
                 _common.leaderAction();
 
-				if (mySeqNum <= _trigger.getLowWatermark().getSeqNum()) {
+				if (mySeqNum <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
 					_logger.info("AL:Discarded known value: " + mySeqNum + ", " + _localAddress);
 				} else {
                     Begin myBegin = expungeBegin(mySeqNum);
@@ -842,9 +773,9 @@ public class AcceptorLearner {
                         //
                         long myLogOffset = write(aMessage, true);
 
-                        _trigger.completed(new Watermark(mySeqNum, myLogOffset));
+                        _common.getRecoveryTrigger().completed(new Watermark(mySeqNum, myLogOffset));
 
-                        if (myBegin.getConsolidatedValue().equals(Leader.HEARTBEAT)) {
+                        if (myBegin.getConsolidatedValue().equals(LeaderFactory.HEARTBEAT)) {
                             _receivedHeartbeats.incrementAndGet();
 
                             _logger.info("AL: discarded heartbeat: "
@@ -854,6 +785,7 @@ public class AcceptorLearner {
                             _logger.info("AL:Learnt value: " + mySeqNum + ", " + _localAddress);
 
                             _common.signal(new VoteOutcome(VoteOutcome.Reason.DECISION, mySeqNum,
+                                    _common.getLastCollect().getRndNumber(),
                                     myBegin.getConsolidatedValue(), myBegin.getNodeId()));
                         }
                     }
@@ -867,8 +799,8 @@ public class AcceptorLearner {
 		}
 	}
 
-	private Last constructLast(long aSeqNum) {
-		Watermark myLow = _trigger.getLowWatermark();
+	private PaxosMessage constructLast(long aSeqNum) {
+		Watermark myLow = _common.getRecoveryTrigger().getLowWatermark();
 		
 		/*
 		 * If the sequence number is less than the current low watermark, we've got to check through the log file for
@@ -888,20 +820,32 @@ public class AcceptorLearner {
 		
 		Begin myBegin = myState.getLastValue();
 		
-		if (myBegin == null) {
-			return new Last(aSeqNum, myLow.getSeqNum(), Long.MIN_VALUE,
-					Proposal.NO_VALUE, _localAddress);
-		} else {			
-			return new Last(aSeqNum, myLow.getSeqNum(), myBegin.getRndNumber(), myBegin.getConsolidatedValue(),
-					_localAddress);
+		if (myBegin != null) {
+            return new Last(aSeqNum, myLow.getSeqNum(), myBegin.getRndNumber(), myBegin.getConsolidatedValue(),
+                    _localAddress);
+		} else {
+            /*
+             * If we've got here, we've not found the sequence number in our log. If the sequence number is less
+             * than or equal our low watermark then we've checkpointed and gc'd the information into a snapshot. This
+             * means the leader is running sufficiently far behind that it mightn't be able to drive the current
+             * sequence number to completion, we must tell it.
+             */
+            if (aSeqNum <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum())
+                return new OldRound(aSeqNum, _common.getLastCollect().getNodeId(),
+                        _common.getLastCollect().getRndNumber(), _localAddress);
+            else
+                return new Last(aSeqNum, _common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+                    Long.MIN_VALUE, Proposal.NO_VALUE, _localAddress);            
 		}
 	}
 
     private void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
         // Stay silent during recovery to avoid producing out-of-date responses
         //
-        if (! isRecovering())
+        if (! isRecovering()) {
+            _logger.info("AL sending: " + aMessage);
             _common.getTransport().send(aMessage, aNodeId);
+        }
     }
 
     /* ********************************************************************************************

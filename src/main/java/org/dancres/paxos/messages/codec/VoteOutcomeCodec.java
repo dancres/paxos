@@ -13,11 +13,12 @@ public class VoteOutcomeCodec implements Codec {
         
         ByteBuffer myBuffer;
 
-        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 4 + 8 + myBytes.length);
+        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + 4 + 8 + myBytes.length);
 
         myBuffer.putInt(Operations.EVENT);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myEvent.getSeqNum());
+        myBuffer.putLong(myEvent.getRndNumber());
         myBuffer.putInt(myEvent.getResult());
         myBuffer.putLong(Codecs.flatten(myEvent.getNodeId()));
         myBuffer.put(myBytes);
@@ -33,12 +34,14 @@ public class VoteOutcomeCodec implements Codec {
         int myArrLength = aBuffer.getInt();
         
         long mySeqNum = aBuffer.getLong();
+        long myRndNum = aBuffer.getLong();
         int myResult = aBuffer.getInt();
         long myNodeId = aBuffer.getLong();
 
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
         
-        return new VoteOutcome(myResult, mySeqNum, new Proposal(myBytes), Codecs.expand(myNodeId));
+        return new VoteOutcome(myResult, mySeqNum, myRndNum, new Proposal(myBytes),
+                Codecs.expand(myNodeId));
     }
 }

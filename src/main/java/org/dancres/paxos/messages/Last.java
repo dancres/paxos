@@ -1,11 +1,13 @@
 package org.dancres.paxos.messages;
 
 import org.dancres.paxos.Proposal;
+import org.dancres.paxos.impl.Leader;
+import org.dancres.paxos.impl.LeaderSelection;
 import org.dancres.paxos.impl.LogStorage;
 
 import java.net.InetSocketAddress;
 
-public class Last implements PaxosMessage {
+public class Last implements PaxosMessage, LeaderSelection {
     private long _seqNum;
     private long _low;
     private long _rndNumber;
@@ -34,7 +36,11 @@ public class Last implements PaxosMessage {
     public short getClassification() {
     	return ACCEPTOR_LEARNER;
     }
-    
+
+    public boolean routeable(Leader aLeader) {
+        return ((_seqNum == aLeader.getSeqNum()) && (aLeader.getState().equals(Leader.States.BEGIN)));
+    }
+
     /**
      * @return the value associated with the sequence number returned by <code>getSeqNum</code>
      */

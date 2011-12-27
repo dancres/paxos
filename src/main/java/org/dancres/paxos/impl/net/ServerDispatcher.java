@@ -117,11 +117,15 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
     	_core.add(aListener);
     }
     
+    public Common getCommon() {
+        return _core.getCommon();
+    }
+
     public AcceptorLearner getAcceptorLearner() {
 		return _core.getAcceptorLearner();
 	}
 
-	public Leader getLeader() {
+	public LeaderFactory getLeader() {
 		return _core.getLeader();
 	}		
 }

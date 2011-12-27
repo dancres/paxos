@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.AcceptorLearner;
+import org.dancres.paxos.impl.Common;
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.Leader;
 import org.dancres.paxos.impl.net.ClientDispatcher;
@@ -70,9 +71,10 @@ public class IgnoreCollectsTest {
 
         // Now we have an active leader, make sure acceptor learners ignore contenders
         AcceptorLearner myAl = _node2.getAcceptorLearner();
-        Leader myL = _node2.getLeader();
-        Collect myCollect = new Collect(myAl.getLowWatermark().getSeqNum() + 1, 
-        		myL.getCurrentRound(), myTransport.getLocalAddress());
+        Common myCommon = _node2.getCommon();
+
+        Collect myCollect = new Collect(myAl.getLowWatermark().getSeqNum() + 1,
+        		myCommon.getLastCollect().getRndNumber(), myTransport.getLocalAddress());
 
         myClient.send(myCollect, _tport2.getLocalAddress());
 

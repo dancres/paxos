@@ -77,7 +77,7 @@ public class LastHandlingTest {
     @Test public void post() throws Exception {
         ListenerImpl myListener = new ListenerImpl();
         
-        _node2.add(myListener);
+        _node1.add(myListener);
 
         ClientDispatcher myClient = new ClientDispatcher();
     	TransportImpl myTransport = new TransportImpl();
@@ -106,9 +106,15 @@ public class LastHandlingTest {
 
         Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
+        /*
+         * Leader will have another value so will tell us the original proposal has been replaced by the last.
+         * It will then push through what was the last, leading to an additional update on the listener
+         */
+        Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.OTHER_VALUE);
+
+        Thread.sleep(5000);
         
-        Assert.assertTrue("Listener count should be 2 but is: " + myListener.getCount(), myListener.testCount(2));        
+        Assert.assertTrue("Listener count should be 2 but is: " + myListener.getCount(), myListener.testCount(2));
     }
 
     private static class LastDispatcher extends ServerDispatcher {

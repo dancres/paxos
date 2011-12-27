@@ -2,6 +2,7 @@ package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
 
+import org.dancres.paxos.impl.Tuple;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
@@ -16,9 +17,10 @@ public class VoteOutcome implements PaxosMessage {
 		public static final int BAD_MEMBERSHIP = 3;
         public static final int OUT_OF_DATE = 4;
         public static final int UP_TO_DATE = 5;
+        public static final int OTHER_VALUE = 6;
         
         private static final String[] _names = {"Decision", "Other Leader", "Vote Timeout", "Bad Membership",
-        	"Out of Date", "Up to Date"};
+        	"Out of Date", "Up to Date", "Other Value"};
         
         public static String nameFor(int aCode) {
         	if (aCode < 0 || aCode > _names.length - 1)
@@ -30,20 +32,33 @@ public class VoteOutcome implements PaxosMessage {
 	
     private int _result;
     private long _seqNum;
+    private long _rndNumber;
     private Proposal _consolidatedValue;
     private InetSocketAddress _leader;
 
-    public VoteOutcome(int aResult, long aSeqNum, Proposal aValue, InetSocketAddress aLeader) {
+    public VoteOutcome(int aResult, long aSeqNum, long aRndNumber, Proposal aValue,
+                       InetSocketAddress aLeader) {
     	assert(aValue != null);
     	
         _result = aResult;
         _seqNum = aSeqNum;
+        _rndNumber = aRndNumber;
         _consolidatedValue = aValue;
         _leader = aLeader;
     }
 
     public Proposal getValues() {
     	return _consolidatedValue;
+    }
+    
+    public Tuple<Long, Long> getLeaderBootstrap() {
+        switch (_result) {
+            case Reason.OTHER_LEADER :
+            case Reason.DECISION :
+            case Reason.OTHER_VALUE : return new Tuple<Long, Long>(_seqNum, _rndNumber);
+            
+            default : return null;
+        }
     }
     
     /**
@@ -58,6 +73,10 @@ public class VoteOutcome implements PaxosMessage {
      */
     public long getSeqNum() {
         return _seqNum;
+    }
+
+    public long getRndNumber() {
+        return _rndNumber;
     }
 
     /**

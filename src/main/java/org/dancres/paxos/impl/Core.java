@@ -18,7 +18,7 @@ public class Core implements Transport.Dispatcher {
 
     private byte[] _meta = null;
     private AcceptorLearner _al;
-    private Leader _ld;
+    private LeaderFactory _ld;
     private Heartbeater _hb;
     private LogStorage _log;
     private Common _common;
@@ -66,7 +66,7 @@ public class Core implements Transport.Dispatcher {
 
         _al = new AcceptorLearner(_log, _common);
         _al.open();
-        _ld = new Leader(_common);
+        _ld = new LeaderFactory(_common);
         _hb.start();
     }
 
@@ -78,8 +78,12 @@ public class Core implements Transport.Dispatcher {
         return _al;
     }
 
-    public Leader getLeader() {
+    public LeaderFactory getLeader() {
         return _ld;
+    }
+
+    public Common getCommon() {
+        return _common;
     }
 
     public void add(Paxos.Listener aListener) {
@@ -122,7 +126,7 @@ public class Core implements Transport.Dispatcher {
     }
 
     public void submit(Proposal aVal) {
-        _ld.submit(aVal);
+        _ld.newLeader().submit(aVal);
     }
 }
 

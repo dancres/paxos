@@ -41,7 +41,7 @@ public class CodecTest {
         myVal.put("data", myData);
         myVal.put("handback", myHandback);
         
-        VoteOutcome myEvent = new VoteOutcome(1, 2, myVal, _testAddress);
+        VoteOutcome myEvent = new VoteOutcome(1, 2, 3, myVal, _testAddress);
 
         byte[] myBuffer = Codecs.encode(myEvent);
 

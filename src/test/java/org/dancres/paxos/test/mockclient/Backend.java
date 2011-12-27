@@ -95,8 +95,8 @@ public class Backend extends SimpleChannelHandler {
 	        	InetSocketAddress myBackend = 
 	        			Utils.unmarshallInetSocketAddress(_paxos.getMetaData(anEvent.getLeader()));
 
-	        	_unicast.write(new VoteOutcome(anEvent.getResult(), anEvent.getSeqNum(), 
-	        			anEvent.getValues(), myBackend), myAddr);
+	        	_unicast.write(new VoteOutcome(anEvent.getResult(), anEvent.getSeqNum(),
+                        anEvent.getRndNumber(), anEvent.getValues(), myBackend), myAddr);
 	        } catch (Exception anE) {
 	        	_logger.error("Got other leader but can't unmarshall address for backend", anE);
 	        }

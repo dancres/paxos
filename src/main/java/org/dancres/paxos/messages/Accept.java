@@ -1,8 +1,11 @@
 package org.dancres.paxos.messages;
 
+import org.dancres.paxos.impl.Leader;
+import org.dancres.paxos.impl.LeaderSelection;
+
 import java.net.InetSocketAddress;
 
-public class Accept implements PaxosMessage {
+public class Accept implements PaxosMessage, LeaderSelection {
     private long _seqNum;
     private long _rndNumber;
     private InetSocketAddress _nodeId;
@@ -31,6 +34,10 @@ public class Accept implements PaxosMessage {
 
     public long getSeqNum() {
         return _seqNum;
+    }
+
+    public boolean routeable(Leader aLeader) {
+        return ((_seqNum == aLeader.getSeqNum()) && (aLeader.getState().equals(Leader.States.SUCCESS)));
     }
 
     public int hashCode() {

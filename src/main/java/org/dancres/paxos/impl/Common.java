@@ -18,6 +18,7 @@ public class Common {
     private Collect _lastCollect = Collect.INITIAL;
     private long _lastLeaderActionTime = 0;
     private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
+    private final RecoveryTrigger _trigger = new RecoveryTrigger();
 
     public Common(Transport aTransport, long anUnresponsivenessThreshold) {
         _transport = aTransport;
@@ -41,6 +42,10 @@ public class Common {
         return _transport;
     }
 
+    RecoveryTrigger getRecoveryTrigger() {
+        return _trigger;
+    }
+
     FailureDetector getFD() {
         return _fd;
     }
@@ -61,7 +66,7 @@ public class Common {
         }
     }
     
-    Collect getLastCollect() {
+    public Collect getLastCollect() {
         synchronized(this) {
             return _lastCollect;
         }
