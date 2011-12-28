@@ -631,10 +631,6 @@ public class AcceptorLearner {
      ******************************************************************************************** */
 
 	/**
-     * @todo Stop sending Lasts when we can recall no value from the log. If the reason we have no last is because
-     * the leader is running something greater than low watermark, we can say no value otherwise we must say
-     * the leader is out of date.
-     *
 	 * @param aMessage is the message to process
 	 * @return is any message to send
 	 */

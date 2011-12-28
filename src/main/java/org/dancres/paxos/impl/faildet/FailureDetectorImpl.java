@@ -53,7 +53,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     /**
      * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
      */
-    public FailureDetectorImpl(int aMajority, long anUnresponsivenessThreshold) {
+    private FailureDetectorImpl(int aMajority, long anUnresponsivenessThreshold) {
         _majority = aMajority;
         _scanner = new Thread(this);
         _scanner.setDaemon(true);

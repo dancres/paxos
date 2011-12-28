@@ -79,7 +79,7 @@ class MembershipImpl implements Membership, FailureDetector.LivenessListener {
 
         synchronized(this) {
             // Delay messages until we've got a member set
-            while (_populated == false) {
+            while (! _populated) {
                 try {
                     wait();
                 } catch (InterruptedException anIE) {

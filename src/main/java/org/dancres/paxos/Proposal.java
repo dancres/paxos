@@ -91,7 +91,7 @@ public class Proposal {
 		return false;
 	}
 	
-	public int getSize() {
+	int getSize() {
 		return _values.size();
 	}
 	

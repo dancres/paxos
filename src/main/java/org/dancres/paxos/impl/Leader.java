@@ -14,9 +14,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * Implements the leader state machine.
+ * Implements the leader state machine for a specific instance of Paxos. Leader is fail fast in that the first time
+ * it spots a problem, it will cease any further attempts to drive progress reporting the issue and leaving user-code
+ * to re-submit a request. This applies equally to handling conflicting values (that might occur as the result of a
+ * need to drive a previous instance to completion as the result of LAST responses).
  *
- * @todo Add a test for validating multiple sequence number recovery.
  * @todo Add a test for validating retries on dropped packets in later leader states.
  *
  * @author dan
@@ -30,10 +32,8 @@ public class Leader implements MembershipListener {
     private static final long MAX_TRIES = 3;
 
     /**
-     * Leader reaches COLLECT after SUBMITTED. If already leader, a transition to BEGIN will be immediate.
-     * If not leader and recovery is not active, move to state RECOVER otherwise leader is in recovery and must now
-     * settle low to high watermark (as set by RECOVER) before processing any submitted value by repeatedly executing
-     * full instances of paxos (including a COLLECT to recover any previous value that was proposed).
+     * Leader reaches COLLECT after SUBMITTED unless <code>LeaderFactory</code> overrides that to transition to
+     * BEGIN (the multi-paxos optimisation).
      * 
      * In BEGIN we attempt to reserve a slot in the sequence of operations. Transition to SUCCESS after emitting begin 
      * to see if the slot was granted.
@@ -47,10 +47,12 @@ public class Leader implements MembershipListener {
      * In ABORT a paxos instance failed for some reason (which will be found in </code>_event</code>).
      * 
      * In SUBMITTED, Leader has been given a value and should attempt to complete a paxos instance.
+     *
+     * In SHUTDOWN, we do a little cleanup and halt, processing no messages etc.
      */
     public enum States {
     	COLLECT, BEGIN, SUCCESS, EXIT, ABORT, SUBMITTED, SHUTDOWN
-    };
+    }
     
 
     private final Timer _watchdog;
@@ -348,9 +350,6 @@ public class Leader implements MembershipListener {
         return _membership.startInteraction();
     }
 
-    /**
-     * @todo If we get ABORT, we could try a new round from scratch or make the client re-submit or .....
-     */
     public void abort() {
         _logger.info(this + ": Membership requested abort");
 

@@ -8,6 +8,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+/**
+ * Each paxos instance is driven and represented by an individual instance of <code>Leader</code>.
+ * These are created, tracked and driven by this factory class. The factory also looks after handling error outcomes
+ * that require an adjustment in round or sequence number and heartbeating.
+ */
 public class LeaderFactory {
     private static final Logger _logger = LoggerFactory.getLogger(LeaderFactory.class);
 
@@ -63,6 +68,14 @@ public class LeaderFactory {
             * elseif last outcome was negative and state was other leader proceed with this outcome as per the other
             * outcome case above (but with the proviso that if AL doesn't win, we use outcome's rndNum + 1)
             * else use AL round number + 1 and seqNum + 1
+            *
+            * When we're considering past leaders outcomes, we only consider those for which we have some meaningful
+            * information. Thus vote timeouts, membership problems etc provide no useful feedback re: accuracy of
+            * sequence numbers or rounds whilst decisions, other values and other leaders (which includes feedback
+            * about round and sequence) do.
+            *
+            * AL knowledge always takes priority if it's more recent than what our last informative leader action
+            * discloses. If our AL has more recent knowledge, it implies leader activity in another process.
             */
             if (myOutcome != null) {
                 /*

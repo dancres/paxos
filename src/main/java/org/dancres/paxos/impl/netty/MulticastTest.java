@@ -55,7 +55,7 @@ public class MulticastTest {
 		}
 	}
 	
-	static class Receiver extends SimpleChannelHandler {
+	private static class Receiver extends SimpleChannelHandler {
 	    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
 	        ChannelBuffer m = (ChannelBuffer) e.getMessage();
 	        
@@ -71,7 +71,7 @@ public class MulticastTest {
 	    }		
 	}
 	
-	static class Decoder extends FrameDecoder {
+	private static class Decoder extends FrameDecoder {
 
 	    protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer) {
 

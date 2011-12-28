@@ -74,7 +74,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private static Logger _logger = LoggerFactory
 			.getLogger(TransportImpl.class);
 
-	public static final int BROADCAST_PORT = 41952;
+	private static final int BROADCAST_PORT = 41952;
 
 	private static InetSocketAddress _mcastAddr;
 	private DatagramChannelFactory _mcastFactory;
@@ -82,7 +82,6 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private DatagramChannelFactory _unicastFactory;
 	private DatagramChannel _unicast;
 	private NioServerSocketChannelFactory _serverStreamFactory; 
-	private ServerSocketChannel _serverStreamChannel;
 	private NioClientSocketChannelFactory _clientStreamFactory;
 	private Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
 	private InetSocketAddress _unicastAddr;
@@ -91,7 +90,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	
     private ChannelGroup _channels = new DefaultChannelGroup();
     
-    class Factory implements ThreadFactory {
+    private class Factory implements ThreadFactory {
 		public Thread newThread(Runnable aRunnable) {
 			Thread myThread = new Thread(aRunnable);
 			
@@ -173,11 +172,11 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		_logger.debug("Transport bound on: " + _unicastAddr);
 
 		_serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(new Factory()), 
-				Executors.newCachedThreadPool());		
-		_serverStreamChannel = _serverStreamFactory.newChannel(newPipeline());
-		_serverStreamChannel.bind(_unicast.getLocalAddress());
-		_serverStreamChannel.getConfig().setPipelineFactory(Channels.pipelineFactory(newPipeline()));
-		_channels.add(_serverStreamChannel);
+				Executors.newCachedThreadPool());
+        ServerSocketChannel myStreamChannel = _serverStreamFactory.newChannel(newPipeline());
+		myStreamChannel.bind(_unicast.getLocalAddress());
+		myStreamChannel.getConfig().setPipelineFactory(Channels.pipelineFactory(newPipeline()));
+		_channels.add(myStreamChannel);
 		
 		_clientStreamFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(new Factory()),
 				Executors.newCachedThreadPool());
@@ -340,10 +339,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private static class Decoder extends OneToOneDecoder {
 		protected Object decode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
 			ByteBuffer myBuffer = (ByteBuffer) anObject;
-			Packet myPacket = PacketImpl.expand(myBuffer.array());
-			
-			return myPacket;
-		}		
+			return PacketImpl.expand(myBuffer.array());
+		}
 	}
 	
 	private static class Framer extends OneToOneEncoder {
