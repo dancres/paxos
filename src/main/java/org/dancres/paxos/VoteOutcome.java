@@ -10,12 +10,43 @@ import org.dancres.paxos.messages.PaxosMessage;
  */
 public class VoteOutcome implements PaxosMessage {
 	public static final class Reason {
+        /**
+         * Paxos has agreed a value for the specified instance
+         */
 		public static final int DECISION = 0;
+
+        /**
+         * The process attempting to lead an instance has found another leader active and given-up. Round and instance
+         * specify the current state of the paxos sequence of instances this node is participating in as viewed by
+         * the AL that thinks there is another leader.
+         */
 		public static final int OTHER_LEADER = 1;
+
+        /**
+         * Insufficient responses were received for this leader to continue to progress this instance.
+         */
 		public static final int VOTE_TIMEOUT = 2;
+
+        /**
+         * This leader's view of membership has become sufficiently unhealthy that progress of this instance is
+         * impossible.
+         */
 		public static final int BAD_MEMBERSHIP = 3;
+
+        /**
+         * The AcceptorLearner in this process has become too out of date for recovery.
+         */
         public static final int OUT_OF_DATE = 4;
+
+        /**
+         * The AcceptorLearner in this process has been updated and is now recovered.
+         */
         public static final int UP_TO_DATE = 5;
+
+        /**
+         * The Leader in this process has received a counter-proposal for the current paxos instance.
+         * The sequence number and round associated with the instance are present in the outcome.
+         */
         public static final int OTHER_VALUE = 6;
         
         private static final String[] _names = {"Decision", "Other Leader", "Vote Timeout", "Bad Membership",
@@ -29,11 +60,11 @@ public class VoteOutcome implements PaxosMessage {
         }
 	}
 	
-    private int _result;
-    private long _seqNum;
-    private long _rndNumber;
-    private Proposal _consolidatedValue;
-    private InetSocketAddress _leader;
+    private final int _result;
+    private final long _seqNum;
+    private final long _rndNumber;
+    private final Proposal _consolidatedValue;
+    private final InetSocketAddress _leader;
 
     public VoteOutcome(int aResult, long aSeqNum, long aRndNumber, Proposal aValue,
                        InetSocketAddress aLeader) {
