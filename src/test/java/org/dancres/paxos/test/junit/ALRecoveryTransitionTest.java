@@ -86,11 +86,12 @@ public class ALRecoveryTransitionTest {
 	@Test public void test() throws Exception {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl(_nodeId, _broadcastId);
-		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()));
+        Common myCommon = new Common(myTransport, new NullFailureDetector());
+
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon);
         myAl.open();
 		
-		Assert.assertFalse(myAl.isRecovering());
+		Assert.assertFalse(myCommon.isRecovering());
 		
 		long myRndNum = 1;
 		long mySeqNum = 0;
@@ -123,7 +124,7 @@ public class ALRecoveryTransitionTest {
 		//
 		myAl.messageReceived(new Collect(mySeqNum + 5, myRndNum + 2, _nodeId));
 		
-		Assert.assertTrue(myAl.isRecovering());		
+		Assert.assertTrue(myCommon.isRecovering());
 		
 		/*
 		 * Recovery range r is lwm < r <= x - 1 (where x = tooNewCollect.seqNum)

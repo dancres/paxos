@@ -59,9 +59,6 @@ public class AcceptorLearner {
     private final Timer _watchdog = new Timer("AcceptorLearner timers");
     private TimerTask _recoveryAlarm = null;
 
-    private AtomicBoolean _suspended = new AtomicBoolean(false);
-
-	private Need _recoveryWindow = null;
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
 
 	/**
@@ -245,7 +242,7 @@ public class AcceptorLearner {
         _storage.open();
 
         try {
-            setRecoveryWindow(new Need(-1, Long.MAX_VALUE, _localAddress));
+            _common.setRecoveryWindow(new Need(-1, Long.MAX_VALUE, _localAddress));
 
             if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
                 // Restore logs from the beginning
@@ -279,7 +276,7 @@ public class AcceptorLearner {
             } else
                 throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
         } finally {
-            clearRecoveryWindow();
+            _common.clearRecoveryWindow();
         }
     }
 
@@ -289,7 +286,7 @@ public class AcceptorLearner {
              * Allow for the fact we might be actively processing packets - Mark ourselves out of date so we
              * cease processing, then clean up.
              */
-        	_suspended.set(true);
+        	_common.setSuspended(true);
 
             try {
                 Thread.sleep(SHUTDOWN_PAUSE);
@@ -298,7 +295,7 @@ public class AcceptorLearner {
             synchronized(this) {
                 _watchdog.cancel();
                 _recoveryAlarm = null;
-                clearRecoveryWindow();
+                _common.clearRecoveryWindow();
                 _packetBuffer.clear();
                 _cachedBegins.clear();
                 _common.resetLeader();
@@ -330,7 +327,7 @@ public class AcceptorLearner {
      * @throws Exception
      */
     public void bringUpToDate(CheckpointHandle aHandle) throws Exception {
-        if (! _suspended.get())
+        if (! _common.isSuspended())
             throw new IllegalStateException("Not suspended");
 
         if (! (aHandle instanceof ALCheckpointHandle))
@@ -355,9 +352,9 @@ public class AcceptorLearner {
             //
             _storage.mark(write(myHandle.getLastCollect(), false), true);
 
-            _suspended.set(false);
-            
-            clearRecoveryWindow();
+            _common.setSuspended(false);
+
+            _common.clearRecoveryWindow();
             _packetBuffer.clear();
             _cachedBegins.clear();
 
@@ -382,26 +379,6 @@ public class AcceptorLearner {
     	return _common.getRecoveryTrigger().getLowWatermark();
     }
     
-    private Need getRecoveryWindow() {
-        synchronized(this) {
-            return _recoveryWindow;
-        }
-    }
-
-    private void clearRecoveryWindow() {
-        setRecoveryWindow(null);
-    }
-
-    private void setRecoveryWindow(Need aNeed) {
-        synchronized(this) {
-            _recoveryWindow = aNeed;            
-        }
-    }
-    
-	public boolean isRecovering() {
-        return getRecoveryWindow() != null;
-	}
-	
 	public long getHeartbeatCount() {
 		return _receivedHeartbeats.longValue();
 	}
@@ -436,10 +413,10 @@ public class AcceptorLearner {
 
         // If we're not processing packets (perhaps because we're out of date or because we're shutting down)...
         //
-        if (_suspended.get())
+        if (_common.isSuspended())
             return;
 
-		if (isRecovering()) {
+		if (_common.isRecovering()) {
 			// If the packet is a recovery request, ignore it
 			//
 			if (aMessage.getType() == Operations.NEED)
@@ -449,7 +426,7 @@ public class AcceptorLearner {
             //
             if (aMessage.getType() == Operations.OUTOFDATE) {
                 synchronized(this) {
-                	_suspended.set(true);
+                	_common.setSuspended(true);
                     completedRecovery();
                 }
 
@@ -461,14 +438,14 @@ public class AcceptorLearner {
 
 			// If the packet is for a sequence number above the recovery window - save it for later
 			//
-			if (mySeqNum > getRecoveryWindow().getMaxSeq()) {
+			if (mySeqNum > _common.getRecoveryWindow().getMaxSeq()) {
 				synchronized(this) {
 					_packetBuffer.add(aMessage);
 				}
 				
 			// If the packet is for a sequence number within the window, process it now for catchup
 			//
-			} else if (mySeqNum > getRecoveryWindow().getMinSeq()) {
+			} else if (mySeqNum > _common.getRecoveryWindow().getMinSeq()) {
 				process(aMessage);
 				
 				/*
@@ -476,7 +453,7 @@ public class AcceptorLearner {
 				 *  streamed through the packet buffer
 				 */
 				if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
-                        getRecoveryWindow().getMaxSeq()) {
+                        _common.getRecoveryWindow().getMaxSeq()) {
 					synchronized(this) {
 						Iterator<PaxosMessage> myPackets = _packetBuffer.iterator();
 						
@@ -526,7 +503,7 @@ public class AcceptorLearner {
 
 					// Declare recovery active - which stops this AL emitting responses
 					//
-					setRecoveryWindow(myWindow);
+                    _common.setRecoveryWindow(myWindow);
 
                     // Startup recovery watchdog
                     //
@@ -547,7 +524,7 @@ public class AcceptorLearner {
         private final Watermark _past = _common.getRecoveryTrigger().getLowWatermark();
 
         public void run() {
-            if (! isRecovering()) {
+            if (! _common.isRecovering()) {
                 // Someone else will do cleanup
                 //
                 return;
@@ -619,7 +596,7 @@ public class AcceptorLearner {
 
     private void postRecovery() {
         synchronized(this) {
-            clearRecoveryWindow();
+            _common.clearRecoveryWindow();
             _packetBuffer.clear();
         }
     }
@@ -838,7 +815,7 @@ public class AcceptorLearner {
     private void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
         // Stay silent during recovery to avoid producing out-of-date responses
         //
-        if (! isRecovering()) {
+        if (! _common.isRecovering()) {
             _logger.info("AL sending: " + aMessage);
             _common.getTransport().send(aMessage, aNodeId);
         }

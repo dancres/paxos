@@ -4,11 +4,13 @@ import org.dancres.paxos.Paxos;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Collect;
+import org.dancres.paxos.messages.Need;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Common {
     private static Logger _logger = LoggerFactory.getLogger(Common.class);
@@ -19,6 +21,8 @@ public class Common {
     private long _lastLeaderActionTime = 0;
     private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
+    private AtomicBoolean _suspended = new AtomicBoolean(false);
+    private Need _recoveryWindow = null;
 
     public Common(Transport aTransport, long anUnresponsivenessThreshold) {
         _transport = aTransport;
@@ -76,6 +80,34 @@ public class Common {
         synchronized(this) {
             _lastLeaderActionTime = System.currentTimeMillis();
         }
+    }
+
+    void setSuspended(boolean aFlag) {
+        _suspended.set(aFlag);
+    }
+    
+    boolean isSuspended() {
+        return _suspended.get();
+    }
+
+    Need getRecoveryWindow() {
+        synchronized(this) {
+            return _recoveryWindow;
+        }
+    }
+
+    void clearRecoveryWindow() {
+        setRecoveryWindow(null);
+    }
+
+    void setRecoveryWindow(Need aNeed) {
+        synchronized(this) {
+            _recoveryWindow = aNeed;
+        }
+    }
+
+    public boolean isRecovering() {
+        return getRecoveryWindow() != null;
     }
 
     /**

@@ -27,7 +27,15 @@ public interface FailureDetector {
      * @param aLocal the address of the node to exclude from the result
      */
     public InetSocketAddress getRandomMember(InetSocketAddress aLocal);
-    public byte[] getMetaData(InetSocketAddress aNode);    
+
+    /**
+     * Return tne leading member that the FD believes is live, excluding the local address specified
+     *
+     * @param aLocal the address of the node to exclude from the result
+     */
+    public InetSocketAddress getLeader(InetSocketAddress aLocal);
+
+    public byte[] getMetaData(InetSocketAddress aNode);
     public boolean isLive(InetSocketAddress aNodeId);
 
     public void processMessage(PaxosMessage aMessage) throws Exception;

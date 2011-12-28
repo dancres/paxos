@@ -26,6 +26,10 @@ public class NullFailureDetector implements FailureDetector {
         return null;
     }
 
+    public InetSocketAddress getLeader(InetSocketAddress aLocal) {
+        return null;
+    }
+
     public byte[] getMetaData(InetSocketAddress aNode) {
         return null;
     }

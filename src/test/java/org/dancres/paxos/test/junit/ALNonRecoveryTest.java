@@ -138,7 +138,7 @@ public class ALNonRecoveryTest {
         Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() !=
         	_node3.getAcceptorLearner().getLowWatermark().getSeqNum());
 
-        Assert.assertFalse(_node3.getAcceptorLearner().isRecovering());
+        Assert.assertFalse(_node3.getCommon().isRecovering());
 
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is

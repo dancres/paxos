@@ -4,6 +4,7 @@ import org.dancres.paxos.impl.Membership;
 import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -214,6 +215,29 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         return myMembers.get(_random.nextInt(myMembers.size()));
     }
 
+    public InetSocketAddress getLeader(InetSocketAddress aLocalAddress) {
+        LinkedList<InetSocketAddress> myMembers = new LinkedList<InetSocketAddress>();
+
+        synchronized(this) {
+            myMembers.addAll(_lastHeartbeats.keySet());
+        }
+
+        myMembers.remove(aLocalAddress);
+        
+        InetSocketAddress myChoice = null;
+        
+        while (myMembers.size() > 0) {
+            InetSocketAddress myPossible = myMembers.remove(0);
+            
+            if (myChoice == null)
+                myChoice = myPossible;
+            else if (Codecs.flatten(myChoice) < Codecs.flatten(myPossible))
+                myChoice = myPossible;
+        }
+
+        return myChoice;
+    }
+    
     private void sendDead(InetSocketAddress aProcess) {
         Iterator myListeners = _listeners.iterator();
         while (myListeners.hasNext()) {
