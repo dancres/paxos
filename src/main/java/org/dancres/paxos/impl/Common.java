@@ -10,19 +10,21 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Common {
     private static Logger _logger = LoggerFactory.getLogger(Common.class);
 
     private Transport _transport;
-    private FailureDetector _fd;
+    private final FailureDetector _fd;
     private Collect _lastCollect = Collect.INITIAL;
     private long _lastLeaderActionTime = 0;
     private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
-    private AtomicBoolean _suspended = new AtomicBoolean(false);
+    private final AtomicBoolean _suspended = new AtomicBoolean(false);
     private Need _recoveryWindow = null;
+    private final Timer _watchdog = new Timer("Paxos timers");
 
     public Common(Transport aTransport, long anUnresponsivenessThreshold) {
         _transport = aTransport;
@@ -42,6 +44,10 @@ public class Common {
     	_transport = aTransport;
     }
     
+    Timer getWatchdog() {
+        return _watchdog;
+    }
+
     Transport getTransport() {
         return _transport;
     }
@@ -57,6 +63,7 @@ public class Common {
     void stop() {
         _fd.stop();
         _transport.shutdown();
+        _watchdog.cancel();
     }
     
     void resetLeader() {

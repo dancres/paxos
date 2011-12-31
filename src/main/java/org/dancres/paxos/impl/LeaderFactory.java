@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Paxos;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -54,7 +55,6 @@ public class LeaderFactory {
     public static final Proposal HEARTBEAT = new Proposal("heartbeat",
             "org.dancres.paxos.Heartbeat".getBytes());
     
-    private final Timer _watchdog = new Timer("Leader timers");
     private final NavigableMap<Long, Leader> _leaders = new TreeMap<Long, Leader>();
     private final Common _common;
 
@@ -63,9 +63,27 @@ public class LeaderFactory {
      * its lease with AcceptorLearners.
      */
     private TimerTask _heartbeatAlarm;
-    
+
+    private void killHeartbeats() {
+        if (_heartbeatAlarm != null) {
+            _heartbeatAlarm.cancel();
+            _heartbeatAlarm = null;
+            _common.getWatchdog().purge();
+        }
+    }
+
     LeaderFactory(Common aCommon) {
         _common = aCommon;
+
+        _common.add(new Paxos.Listener() {
+            public void done(VoteOutcome anEvent) {
+                if (anEvent.getResult() == VoteOutcome.Reason.OUT_OF_DATE) {
+                    synchronized (this) {
+                        killHeartbeats();
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -73,11 +91,7 @@ public class LeaderFactory {
      */
     Leader newLeader() {
         synchronized (this) {
-            if (_heartbeatAlarm != null) {
-                _heartbeatAlarm.cancel();
-                _heartbeatAlarm = null;
-                _watchdog.purge();
-            }
+            killHeartbeats();
 
             return newLeaderImpl();
         }
@@ -149,7 +163,7 @@ public class LeaderFactory {
             }
         }
 
-        myLeader = new Leader(_common, _watchdog, this, mySeqNum, myRndNum, myState);
+        myLeader = new Leader(_common, this, mySeqNum, myRndNum, myState);
 
         // If performing equals on sequence numbers and the allocation thereof is correct...
         //
@@ -195,7 +209,7 @@ public class LeaderFactory {
                             }
                         };
 
-                        _watchdog.schedule(_heartbeatAlarm, calculateLeaderRefresh());
+                        _common.getWatchdog().schedule(_heartbeatAlarm, calculateLeaderRefresh());
                     }
 
                     default : {
@@ -215,8 +229,6 @@ public class LeaderFactory {
 
     public void shutdown() {
         synchronized (this) {
-            _watchdog.cancel();
-
             Iterator<Map.Entry<Long, Leader>> all = _leaders.entrySet().iterator();
 
             while (all.hasNext()) {
@@ -228,10 +240,10 @@ public class LeaderFactory {
     }
 
     void messageReceived(PaxosMessage aMessage) {
-        _logger.info("Got packet for leaders: " + aMessage);
+        _logger.debug("Got packet for leaders: " + aMessage);
         
         synchronized(this) {
-            _logger.info("Routing packet to " + _leaders.size() + " leaders");
+            _logger.debug("Routing packet to " + _leaders.size() + " leaders");
 
             for (Leader aLeader : new LinkedList<Leader>(_leaders.values())) {
                 aLeader.messageReceived(aMessage);

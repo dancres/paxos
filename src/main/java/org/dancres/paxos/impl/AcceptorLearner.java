@@ -5,12 +5,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
-import org.dancres.paxos.Paxos;
 import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
@@ -56,7 +54,6 @@ public class AcceptorLearner {
 
     private long _gracePeriod = DEFAULT_RECOVERY_GRACE_PERIOD;
 
-    private final Timer _watchdog = new Timer("AcceptorLearner timers");
     private TimerTask _recoveryAlarm = null;
 
 	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
@@ -293,7 +290,6 @@ public class AcceptorLearner {
             } catch (Exception anE) {}
 
             synchronized(this) {
-                _watchdog.cancel();
                 _recoveryAlarm = null;
                 _common.clearRecoveryWindow();
                 _packetBuffer.clear();
@@ -549,7 +545,7 @@ public class AcceptorLearner {
 
         synchronized(this) {
             _recoveryAlarm = new Watchdog();
-            _watchdog.schedule(_recoveryAlarm, calculateRecoveryGracePeriod());
+            _common.getWatchdog().schedule(_recoveryAlarm, calculateRecoveryGracePeriod());
         }
     }
 
@@ -584,7 +580,7 @@ public class AcceptorLearner {
         synchronized(this) {
             if (_recoveryAlarm != null) {
                 _recoveryAlarm.cancel();
-                _watchdog.purge();
+                _common.getWatchdog().purge();
                 _recoveryAlarm = null;
             }
 

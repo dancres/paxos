@@ -1,6 +1,5 @@
 package org.dancres.paxos.impl;
 
-import com.sun.tools.javac.util.Abort;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.messages.*;
@@ -10,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Timer;
 import java.util.TimerTask;
 
 /**
@@ -55,7 +53,6 @@ public class Leader implements MembershipListener {
     }
     
 
-    private final Timer _watchdog;
     private final Common _common;
     private final LeaderFactory _factory;
 
@@ -86,20 +83,18 @@ public class Leader implements MembershipListener {
 
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
-    public Leader(Common aCommon, Timer aTimers, LeaderFactory aFactory,
+    public Leader(Common aCommon, LeaderFactory aFactory,
                   long aNextSeq, long aRndNumber) {
         _common = aCommon;
-        _watchdog = aTimers;
         _factory = aFactory;
         _seqNum = aNextSeq;
         _rndNumber = aRndNumber;
         _startState = States.COLLECT;
     }
 
-    public Leader(Common aCommon, Timer aTimers, LeaderFactory aFactory,
+    public Leader(Common aCommon, LeaderFactory aFactory,
                   long aNextSeq, long aRndNumber, States aStartState) {
         _common = aCommon;
-        _watchdog = aTimers;
         _factory = aFactory;
         _seqNum = aNextSeq;
         _rndNumber = aRndNumber;
@@ -345,7 +340,7 @@ public class Leader implements MembershipListener {
             }
         };
 
-        _watchdog.schedule(_interactionAlarm, calculateInteractionTimeout());
+        _common.getWatchdog().schedule(_interactionAlarm, calculateInteractionTimeout());
 
         return _membership.startInteraction();
     }
@@ -371,7 +366,7 @@ public class Leader implements MembershipListener {
         assert _interactionAlarm != null;
 
         _interactionAlarm.cancel();
-        _watchdog.purge();
+        _common.getWatchdog().purge();
         _interactionAlarm = null;
     }
 
