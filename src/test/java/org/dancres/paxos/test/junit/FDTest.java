@@ -47,18 +47,18 @@ public class FDTest implements MembershipListener {
     }
 
     @Test public void post() throws Exception {
-        ensureFD(_node1.getFailureDetector());
-        ensureFD(_node2.getFailureDetector());
+        ensureFD(_node1.getCommon().getFD());
+        ensureFD(_node2.getCommon().getFD());
 
-        assert(_node1.getFailureDetector().getMemberSet().size() == 2);
-        assert(_node2.getFailureDetector().getMemberSet().size() == 2);
+        assert(_node1.getCommon().getFD().getMemberSet().size() == 2);
+        assert(_node2.getCommon().getFD().getMemberSet().size() == 2);
 
-        Set<InetSocketAddress> myMembers = _node1.getFailureDetector().getMemberSet();
+        Set<InetSocketAddress> myMembers = _node1.getCommon().getFD().getMemberSet();
         Iterator<InetSocketAddress> myMemberIt = myMembers.iterator();
 
         while(myMemberIt.hasNext()) {
             InetSocketAddress myAddr = myMemberIt.next();
-            byte[] myMeta = _node1.getFailureDetector().getMetaData(myAddr);
+            byte[] myMeta = _node1.getCommon().getFD().getMetaData(myAddr);
 
             if (myAddr.equals(_tport1.getLocalAddress())) {
                 assert("node1".equals(new String(myMeta)));

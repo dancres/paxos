@@ -43,7 +43,7 @@ public class IgnoreCollectsTest {
     	TransportImpl myTransport = new TransportImpl();
         myTransport.add(myClient);
 
-        FailureDetector myFd = _node1.getFailureDetector();
+        FailureDetector myFd = _node1.getCommon().getFD();
 
         int myChances = 0;
 
@@ -73,7 +73,7 @@ public class IgnoreCollectsTest {
         AcceptorLearner myAl = _node2.getAcceptorLearner();
         Common myCommon = _node2.getCommon();
 
-        Collect myCollect = new Collect(myAl.getLowWatermark().getSeqNum() + 1,
+        Collect myCollect = new Collect(myCommon.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1,
         		myCommon.getLastCollect().getRndNumber(), myTransport.getLocalAddress());
 
         myClient.send(myCollect, _tport2.getLocalAddress());

@@ -43,7 +43,7 @@ public class SimpleSuccessTest {
         myBuffer.putInt(55);
         
         Proposal myProposal = new Proposal("data", myBuffer.array());
-        FailureDetector myFd = _node1.getFailureDetector();
+        FailureDetector myFd = _node1.getCommon().getFD();
 
         int myChances = 0;
 

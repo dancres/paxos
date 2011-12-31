@@ -46,11 +46,11 @@ public class Common {
         return _transport;
     }
 
-    RecoveryTrigger getRecoveryTrigger() {
+    public RecoveryTrigger getRecoveryTrigger() {
         return _trigger;
     }
 
-    FailureDetector getFD() {
+    public FailureDetector getFD() {
         return _fd;
     }
     

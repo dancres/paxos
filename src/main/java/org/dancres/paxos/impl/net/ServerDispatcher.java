@@ -91,10 +91,6 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 		return _tp;
 	}
 	
-	public FailureDetector getFailureDetector() {
-		return _core.getFailureDetector();
-	}
-	
     public void stop() {
         _core.stop();
     }
@@ -124,8 +120,4 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
     public AcceptorLearner getAcceptorLearner() {
 		return _core.getAcceptorLearner();
 	}
-
-	public LeaderFactory getLeader() {
-		return _core.getLeader();
-	}		
 }

@@ -59,7 +59,7 @@ public class PaxosFactory {
 		}
 
 		public byte[] getMetaData(InetSocketAddress anAddress) {
-			return _core.getFailureDetector().getMetaData(anAddress);
+			return _core.getCommon().getFD().getMetaData(anAddress);
 		}
     }
 }

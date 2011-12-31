@@ -77,8 +77,8 @@ public class ALOutOfDateTest {
         TransportImpl myTransport = new TransportImpl();
         myTransport.add(myClient);
 
-        ensureFD(_node1.getFailureDetector());
-        ensureFD(_node2.getFailureDetector());
+        ensureFD(_node1.getCommon().getFD());
+        ensureFD(_node2.getCommon().getFD());
 
         System.err.println("Run some instances");
 
@@ -114,7 +114,7 @@ public class ALOutOfDateTest {
         _tport3.add(_node3);
         _node3.add(myListener);
 
-        ensureFD(_node3.getFailureDetector());
+        ensureFD(_node3.getCommon().getFD());
 
         System.err.println("Run another instance - trigger");
 

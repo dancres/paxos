@@ -323,6 +323,8 @@ public class AcceptorLearner {
      * When an AL is out of date, call this method to bring it back into sync from a remotely sourced
      * checkpoint.
      *
+     * @todo Leader jitter, really?
+     *
      * @param aHandle obtained from the remote checkpoint.
      * @throws Exception
      */
@@ -375,10 +377,6 @@ public class AcceptorLearner {
      * 
      ******************************************************************************************** */
 
-    public Watermark getLowWatermark() {
-    	return _common.getRecoveryTrigger().getLowWatermark();
-    }
-    
 	public long getHeartbeatCount() {
 		return _receivedHeartbeats.longValue();
 	}
@@ -652,16 +650,7 @@ public class AcceptorLearner {
 				if (_common.supercedes(myCollect)) {
 					write(aMessage, true);
                     
-                    PaxosMessage myLast = constructLast(mySeqNum);
-
-                    if (myLast != null)
-					    send(myLast, myNodeId);
-
-                    /*
-                    else
-                        send(new Last(mySeqNum, _common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
-                            Long.MIN_VALUE, Proposal.NO_VALUE, _localAddress), myNodeId);
-                     */
+                    send(constructLast(mySeqNum), myNodeId);
 
 					/*
 					 * If the collect comes from the current leader (has same rnd
@@ -669,16 +658,7 @@ public class AcceptorLearner {
 					 * save to disk, just respond with last proposal etc
 					 */
 				} else if (myCollect.sameLeader(_common.getLastCollect())) {
-                    PaxosMessage myLast = constructLast(mySeqNum);
-
-                    if (myLast != null)
-                        send(myLast, myNodeId);
-
-                    /*
-                    else
-                        send(new Last(mySeqNum, _common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
-                                Long.MIN_VALUE, Proposal.NO_VALUE, _localAddress), myNodeId);
-                    */
+                    send(constructLast(mySeqNum), myNodeId);
 
 				} else {
 					// Another collect has already arrived with a higher priority,

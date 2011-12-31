@@ -40,7 +40,7 @@ public class LeaderListenerTest {
     	TransportImpl myTransport = new TransportImpl();
         myTransport.add(myClient);
 
-        FailureDetector myFd = _node1.getFailureDetector();
+        FailureDetector myFd = _node1.getCommon().getFD();
         ListenerImpl myListener = new ListenerImpl();
         
         _node2.add(myListener);

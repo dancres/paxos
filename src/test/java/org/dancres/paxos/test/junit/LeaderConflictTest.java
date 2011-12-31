@@ -61,8 +61,8 @@ public class LeaderConflictTest {
         TransportImpl myTransport2 = new TransportImpl();
         myTransport2.add(myClient2);
 
-        ensureFD(_node1.getFailureDetector());
-        ensureFD(_node2.getFailureDetector());
+        ensureFD(_node1.getCommon().getFD());
+        ensureFD(_node2.getCommon().getFD());
 
         ByteBuffer myBuffer1 = ByteBuffer.allocate(4);
         ByteBuffer myBuffer2 = ByteBuffer.allocate(4);

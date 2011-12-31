@@ -70,16 +70,8 @@ public class Core implements Transport.Dispatcher {
         _hb.start();
     }
 
-    public FailureDetector getFailureDetector() {
-        return _common.getFD();
-    }
-
     public AcceptorLearner getAcceptorLearner() {
         return _al;
-    }
-
-    public LeaderFactory getLeader() {
-        return _ld;
     }
 
     public Common getCommon() {

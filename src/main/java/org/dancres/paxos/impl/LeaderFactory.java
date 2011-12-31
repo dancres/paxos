@@ -12,6 +12,41 @@ import java.util.*;
  * Each paxos instance is driven and represented by an individual instance of <code>Leader</code>.
  * These are created, tracked and driven by this factory class. The factory also looks after handling error outcomes
  * that require an adjustment in round or sequence number and heartbeating.
+ *
+ * Leader selection is a client-based element (or at least outside of the library). It is up to the client to decide
+ * which leader to go to and it may be re-directed should that leader be aware of another leader. A failing leader
+ * provides no guidance in respect of other leadership.
+ *
+ * Paxos needs only to be used to make changes to state. Read operations need not be passed through Paxos but they
+ * do need to be dispatched to a node that is up-to-date. The node that is pretty much guaranteed to be up to date
+ * is the existing leader. Other nodes could be used to support read operations so long as a level of staleness is
+ * acceptable. If the state is timestamped in some fashion, once can use those timestamps to ensure that updates
+ * based on the state are applied to the latest version (by checking its timestamp) or rejected.
+ *
+ * Rough API:
+ *
+ * newLeader() can be hidden behind Core.submit or similar and should throw an OutOfDateException whilst the local AL
+ * is out of date and until it declares itself up to date. This is necessary because client's cannot see responses
+ * because the AL will not produce events until it's back up to date. Note: We may want Common.signal to account for
+ * this to.
+ *
+ * A server using this library needs to handle out of date. It also needs to handle other leader.
+ * In all cases it typically passes a message to it's client to request a switch of leader. It can use the meta data
+ * per Paxos node to hold the server contact details (ip, port etc). In response to other leader it would pull the
+ * relevant meta data and re-direct the client. In the case of out of date, it would use some "well known" policy to
+ * determine an alternate leader, pull the meta data and re-direct the client. Note it may need to send "no leader" to
+ * a client if it cannot identify a candidate. All other types of error result in dispatching a fail to the client for
+ * the request it submitted. Should a request succeed, it is server dependent what action is taken. It could be to
+ * execute a command or change a value etc.
+ *
+ * In the case of out of date the server should also use contact details
+ * for some other node to obtain a checkpoint with which it will update the AL. Up to date might, in tandem with out
+ * of date allow the library to avoid calling newLeader and handle an exception. Note that the installation of a
+ * new checkpoint can immediately generate an up to date followed shortly after by an out of date which will trigger
+ * another attempt to recover in the server. This ensures the server's recovery approach can be relatively simple.
+ * We may want to allow comparison and serialization of checkpoint handles so they can be used in the process of
+ * obtaining a checkpoint to ensure what's being downloaded and installed is more up to date than what we have
+ * locally.
  */
 public class LeaderFactory {
     private static final Logger _logger = LoggerFactory.getLogger(LeaderFactory.class);

@@ -66,8 +66,8 @@ public class HowlSequenceTest {
     	TransportImpl myTransport = new TransportImpl();
         myTransport.add(myClient);
 
-        ensureFD(_node1.getFailureDetector());
-        ensureFD(_node2.getFailureDetector());
+        ensureFD(_node1.getCommon().getFD());
+        ensureFD(_node2.getCommon().getFD());
 
         for (int i = 0; i < 5; i++) {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);

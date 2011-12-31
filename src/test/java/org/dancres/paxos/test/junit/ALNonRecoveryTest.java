@@ -75,8 +75,8 @@ public class ALNonRecoveryTest {
         TransportImpl myTransport = new TransportImpl();
         myTransport.add(myClient);
 
-        ensureFD(_node1.getFailureDetector());
-        ensureFD(_node2.getFailureDetector());
+        ensureFD(_node1.getCommon().getFD());
+        ensureFD(_node2.getCommon().getFD());
 
         System.err.println("Run some instances");
 
@@ -112,7 +112,7 @@ public class ALNonRecoveryTest {
 
         _node3.getAcceptorLearner().setRecoveryGracePeriod(5000);
 
-        ensureFD(_node3.getFailureDetector());
+        ensureFD(_node3.getCommon().getFD());
 
         System.err.println("Run another instance - trigger");
 
@@ -135,8 +135,8 @@ public class ALNonRecoveryTest {
 
         // As recovery won't have been done the low watermarks should be different
         //
-        Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() !=
-        	_node3.getAcceptorLearner().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_node2.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum() !=
+        	_node3.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum());
 
         Assert.assertFalse(_node3.getCommon().isRecovering());
 

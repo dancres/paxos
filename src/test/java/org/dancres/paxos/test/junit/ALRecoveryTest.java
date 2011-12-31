@@ -72,8 +72,8 @@ public class ALRecoveryTest {
     	TransportImpl myTransport = new TransportImpl();
         myTransport.add(myClient);
 
-        ensureFD(_node1.getFailureDetector());
-        ensureFD(_node2.getFailureDetector());
+        ensureFD(_node1.getCommon().getFD());
+        ensureFD(_node2.getCommon().getFD());
 
         System.err.println("Run some instances");
 
@@ -107,7 +107,7 @@ public class ALRecoveryTest {
         _tport3.add(_node3);
         _node3.getAcceptorLearner().setRecoveryGracePeriod(1000);
         
-        ensureFD(_node3.getFailureDetector());
+        ensureFD(_node3.getCommon().getFD());
 
         System.err.println("Run another instance - trigger");
         
@@ -141,8 +141,8 @@ public class ALRecoveryTest {
         
         // _node3 should now have same low watermark as the other nodes
         //
-        Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
-        	_node3.getAcceptorLearner().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_node2.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum() ==
+        	_node3.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum());
         
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is
