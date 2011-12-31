@@ -167,6 +167,18 @@ public class AcceptorLearner {
             _al.saved(this);
         }
 
+        public boolean isNewerThan(CheckpointHandle aHandle) {
+            if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT))
+                return true;
+            else if (aHandle instanceof ALCheckpointHandle) {
+                ALCheckpointHandle myOther = (ALCheckpointHandle) aHandle;
+
+                return (_lowWatermark.getSeqNum() > myOther._lowWatermark.getSeqNum());
+            } else {
+                throw new IllegalArgumentException("Where did you get this checkpoint from?");
+            }
+        }
+
         Watermark getLowWatermark() {
             return _lowWatermark;
         }
