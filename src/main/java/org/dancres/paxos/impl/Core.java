@@ -117,7 +117,7 @@ public class Core implements Transport.Dispatcher {
         }
     }
 
-    public void submit(Proposal aVal) {
+    public void submit(Proposal aVal) throws Paxos.InactiveException {
         _ld.newLeader().submit(aVal);
     }
 }

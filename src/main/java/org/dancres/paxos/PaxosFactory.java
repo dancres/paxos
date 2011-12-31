@@ -46,7 +46,7 @@ public class PaxosFactory {
 			return _core.getAcceptorLearner().newCheckpoint();
 		}
 
-		public void submit(Proposal aValue) {
+		public void submit(Proposal aValue) throws InactiveException {
 			_core.submit(aValue);
 		}
 

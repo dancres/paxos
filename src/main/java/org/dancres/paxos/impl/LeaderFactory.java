@@ -87,11 +87,16 @@ public class LeaderFactory {
     }
 
     /**
+     * @throws org.dancres.paxos.Paxos.InactiveException if the Paxos process is currently out of date or shutting down
+     *
      * @return a leader for a new sequence
      */
-    Leader newLeader() {
+    Leader newLeader() throws Paxos.InactiveException {
         synchronized (this) {
             killHeartbeats();
+
+            if (_common.isSuspended())
+                throw new Paxos.InactiveException();
 
             return newLeaderImpl();
         }

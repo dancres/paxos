@@ -139,6 +139,18 @@ public class ALOutOfDateTest {
         // _node3 should have signalled OutOfDate
         //
         Assert.assertTrue(myListener.didOOD());
+        
+        // node3 should refuse submissions
+        //
+        boolean isInactive = false;
+        
+        try {
+            _node3.getCore().submit(myProp);            
+        } catch (Paxos.InactiveException anIE) {
+            isInactive = true;
+        }
+
+        Assert.assertTrue(isInactive);
 
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is

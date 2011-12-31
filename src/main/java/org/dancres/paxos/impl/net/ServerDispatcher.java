@@ -120,4 +120,8 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
     public AcceptorLearner getAcceptorLearner() {
 		return _core.getAcceptorLearner();
 	}
+    
+    public Core getCore() {
+        return _core;
+    }
 }
