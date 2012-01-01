@@ -37,11 +37,16 @@
 		<pathelement location="${build}" />
 		<pathelement location="${macext}/dns_sd.jar" />
 		<pathelement location="${otherlib}/netty-3.2.5.Final.jar" />
-		<pathelement location="${otherlib}/slf4j-api-1.5.0.jar" />
-		<pathelement location="${otherlib}/slf4j-jdk14-1.5.0.jar" />
+		<pathelement location="${otherlib}/slf4j-api-1.6.4.jar" />
+		<pathelement location="${otherlib}/slf4j-jdk14-1.6.4.jar" />
+		<pathelement location="${otherlib}/jetty-webapp-7.3.0.v20110203.jar" />
+		<pathelement location="${otherlib}/servlet-api-3.0.pre4.jar" />
+		<pathelement location="${otherlib}/spark-0.9.9.3-SNAPSHOT.jar" />
+		<pathelement location="${otherlib}/log4j-1.2.14.jar"/>		
 		<pathelement location="${otherlib}/jmdns.jar" />
 		<pathelement location="${otherlib}/junit-4.9.jar" />
 		<pathelement location="${otherlib}/howl-1.0.2.jar" />
+		<pathelement location="${otherlib}/jackson-all-1.9.3.jar" />
 	</path>
 
 	<target name="depend">
