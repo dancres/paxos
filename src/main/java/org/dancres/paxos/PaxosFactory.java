@@ -1,6 +1,8 @@
 package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.Set;
 
 import org.dancres.paxos.impl.CheckpointHandle;
 import org.dancres.paxos.impl.Core;
@@ -57,6 +59,10 @@ public class PaxosFactory {
 		public void bringUpToDate(CheckpointHandle aHandle) throws Exception {
 			_core.getAcceptorLearner().bringUpToDate(aHandle);
 		}
+
+        public Set<InetSocketAddress> getMembers() {
+            return _core.getCommon().getFD().getMemberSet();
+        }
 
 		public byte[] getMetaData(InetSocketAddress anAddress) {
 			return _core.getCommon().getFD().getMetaData(anAddress);

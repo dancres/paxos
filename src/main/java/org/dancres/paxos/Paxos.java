@@ -3,6 +3,7 @@ package org.dancres.paxos;
 import org.dancres.paxos.impl.CheckpointHandle;
 
 import java.net.InetSocketAddress;
+import java.util.Set;
 
 public interface Paxos {
     public interface Listener {
@@ -26,4 +27,5 @@ public interface Paxos {
     public void register(Listener aListener);
     public void bringUpToDate(CheckpointHandle aHandle) throws Exception;
     public byte[] getMetaData(InetSocketAddress anAddress);
+    public Set<InetSocketAddress> getMembers();
 }
