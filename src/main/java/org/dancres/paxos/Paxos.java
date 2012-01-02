@@ -24,7 +24,7 @@ public interface Paxos {
      * <code>VoteOutcome</code> and be in the process of obtaining a new checkpoint.
      */
     public void submit(Proposal aValue) throws InactiveException;
-    public void register(Listener aListener);
+    public void add(Listener aListener);
     public void bringUpToDate(CheckpointHandle aHandle) throws Exception;
     public byte[] getMetaData(InetSocketAddress anAddress);
     public Set<InetSocketAddress> getMembers();

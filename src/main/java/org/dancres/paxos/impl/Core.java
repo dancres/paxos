@@ -9,11 +9,14 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+import java.util.Set;
+
 /**
  * Constitutes the core implementation of paxos. Requires a <code>Transport</code> to use for membership,
  * failure detection and paxos rounds.
  */
-public class Core implements Transport.Dispatcher {
+public class Core implements Transport.Dispatcher, Paxos {
     private static Logger _logger = LoggerFactory.getLogger(Core.class);
 
     private byte[] _meta = null;
@@ -41,7 +44,7 @@ public class Core implements Transport.Dispatcher {
         _common.add(aListener);
     }
 
-    public void stop() {
+    public void close() {
         _hb.halt();
 
         try {
@@ -65,9 +68,25 @@ public class Core implements Transport.Dispatcher {
             _hb = new Heartbeater(aTransport, _meta);
 
         _al = new AcceptorLearner(_log, _common);
-        _al.open();
+        _al.open(CheckpointHandle.NO_CHECKPOINT);
         _ld = new LeaderFactory(_common);
         _hb.start();
+    }
+
+    public CheckpointHandle newCheckpoint() {
+        return _al.newCheckpoint();
+    }
+
+    public void bringUpToDate(CheckpointHandle aHandle) throws Exception {
+        _al.bringUpToDate(aHandle);
+    }
+
+    public Set<InetSocketAddress> getMembers() {
+        return _common.getFD().getMemberSet();
+    }
+
+    public byte[] getMetaData(InetSocketAddress anAddress) {
+        return _common.getFD().getMetaData(anAddress);
     }
 
     public AcceptorLearner getAcceptorLearner() {

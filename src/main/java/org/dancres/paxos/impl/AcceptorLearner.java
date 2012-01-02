@@ -237,10 +237,6 @@ public class AcceptorLearner {
 		_storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
     }
 
-	public void open() throws Exception {
-		open(CheckpointHandle.NO_CHECKPOINT);
-	}
-
     /**
      * If this method fails be sure to invoke close regardless.
      *

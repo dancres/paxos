@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -92,7 +91,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 	}
 	
     public void stop() {
-        _core.stop();
+        _core.close();
     }
 
     public void done(VoteOutcome anEvent) {

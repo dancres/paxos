@@ -65,7 +65,7 @@ public class ALStartupTest {
 		TransportImpl myTransport = new TransportImpl();
 		
 		AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()));
-        myAl.open();
+        myAl.open(CheckpointHandle.NO_CHECKPOINT);
 		myAl.close();
 	}
 	

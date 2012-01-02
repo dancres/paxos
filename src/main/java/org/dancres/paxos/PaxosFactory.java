@@ -1,12 +1,7 @@
 package org.dancres.paxos;
 
-import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.Set;
-
 import org.dancres.paxos.impl.CheckpointHandle;
 import org.dancres.paxos.impl.Core;
-import org.dancres.paxos.impl.LogStorage;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.impl.util.MemoryLogStorage;
 
@@ -26,46 +21,9 @@ public class PaxosFactory {
      * @param aHandle is the handle last given to the application as result of a snapshot.
      */
     public static Paxos init(Paxos.Listener aListener, CheckpointHandle aHandle, byte[] aMetaData) throws Exception {
-    	return new PaxosImpl(aListener, aHandle, aMetaData, new MemoryLogStorage());
-    }
-    
-    private static class PaxosImpl implements Paxos {
-    	private Core _core;
-    	private TransportImpl _transport;
-    	
-    	PaxosImpl(Paxos.Listener aListener, CheckpointHandle aHandle, byte[] aMetaData,
-    			LogStorage aLog) throws Exception {
-    		_core = new Core(5000, aLog, aMetaData, aListener);
-    		_transport = new TransportImpl();
-    		_transport.add(_core);
-    	}
-    	
-		public void close() {
-			_core.stop();
-		}
+        Core myCore = new Core(5000, new MemoryLogStorage(), aMetaData, aListener);
+        new TransportImpl().add(myCore);
 
-		public CheckpointHandle newCheckpoint() {
-			return _core.getAcceptorLearner().newCheckpoint();
-		}
-
-		public void submit(Proposal aValue) throws InactiveException {
-			_core.submit(aValue);
-		}
-
-		public void register(Listener aListener) {
-			_core.add(aListener);
-		}
-
-		public void bringUpToDate(CheckpointHandle aHandle) throws Exception {
-			_core.getAcceptorLearner().bringUpToDate(aHandle);
-		}
-
-        public Set<InetSocketAddress> getMembers() {
-            return _core.getCommon().getFD().getMemberSet();
-        }
-
-		public byte[] getMetaData(InetSocketAddress anAddress) {
-			return _core.getCommon().getFD().getMetaData(anAddress);
-		}
+        return myCore;
     }
 }

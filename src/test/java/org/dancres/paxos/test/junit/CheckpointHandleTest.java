@@ -91,7 +91,7 @@ public class CheckpointHandleTest {
         Common myCommon = new Common(myTransport, new NullFailureDetector());
 
         AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon);
-        myAl.open();
+        myAl.open(CheckpointHandle.NO_CHECKPOINT);
 
         Assert.assertFalse(myCommon.isRecovering());
 

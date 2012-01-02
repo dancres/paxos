@@ -87,7 +87,7 @@ public class OldAlStateTest {
 		TransportImpl myTransport = new TransportImpl();
 		
 		AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()));
-        myAl.open();
+        myAl.open(CheckpointHandle.NO_CHECKPOINT);
 		
 		long myRndNum = 1;
 		long mySeqNum = 0;
