@@ -21,7 +21,7 @@ public class PaxosFactory {
      * @param aHandle is the handle last given to the application as result of a snapshot.
      */
     public static Paxos init(Paxos.Listener aListener, CheckpointHandle aHandle, byte[] aMetaData) throws Exception {
-        Core myCore = new Core(5000, new MemoryLogStorage(), aMetaData, aListener);
+        Core myCore = new Core(5000, new MemoryLogStorage(), aMetaData, aHandle, aListener);
         new TransportImpl().add(myCore);
 
         return myCore;

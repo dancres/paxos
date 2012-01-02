@@ -49,7 +49,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
     }
 
     private ServerDispatcher(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta) {
-        _core = new Core(anUnresponsivenessThreshold, aLogger, aMeta, this);
+        _core = new Core(anUnresponsivenessThreshold, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, this);
     }
 
 	public boolean messageReceived(Packet aPacket) {

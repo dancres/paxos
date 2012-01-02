@@ -19,12 +19,13 @@ import java.util.Set;
 public class Core implements Transport.Dispatcher, Paxos {
     private static Logger _logger = LoggerFactory.getLogger(Core.class);
 
-    private byte[] _meta = null;
+    private final byte[] _meta;
     private AcceptorLearner _al;
     private LeaderFactory _ld;
     private Heartbeater _hb;
-    private LogStorage _log;
-    private Common _common;
+    private final LogStorage _log;
+    private final Common _common;
+    private final CheckpointHandle _handle;
 
     /**
      * @param anUnresponsivenessThreshold is the minimum period of time a node must be unresponsive for before being
@@ -36,12 +37,13 @@ public class Core implements Transport.Dispatcher, Paxos {
      * @param aListener is the handler for paxos outcomes. There can be many of these but there must be at least one at
      * initialisation time.
      */
-    public Core(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta,
+    public Core(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta, CheckpointHandle aHandle,
                 Paxos.Listener aListener) {
         _meta = aMeta;
         _log = aLogger;        
         _common = new Common(anUnresponsivenessThreshold);
         _common.add(aListener);
+        _handle = aHandle;
     }
 
     public void close() {
@@ -68,7 +70,7 @@ public class Core implements Transport.Dispatcher, Paxos {
             _hb = new Heartbeater(aTransport, _meta);
 
         _al = new AcceptorLearner(_log, _common);
-        _al.open(CheckpointHandle.NO_CHECKPOINT);
+        _al.open(_handle);
         _ld = new LeaderFactory(_common);
         _hb.start();
     }
