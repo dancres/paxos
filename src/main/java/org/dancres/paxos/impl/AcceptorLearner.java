@@ -327,8 +327,6 @@ public class AcceptorLearner {
      * When an AL is out of date, call this method to bring it back into sync from a remotely sourced
      * checkpoint.
      *
-     * @todo Leader jitter, really?
-     *
      * @param aHandle obtained from the remote checkpoint.
      * @throws Exception
      */
@@ -366,7 +364,8 @@ public class AcceptorLearner {
 
             /*
              * We do not want to allow a leader to immediately over-rule us, make it work a bit,
-             * otherwise we risk leader jitter
+             * otherwise we risk leader jitter. This ensures we get proper leader leasing as per
+             * live packet processing.
              */
             _common.leaderAction();
             _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE,
