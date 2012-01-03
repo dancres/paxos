@@ -257,7 +257,7 @@ public class AcceptorLearner {
                 try {
 					new LogRangeProducer(-1, Long.MAX_VALUE, new Consumer() {
 						public void process(PaxosMessage aMsg, long aLogOffset) {
-							AcceptorLearner.this.process(aMsg);
+							AcceptorLearner.this.process(aMsg, new ReplayWriter(aLogOffset));
 						}
 					}, _storage).produce(0);
                 } catch (Exception anE) {
@@ -271,7 +271,7 @@ public class AcceptorLearner {
 					new LogRangeProducer(installCheckpoint(myHandle),
 							Long.MAX_VALUE, new Consumer() {
 								public void process(PaxosMessage aMsg, long aLogOffset) {
-									AcceptorLearner.this.process(aMsg);
+									AcceptorLearner.this.process(aMsg, new ReplayWriter(aLogOffset));
 								}
 							}, _storage).produce(0);
                 } catch (Exception anE) {
@@ -354,7 +354,7 @@ public class AcceptorLearner {
             // Write the collect we've just found in our new checkpoint and use that as the starting point
             // for the log
             //
-            _storage.mark(write(myHandle.getLastCollect(), false), true);
+            _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
 
             _common.setSuspended(false);
 
@@ -417,6 +417,8 @@ public class AcceptorLearner {
         if (_common.isSuspended())
             return;
 
+        Writer myWriter = new LiveWriter();
+
 		if (_common.isRecovering()) {
 			// If the packet is a recovery request, ignore it
 			//
@@ -447,7 +449,7 @@ public class AcceptorLearner {
 			// If the packet is for a sequence number within the window, process it now for catchup
 			//
 			} else if (mySeqNum > _common.getRecoveryWindow().getMinSeq()) {
-				process(aMessage);
+				process(aMessage, myWriter);
 				
 				/*
 				 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
@@ -463,10 +465,11 @@ public class AcceptorLearner {
 							
 							// May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
 							//
-							if (_common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress) != null)
+							if (_common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(),
+                                    _localAddress) != null)
 								break;
 
-							process(myMessage);
+							process(myMessage, myWriter);
 						}
 						
                         completedRecovery();
@@ -511,7 +514,7 @@ public class AcceptorLearner {
                     reschedule();
 				}
 			} else
-				process(aMessage);
+				process(aMessage, myWriter);
 		}
 	}
 
@@ -612,7 +615,7 @@ public class AcceptorLearner {
 	 * @param aMessage is the message to process
 	 * @return is any message to send
 	 */
-	private void process(PaxosMessage aMessage) {
+	private void process(PaxosMessage aMessage, Writer aWriter) {
 		InetSocketAddress myNodeId = aMessage.getNodeId();
 		long mySeqNum = aMessage.getSeqNum();
 
@@ -651,7 +654,7 @@ public class AcceptorLearner {
 				// return last proposal etc
 				//
 				if (_common.supercedes(myCollect)) {
-					write(aMessage, true);
+					aWriter.write(aMessage, true);
                     
                     send(constructLast(mySeqNum), myNodeId);
 
@@ -685,7 +688,7 @@ public class AcceptorLearner {
 					_common.leaderAction();
                     cacheBegin(myBegin);
                     
-					write(aMessage, true);
+					aWriter.write(aMessage, true);
 
 					send(new Accept(mySeqNum, _common.getLastCollect().getRndNumber(), 
 							_localAddress), myNodeId);
@@ -727,7 +730,7 @@ public class AcceptorLearner {
                         // Always record the success even if it's the heartbeat so there are
                         // no gaps in the Paxos sequence
                         //
-                        long myLogOffset = write(aMessage, true);
+                        long myLogOffset = aWriter.write(aMessage, true);
 
                         _common.getRecoveryTrigger().completed(new Watermark(mySeqNum, myLogOffset));
 
@@ -810,15 +813,33 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-    private long write(PaxosMessage aMessage, boolean aForceRequired) {
-        try {
-            return _storage.put(Codecs.encode(aMessage), aForceRequired);
-        } catch (Exception anE) {
-            _logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " + _localAddress, anE);
-            throw new RuntimeException(anE);
+    interface Writer {
+        public long write(PaxosMessage aMessage, boolean aForceRequired);
+    }
+    
+    class ReplayWriter implements Writer {
+        private final long _offset;
+
+        ReplayWriter(long anOffset) {
+            _offset = anOffset;
+        }
+
+        public long write(PaxosMessage aMessage, boolean aForceRequired) {
+            return _offset;
         }
     }
 
+    class LiveWriter implements Writer {
+        public long write(PaxosMessage aMessage, boolean aForceRequired) {
+            try {
+                return _storage.put(Codecs.encode(aMessage), aForceRequired);
+            } catch (Exception anE) {
+                _logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " + _localAddress, anE);
+                throw new RuntimeException(anE);
+            }            
+        }
+    }
+    
     private static class Instance {
         private Begin _lastBegin;
 
