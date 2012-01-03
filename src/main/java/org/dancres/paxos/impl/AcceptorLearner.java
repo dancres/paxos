@@ -256,7 +256,7 @@ public class AcceptorLearner {
 
                 try {
 					new LogRangeProducer(-1, Long.MAX_VALUE, new Consumer() {
-						public void process(PaxosMessage aMsg) {
+						public void process(PaxosMessage aMsg, long aLogOffset) {
 							AcceptorLearner.this.process(aMsg);
 						}
 					}, _storage).produce(0);
@@ -270,7 +270,7 @@ public class AcceptorLearner {
                 try {
 					new LogRangeProducer(installCheckpoint(myHandle),
 							Long.MAX_VALUE, new Consumer() {
-								public void process(PaxosMessage aMsg) {
+								public void process(PaxosMessage aMsg, long aLogOffset) {
 									AcceptorLearner.this.process(aMsg);
 								}
 							}, _storage).produce(0);
@@ -865,7 +865,7 @@ public class AcceptorLearner {
             return _state;
         }
 
-        public void process(PaxosMessage aMessage) {
+        public void process(PaxosMessage aMessage, long aLogOffset) {
             // dump("Read:", aRecord);
 
             // All records we write are leader messages and they all have no length
@@ -908,7 +908,7 @@ public class AcceptorLearner {
             _stream.close();
         }
 
-        public void process(PaxosMessage aMsg) {
+        public void process(PaxosMessage aMsg, long aLogOffset) {
             _logger.debug("Streaming: " + aMsg);
             _stream.send(aMsg);
         }

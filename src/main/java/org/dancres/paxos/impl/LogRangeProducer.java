@@ -32,7 +32,7 @@ class LogRangeProducer implements LogStorage.RecordListener, Producer {
         if ((myMessage.getSeqNum() > _lowerBoundSeq)
                 && (myMessage.getSeqNum() <= _maximumSeq)) {
             _logger.debug("Producing: " + myMessage);
-            _consumer.process(myMessage);
+            _consumer.process(myMessage, anOffset);
         } else {
             _logger.debug("Not producing: " + myMessage);
         }
