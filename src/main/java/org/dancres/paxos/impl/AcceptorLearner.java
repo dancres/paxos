@@ -257,7 +257,7 @@ public class AcceptorLearner {
                 try {
 					new LogRangeProducer(-1, Long.MAX_VALUE, new Consumer() {
 						public void process(PaxosMessage aMsg, long aLogOffset) {
-							AcceptorLearner.this.process(aMsg, new ReplayWriter(aLogOffset));
+							AcceptorLearner.this.process(aMsg, new ReplayWriter(aLogOffset), new RecoverySender());
 						}
 					}, _storage).produce(0);
                 } catch (Exception anE) {
@@ -271,7 +271,8 @@ public class AcceptorLearner {
 					new LogRangeProducer(installCheckpoint(myHandle),
 							Long.MAX_VALUE, new Consumer() {
 								public void process(PaxosMessage aMsg, long aLogOffset) {
-									AcceptorLearner.this.process(aMsg, new ReplayWriter(aLogOffset));
+									AcceptorLearner.this.process(aMsg, new ReplayWriter(aLogOffset),
+                                            new RecoverySender());
 								}
 							}, _storage).produce(0);
                 } catch (Exception anE) {
@@ -420,6 +421,8 @@ public class AcceptorLearner {
         Writer myWriter = new LiveWriter();
 
 		if (_common.isRecovering()) {
+            Sender mySender = new RecoverySender();
+            
 			// If the packet is a recovery request, ignore it
 			//
 			if (aMessage.getType() == Operations.NEED)
@@ -449,7 +452,7 @@ public class AcceptorLearner {
 			// If the packet is for a sequence number within the window, process it now for catchup
 			//
 			} else if (mySeqNum > _common.getRecoveryWindow().getMinSeq()) {
-				process(aMessage, myWriter);
+				process(aMessage, myWriter, mySender);
 				
 				/*
 				 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
@@ -469,7 +472,7 @@ public class AcceptorLearner {
                                     _localAddress) != null)
 								break;
 
-							process(myMessage, myWriter);
+							process(myMessage, myWriter, mySender);
 						}
 						
                         completedRecovery();
@@ -480,6 +483,8 @@ public class AcceptorLearner {
 				//
 			}
 		} else {
+            Sender mySender = new LiveSender();
+
 			Need myWindow = _common.getRecoveryTrigger().shouldRecover(aMessage.getSeqNum(), _localAddress);
 
 			if (myWindow != null) {
@@ -503,7 +508,7 @@ public class AcceptorLearner {
 					 * window. As the recovery watchdog measures progress through the recovery window, a partial
 					 * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
 					 */
-					send(myWindow, _common.getFD().getRandomMember(_localAddress));
+					mySender.send(myWindow, _common.getFD().getRandomMember(_localAddress));
 
 					// Declare recovery active - which stops this AL emitting responses
 					//
@@ -514,7 +519,7 @@ public class AcceptorLearner {
                     reschedule();
 				}
 			} else
-				process(aMessage, myWriter);
+				process(aMessage, myWriter, mySender);
 		}
 	}
 
@@ -615,7 +620,7 @@ public class AcceptorLearner {
 	 * @param aMessage is the message to process
 	 * @return is any message to send
 	 */
-	private void process(PaxosMessage aMessage, Writer aWriter) {
+	private void process(PaxosMessage aMessage, Writer aWriter, Sender aSender) {
 		InetSocketAddress myNodeId = aMessage.getNodeId();
 		long mySeqNum = aMessage.getSeqNum();
 
@@ -656,7 +661,7 @@ public class AcceptorLearner {
 				if (_common.supercedes(myCollect)) {
 					aWriter.write(aMessage, true);
                     
-                    send(constructLast(mySeqNum), myNodeId);
+                    aSender.send(constructLast(mySeqNum), myNodeId);
 
 					/*
 					 * If the collect comes from the current leader (has same rnd
@@ -664,7 +669,7 @@ public class AcceptorLearner {
 					 * save to disk, just respond with last proposal etc
 					 */
 				} else if (myCollect.sameLeader(_common.getLastCollect())) {
-                    send(constructLast(mySeqNum), myNodeId);
+                    aSender.send(constructLast(mySeqNum), myNodeId);
 
 				} else {
 					// Another collect has already arrived with a higher priority,
@@ -672,7 +677,7 @@ public class AcceptorLearner {
 					//
 					Collect myLastCollect = _common.getLastCollect();
 
-					send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+                    aSender.send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
                             myLastCollect.getNodeId(), myLastCollect.getRndNumber(), _localAddress), myNodeId);
 				}
 				
@@ -690,15 +695,15 @@ public class AcceptorLearner {
                     
 					aWriter.write(aMessage, true);
 
-					send(new Accept(mySeqNum, _common.getLastCollect().getRndNumber(), 
-							_localAddress), myNodeId);
+					aSender.send(new Accept(mySeqNum, _common.getLastCollect().getRndNumber(),
+                            _localAddress), myNodeId);
 				} else if (myBegin.precedes(_common.getLastCollect())) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
 					Collect myLastCollect = _common.getLastCollect();
 
-					send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+					aSender.send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
                             myLastCollect.getNodeId(), myLastCollect.getRndNumber(), _localAddress), myNodeId);
 				} else {
 					// Quiet, didn't see the collect, leader hasn't accounted for
@@ -798,15 +803,23 @@ public class AcceptorLearner {
 		}
 	}
 
-    private void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
-        // Stay silent during recovery to avoid producing out-of-date responses
-        //
-        if (! _common.isRecovering()) {
+    interface Sender {
+        public void send(PaxosMessage aMessage, InetSocketAddress aNodeId);
+    }
+    
+    class LiveSender implements Sender {
+        public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
             _logger.info("AL sending: " + aMessage);
             _common.getTransport().send(aMessage, aNodeId);
+        }        
+    }
+    
+    class RecoverySender implements Sender {
+        public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
+            // Drop silently
         }
     }
-
+    
     /* ********************************************************************************************
      *
      * Operation log handling
