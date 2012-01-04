@@ -46,7 +46,7 @@ public class CheckpointStorage {
             
             public void saved() {
                 try {
-                    _stream.getChannel().force(true);
+                    _stream.getChannel().force(false);
                     _stream.close();
                 } catch (Exception anE) {}
 
