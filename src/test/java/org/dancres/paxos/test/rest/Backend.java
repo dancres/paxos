@@ -57,6 +57,7 @@ public class Backend {
     private AtomicLong _handbackGenerator = new AtomicLong(0);
     private AtomicLong _opCounter = new AtomicLong(0);
     private AtomicBoolean _checkpointActive = new AtomicBoolean(false);
+    private AtomicBoolean _outOfDate = new AtomicBoolean(false);
     
     private ConcurrentHashMap<String, Result> _requestMap = new ConcurrentHashMap<String, Result>();
     private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<String, String>();
@@ -82,8 +83,7 @@ public class Backend {
                 
                 try {
                     for (InetSocketAddress myAddr : myMembers) {
-                        myMemberData.put(myAddr.toString(),
-                                Utils.unmarshallInetSocketAddress(_paxos.getMetaData(myAddr)).toString());
+                        myMemberData.put(myAddr.toString(), toHttp(_paxos.getMetaData(myAddr)));
                     }
 
                     return myMapper.writeValueAsString(myMemberData);
@@ -114,6 +114,12 @@ public class Backend {
         
         put(new Route("/map/:key") {
             public Object handle(Request request, Response response) {
+                if (_outOfDate.get()) {
+                    response.status(503);
+
+                    return null;
+                }
+                    
                 String myHandback = Long.toString(_handbackGenerator.getAndIncrement());
                 Result myResult = new Result();
 
@@ -130,10 +136,24 @@ public class Backend {
                     VoteOutcome myOutcome = myResult.await();
 
                     switch (myOutcome.getResult()) {
-                        case VoteOutcome.Reason.DECISION: {
+                        case VoteOutcome.Reason.DECISION : {
                             response.status(200);
                             
                             return request.body();
+                        }
+
+                        case VoteOutcome.Reason.OTHER_LEADER : {
+                            response.status(301);
+                            
+                            response.header("Location", toHttp(_paxos.getMetaData(myOutcome.getLeader())));
+
+                            return null;
+                        }
+
+                        case VoteOutcome.Reason.OUT_OF_DATE : {
+                            response.status(503);
+
+                            return null;
                         }
 
                         default: {
@@ -172,6 +192,10 @@ public class Backend {
         _paxos = PaxosFactory.init(new ListenerImpl(), myHandle, Utils.marshall(myAddr), _txnLogger);
     }
 
+    String toHttp(byte[] aMarshalledAddress) throws Exception {
+        return "http:/" + Utils.unmarshallInetSocketAddress(aMarshalledAddress).toString();
+    }
+    
     class ListenerImpl implements Paxos.Listener {
         public void done(VoteOutcome anEvent) {
             // If we're not the originating node for the post, because we're not leader,
@@ -196,6 +220,18 @@ public class Backend {
                         }
                     }
 
+                    break;
+                }
+
+                case VoteOutcome.Reason.OUT_OF_DATE : {
+                    _outOfDate.compareAndSet(false, true);
+                    
+                    break;
+                }
+                
+                case VoteOutcome.Reason.UP_TO_DATE : {
+                    _outOfDate.compareAndSet(true, false);
+                    
                     break;
                 }
 
