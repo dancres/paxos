@@ -42,10 +42,11 @@ public class CheckpointStorage {
     public WriteCheckpoint newCheckpoint() {
         return new WriteCheckpoint() {
             private File _temp;
-            private OutputStream _stream;
+            private FileOutputStream _stream;
             
             public void saved() {
                 try {
+                    _stream.getChannel().force(true);
                     _stream.close();
                 } catch (Exception anE) {}
 
