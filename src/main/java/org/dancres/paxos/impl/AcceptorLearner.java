@@ -778,11 +778,11 @@ public class AcceptorLearner {
              * means the leader is running sufficiently far behind that it mightn't be able to drive the current
              * sequence number to completion, we must tell it.
              */
-            if (aSeqNum <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum())
+            if (aSeqNum <= myLow.getSeqNum())
                 return new OldRound(aSeqNum, _common.getLastCollect().getNodeId(),
                         _common.getLastCollect().getRndNumber(), _localAddress);
             else
-                return new Last(aSeqNum, _common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+                return new Last(aSeqNum, myLow.getSeqNum(),
                     Long.MIN_VALUE, Proposal.NO_VALUE, _localAddress);            
 		}
 	}
