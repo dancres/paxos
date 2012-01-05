@@ -544,11 +544,11 @@ public class AcceptorLearner {
              * future check otherwise fail.
              */
             if (! _past.equals(_common.getRecoveryTrigger().getLowWatermark())) {
-                _logger.info("Recovery is progressing, " + _localAddress);
+                _logger.debug("Recovery is progressing, " + _localAddress);
 
                 reschedule();
             } else {
-                _logger.info("Recovery is NOT progressing - terminate, " + _localAddress);
+                _logger.warn("Recovery is NOT progressing - terminate, " + _localAddress);
 
                 terminateRecovery();
             }
@@ -556,7 +556,7 @@ public class AcceptorLearner {
     }
 
     private void reschedule() {
-        _logger.info("Rescheduling, " + _localAddress);
+        _logger.debug("Rescheduling, " + _localAddress);
 
         synchronized(this) {
             _recoveryAlarm = new Watchdog();
@@ -577,7 +577,7 @@ public class AcceptorLearner {
     }
 
     private void terminateRecovery() {
-        _logger.info("Recovery terminate, " + _localAddress);
+        _logger.debug("Recovery terminate, " + _localAddress);
 
         /*
          * This will cause the AL to re-enter recovery when another packet is received and thus a new
@@ -636,7 +636,7 @@ public class AcceptorLearner {
 					_common.getTransport().send(new OutOfDate(_localAddress), myNeed.getNodeId());
 				
 				if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
-					_logger.info("Running streamer: " + _localAddress);
+					_logger.debug("Running streamer: " + _localAddress);
 					
 					new RemoteStreamer(myNeed).run();
 				}
@@ -650,7 +650,7 @@ public class AcceptorLearner {
 				if (!_common.amAccepting(myCollect)) {
 					_ignoredCollects.incrementAndGet();
 
-					_logger.info("AL:Not accepting: " + myCollect + ", "
+					_logger.warn("AL:Not accepting: " + myCollect + ", "
 							+ getIgnoredCollectsCount() + ", " + _localAddress);
 					return;
 				}
@@ -709,7 +709,7 @@ public class AcceptorLearner {
 					// Quiet, didn't see the collect, leader hasn't accounted for
 					// our values, it hasn't seen our last and we're likely out of sync with the majority
 					//
-					_logger.info("AL:Missed collect, going silent: " + mySeqNum
+					_logger.warn("AL:Missed collect, going silent: " + mySeqNum
 							+ " [ " + myBegin.getRndNumber() + " ], " + _localAddress);
 				}
 				
@@ -722,14 +722,14 @@ public class AcceptorLearner {
                 _common.leaderAction();
 
 				if (mySeqNum <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
-					_logger.info("AL:Discarded known value: " + mySeqNum + ", " + _localAddress);
+					_logger.debug("AL:Discarded known value: " + mySeqNum + ", " + _localAddress);
 				} else {
                     Begin myBegin = expungeBegin(mySeqNum);
 
                     if ((myBegin == null) || (myBegin.getRndNumber() != mySuccess.getRndNum())) {
                         // We never saw the appropriate begin
                         //
-                        _logger.info("AL: Discarding success: " + myBegin + ", " + mySuccess +
+                        _logger.debug("AL: Discarding success: " + myBegin + ", " + mySuccess +
                                 ", " + _localAddress);
                     } else {
                         // Always record the success even if it's the heartbeat so there are
@@ -742,7 +742,7 @@ public class AcceptorLearner {
                         if (myBegin.getConsolidatedValue().equals(LeaderFactory.HEARTBEAT)) {
                             _receivedHeartbeats.incrementAndGet();
 
-                            _logger.info("AL: discarded heartbeat: "
+                            _logger.debug("AL: discarded heartbeat: "
                                     + System.currentTimeMillis() + ", "
                                     + getHeartbeatCount() + ", " + _localAddress);
                         } else {
@@ -809,7 +809,7 @@ public class AcceptorLearner {
     
     class LiveSender implements Sender {
         public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
-            _logger.info("AL sending: " + aMessage);
+            _logger.debug("AL sending: " + aMessage);
             _common.getTransport().send(aMessage, aNodeId);
         }        
     }
