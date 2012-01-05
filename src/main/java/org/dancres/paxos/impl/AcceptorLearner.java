@@ -56,7 +56,7 @@ public class AcceptorLearner {
 
     private TimerTask _recoveryAlarm = null;
 
-	private List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
+	private final List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
 
 	/**
      * Tracks the last collect we accepted and thus represents our view of the current leader for instances.
@@ -87,8 +87,8 @@ public class AcceptorLearner {
      */
     public static class Watermark implements Comparable<Watermark> {
         static final Watermark INITIAL = new Watermark(Constants.UNKNOWN_SEQ, -1);
-        private long _seqNum;
-        private long _logOffset;
+        private final long _seqNum;
+        private final long _logOffset;
 
         /**
          * @param aSeqNum the current sequence
@@ -249,38 +249,24 @@ public class AcceptorLearner {
         try {
             _common.setRecoveryWindow(new Need(-1, Long.MAX_VALUE, _localAddress));
 
-            if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
-                // Restore logs from the beginning
-                //
-                _logger.info("No checkpoint - replay from the beginning");
-
-                try {
-					new LogRangeProducer(-1, Long.MAX_VALUE, new Consumer() {
-						public void process(PaxosMessage aMsg, long aLogOffset) {
-							AcceptorLearner.this.process(aMsg, new ReplayWriter(aLogOffset), new RecoverySender());
-						}
-					}, _storage).produce(0);
-                } catch (Exception anE) {
-                    _logger.error("Failed to replay log", anE);
-                }
-
-            } else if (aHandle instanceof ALCheckpointHandle) {
-                ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
-
-                try {
-					new LogRangeProducer(installCheckpoint(myHandle),
-							Long.MAX_VALUE, new Consumer() {
-								public void process(PaxosMessage aMsg, long aLogOffset) {
-									AcceptorLearner.this.process(aMsg, new ReplayWriter(aLogOffset),
-                                            new RecoverySender());
-								}
-							}, _storage).produce(0);
-                } catch (Exception anE) {
-                    _logger.error("Failed to replay log", anE);
-                }
-
-            } else
+            long myStartSeqNum = -1;
+            
+            if ((! aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) && (! (aHandle instanceof ALCheckpointHandle)))
                 throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
+
+            if (aHandle instanceof ALCheckpointHandle) {
+                myStartSeqNum = installCheckpoint((ALCheckpointHandle) aHandle);
+            }
+
+            try {
+                new LogRangeProducer(myStartSeqNum, Long.MAX_VALUE, new Consumer() {
+                    public void process(PaxosMessage aMsg, long aLogOffset) {
+                        AcceptorLearner.this.process(aMsg, new ReplayWriter(aLogOffset), new RecoverySender());
+                    }
+                }, _storage).produce(0);
+            } catch (Exception anE) {
+                _logger.error("Failed to replay log", anE);
+            }
         } finally {
             _common.clearRecoveryWindow();
         }
@@ -770,7 +756,7 @@ public class AcceptorLearner {
 		 * If the sequence number is less than the current low watermark, we've got to check through the log file for
 		 * the value otherwise if it's present, it will be since the low watermark offset.
 		 */
-		Instance myState;
+		Begin myState;
 		
 		try {
 			if ((myLow.equals(Watermark.INITIAL)) || (aSeqNum <= myLow.getSeqNum())) {
@@ -782,10 +768,8 @@ public class AcceptorLearner {
 			throw new RuntimeException("Failed to replay log" + ", " + _localAddress, anE);
 		}
 		
-		Begin myBegin = myState.getLastValue();
-		
-		if (myBegin != null) {
-            return new Last(aSeqNum, myLow.getSeqNum(), myBegin.getRndNumber(), myBegin.getConsolidatedValue(),
+		if (myState != null) {
+            return new Last(aSeqNum, myLow.getSeqNum(), myState.getRndNumber(), myState.getConsolidatedValue(),
                     _localAddress);
 		} else {
             /*
@@ -853,58 +837,30 @@ public class AcceptorLearner {
         }
     }
     
-    private static class Instance {
-        private Begin _lastBegin;
-
-        void add(PaxosMessage aMessage) {
-            switch(aMessage.getType()) {
-                case Operations.BEGIN : {
-
-                    Begin myBegin = (Begin) aMessage;
-
-                    if (_lastBegin == null) {
-                        _lastBegin = myBegin;
-                    } else if (myBegin.getRndNumber() > _lastBegin.getRndNumber()) {
-                        _lastBegin = myBegin;
-                    }
-
-                    break;
-                }
-
-                default : { // Do nothing
-                }
-            }
-        }
-
-        Begin getLastValue() {
-            return _lastBegin;
-        }
-
-        public String toString() {
-            return "LoggedInstance: " + _lastBegin.getSeqNum() + " " + _lastBegin;
-        }
-    }
-
     /**
      * Used to locate the recorded state of a specified instance of Paxos.
      */
     private class StateFinder implements Consumer {
-        private Instance _state = new Instance();
+        private Begin _lastBegin;
 
         StateFinder(long aSeqNum, long aLogOffset) throws Exception {
             new LogRangeProducer(aSeqNum - 1, aSeqNum, this, _storage).produce(aLogOffset);
         }
 
-        Instance getState() {
-            return _state;
+        Begin getState() {
+            return _lastBegin;
         }
 
         public void process(PaxosMessage aMessage, long aLogOffset) {
-            // dump("Read:", aRecord);
+            if (aMessage.getType() == Operations.BEGIN) {
+                Begin myBegin = (Begin) aMessage;
 
-            // All records we write are leader messages and they all have no length
-            //
-            _state.add(aMessage);
+                if (_lastBegin == null) {
+                    _lastBegin = myBegin;
+                } else if (myBegin.getRndNumber() > _lastBegin.getRndNumber()) {
+                    _lastBegin = myBegin;
+                }
+            }
         }
     }
 
@@ -937,9 +893,9 @@ public class AcceptorLearner {
                 new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this, _storage).produce(0);
             } catch (Exception anE) {
                 _logger.error("Failed to replay log", anE);
+            } finally {
+                _stream.close();
             }
-
-            _stream.close();
         }
 
         public void process(PaxosMessage aMsg, long aLogOffset) {
