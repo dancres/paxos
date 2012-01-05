@@ -49,7 +49,7 @@ public class Leader implements MembershipListener {
      * In SHUTDOWN, we do a little cleanup and halt, processing no messages etc.
      */
     public enum States {
-    	COLLECT, BEGIN, SUCCESS, EXIT, ABORT, SUBMITTED, SHUTDOWN
+    	INITIAL, SUBMITTED, COLLECT, BEGIN, SUCCESS, EXIT, ABORT, SHUTDOWN
     }
     
 
@@ -74,7 +74,7 @@ public class Leader implements MembershipListener {
     private Membership _membership;
 
     private final States _startState;
-    private States _currentState = States.EXIT;
+    private States _currentState = States.INITIAL;
 
     /**
      * In cases of ABORT, indicates the reason
@@ -142,6 +142,13 @@ public class Leader implements MembershipListener {
         }
     }
 
+   private void cleanUp() {
+       _messages.clear();
+
+       if (_membership != null)
+           _membership.dispose();       
+   }
+    
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
@@ -152,11 +159,8 @@ public class Leader implements MembershipListener {
             case SHUTDOWN : {
                 _logger.info(this + ": SHUTDOWN");
                 
-                _messages.clear();
-                
-                if (_membership != null)
-                    _membership.dispose();
-                
+                cleanUp();
+
                 _currentState = States.ABORT;
 
                 return;
@@ -165,10 +169,7 @@ public class Leader implements MembershipListener {
             case ABORT : {
                 _logger.info(this + ": ABORT " + _event);
 
-                _messages.clear();
-
-                if (_membership != null)
-                    _membership.dispose();
+                cleanUp();
 
                 cancelInteraction();
 
@@ -182,10 +183,7 @@ public class Leader implements MembershipListener {
             case EXIT : {
             	_logger.info(this + ": EXIT " + _event);
 
-                _messages.clear();
-
-                if (_membership != null)
-                    _membership.dispose();
+                cleanUp();
 
                 _factory.dispose(this);
 
@@ -274,7 +272,7 @@ public class Leader implements MembershipListener {
                 break;
             }
 
-            default : throw new RuntimeException("Invalid state: " + _currentState);
+            default : throw new Error("Invalid state: " + _currentState);
         }
     }
 
@@ -395,19 +393,16 @@ public class Leader implements MembershipListener {
      */
     public void submit(Proposal aValue) {
         synchronized (this) {
-            if (! isDone()) {
-                _logger.info(this + ": Submitted operation (already active): " + aValue);
+            if (_currentState != States.INITIAL)
+                throw new IllegalStateException("Submit already done, create another leader");
 
-                throw new UnsupportedOperationException();
-            } else {
-                _logger.info(this + ": Submitted operation (initialising leader)");
+            _logger.info(this + ": Submitted operation (initialising leader)");
 
-                _prop = aValue;
+            _prop = aValue;
 
-                _currentState = States.SUBMITTED;
+            _currentState = States.SUBMITTED;
 
-                process();
-            }
+            process();
         }
     }
 
