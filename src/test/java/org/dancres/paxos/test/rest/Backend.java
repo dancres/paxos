@@ -22,9 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * @todo Need truly unique handbacks not just longs
- */
 public class Backend {
     private static final String HANDBACK_KEY = "org.dancres.paxos.test.backend.handback";
     private static final long CHECKPOINT_EVERY = 5;
@@ -61,7 +58,7 @@ public class Backend {
     private AtomicLong _opCounter = new AtomicLong(0);
     private AtomicBoolean _checkpointActive = new AtomicBoolean(false);
     private AtomicBoolean _outOfDate = new AtomicBoolean(false);
-    
+    private InetSocketAddress _serverAddr;
     private ConcurrentHashMap<String, Result> _requestMap = new ConcurrentHashMap<String, Result>();
     private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<String, String>();
     private CheckpointStorage _storage;
@@ -123,7 +120,7 @@ public class Backend {
                     return null;
                 }
                     
-                String myHandback = Long.toString(_handbackGenerator.getAndIncrement());
+                String myHandback = _serverAddr.toString() + ";" + Long.toString(_handbackGenerator.getAndIncrement());
                 Result myResult = new Result();
 
                 _requestMap.put(myHandback, myResult);
@@ -175,7 +172,7 @@ public class Backend {
             }
         });
         
-        InetSocketAddress myAddr = new InetSocketAddress(Utils.getWorkableInterface(), aPort.intValue());
+        _serverAddr = new InetSocketAddress(Utils.getWorkableInterface(), aPort.intValue());
 
         CheckpointHandle myHandle = CheckpointHandle.NO_CHECKPOINT;
         CheckpointStorage.ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
@@ -192,7 +189,7 @@ public class Backend {
             myOIS.close();
         }
         
-        _paxos = PaxosFactory.init(new ListenerImpl(), myHandle, Utils.marshall(myAddr), _txnLogger);
+        _paxos = PaxosFactory.init(new ListenerImpl(), myHandle, Utils.marshall(_serverAddr), _txnLogger);
     }
 
     String toHttp(byte[] aMarshalledAddress) throws Exception {
@@ -251,10 +248,6 @@ public class Backend {
     }
     
     class Checkpointer extends Thread {
-
-        /**
-         * @todo Strictly speaking we should sync that checkpoint to disk
-         */
         public void run() {
             try {
                 CheckpointStorage.WriteCheckpoint myCkpt = _storage.newCheckpoint();
