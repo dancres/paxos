@@ -93,6 +93,12 @@ public class LeaderFactory {
      */
     Leader newLeader() throws Paxos.InactiveException {
         synchronized (this) {
+            while (isActive()) {
+                try { 
+                    wait();
+                } catch (InterruptedException anIE) {}
+            }
+
             killHeartbeats();
 
             if (_common.isSuspended())
@@ -100,6 +106,10 @@ public class LeaderFactory {
 
             return newLeaderImpl();
         }
+    }
+
+    private boolean isActive() {
+        return ((_leaders.size() > 0) && (!_leaders.lastEntry().getValue().isDone()));
     }
 
     private Leader newLeaderImpl() {
@@ -200,7 +210,7 @@ public class LeaderFactory {
                 }                
             }
 
-            if (_leaders.size() == 1) {
+            if ((_leaders.size() == 1) && (_leaders.lastEntry().getValue().isDone())) {
                 switch (_leaders.lastEntry().getValue().getOutcome().getResult()) {
                     case VoteOutcome.Reason.OTHER_VALUE :
                     case VoteOutcome.Reason.DECISION : {
@@ -223,6 +233,8 @@ public class LeaderFactory {
                         break;
                     }
                 }
+                
+                notify();
             }
         }
     }
