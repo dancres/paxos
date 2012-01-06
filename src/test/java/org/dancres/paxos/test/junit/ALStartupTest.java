@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.impl.AcceptorLearner;
 import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.*;

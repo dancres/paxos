@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl;
+package org.dancres.paxos;
 
 import java.io.Serializable;
 

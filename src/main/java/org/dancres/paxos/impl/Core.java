@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.impl.Transport.Packet;

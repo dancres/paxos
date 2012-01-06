@@ -2,12 +2,10 @@ package org.dancres.paxos.test.rest;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.dancres.paxos.*;
-import org.dancres.paxos.impl.CheckpointHandle;
+import static org.dancres.paxos.CheckpointStorage.*;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.impl.util.DirectoryCheckpointStorage;
-import org.dancres.paxos.CheckpointStorage;
-import org.dancres.paxos.CheckpointStorage.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static spark.Spark.*;

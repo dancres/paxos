@@ -1,7 +1,5 @@
 package org.dancres.paxos;
 
-import org.dancres.paxos.impl.CheckpointHandle;
-
 import java.net.InetSocketAddress;
 import java.util.Set;
 

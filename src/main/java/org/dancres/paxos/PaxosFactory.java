@@ -1,6 +1,5 @@
 package org.dancres.paxos;
 
-import org.dancres.paxos.impl.CheckpointHandle;
 import org.dancres.paxos.impl.Core;
 import org.dancres.paxos.impl.LogStorage;
 import org.dancres.paxos.impl.netty.TransportImpl;
