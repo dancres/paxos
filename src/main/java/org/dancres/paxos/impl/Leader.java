@@ -42,7 +42,7 @@ public class Leader implements MembershipListener {
      * 
      * In EXIT a paxos instance was completed successfully, clean up is all that remains.
      * 
-     * In ABORT a paxos instance failed for some reason (which will be found in </code>_event</code>).
+     * In ABORT a paxos instance failed for some reason (which will be found in </code>_outcome</code>).
      * 
      * In SUBMITTED, Leader has been given a value and should attempt to complete a paxos instance.
      *
@@ -79,7 +79,7 @@ public class Leader implements MembershipListener {
     /**
      * In cases of ABORT, indicates the reason
      */
-    private VoteOutcome _event;
+    private VoteOutcome _outcome;
 
     private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
@@ -103,7 +103,7 @@ public class Leader implements MembershipListener {
 
     VoteOutcome getOutcome() {
         synchronized(this) {
-            return _event;
+            return _outcome;
         }
     }
 
@@ -111,7 +111,7 @@ public class Leader implements MembershipListener {
     	synchronized(this) {
             if (! isDone()) {
     		    _currentState = States.SHUTDOWN;
-                _event = null;
+                _outcome = null;
                 process();
             }
     	}
@@ -167,13 +167,13 @@ public class Leader implements MembershipListener {
             }
 
             case ABORT : {
-                _logger.info(this + ": ABORT " + _event);
+                _logger.info(this + ": ABORT " + _outcome);
 
                 cleanUp();
 
                 cancelInteraction();
 
-                _common.signal(_event);
+                _common.signal(_outcome);
 
                 _factory.dispose(this);
                 
@@ -181,7 +181,7 @@ public class Leader implements MembershipListener {
             }
 
             case EXIT : {
-            	_logger.info(this + ": EXIT " + _event);
+            	_logger.info(this + ": EXIT " + _outcome);
 
                 cleanUp();
 
@@ -292,7 +292,7 @@ public class Leader implements MembershipListener {
                 Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
         _currentState = States.ABORT;
-        _event = new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
+        _outcome = new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
                 myOldRound.getLastRound(), _prop, myCompetingNodeId);
 
         process();
@@ -300,7 +300,7 @@ public class Leader implements MembershipListener {
 
     private void successful(int aReason) {
         _currentState = States.EXIT;
-        _event = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
+        _outcome = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
                 _common.getTransport().getLocalAddress());
 
         process();
@@ -312,9 +312,9 @@ public class Leader implements MembershipListener {
     
     private void error(int aReason, InetSocketAddress aLeader) {
         _currentState = States.ABORT;
-        _event = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader);
+        _outcome = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader);
         
-        _logger.info("Leader encountered error: " + _event);
+        _logger.info("Leader encountered error: " + _outcome);
 
         process();
     }
