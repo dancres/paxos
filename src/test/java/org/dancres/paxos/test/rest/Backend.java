@@ -1,13 +1,13 @@
 package org.dancres.paxos.test.rest;
 
 import org.codehaus.jackson.map.ObjectMapper;
-import org.dancres.paxos.Paxos;
-import org.dancres.paxos.PaxosFactory;
-import org.dancres.paxos.Proposal;
-import org.dancres.paxos.VoteOutcome;
+import org.dancres.paxos.*;
 import org.dancres.paxos.impl.CheckpointHandle;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.impl.net.Utils;
+import org.dancres.paxos.impl.util.DirectoryCheckpointStorage;
+import org.dancres.paxos.CheckpointStorage;
+import org.dancres.paxos.CheckpointStorage.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static spark.Spark.*;
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * @todo Checkpoint installation
+ * @todo Checkpoint installation after out of date.
  */
 public class Backend {
     private static final String HANDBACK_KEY = "org.dancres.paxos.test.backend.handback";
@@ -64,7 +64,7 @@ public class Backend {
     private InetSocketAddress _serverAddr;
     private ConcurrentHashMap<String, Result> _requestMap = new ConcurrentHashMap<String, Result>();
     private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<String, String>();
-    private DirectoryCheckpointStorage _storage;
+    private CheckpointStorage _storage;
 
 
     public static void main(String[] anArgs) throws Exception {
@@ -178,7 +178,7 @@ public class Backend {
         _serverAddr = new InetSocketAddress(Utils.getWorkableInterface(), aPort.intValue());
 
         CheckpointHandle myHandle = CheckpointHandle.NO_CHECKPOINT;
-        DirectoryCheckpointStorage.ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
+        ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
         if (myCkpt != null) {
             InputStream myStream = myCkpt.getStream();
 
@@ -253,7 +253,7 @@ public class Backend {
     class Checkpointer extends Thread {
         public void run() {
             try {
-                DirectoryCheckpointStorage.WriteCheckpoint myCkpt = _storage.newCheckpoint();
+                WriteCheckpoint myCkpt = _storage.newCheckpoint();
 
                 OutputStream myOutput = myCkpt.getStream();
                 ObjectOutputStream myOOS = new ObjectOutputStream(myOutput);
