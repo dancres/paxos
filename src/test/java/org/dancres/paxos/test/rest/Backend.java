@@ -22,6 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * @todo Need truly unique handbacks not just longs
+ */
 public class Backend {
     private static final String HANDBACK_KEY = "org.dancres.paxos.test.backend.handback";
     private static final long CHECKPOINT_EVERY = 5;
@@ -91,7 +94,7 @@ public class Backend {
                     _logger.error("Couldn't recover metadata", anE);
                 }
                 
-                halt(500);
+                response.status(500);
 
                 return null;
             }
@@ -105,7 +108,7 @@ public class Backend {
                     return myMapper.writeValueAsString(_keyValues);
                 } catch (Exception anE) {
                     _logger.error("Couldn't recover values", anE);
-                    halt(500);
+                    response.status(500);
 
                     return null;
                 }
@@ -147,27 +150,27 @@ public class Backend {
                             
                             response.header("Location", toHttp(_paxos.getMetaData(myOutcome.getLeader())));
 
-                            return null;
+                            return "";
                         }
 
                         case VoteOutcome.Reason.OUT_OF_DATE : {
                             response.status(503);
 
-                            return null;
+                            return "";
                         }
 
                         default: {
                             _logger.error("Unhandled outcome: " + myOutcome.getResult());
-                            halt(500);
+                            response.status(500);
 
-                            return null;
+                            return "";
                         }
                     }
                 } catch (Exception anE) {
                     _logger.error("Couldn't run Paxos", anE);
-                    halt(500);
+                    response.status(500);
 
-                    return null;
+                    return "";
                 }
             }
         });
