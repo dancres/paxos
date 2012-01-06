@@ -4,7 +4,7 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.Comparator;
 
-public class CheckpointStorage {
+public class DirectoryCheckpointStorage {
     public interface WriteCheckpoint {
         public void saved();
         public OutputStream getStream() throws IOException;
@@ -16,7 +16,7 @@ public class CheckpointStorage {
     
     private final File _dir;
 
-    public CheckpointStorage(File aDirectory) {
+    public DirectoryCheckpointStorage(File aDirectory) {
         _dir = aDirectory;
         _dir.mkdirs();
     }
@@ -100,7 +100,7 @@ public class CheckpointStorage {
     }
     
     public static void main(String[] anArgs) throws Exception {
-        CheckpointStorage myStorage = new CheckpointStorage(new File(anArgs[0]));
+        DirectoryCheckpointStorage myStorage = new DirectoryCheckpointStorage(new File(anArgs[0]));
         
         File[] myFiles = myStorage.getFiles();
         

@@ -64,7 +64,7 @@ public class Backend {
     private InetSocketAddress _serverAddr;
     private ConcurrentHashMap<String, Result> _requestMap = new ConcurrentHashMap<String, Result>();
     private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<String, String>();
-    private CheckpointStorage _storage;
+    private DirectoryCheckpointStorage _storage;
 
 
     public static void main(String[] anArgs) throws Exception {
@@ -72,7 +72,7 @@ public class Backend {
     }
 
     private void start(Integer aPort, String aCheckpointDir) throws Exception {
-        _storage = new CheckpointStorage(new File(aCheckpointDir));
+        _storage = new DirectoryCheckpointStorage(new File(aCheckpointDir));
         _txnLogger = new HowlLogger(aCheckpointDir);
         
         setPort(aPort.intValue());
@@ -178,7 +178,7 @@ public class Backend {
         _serverAddr = new InetSocketAddress(Utils.getWorkableInterface(), aPort.intValue());
 
         CheckpointHandle myHandle = CheckpointHandle.NO_CHECKPOINT;
-        CheckpointStorage.ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
+        DirectoryCheckpointStorage.ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
         if (myCkpt != null) {
             InputStream myStream = myCkpt.getStream();
 
@@ -253,7 +253,7 @@ public class Backend {
     class Checkpointer extends Thread {
         public void run() {
             try {
-                CheckpointStorage.WriteCheckpoint myCkpt = _storage.newCheckpoint();
+                DirectoryCheckpointStorage.WriteCheckpoint myCkpt = _storage.newCheckpoint();
 
                 OutputStream myOutput = myCkpt.getStream();
                 ObjectOutputStream myOOS = new ObjectOutputStream(myOutput);
