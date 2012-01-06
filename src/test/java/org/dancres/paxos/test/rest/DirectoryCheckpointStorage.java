@@ -1,19 +1,12 @@
 package org.dancres.paxos.test.rest;
 
+import org.dancres.paxos.CheckpointStorage;
+
 import java.io.*;
 import java.util.Arrays;
 import java.util.Comparator;
 
-public class DirectoryCheckpointStorage {
-    public interface WriteCheckpoint {
-        public void saved();
-        public OutputStream getStream() throws IOException;
-    }
-    
-    public interface ReadCheckpoint {
-        public InputStream getStream() throws IOException;
-    }
-    
+public class DirectoryCheckpointStorage implements CheckpointStorage {
     private final File _dir;
 
     public DirectoryCheckpointStorage(File aDirectory) {

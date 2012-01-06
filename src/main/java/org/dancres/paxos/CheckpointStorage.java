@@ -1,0 +1,21 @@
+package org.dancres.paxos;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+public interface CheckpointStorage {
+    public interface WriteCheckpoint {
+        public void saved();
+        public OutputStream getStream() throws IOException;
+    }
+
+    public interface ReadCheckpoint {
+        public InputStream getStream() throws IOException;
+    }
+    public File[] getFiles();
+    public ReadCheckpoint getLastCheckpoint();
+    public WriteCheckpoint newCheckpoint();
+
+}
