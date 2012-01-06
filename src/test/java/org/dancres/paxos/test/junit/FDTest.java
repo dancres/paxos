@@ -2,7 +2,7 @@ package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.MembershipListener;
-import org.dancres.paxos.impl.net.ServerDispatcher;
+import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.After;
 import org.junit.Assert;

@@ -4,9 +4,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.impl.FailureDetector;
-import org.dancres.paxos.impl.net.ClientDispatcher;
-import org.dancres.paxos.impl.net.ServerDispatcher;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.test.net.ClientDispatcher;
+import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;

@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.net;
+package org.dancres.paxos.test.net;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.*;
