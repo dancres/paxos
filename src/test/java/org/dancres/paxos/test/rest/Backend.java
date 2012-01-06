@@ -22,6 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * @todo Checkpoint installation
+ */
 public class Backend {
     private static final String HANDBACK_KEY = "org.dancres.paxos.test.backend.handback";
     private static final long CHECKPOINT_EVERY = 5;
@@ -54,7 +57,7 @@ public class Backend {
     
     private Paxos _paxos;
     private HowlLogger _txnLogger;
-    private AtomicLong _handbackGenerator = new AtomicLong(0);
+    private AtomicLong _handbackSequence = new AtomicLong(0);
     private AtomicLong _opCounter = new AtomicLong(0);
     private AtomicBoolean _checkpointActive = new AtomicBoolean(false);
     private AtomicBoolean _outOfDate = new AtomicBoolean(false);
@@ -120,7 +123,7 @@ public class Backend {
                     return null;
                 }
                     
-                String myHandback = _serverAddr.toString() + ";" + Long.toString(_handbackGenerator.getAndIncrement());
+                String myHandback = _serverAddr.toString() + ";" + Long.toString(_handbackSequence.getAndIncrement());
                 Result myResult = new Result();
 
                 _requestMap.put(myHandback, myResult);
