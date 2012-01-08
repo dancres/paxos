@@ -3,6 +3,8 @@ package org.dancres.paxos.test.rest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.dancres.paxos.*;
 import static org.dancres.paxos.CheckpointStorage.*;
+
+import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.impl.util.DirectoryCheckpointStorage;
@@ -79,12 +81,12 @@ public class Backend {
             public Object handle(Request request, Response response) {
                 ObjectMapper myMapper = new ObjectMapper();
                 
-                Set<InetSocketAddress> myMembers = _paxos.getMembers();
+                Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getMemberMap();
                 Map<String, String> myMemberData = new HashMap<String, String>();
                 
                 try {
-                    for (InetSocketAddress myAddr : myMembers) {
-                        myMemberData.put(myAddr.toString(), toHttp(_paxos.getMetaData(myAddr)));
+                    for (Map.Entry<InetSocketAddress, FailureDetector.MetaData> myDetails : myMembers.entrySet()) {
+                        myMemberData.put(myDetails.getKey().toString(), toHttp(myDetails.getValue().getData()));
                     }
 
                     return myMapper.writeValueAsString(myMemberData);
@@ -146,7 +148,8 @@ public class Backend {
                         case VoteOutcome.Reason.OTHER_LEADER : {
                             response.status(301);
                             
-                            response.header("Location", toHttp(_paxos.getMetaData(myOutcome.getLeader())));
+                            response.header("Location",
+                                    toHttp(_paxos.getMemberMap().get(myOutcome.getLeader()).getData()));
 
                             return "";
                         }

@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -84,12 +85,8 @@ public class Core implements Transport.Dispatcher, Paxos {
         _al.bringUpToDate(aHandle);
     }
 
-    public Set<InetSocketAddress> getMembers() {
-        return _common.getFD().getMemberSet();
-    }
-
-    public byte[] getMetaData(InetSocketAddress anAddress) {
-        return _common.getFD().getMetaData(anAddress);
+    public Map<InetSocketAddress, FailureDetector.MetaData> getMemberMap() {
+        return _common.getFD().getMemberMap();
     }
 
     public AcceptorLearner getAcceptorLearner() {

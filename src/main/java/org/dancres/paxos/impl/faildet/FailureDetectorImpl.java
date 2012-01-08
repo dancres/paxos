@@ -31,7 +31,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     private static final int DEFAULT_MAJORITY = 2;
 
     private Random _random = new Random();
-    private Map<InetSocketAddress, MetaData> _lastHeartbeats = new HashMap<InetSocketAddress, MetaData>();
+    private Map<InetSocketAddress, MetaDataImpl> _lastHeartbeats = new HashMap<InetSocketAddress, MetaDataImpl>();
     private ExecutorService _executor = Executors.newFixedThreadPool(1);
     private Thread _scanner;
     private CopyOnWriteArraySet<LivenessListener> _listeners;
@@ -39,13 +39,21 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     private boolean _stopping;
     private int _majority;
 
-    class MetaData {
+    class MetaDataImpl implements FailureDetector.MetaData {
         public long _timestamp;
         public byte[] _metaData;
 
-        MetaData(long aTimestamp, byte[] aMeta) {
+        MetaDataImpl(long aTimestamp, byte[] aMeta) {
             _timestamp = aTimestamp;
             _metaData = aMeta;
+        }
+
+        public byte[] getData() {
+            return _metaData;
+        }
+
+        public long getTimestamp() {
+            return _timestamp;
         }
     }
 
@@ -126,7 +134,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
      */
     public void processMessage(PaxosMessage aMessage) throws Exception {
         if (aMessage.getType() == Operations.HEARTBEAT) {
-            MetaData myLast;
+            MetaDataImpl myLast;
 
             Heartbeat myHeartbeat = (Heartbeat) aMessage;
             
@@ -135,7 +143,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
 
                 if (myLast == null) {
                     _lastHeartbeats.put(myHeartbeat.getNodeId(),
-                            new MetaData(System.currentTimeMillis(), myHeartbeat.getMetaData()));
+                            new MetaDataImpl(System.currentTimeMillis(), myHeartbeat.getMetaData()));
                 } else
                     myLast._timestamp = System.currentTimeMillis();
             }
@@ -165,25 +173,14 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         return _majority;
     }
 
-    public Set<InetSocketAddress> getMemberSet() {
-        Set myActives = new HashSet();
+    public Map<InetSocketAddress, MetaData> getMemberMap() {
+        Map myActives = new HashMap<InetSocketAddress, MetaData>();
 
         synchronized (this) {
-            myActives.addAll(_lastHeartbeats.keySet());
+            new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats);
         }
 
         return myActives;
-    }
-
-    public byte[] getMetaData(InetSocketAddress aNode) {
-        synchronized(this) {
-            MetaData myMeta = _lastHeartbeats.get(aNode);
-
-            if (myMeta != null)
-                return myMeta._metaData;
-            else
-                return null;
-        }
     }
 
     public Membership getMembers(MembershipListener aListener) {
@@ -215,40 +212,11 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         return myMembers.get(_random.nextInt(myMembers.size()));
     }
 
-    public InetSocketAddress getLeader(InetSocketAddress aLocalAddress) {
-        LinkedList<InetSocketAddress> myMembers = new LinkedList<InetSocketAddress>();
-
-        synchronized(this) {
-            myMembers.addAll(_lastHeartbeats.keySet());
-        }
-
-        myMembers.remove(aLocalAddress);
-        
-        InetSocketAddress myChoice = null;
-        
-        while (myMembers.size() > 0) {
-            InetSocketAddress myPossible = myMembers.remove(0);
-            
-            if (myChoice == null)
-                myChoice = myPossible;
-            else if (Codecs.flatten(myChoice) < Codecs.flatten(myPossible))
-                myChoice = myPossible;
-        }
-
-        return myChoice;
-    }
-    
     private void sendDead(InetSocketAddress aProcess) {
         Iterator myListeners = _listeners.iterator();
         while (myListeners.hasNext()) {
             LivenessListener myListener = (LivenessListener) myListeners.next();
             myListener.dead(aProcess);
-        }
-    }
-
-    public boolean isLive(InetSocketAddress aNodeId) {
-        synchronized(this) {
-            return (_lastHeartbeats.containsKey(aNodeId));
         }
     }
 }

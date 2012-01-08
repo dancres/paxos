@@ -1,6 +1,9 @@
 package org.dancres.paxos;
 
+import org.dancres.paxos.impl.FailureDetector;
+
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -83,6 +86,5 @@ public interface Paxos {
     public void submit(Proposal aValue) throws InactiveException;
     public void add(Listener aListener);
     public void bringUpToDate(CheckpointHandle aHandle) throws Exception;
-    public byte[] getMetaData(InetSocketAddress aMemberAddress);
-    public Set<InetSocketAddress> getMembers();
+    public Map<InetSocketAddress, FailureDetector.MetaData> getMemberMap();
 }

@@ -3,6 +3,7 @@ package org.dancres.paxos.impl;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -17,9 +18,14 @@ public interface FailureDetector {
         public void dead(InetSocketAddress aProcess);
     }
 
+    public interface MetaData {
+        public byte[] getData();
+        public long getTimestamp();
+    }
+
     public void add(LivenessListener aListener);
     public Membership getMembers(MembershipListener aListener);
-    public Set<InetSocketAddress> getMemberSet();
+    public Map<InetSocketAddress, MetaData> getMemberMap();
 
     /**
      * Return a random member that the FD believes is live, excluding the local address specified
@@ -27,16 +33,6 @@ public interface FailureDetector {
      * @param aLocal the address of the node to exclude from the result
      */
     public InetSocketAddress getRandomMember(InetSocketAddress aLocal);
-
-    /**
-     * Return tne leading member that the FD believes is live, excluding the local address specified
-     *
-     * @param aLocal the address of the node to exclude from the result
-     */
-    public InetSocketAddress getLeader(InetSocketAddress aLocal);
-
-    public byte[] getMetaData(InetSocketAddress aNode);
-    public boolean isLive(InetSocketAddress aNodeId);
 
     public void processMessage(PaxosMessage aMessage) throws Exception;
 

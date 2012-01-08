@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import java.net.InetSocketAddress;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 public class FDTest implements MembershipListener {
@@ -50,20 +51,19 @@ public class FDTest implements MembershipListener {
         ensureFD(_node1.getCommon().getFD());
         ensureFD(_node2.getCommon().getFD());
 
-        assert(_node1.getCommon().getFD().getMemberSet().size() == 2);
-        assert(_node2.getCommon().getFD().getMemberSet().size() == 2);
+        assert(_node1.getCommon().getFD().getMemberMap().size() == 2);
+        assert(_node2.getCommon().getFD().getMemberMap().size() == 2);
 
-        Set<InetSocketAddress> myMembers = _node1.getCommon().getFD().getMemberSet();
-        Iterator<InetSocketAddress> myMemberIt = myMembers.iterator();
+        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _node1.getCommon().getFD().getMemberMap();
+        Iterator<Map.Entry<InetSocketAddress, FailureDetector.MetaData>> myMemberIt = myMembers.entrySet().iterator();
 
         while(myMemberIt.hasNext()) {
-            InetSocketAddress myAddr = myMemberIt.next();
-            byte[] myMeta = _node1.getCommon().getFD().getMetaData(myAddr);
+            Map.Entry<InetSocketAddress, FailureDetector.MetaData> myEntry = myMemberIt.next();
 
-            if (myAddr.equals(_tport1.getLocalAddress())) {
-                assert("node1".equals(new String(myMeta)));
-            } else if (myAddr.equals(_tport2.getLocalAddress())) {
-                assert("node2".equals(new String(myMeta)));                
+            if (myEntry.getKey().equals(_tport1.getLocalAddress())) {
+                assert("node1".equals(new String(myEntry.getValue().getData())));
+            } else if (myEntry.getKey().equals(_tport2.getLocalAddress())) {
+                assert("node2".equals(new String(myEntry.getValue().getData())));
             } else {
                 Assert.fail();
             }

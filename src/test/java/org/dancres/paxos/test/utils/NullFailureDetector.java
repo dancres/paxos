@@ -6,7 +6,9 @@ import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class NullFailureDetector implements FailureDetector {
@@ -18,19 +20,11 @@ public class NullFailureDetector implements FailureDetector {
 		return new MembershipImpl(aListener);
 	}
 
-    public Set<InetSocketAddress> getMemberSet() {
-        return new HashSet<InetSocketAddress>();
+    public Map<InetSocketAddress, MetaData> getMemberMap() {
+        return new HashMap<InetSocketAddress, MetaData>();
     }
 
     public InetSocketAddress getRandomMember(InetSocketAddress aLocal) {
-        return null;
-    }
-
-    public InetSocketAddress getLeader(InetSocketAddress aLocal) {
-        return null;
-    }
-
-    public byte[] getMetaData(InetSocketAddress aNode) {
         return null;
     }
 
@@ -70,10 +64,6 @@ public class NullFailureDetector implements FailureDetector {
 			return true;
 		}			
 	};
-
-	public boolean isLive(InetSocketAddress aInetSocketAddress) {
-		return false;
-	}
 
 	public boolean couldComplete() {
 		return true;
