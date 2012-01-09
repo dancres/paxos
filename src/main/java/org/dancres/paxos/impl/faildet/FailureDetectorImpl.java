@@ -34,7 +34,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     private Map<InetSocketAddress, MetaDataImpl> _lastHeartbeats = new HashMap<InetSocketAddress, MetaDataImpl>();
     private ExecutorService _executor = Executors.newFixedThreadPool(1);
     private Thread _scanner;
-    private CopyOnWriteArraySet<LivenessListener> _listeners;
+    private CopyOnWriteArraySet<MembershipImpl> _listeners;
     private long _maximumPeriodOfUnresponsiveness;
     private boolean _stopping;
     private int _majority;
@@ -67,7 +67,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         _scanner = new Thread(this);
         _scanner.setDaemon(true);
         _scanner.start();
-        _listeners = new CopyOnWriteArraySet();
+        _listeners = new CopyOnWriteArraySet<MembershipImpl>();
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
     }
 
@@ -121,14 +121,6 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         }
     }
 
-    public void add(LivenessListener aListener) {
-        _listeners.add(aListener);
-    }
-
-    public void remove(LivenessListener aListener) {
-        _listeners.remove(aListener);
-    }
-
     /**
      * Examine a received {@link PaxosMessage} and update liveness information as appropriate.
      */
@@ -136,7 +128,8 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
         if (aMessage.getType() == Operations.HEARTBEAT) {
             MetaDataImpl myLast;
 
-            Heartbeat myHeartbeat = (Heartbeat) aMessage;
+            final Heartbeat myHeartbeat = (Heartbeat) aMessage;
+            final InetSocketAddress myNodeId = myHeartbeat.getNodeId();
             
             synchronized (this) {
                 myLast = _lastHeartbeats.get(myHeartbeat.getNodeId());
@@ -149,7 +142,13 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
             }
 
             if (myLast == null)
-                _executor.submit(new AliveTask(myHeartbeat.getNodeId(), _listeners));
+                _executor.submit(
+                        new Runnable() {
+                            public void run() {
+                                for (MembershipImpl myListener : _listeners)
+                                    myListener.alive(myNodeId);
+                            }
+                        });
         }
     }
 
@@ -184,7 +183,7 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     }
 
     public Membership getMembers(MembershipListener aListener) {
-        MembershipImpl myMembership = new MembershipImpl(this, aListener);
+        MembershipImpl myMembership = new MembershipImpl(aListener);
         _listeners.add(myMembership);
 
         Set myActives = new HashSet();
@@ -213,10 +212,154 @@ public class FailureDetectorImpl implements FailureDetector, Runnable {
     }
 
     private void sendDead(InetSocketAddress aProcess) {
-        Iterator myListeners = _listeners.iterator();
-        while (myListeners.hasNext()) {
-            LivenessListener myListener = (LivenessListener) myListeners.next();
+        for (MembershipImpl myListener : _listeners)
             myListener.dead(aProcess);
-        }
     }
+
+    /**
+     * A snapshot of the membership at some point in time, updated by the <code>FailureDetectorImpl</code> over time.  Note the snapshot only
+     * reduces in size, it cannot grow so as to allow correct behaviour in cases where majorities are required.
+     *
+     * @author dan
+     */
+    class MembershipImpl implements Membership {
+        /**
+         * Tracks the membership that forms the base for each round
+         */
+        private Set<InetSocketAddress> _initialMemberAddresses = new HashSet<InetSocketAddress>();
+
+        /**
+         * Tracks the members that have yet to respond in a round
+         */
+        private Set<InetSocketAddress> _outstandingMemberAddresses;
+
+        private boolean _populated = false;
+        private MembershipListener _listener;
+
+        private int _expectedResponses;
+        private int _receivedResponses;
+
+        private boolean _disposed = false;
+
+        MembershipImpl(MembershipListener aListener) {
+            _listener = aListener;
+        }
+
+        public boolean startInteraction() {
+            synchronized(this) {
+                if (!abort()) {
+                    _receivedResponses = 0;
+                    _expectedResponses = _initialMemberAddresses.size();
+                    _outstandingMemberAddresses = new HashSet(_initialMemberAddresses);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        public boolean receivedResponse(InetSocketAddress anAddress) {
+            synchronized(this) {
+                if (_outstandingMemberAddresses.remove(anAddress)) {
+                    ++_receivedResponses;
+                    interactionComplete();
+                    return true;
+                } else {
+                    _logger.warn("Not an expected response: " + anAddress);
+                    return false;
+                }
+            }
+        }
+
+        public void alive(InetSocketAddress aProcess) {
+            // Not interested in new arrivals
+        }
+
+        public void dead(InetSocketAddress aProcess) {
+            _logger.warn("Death detected: " + aProcess);
+
+            synchronized(this) {
+                // Delay messages until we've got a member set
+                while (! _populated) {
+                    try {
+                        wait();
+                    } catch (InterruptedException anIE) {
+                    }
+                }
+
+                _outstandingMemberAddresses.remove(aProcess);
+                _initialMemberAddresses.remove(aProcess);
+
+                // startInteraction will reset this so if we get a dead before then, it should be recorded
+                //
+                --_expectedResponses;
+
+                if (abort())
+                    return;
+
+                interactionComplete();
+            }
+        }
+
+        void populate(Set<InetSocketAddress> anActiveAddresses) {
+            _logger.debug("Populating membership");
+
+            synchronized(this) {
+                _logger.debug("Populating membership - got lock");
+
+                _initialMemberAddresses.addAll(anActiveAddresses);
+
+                _logger.debug("Populating membership - addresses added");
+
+                _populated = true;
+
+                // Now we have a member set, accept updates
+                notifyAll();
+            }
+        }
+
+        public int getSize() {
+            synchronized(this) {
+                return _initialMemberAddresses.size();
+            }
+        }
+
+        public void dispose() {
+            _logger.debug("Membership disposed");
+
+            _listeners.remove(this);
+
+            synchronized(this) {
+                _disposed = true;
+            }
+        }
+
+        private boolean interactionComplete() {
+            if ((_receivedResponses == _expectedResponses) || (_receivedResponses >= getMajority())) {
+                _listener.allReceived();
+                return true;
+            }
+
+            return false;
+        }
+
+        private boolean abort() {
+            if (_initialMemberAddresses.size() < getMajority()) {
+                _listener.abort();
+                return true;
+            }
+
+            return false;
+        }
+
+        protected void finalize() throws Throwable {
+            synchronized(this) {
+                if (_disposed)
+                    return;
+            }
+
+            System.err.println("Membership was not disposed");
+            System.err.flush();
+        }
+    }    
 }

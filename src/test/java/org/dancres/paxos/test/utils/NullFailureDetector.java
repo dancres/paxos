@@ -13,9 +13,6 @@ import java.util.Set;
 
 public class NullFailureDetector implements FailureDetector {
 
-	public void add(LivenessListener aListener) {
-	}
-
 	public Membership getMembers(MembershipListener aListener) {
 		return new MembershipImpl(aListener);
 	}
