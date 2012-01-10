@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.impl.FailureDetector;
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -12,7 +12,6 @@ import org.junit.Test;
 import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 public class FDTest implements MembershipListener {
     private ServerDispatcher _node1;

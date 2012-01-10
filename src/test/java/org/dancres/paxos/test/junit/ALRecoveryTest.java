@@ -3,9 +3,9 @@ package org.dancres.paxos.test.junit;
 import java.io.File;
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;

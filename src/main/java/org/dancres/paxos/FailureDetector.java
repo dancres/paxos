@@ -1,5 +1,7 @@
-package org.dancres.paxos.impl;
+package org.dancres.paxos;
 
+import org.dancres.paxos.impl.Membership;
+import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;

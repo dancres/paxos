@@ -1,15 +1,13 @@
 package org.dancres.paxos.test.utils;
 
-import org.dancres.paxos.impl.FailureDetector;
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.Membership;
 import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class NullFailureDetector implements FailureDetector {
 

@@ -1,18 +1,14 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.CheckpointHandle;
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.impl.Transport.Packet;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Constitutes the core implementation of paxos. Requires a <code>Transport</code> to use for membership,
@@ -85,8 +81,8 @@ public class Core implements Transport.Dispatcher, Paxos {
         _al.bringUpToDate(aHandle);
     }
 
-    public Map<InetSocketAddress, FailureDetector.MetaData> getMemberMap() {
-        return _common.getFD().getMemberMap();
+    public FailureDetector getDetector() {
+        return _common.getFD();
     }
 
     public AcceptorLearner getAcceptorLearner() {

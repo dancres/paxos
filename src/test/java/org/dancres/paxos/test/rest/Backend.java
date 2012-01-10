@@ -4,7 +4,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.dancres.paxos.*;
 import static org.dancres.paxos.CheckpointStorage.*;
 
-import org.dancres.paxos.impl.FailureDetector;
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.HowlLogger;
 import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.impl.util.DirectoryCheckpointStorage;
@@ -17,7 +17,6 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -81,7 +80,7 @@ public class Backend {
             public Object handle(Request request, Response response) {
                 ObjectMapper myMapper = new ObjectMapper();
                 
-                Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getMemberMap();
+                Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getDetector().getMemberMap();
                 Map<String, String> myMemberData = new HashMap<String, String>();
                 
                 try {
@@ -149,7 +148,7 @@ public class Backend {
                             response.status(301);
                             
                             response.header("Location",
-                                    toHttp(_paxos.getMemberMap().get(myOutcome.getLeader()).getData()));
+                                    toHttp(_paxos.getDetector().getMemberMap().get(myOutcome.getLeader()).getData()));
 
                             return "";
                         }

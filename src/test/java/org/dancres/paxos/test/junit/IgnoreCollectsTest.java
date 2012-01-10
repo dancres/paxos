@@ -2,11 +2,11 @@ package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.AcceptorLearner;
 import org.dancres.paxos.impl.Common;
-import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.Envelope;
