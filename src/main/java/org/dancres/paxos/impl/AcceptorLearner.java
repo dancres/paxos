@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.LogStorage;
@@ -24,17 +25,6 @@ import org.slf4j.LoggerFactory;
  * instance will receive those packets. This can be useful for processing client
  * requests correctly and signalling interested parties as necessary.
  *
- * @todo Send out of date to a NEED'ing AL - this message would be generated when
- * the low end of the recovery window is below the last checkpoint's sequence number.
- * <code>bringUpToDate</code> should reject any checkpoint that doesn't contain a
- * low watermark greater than the one currently known by this AL. This allows user
- * code to source checkpoints from a list of nodes and be informed if the checkpoints
- * aren't good enough so eventually a useful one is found. An optimisation would
- * involve the AL generating the OutOfDate message to include it's last checkpoint
- * low watermark. This watermark would then be passed in the OUT_OF_DATE event to
- * user code which could then pass it across to targets AL's so they can validate
- * they have a useful checkpoint before it's streamed back by the user code.
- * 
  * @author dan
  */
 public class AcceptorLearner {
@@ -138,12 +128,12 @@ public class AcceptorLearner {
     	
         private transient Watermark _lowWatermark;
         private transient Collect _lastCollect;
-        private transient AcceptorLearner _al;
+        private transient AtomicReference<AcceptorLearner> _al = new AtomicReference<AcceptorLearner>(null);
 
         ALCheckpointHandle(Watermark aLowWatermark, Collect aCollect, AcceptorLearner anAl) {
             _lowWatermark = aLowWatermark;
             _lastCollect = aCollect;
-            _al = anAl;
+            _al.set(anAl);
         }
 
         private void readObject(ObjectInputStream aStream) throws IOException, ClassNotFoundException {
@@ -166,7 +156,13 @@ public class AcceptorLearner {
         }
 
         public void saved() throws Exception {
-            _al.saved(this);
+            AcceptorLearner myAL = _al.get();
+            
+            if (myAL == null)
+                throw new IOException("Checkpoint already saved");
+
+            if (_al.compareAndSet(myAL, null))
+                myAL.saved(this);
         }
 
         public boolean isNewerThan(CheckpointHandle aHandle) {
@@ -212,31 +208,6 @@ public class AcceptorLearner {
         _storage = aStore;
         _localAddress = aCommon.getTransport().getLocalAddress();
         _common = aCommon;
-    }
-
-    public CheckpointHandle newCheckpoint() {
-        // Can't allow watermark and last collect to vary independently
-        //
-        synchronized (this) {
-            return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
-                    _common.getLastCollect(), this);
-        }
-    }
-
-    private void saved(ALCheckpointHandle aHandle) throws Exception {
-    	if (aHandle.getLowWatermark().equals(Watermark.INITIAL))
-    		return;
-    	
-    	// If the checkpoint we're installing is newer...
-    	//
-    	synchronized(this) {
-    		if (_lastCheckpoint.getLowWatermark().getSeqNum() < aHandle.getLowWatermark().getSeqNum())
-    			_lastCheckpoint = aHandle;
-    		else
-    			return;
-    	}
-    	
-		_storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
     }
 
     /**
@@ -301,6 +272,28 @@ public class AcceptorLearner {
             _logger.error("Failed to close storage", anE);
             throw new Error(anE);
         }
+    }
+
+    public CheckpointHandle newCheckpoint() {
+        // Can't allow watermark and last collect to vary independently
+        //
+        synchronized (this) {
+            return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
+                    _common.getLastCollect(), this);
+        }
+    }
+
+    private void saved(ALCheckpointHandle aHandle) throws Exception {
+        // If the checkpoint we're installing is newer...
+        //
+        synchronized(this) {
+            if (aHandle.isNewerThan(_lastCheckpoint))
+                _lastCheckpoint = aHandle;
+            else
+                return;
+        }
+
+        _storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
     }
 
     private long installCheckpoint(ALCheckpointHandle aHandle) {
@@ -420,9 +413,11 @@ public class AcceptorLearner {
                         completedRecovery();
                     }
 
+                    // Signal with the node that pronounced us out of date - likely user code will get ckpt from there.
+                    //
                     _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
                             _common.getLastCollect().getRndNumber(),
-                            new Proposal(), _common.getLastCollect().getNodeId()));
+                            new Proposal(), aMessage.getNodeId()));
                     return;
                 }
             }
@@ -612,8 +607,12 @@ public class AcceptorLearner {
 			case Operations.NEED : {
 				Need myNeed = (Need) aMessage;
 				
-				// Make sure we can dispatch the recovery request
-				//
+				/*
+				 * Make sure we can dispatch the recovery request - if the requested sequence number is less than
+				 * our checkpoint low watermark we don't have the log available and thus we tell the AL it's out of
+				 * date. Since Paxos will tend to keep replica's mostly in sync there's no need to see if other
+				 * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
+				 */
 				if (myNeed.getMinSeq() < _lastCheckpoint.getLowWatermark().getSeqNum())
 					_common.getTransport().send(new OutOfDate(_localAddress), myNeed.getNodeId());
 				
