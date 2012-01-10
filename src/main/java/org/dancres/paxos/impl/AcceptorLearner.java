@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.dancres.paxos.CheckpointHandle;
+import org.dancres.paxos.LogStorage;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.messages.*;
@@ -297,7 +298,7 @@ public class AcceptorLearner {
             _storage.close();
 
         } catch (Exception anE) {
-            _logger.error("Failed to close logger", anE);
+            _logger.error("Failed to close storage", anE);
             throw new Error(anE);
         }
     }

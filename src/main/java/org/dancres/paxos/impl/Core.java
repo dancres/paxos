@@ -1,9 +1,6 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.Proposal;
-import org.dancres.paxos.Paxos;
+import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -29,7 +26,7 @@ public class Core implements Transport.Dispatcher, Paxos {
      * @param anUnresponsivenessThreshold is the minimum period of time a node must be unresponsive for before being
      * declared dead by the cluster
      *
-     * @param aLogger is the logger implementation to use for recording paxos transitions.
+     * @param aLogger is the storage implementation to use for recording paxos transitions.
      * @param aMeta is the data to be advertised by this core to others. Might be used for server discovery in cases
      * where the server/client do not use the "well known" addresses of the core.
      * @param aListener is the handler for paxos outcomes. There can be many of these but there must be at least one at

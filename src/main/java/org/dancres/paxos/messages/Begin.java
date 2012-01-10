@@ -1,7 +1,6 @@
 package org.dancres.paxos.messages;
 
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.impl.LogStorage;
 
 import java.net.InetSocketAddress;
 

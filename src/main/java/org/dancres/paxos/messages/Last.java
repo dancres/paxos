@@ -3,7 +3,6 @@ package org.dancres.paxos.messages;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.Leader;
 import org.dancres.paxos.impl.LeaderSelection;
-import org.dancres.paxos.impl.LogStorage;
 
 import java.net.InetSocketAddress;
 

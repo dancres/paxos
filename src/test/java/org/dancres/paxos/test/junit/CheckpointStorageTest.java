@@ -2,7 +2,7 @@ package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.CheckpointStorage;
 import org.dancres.paxos.CheckpointStorage.*;
-import org.dancres.paxos.impl.util.DirectoryCheckpointStorage;
+import org.dancres.paxos.storage.DirectoryCheckpointStorage;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.junit.Assert;
 import org.junit.Before;

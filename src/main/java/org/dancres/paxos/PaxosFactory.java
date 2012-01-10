@@ -1,9 +1,8 @@
 package org.dancres.paxos;
 
 import org.dancres.paxos.impl.Core;
-import org.dancres.paxos.impl.LogStorage;
 import org.dancres.paxos.impl.netty.TransportImpl;
-import org.dancres.paxos.impl.util.MemoryLogStorage;
+import org.dancres.paxos.storage.MemoryLogStorage;
 
 /**
  * @author dan

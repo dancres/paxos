@@ -10,6 +10,7 @@ import org.dancres.paxos.impl.*;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.AcceptorLearner;
+import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Need;

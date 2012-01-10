@@ -3,7 +3,7 @@ package org.dancres.paxos.test.net;
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
-import org.dancres.paxos.impl.util.MemoryLogStorage;
+import org.dancres.paxos.storage.MemoryLogStorage;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
 import org.slf4j.Logger;

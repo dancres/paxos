@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl.util;
+package org.dancres.paxos.storage;
 
 import org.dancres.paxos.CheckpointStorage;
 

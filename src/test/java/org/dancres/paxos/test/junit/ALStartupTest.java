@@ -10,6 +10,7 @@ import org.dancres.paxos.impl.AcceptorLearner;
 import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;

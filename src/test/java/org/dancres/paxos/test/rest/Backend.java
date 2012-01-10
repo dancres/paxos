@@ -5,9 +5,9 @@ import org.dancres.paxos.*;
 import static org.dancres.paxos.CheckpointStorage.*;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.impl.HowlLogger;
+import org.dancres.paxos.storage.DirectoryCheckpointStorage;
+import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.impl.net.Utils;
-import org.dancres.paxos.impl.util.DirectoryCheckpointStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static spark.Spark.*;

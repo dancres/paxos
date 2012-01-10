@@ -1,10 +1,10 @@
-package org.dancres.paxos.impl.util;
+package org.dancres.paxos.storage;
 
 import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.dancres.paxos.impl.LogStorage;
+import org.dancres.paxos.LogStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

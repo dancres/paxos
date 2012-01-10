@@ -1,5 +1,6 @@
-package org.dancres.paxos.impl;
+package org.dancres.paxos.storage;
 
+import org.dancres.paxos.LogStorage;
 import org.objectweb.howl.log.Configuration;
 import org.objectweb.howl.log.LogException;
 import org.objectweb.howl.log.LogRecord;

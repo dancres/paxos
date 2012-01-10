@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.impl.util.MemoryLogStorage;
+import org.dancres.paxos.storage.MemoryLogStorage;
 import org.junit.*;
 
 public class MemoryLogTest {

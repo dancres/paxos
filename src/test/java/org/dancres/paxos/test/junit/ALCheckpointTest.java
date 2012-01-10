@@ -2,6 +2,7 @@ package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.impl.*;
+import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
