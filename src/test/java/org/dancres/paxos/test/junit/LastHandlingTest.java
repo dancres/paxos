@@ -8,6 +8,7 @@ import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.Core;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
@@ -87,7 +88,7 @@ public class LastHandlingTest {
         myBuffer.putInt(55);
 
         Proposal myProposal = new Proposal("data", myBuffer.array());        
-        FailureDetector myFd = _node1.getCommon().getFD();
+        MessageBasedFailureDetector myFd = _node1.getCommon().getPrivateFD();
 
         int myChances = 0;
 

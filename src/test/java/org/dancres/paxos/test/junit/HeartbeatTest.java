@@ -7,6 +7,7 @@ import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.AcceptorLearner;
 import org.dancres.paxos.impl.Constants;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.Envelope;
@@ -34,7 +35,7 @@ public class HeartbeatTest {
     	_node2.stop();
     }
         
-    private void ensureFD(FailureDetector anFD) throws Exception {
+    private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
         int myChances = 0;
 
         while (!anFD.couldComplete()) {
@@ -56,8 +57,8 @@ public class HeartbeatTest {
 
         Proposal myProp = new Proposal("data", myBuffer.array());
         
-        ensureFD(_node1.getCommon().getFD());
-        ensureFD(_node2.getCommon().getFD());
+        ensureFD(_node1.getCommon().getPrivateFD());
+        ensureFD(_node2.getCommon().getPrivateFD());
 
         myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
         		_tport2.getLocalAddress());

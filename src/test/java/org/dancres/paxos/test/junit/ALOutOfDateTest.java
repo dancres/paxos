@@ -5,6 +5,7 @@ import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.impl.HowlLogger;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -59,7 +60,7 @@ public class ALOutOfDateTest {
             _node3.stop();
     }
 
-    private void ensureFD(FailureDetector anFD) throws Exception {
+    private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
         int myChances = 0;
 
         while (!anFD.couldComplete()) {
@@ -77,8 +78,8 @@ public class ALOutOfDateTest {
         TransportImpl myTransport = new TransportImpl();
         myTransport.add(myClient);
 
-        ensureFD(_node1.getCommon().getFD());
-        ensureFD(_node2.getCommon().getFD());
+        ensureFD(_node1.getCommon().getPrivateFD());
+        ensureFD(_node2.getCommon().getPrivateFD());
 
         System.err.println("Run some instances");
 
@@ -114,7 +115,7 @@ public class ALOutOfDateTest {
         _tport3.add(_node3);
         _node3.add(myListener);
 
-        ensureFD(_node3.getCommon().getFD());
+        ensureFD(_node3.getCommon().getPrivateFD());
 
         System.err.println("Run another instance - trigger");
 

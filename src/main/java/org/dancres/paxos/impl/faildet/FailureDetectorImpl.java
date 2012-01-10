@@ -3,6 +3,7 @@ package org.dancres.paxos.impl.faildet;
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.Membership;
 import org.dancres.paxos.impl.MembershipListener;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
@@ -23,7 +24,7 @@ import java.util.*;
  * to determine liveness.  The Heartbeater would then be modified to generate a message only if there had been an absence of
  * other messages sent by a node for a suitable period of time.
  */
-public class FailureDetectorImpl implements FailureDetector, Runnable {
+public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnable {
     /**
      * @todo Fix up this majority to be more dynamic
      */

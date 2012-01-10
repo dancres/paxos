@@ -4,6 +4,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -47,7 +48,7 @@ public class DeadNodeTest {
         
         Proposal myProp = new Proposal("data", myBuffer.array());
 
-        FailureDetector myFd = _node1.getCommon().getFD();
+        MessageBasedFailureDetector myFd = _node1.getCommon().getPrivateFD();
 
         int myChances = 0;
 

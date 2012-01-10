@@ -3,13 +3,14 @@ package org.dancres.paxos.test.utils;
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.Membership;
 import org.dancres.paxos.impl.MembershipListener;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
-public class NullFailureDetector implements FailureDetector {
+public class NullFailureDetector implements MessageBasedFailureDetector {
 
 	public Membership getMembers(MembershipListener aListener) {
 		return new MembershipImpl(aListener);

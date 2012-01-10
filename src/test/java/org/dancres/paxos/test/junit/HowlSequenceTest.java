@@ -7,6 +7,7 @@ import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.HowlLogger;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -46,7 +47,7 @@ public class HowlSequenceTest {
     	_node2.stop();
     }
 
-    private void ensureFD(FailureDetector anFD) throws Exception {
+    private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
         int myChances = 0;
 
         while (!anFD.couldComplete()) {
@@ -64,8 +65,8 @@ public class HowlSequenceTest {
     	TransportImpl myTransport = new TransportImpl();
         myTransport.add(myClient);
 
-        ensureFD(_node1.getCommon().getFD());
-        ensureFD(_node2.getCommon().getFD());
+        ensureFD(_node1.getCommon().getPrivateFD());
+        ensureFD(_node2.getCommon().getPrivateFD());
 
         for (int i = 0; i < 5; i++) {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);

@@ -18,7 +18,7 @@ public class Common {
     private static Logger _logger = LoggerFactory.getLogger(Common.class);
 
     private Transport _transport;
-    private final FailureDetector _fd;
+    private final MessageBasedFailureDetector _fd;
     private Collect _lastCollect = Collect.INITIAL;
     private long _lastLeaderActionTime = 0;
     private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
@@ -32,7 +32,7 @@ public class Common {
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
     }
     
-    public Common(Transport aTransport, FailureDetector anFD) {
+    public Common(Transport aTransport, MessageBasedFailureDetector anFD) {
         _transport = aTransport;
         _fd = anFD;
     }
@@ -60,7 +60,11 @@ public class Common {
     public FailureDetector getFD() {
         return _fd;
     }
-    
+
+    public MessageBasedFailureDetector getPrivateFD() {
+        return _fd;
+    }
+
     void stop() {
         _fd.stop();
         _transport.shutdown();

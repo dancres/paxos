@@ -2,6 +2,7 @@ package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.MembershipListener;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.After;
@@ -34,7 +35,7 @@ public class FDTest implements MembershipListener {
     	_node2.stop();
     }
 
-    private void ensureFD(FailureDetector anFD) throws Exception {
+    private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
         int myChances = 0;
 
         while (!anFD.couldComplete()) {
@@ -47,8 +48,8 @@ public class FDTest implements MembershipListener {
     }
 
     @Test public void post() throws Exception {
-        ensureFD(_node1.getCommon().getFD());
-        ensureFD(_node2.getCommon().getFD());
+        ensureFD(_node1.getCommon().getPrivateFD());
+        ensureFD(_node2.getCommon().getPrivateFD());
 
         assert(_node1.getCommon().getFD().getMemberMap().size() == 2);
         assert(_node2.getCommon().getFD().getMemberMap().size() == 2);

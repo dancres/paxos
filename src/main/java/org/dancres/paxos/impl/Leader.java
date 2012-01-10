@@ -192,7 +192,7 @@ public class Leader implements MembershipListener {
 
             case SUBMITTED : {
                 _tries = 0;
-                _membership = _common.getFD().getMembers(this);
+                _membership = _common.getPrivateFD().getMembers(this);
 
                 _logger.debug(this + ": got membership: (" +
                         _membership.getSize() + ")");
@@ -256,7 +256,7 @@ public class Leader implements MembershipListener {
             }
 
             case SUCCESS : {
-                if (_messages.size() >= _common.getFD().getMajority()) {
+                if (_messages.size() >= _common.getPrivateFD().getMajority()) {
                     // Send success
                     //
                     emit(new Success(_seqNum, _rndNumber, _common.getTransport().getLocalAddress()));
