@@ -13,17 +13,17 @@ import org.slf4j.LoggerFactory;
 import static spark.Spark.*;
 import spark.*;
 
+import javax.jws.Oneway;
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * @todo Checkpoint installation after out of date.
- */
 public class Backend {
     private static final String HANDBACK_KEY = "org.dancres.paxos.test.backend.handback";
     private static final long CHECKPOINT_EVERY = 5;
@@ -76,11 +76,53 @@ public class Backend {
         
         setPort(aPort.intValue());
 
+        get(new Route("/checkpoint") {
+            public Object handle(Request request, Response response) {
+                ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
+
+                if (myCkpt == null) {
+                    response.status(404);
+                    return "";
+                }
+                
+                try {
+                    InputStream myStream = myCkpt.getStream();
+                    ObjectInputStream myOIS = new ObjectInputStream(myStream);
+
+                    CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+                    ConcurrentHashMap<String, String> myState = (ConcurrentHashMap<String, String>) myOIS.readObject();
+                    
+                    ByteArrayOutputStream myBAOS = new ByteArrayOutputStream();
+                    ObjectOutputStream myOOS = new ObjectOutputStream(myBAOS);
+                    
+                    myOOS.writeObject(myHandle);
+                    myOOS.writeObject(myState);
+                    myOOS.flush();
+                    myOOS.close();
+
+                    ObjectMapper myMapper = new ObjectMapper();
+
+                    response.status(200);
+                    return myMapper.writeValueAsString(myBAOS.toByteArray());
+                    
+                } catch (Exception anE) {
+                    _logger.error("Couldn't recover checkpoint", anE);
+                }
+                
+                response.status(500);
+                return "";
+            }
+        });
+
         get(new Route("/members") {
             public Object handle(Request request, Response response) {
                 ObjectMapper myMapper = new ObjectMapper();
                 
                 Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getDetector().getMemberMap();
+                
+                for (InetSocketAddress m : myMembers.keySet())
+                    _logger.info("Member: " + m);
+
                 Map<String, String> myMemberData = new HashMap<String, String>();
                 
                 try {
@@ -95,7 +137,7 @@ public class Backend {
                 
                 response.status(500);
 
-                return null;
+                return "";
             }
         });
 
@@ -109,7 +151,7 @@ public class Backend {
                     _logger.error("Couldn't recover values", anE);
                     response.status(500);
 
-                    return null;
+                    return "";
                 }
             }
         });
@@ -119,7 +161,7 @@ public class Backend {
                 if (_outOfDate.get()) {
                     response.status(503);
 
-                    return null;
+                    return "";
                 }
                     
                 String myHandback = _serverAddr.toString() + ";" + Long.toString(_handbackSequence.getAndIncrement());
@@ -227,7 +269,9 @@ public class Backend {
                 }
 
                 case VoteOutcome.Reason.OUT_OF_DATE : {
-                    _outOfDate.compareAndSet(false, true);
+                    if (_outOfDate.compareAndSet(false, true)) {
+                        new Recovery(anEvent.getNodeId()).start();
+                    }
                     
                     break;
                 }
@@ -249,23 +293,54 @@ public class Backend {
                 myResult.deliver(anEvent);
         }
     }
+
+    class Recovery extends Thread {
+        private InetSocketAddress _complainer;
+        
+        Recovery(InetSocketAddress aComplainer) {
+            _complainer = aComplainer;
+        }
+
+        public void run() {
+            boolean amDone = false;
+            
+            while (! amDone) {
+                URL myURL;
+                URLConnection myConn;
+
+                try {
+                    myURL = new URL("http:/" + _complainer.toString() + "/checkpoint");
+                    myConn = myURL.openConnection();
+                    byte[] myBytes = new byte[myConn.getContentLength()];
+                    myConn.getInputStream().read(myBytes, 0, myBytes.length);
+                    myConn.getInputStream().close();
+                    
+                    ObjectMapper myMapper = new ObjectMapper();
+                    ByteArrayInputStream myBAOS = new ByteArrayInputStream(myMapper.readValue(myBytes, byte[].class));
+                    ObjectInputStream myOIS = new ObjectInputStream(myBAOS);
+                    
+                    CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+                    _keyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
+
+                    writeCheckpoint(myHandle);
+                    _paxos.bringUpToDate(myHandle);
+
+                    amDone = true;
+                } catch (Exception anE) {
+                    _logger.warn("Exception whilst obtaining checkpoint", anE);
+                }
+            }
+
+            Backend.this._outOfDate.compareAndSet(true, false);            
+        }    
+    }
     
     class Checkpointer extends Thread {
         public void run() {
             try {
-                WriteCheckpoint myCkpt = _storage.newCheckpoint();
-
-                OutputStream myOutput = myCkpt.getStream();
-                ObjectOutputStream myOOS = new ObjectOutputStream(myOutput);
-                
                 CheckpointHandle myHandle = _paxos.newCheckpoint();
-                
-                myOOS.writeObject(myHandle);
-                myOOS.writeObject(_keyValues);
 
-                myOOS.flush();
-                myOOS.close();
-                myCkpt.saved();
+                writeCheckpoint(myHandle);
                 myHandle.saved();
 
             } catch (Exception anE) {
@@ -276,5 +351,19 @@ public class Backend {
                 Backend.this._checkpointActive.compareAndSet(true, false);                
             }
         }
+    }
+    
+    void writeCheckpoint(CheckpointHandle aHandle) throws Exception {
+        WriteCheckpoint myCkpt = _storage.newCheckpoint();
+
+        OutputStream myOutput = myCkpt.getStream();
+        ObjectOutputStream myOOS = new ObjectOutputStream(myOutput);
+
+        myOOS.writeObject(aHandle);
+        myOOS.writeObject(_keyValues);
+
+        myOOS.flush();
+        myOOS.close();
+        myCkpt.saved();
     }
 }
