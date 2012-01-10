@@ -173,10 +173,10 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
     }
 
     public Map<InetSocketAddress, MetaData> getMemberMap() {
-        Map myActives = new HashMap<InetSocketAddress, MetaData>();
+        Map myActives;
 
         synchronized (this) {
-            new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats);
+            myActives = new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats);
         }
 
         return myActives;

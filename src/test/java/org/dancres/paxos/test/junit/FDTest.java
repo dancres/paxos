@@ -51,8 +51,8 @@ public class FDTest implements MembershipListener {
         ensureFD(_node1.getCommon().getPrivateFD());
         ensureFD(_node2.getCommon().getPrivateFD());
 
-        assert(_node1.getCommon().getFD().getMemberMap().size() == 2);
-        assert(_node2.getCommon().getFD().getMemberMap().size() == 2);
+        Assert.assertTrue(_node1.getCommon().getFD().getMemberMap().size() == 2);
+        Assert.assertTrue(_node2.getCommon().getFD().getMemberMap().size() == 2);
 
         Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _node1.getCommon().getFD().getMemberMap();
         Iterator<Map.Entry<InetSocketAddress, FailureDetector.MetaData>> myMemberIt = myMembers.entrySet().iterator();
@@ -61,9 +61,9 @@ public class FDTest implements MembershipListener {
             Map.Entry<InetSocketAddress, FailureDetector.MetaData> myEntry = myMemberIt.next();
 
             if (myEntry.getKey().equals(_tport1.getLocalAddress())) {
-                assert("node1".equals(new String(myEntry.getValue().getData())));
+                Assert.assertTrue("node1".equals(new String(myEntry.getValue().getData())));
             } else if (myEntry.getKey().equals(_tport2.getLocalAddress())) {
-                assert("node2".equals(new String(myEntry.getValue().getData())));
+                Assert.assertTrue("node2".equals(new String(myEntry.getValue().getData())));
             } else {
                 Assert.fail();
             }
