@@ -252,11 +252,11 @@ public class AcceptorLearner {
 
             long myStartSeqNum = -1;
             
-            if ((! aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) && (! (aHandle instanceof ALCheckpointHandle)))
-                throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
-
-            if (aHandle instanceof ALCheckpointHandle) {
-                myStartSeqNum = installCheckpoint((ALCheckpointHandle) aHandle);
+            if (! aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
+                if (aHandle instanceof ALCheckpointHandle)
+                    myStartSeqNum = installCheckpoint((ALCheckpointHandle) aHandle);
+                else
+                    throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
             }
 
             try {
@@ -327,9 +327,6 @@ public class AcceptorLearner {
 
         ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
 
-        if (myHandle.equals(CheckpointHandle.NO_CHECKPOINT))
-            throw new IllegalArgumentException("Cannot update to initial checkpoint: " + myHandle);
-
         /*
          * If we're out of date, there will be no active timers and no activity on the log.
          * We should install the checkpoint and clear out all state associated with known instances
@@ -398,35 +395,35 @@ public class AcceptorLearner {
 	 * @param aMessage
 	 */
 	public void messageReceived(PaxosMessage aMessage) {
-		long mySeqNum = aMessage.getSeqNum();
-
         // If we're not processing packets (perhaps because we're out of date or because we're shutting down)...
         //
         if (_common.isSuspended())
             return;
 
+        long mySeqNum = aMessage.getSeqNum();
         Writer myWriter = new LiveWriter();
 
 		if (_common.isRecovering()) {
             Sender mySender = new RecoverySender();
             
-			// If the packet is a recovery request, ignore it
-			//
-			if (aMessage.getType() == Operations.NEED)
-				return;
+            switch (aMessage.getType()) {
+                // If the packet is a recovery request, ignore it
+                //
+                case Operations.NEED : return;
 
-            // If the packet is out of date, we need a state restore
-            //
-            if (aMessage.getType() == Operations.OUTOFDATE) {
-                synchronized(this) {
-                	_common.setSuspended(true);
-                    completedRecovery();
+                // If we're out of date, we need to get the user-code to find a checkpoint
+                //
+                case Operations.OUTOFDATE : {
+                    synchronized(this) {
+                        _common.setSuspended(true);
+                        completedRecovery();
+                    }
+
+                    _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
+                            _common.getLastCollect().getRndNumber(),
+                            new Proposal(), _common.getLastCollect().getNodeId()));
+                    return;
                 }
-
-                _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
-                        _common.getLastCollect().getRndNumber(),
-                        new Proposal(), _common.getLastCollect().getNodeId()));
-                return;
             }
 
 			// If the packet is for a sequence number above the recovery window - save it for later
@@ -448,11 +445,8 @@ public class AcceptorLearner {
 				if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
                         _common.getRecoveryWindow().getMaxSeq()) {
 					synchronized(this) {
-						Iterator<PaxosMessage> myPackets = _packetBuffer.iterator();
-						
-						while (myPackets.hasNext()) {
-							PaxosMessage myMessage = myPackets.next();
-							
+						for (PaxosMessage myMessage : _packetBuffer) {
+
 							// May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
 							//
 							if (_common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(),
@@ -527,7 +521,7 @@ public class AcceptorLearner {
             }
 
             /*
-             * If the watermark has advanced since we were started recovery made some progress so we'll schedule a
+             * If the watermark has advanced since we were started, recovery made some progress so we'll schedule a
              * future check otherwise fail.
              */
             if (! _past.equals(_common.getRecoveryTrigger().getLowWatermark())) {
