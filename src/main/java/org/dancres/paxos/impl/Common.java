@@ -13,19 +13,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Common {
     private static Logger _logger = LoggerFactory.getLogger(Common.class);
 
+    public enum FSMStates {INITIAL, ACTIVE, RECOVERING, OUT_OF_DATE, SHUTDOWN};
+    
     private Transport _transport;
     private final MessageBasedFailureDetector _fd;
     private Collect _lastCollect = Collect.INITIAL;
     private long _lastLeaderActionTime = 0;
     private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
-    private final AtomicBoolean _suspended = new AtomicBoolean(false);
-    private Need _recoveryWindow = null;
     private final Timer _watchdog = new Timer("Paxos timers");
+    private final AtomicReference<FSMStates> _fsmState = new AtomicReference<FSMStates>(FSMStates.INITIAL);
 
     public Common(Transport aTransport, long anUnresponsivenessThreshold) {
         _transport = aTransport;
@@ -94,32 +96,12 @@ public class Common {
         }
     }
 
-    void setSuspended(boolean aFlag) {
-        _suspended.set(aFlag);
-    }
-    
-    boolean isSuspended() {
-        return _suspended.get();
+    FSMStates setState(FSMStates aState) {
+        return _fsmState.getAndSet(aState);
     }
 
-    Need getRecoveryWindow() {
-        synchronized(this) {
-            return _recoveryWindow;
-        }
-    }
-
-    void clearRecoveryWindow() {
-        setRecoveryWindow(null);
-    }
-
-    void setRecoveryWindow(Need aNeed) {
-        synchronized(this) {
-            _recoveryWindow = aNeed;
-        }
-    }
-
-    public boolean isRecovering() {
-        return getRecoveryWindow() != null;
+    public boolean testState(FSMStates aState) {
+        return _fsmState.get().equals(aState);
     }
 
     /**

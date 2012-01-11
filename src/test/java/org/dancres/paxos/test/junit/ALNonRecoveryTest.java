@@ -2,6 +2,7 @@ package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
+import org.dancres.paxos.impl.Common;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.test.net.ClientDispatcher;
@@ -138,7 +139,7 @@ public class ALNonRecoveryTest {
         Assert.assertTrue(_node2.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum() !=
         	_node3.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum());
 
-        Assert.assertFalse(_node3.getCommon().isRecovering());
+        Assert.assertFalse(_node3.getCommon().testState(Common.FSMStates.RECOVERING));
 
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is

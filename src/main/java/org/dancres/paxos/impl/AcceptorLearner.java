@@ -47,6 +47,7 @@ public class AcceptorLearner {
     private long _gracePeriod = DEFAULT_RECOVERY_GRACE_PERIOD;
 
     private TimerTask _recoveryAlarm = null;
+    private Need _recoveryWindow = null;
 
 	private final List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
 
@@ -220,7 +221,7 @@ public class AcceptorLearner {
         _storage.open();
 
         try {
-            _common.setRecoveryWindow(new Need(-1, Long.MAX_VALUE, _localAddress));
+            _common.setState(Common.FSMStates.RECOVERING);
 
             long myStartSeqNum = -1;
             
@@ -241,17 +242,16 @@ public class AcceptorLearner {
                 _logger.error("Failed to replay log", anE);
             }
         } finally {
-            _common.clearRecoveryWindow();
+            _common.setState(Common.FSMStates.ACTIVE);
         }
     }
 
     public void close() {
         try {
             /*
-             * Allow for the fact we might be actively processing packets - Mark ourselves out of date so we
-             * cease processing, then clean up.
+             * Allow for the fact we might be actively processing packets. Mark ourselves shutdown and drain...
              */
-        	_common.setSuspended(true);
+        	_common.setState(Common.FSMStates.SHUTDOWN);
 
             try {
                 Thread.sleep(SHUTDOWN_PAUSE);
@@ -259,7 +259,7 @@ public class AcceptorLearner {
 
             synchronized(this) {
                 _recoveryAlarm = null;
-                _common.clearRecoveryWindow();
+                _recoveryWindow = null;
                 _packetBuffer.clear();
                 _cachedBegins.clear();
                 _common.resetLeader();
@@ -313,8 +313,8 @@ public class AcceptorLearner {
      * @throws Exception
      */
     public void bringUpToDate(CheckpointHandle aHandle) throws Exception {
-        if (! _common.isSuspended())
-            throw new IllegalStateException("Not suspended");
+        if (! _common.testState(Common.FSMStates.OUT_OF_DATE))
+            throw new IllegalStateException("Not out of date");
 
         if (! (aHandle instanceof ALCheckpointHandle))
             throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
@@ -335,9 +335,8 @@ public class AcceptorLearner {
             //
             _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
 
-            _common.setSuspended(false);
-
-            _common.clearRecoveryWindow();
+            _common.setState(Common.FSMStates.ACTIVE);
+            _recoveryWindow = null;
             _packetBuffer.clear();
             _cachedBegins.clear();
 
@@ -389,15 +388,15 @@ public class AcceptorLearner {
 	 * @param aMessage
 	 */
 	public void messageReceived(PaxosMessage aMessage) {
-        // If we're not processing packets (perhaps because we're out of date or because we're shutting down)...
+        // If we're not processing packets because we're out of date or because we're shutting down
         //
-        if (_common.isSuspended())
+        if ((_common.testState(Common.FSMStates.OUT_OF_DATE)) || (_common.testState(Common.FSMStates.SHUTDOWN)))
             return;
 
         long mySeqNum = aMessage.getSeqNum();
         Writer myWriter = new LiveWriter();
 
-		if (_common.isRecovering()) {
+		if (_common.testState(Common.FSMStates.RECOVERING)) {
             Sender mySender = new RecoverySender();
             
             switch (aMessage.getType()) {
@@ -409,8 +408,8 @@ public class AcceptorLearner {
                 //
                 case Operations.OUTOFDATE : {
                     synchronized(this) {
-                        _common.setSuspended(true);
                         completedRecovery();
+                        _common.setState(Common.FSMStates.OUT_OF_DATE);
                     }
 
                     // Signal with the node that pronounced us out of date - likely user code will get ckpt from there.
@@ -424,14 +423,14 @@ public class AcceptorLearner {
 
 			// If the packet is for a sequence number above the recovery window - save it for later
 			//
-			if (mySeqNum > _common.getRecoveryWindow().getMaxSeq()) {
+			if (mySeqNum > _recoveryWindow.getMaxSeq()) {
 				synchronized(this) {
 					_packetBuffer.add(aMessage);
 				}
 				
 			// If the packet is for a sequence number within the window, process it now for catchup
 			//
-			} else if (mySeqNum > _common.getRecoveryWindow().getMinSeq()) {
+			} else if (mySeqNum > _recoveryWindow.getMinSeq()) {
 				process(aMessage, myWriter, mySender);
 				
 				/*
@@ -439,7 +438,7 @@ public class AcceptorLearner {
 				 *  streamed through the packet buffer
 				 */
 				if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
-                        _common.getRecoveryWindow().getMaxSeq()) {
+                        _recoveryWindow.getMaxSeq()) {
 					synchronized(this) {
 						for (PaxosMessage myMessage : _packetBuffer) {
 
@@ -453,6 +452,7 @@ public class AcceptorLearner {
 						}
 						
                         completedRecovery();
+                        _common.setState(Common.FSMStates.ACTIVE);
 					}
 				}
 			} else {			
@@ -489,7 +489,8 @@ public class AcceptorLearner {
 
 					// Declare recovery active - which stops this AL emitting responses
 					//
-                    _common.setRecoveryWindow(myWindow);
+                    _common.setState(Common.FSMStates.RECOVERING);
+                    _recoveryWindow = myWindow;
 
                     // Startup recovery watchdog
                     //
@@ -510,7 +511,7 @@ public class AcceptorLearner {
         private final Watermark _past = _common.getRecoveryTrigger().getLowWatermark();
 
         public void run() {
-            if (! _common.isRecovering()) {
+            if (! _common.testState(Common.FSMStates.RECOVERING)) {
                 // Someone else will do cleanup
                 //
                 return;
@@ -528,6 +529,7 @@ public class AcceptorLearner {
                 _logger.warn("Recovery is NOT progressing - terminate, " + _localAddress);
 
                 terminateRecovery();
+                _common.setState(Common.FSMStates.ACTIVE);
             }
         }
     }
@@ -582,7 +584,7 @@ public class AcceptorLearner {
 
     private void postRecovery() {
         synchronized(this) {
-            _common.clearRecoveryWindow();
+            _recoveryWindow = null;
             _packetBuffer.clear();
         }
     }
