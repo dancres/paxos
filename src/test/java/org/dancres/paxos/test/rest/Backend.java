@@ -270,9 +270,15 @@ public class Backend {
 
                 case VoteOutcome.Reason.OUT_OF_DATE : {
                     if (_outOfDate.compareAndSet(false, true)) {
-                        new Recovery(anEvent.getNodeId()).start();
+                        try {
+                            new Recovery(
+                                    toHttp(_paxos.getDetector().getMemberMap().get(anEvent.getNodeId()).getData())
+                            ).start();
+                        } catch (Exception anE) {
+                            _logger.error("Couldn't start recovery thread", anE);
+                        }
                     }
-                    
+
                     break;
                 }
                 
@@ -295,10 +301,10 @@ public class Backend {
     }
 
     class Recovery extends Thread {
-        private InetSocketAddress _complainer;
+        private String _targetURL;
         
-        Recovery(InetSocketAddress aComplainer) {
-            _complainer = aComplainer;
+        Recovery(String anURL) {
+            _targetURL = anURL;
         }
 
         public void run() {
@@ -309,15 +315,15 @@ public class Backend {
                 URLConnection myConn;
 
                 try {
-                    myURL = new URL("http:/" + _complainer.toString() + "/checkpoint");
+                    myURL = new URL(_targetURL + "/checkpoint");
                     myConn = myURL.openConnection();
                     byte[] myBytes = new byte[myConn.getContentLength()];
                     myConn.getInputStream().read(myBytes, 0, myBytes.length);
                     myConn.getInputStream().close();
                     
                     ObjectMapper myMapper = new ObjectMapper();
-                    ByteArrayInputStream myBAOS = new ByteArrayInputStream(myMapper.readValue(myBytes, byte[].class));
-                    ObjectInputStream myOIS = new ObjectInputStream(myBAOS);
+                    ByteArrayInputStream myBAIS = new ByteArrayInputStream(myMapper.readValue(myBytes, byte[].class));
+                    ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
                     
                     CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
                     _keyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
@@ -328,6 +334,7 @@ public class Backend {
                     amDone = true;
                 } catch (Exception anE) {
                     _logger.warn("Exception whilst obtaining checkpoint", anE);
+                    amDone = true;
                 }
             }
 
