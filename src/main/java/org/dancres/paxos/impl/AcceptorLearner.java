@@ -330,8 +330,7 @@ public class AcceptorLearner {
         synchronized(this) {
             installCheckpoint(myHandle);
             
-            // Write the collect we've just found in our new checkpoint and use that as the starting point
-            // for the log
+            // Write collect from our new checkpoint to log and use that as the starting point for replay.
             //
             _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
 
@@ -638,8 +637,7 @@ public class AcceptorLearner {
 					return;
 				}
 
-				// If the collect supercedes our previous collect save it to disk,
-				// return last proposal etc
+				// If the collect supercedes our previous collect save it, return last proposal etc
 				//
 				if (_common.supercedes(myCollect)) {
 					aWriter.write(aMessage, true);
@@ -655,8 +653,7 @@ public class AcceptorLearner {
                     aSender.send(constructLast(mySeqNum), myNodeId);
 
 				} else {
-					// Another collect has already arrived with a higher priority,
-					// tell the proposer it has competition
+					// Another collect has already arrived with a higher priority, tell the proposer it has competition
 					//
 					Collect myLastCollect = _common.getLastCollect();
 
@@ -689,9 +686,10 @@ public class AcceptorLearner {
 					aSender.send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
                             myLastCollect.getNodeId(), myLastCollect.getRndNumber(), _localAddress), myNodeId);
 				} else {
-					// Quiet, didn't see the collect, leader hasn't accounted for
-					// our values, it hasn't seen our last and we're likely out of sync with the majority
-					//
+					/*
+					 * Quiet, didn't see the collect, leader hasn't accounted for
+					 * our values, it hasn't seen our last and we're likely out of sync with the majority
+					 */
 					_logger.warn("AL:Missed collect, going silent: " + mySeqNum
 							+ " [ " + myBegin.getRndNumber() + " ], " + _localAddress);
 				}
@@ -715,8 +713,7 @@ public class AcceptorLearner {
                         _logger.debug("AL: Discarding success: " + myBegin + ", " + mySuccess +
                                 ", " + _localAddress);
                     } else {
-                        // Always record the success even if it's the heartbeat so there are
-                        // no gaps in the Paxos sequence
+                        // Record the success even if it's the heartbeat so there are no gaps in the Paxos sequence
                         //
                         long myLogOffset = aWriter.write(aMessage, true);
 
