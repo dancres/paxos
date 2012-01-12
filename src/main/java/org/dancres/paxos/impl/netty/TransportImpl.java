@@ -248,12 +248,12 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     }
     
 	public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-		_logger.info("Connected: " + ctx + ", " + e);
+		_logger.debug("Connected: " + ctx + ", " + e);
 		_channels.add(e.getChannel());
 	}
 	
 	public void childChannelOpen(ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception {
-		_logger.info("Stream open: " + ctx + ", " + e);
+		_logger.debug("Stream open: " + ctx + ", " + e);
 		_channels.add(e.getChannel());
 	}
 	
