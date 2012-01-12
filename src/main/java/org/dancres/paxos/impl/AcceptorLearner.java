@@ -605,26 +605,26 @@ public class AcceptorLearner {
 		_logger.info("AL: got " + aMessage + ", " + _localAddress);
 
 		switch (aMessage.getType()) {
-			case Operations.NEED : {
-				Need myNeed = (Need) aMessage;
-				
-				/*
-				 * Make sure we can dispatch the recovery request - if the requested sequence number is less than
-				 * our checkpoint low watermark we don't have the log available and thus we tell the AL it's out of
-				 * date. Since Paxos will tend to keep replica's mostly in sync there's no need to see if other
-				 * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
-				 */
-				if (myNeed.getMinSeq() < _lastCheckpoint.getLowWatermark().getSeqNum())
-					_common.getTransport().send(new OutOfDate(_localAddress), myNeed.getNodeId());
-				
-				if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
-					_logger.debug("Running streamer: " + _localAddress);
-					
-					new RemoteStreamer(myNeed).run();
-				}
-				
-				break;
-			}
+            case Operations.NEED : {
+                Need myNeed = (Need) aMessage;
+
+                /*
+                 * Make sure we can dispatch the recovery request - if the requested sequence number is less than
+                 * our checkpoint low watermark we don't have the log available and thus we tell the AL it's out of
+                 * date. Since Paxos will tend to keep replica's mostly in sync there's no need to see if other
+                 * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
+                 */
+                if (myNeed.getMinSeq() < _lastCheckpoint.getLowWatermark().getSeqNum()) {
+                    _common.getTransport().send(new OutOfDate(_localAddress), myNeed.getNodeId());
+
+                } else if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
+                    _logger.debug("Running streamer: " + _localAddress);
+
+                    new RemoteStreamer(myNeed).run();
+                }
+
+                break;
+            }
 			
 			case Operations.COLLECT: {
 				Collect myCollect = (Collect) aMessage;
