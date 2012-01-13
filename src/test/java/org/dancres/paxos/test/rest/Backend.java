@@ -19,6 +19,8 @@ import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,10 +30,9 @@ public class Backend {
     private static final String HANDBACK_KEY = "org.dancres.paxos.test.backend.handback";
     private static final long CHECKPOINT_EVERY = 5;
     
-    private static Logger _logger = LoggerFactory
-            .getLogger(Backend.class);
+    private static Logger _logger = LoggerFactory.getLogger(Backend.class);
 
-    class Result {
+    private static class Result {
         private VoteOutcome _outcome;
     
         void deliver(VoteOutcome anOutcome) {
@@ -241,6 +242,10 @@ public class Backend {
         return "http:/" + Utils.unmarshallInetSocketAddress(aMarshalledAddress).toString();
     }
     
+    InetSocketAddress toInetAddress(byte[] aMarshalledAddress) throws Exception {
+        return Utils.unmarshallInetSocketAddress(aMarshalledAddress);
+    }
+    
     class ListenerImpl implements Paxos.Listener {
         public void done(VoteOutcome anEvent) {
             // If we're not the originating node for the post, because we're not leader,
@@ -301,45 +306,71 @@ public class Backend {
     }
 
     class Recovery extends Thread {
-        private String _targetURL;
+        private List<String> _targetURLs = new LinkedList<String>();
         
-        Recovery(String anURL) {
-            _targetURL = anURL;
+        Recovery(String anURL) throws Exception {
+            _targetURLs.add(anURL);
+            
+            // Stock the list with other members but not ourselves and not the first target
+            //
+            for (FailureDetector.MetaData m : _paxos.getDetector().getMemberMap().values()) {
+                if (! toInetAddress(m.getData()).equals(_serverAddr)) {
+                    String myURL = toHttp(m.getData());
+                    
+                    if (! _targetURLs.contains(myURL))
+                        _targetURLs.add(myURL);
+                }
+            }
         }
 
         public void run() {
-            boolean amDone = false;
-            
-            while (! amDone) {
-                URL myURL;
-                URLConnection myConn;
+            while (true) {
+                _logger.debug("Got " + _targetURLs.size() + " checkpoint candidates");
+
+                for (String u : _targetURLs) {
+                    try {
+                        URL myURL = new URL(u + "/checkpoint");
+                        
+                        _logger.debug("Connecting to: " + myURL + " for checkpoint recovery");
+
+                        URLConnection myConn = myURL.openConnection();
+                        byte[] myBytes = new byte[myConn.getContentLength()];
+                        myConn.getInputStream().read(myBytes, 0, myBytes.length);
+                        myConn.getInputStream().close();
+
+                        ObjectMapper myMapper = new ObjectMapper();
+                        ByteArrayInputStream myBAIS = new ByteArrayInputStream(myMapper.readValue(myBytes, byte[].class));
+                        ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
+
+                        CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+                        _keyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
+
+                        writeCheckpoint(myHandle);
+
+                        if (_paxos.bringUpToDate(myHandle)) {
+                            Backend.this._outOfDate.compareAndSet(true, false);
+                            return;
+                        }
+                    } catch (Exception anE) {
+                        _logger.warn("Exception whilst obtaining checkpoint", anE);
+                    }
+                }
 
                 try {
-                    myURL = new URL(_targetURL + "/checkpoint");
-                    myConn = myURL.openConnection();
-                    byte[] myBytes = new byte[myConn.getContentLength()];
-                    myConn.getInputStream().read(myBytes, 0, myBytes.length);
-                    myConn.getInputStream().close();
-                    
-                    ObjectMapper myMapper = new ObjectMapper();
-                    ByteArrayInputStream myBAIS = new ByteArrayInputStream(myMapper.readValue(myBytes, byte[].class));
-                    ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
-                    
-                    CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
-                    _keyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
+                    Thread.sleep(30000);
 
-                    writeCheckpoint(myHandle);
-                    _paxos.bringUpToDate(myHandle);
+                    _targetURLs.clear();
 
-                    amDone = true;
+                    for (FailureDetector.MetaData m : _paxos.getDetector().getMemberMap().values()) {
+                        if (! toInetAddress(m.getData()).equals(_serverAddr)) {
+                            _targetURLs.add(toHttp(m.getData()));
+                        }
+                    }
                 } catch (Exception anE) {
-                    _logger.warn("Exception whilst obtaining checkpoint", anE);
-                    amDone = true;
+                    _logger.warn("Exception whilst recycling", anE);
                 }
             }
-
-            Backend.this._outOfDate.compareAndSet(true, false);            
-        }    
+        }
     }
     
     class Checkpointer extends Thread {
