@@ -347,12 +347,12 @@ public class Backend {
                         if (myConn.getResponseCode() != 200)
                             continue;
 
-                        byte[] myBytes = new byte[myConn.getContentLength()];
-                        myConn.getInputStream().read(myBytes, 0, myBytes.length);
+                        ObjectMapper myMapper = new ObjectMapper();
+                        ByteArrayInputStream myBAIS =
+                                new ByteArrayInputStream(myMapper.readValue(myConn.getInputStream(), byte[].class));
+                        
                         myConn.getInputStream().close();
 
-                        ObjectMapper myMapper = new ObjectMapper();
-                        ByteArrayInputStream myBAIS = new ByteArrayInputStream(myMapper.readValue(myBytes, byte[].class));
                         ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
 
                         CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
