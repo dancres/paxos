@@ -144,6 +144,10 @@ public class CheckpointHandleTest {
         CheckpointHandle myThirdHandle = myAl.newCheckpoint();
 
         Assert.assertTrue((myThirdHandle.isNewerThan(mySecondHandle)));
+        
+        Assert.assertFalse(myFirstHandle.isNewerThan(myThirdHandle));
+        
+        Assert.assertFalse(mySecondHandle.isNewerThan(myThirdHandle));
 
         myAl.close();
     }
