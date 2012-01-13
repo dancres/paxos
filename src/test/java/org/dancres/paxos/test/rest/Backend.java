@@ -13,11 +13,10 @@ import org.slf4j.LoggerFactory;
 import static spark.Spark.*;
 import spark.*;
 
-import javax.jws.Oneway;
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -79,6 +78,11 @@ public class Backend {
 
         get(new Route("/checkpoint") {
             public Object handle(Request request, Response response) {
+                if (_outOfDate.get()) {
+                    response.status(503);
+                    return "";
+                }
+
                 ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
 
                 if (myCkpt == null) {
@@ -144,6 +148,11 @@ public class Backend {
 
         get(new Route("/values") {
             public Object handle(Request request, Response response) {
+                if (_outOfDate.get()) {
+                    response.status(503);
+                    return "";
+                }
+
                 ObjectMapper myMapper = new ObjectMapper();
 
                 try {
@@ -333,7 +342,11 @@ public class Backend {
                         
                         _logger.debug("Connecting to: " + myURL + " for checkpoint recovery");
 
-                        URLConnection myConn = myURL.openConnection();
+                        HttpURLConnection myConn = (HttpURLConnection) myURL.openConnection();
+
+                        if (myConn.getResponseCode() != 200)
+                            continue;
+
                         byte[] myBytes = new byte[myConn.getContentLength()];
                         myConn.getInputStream().read(myBytes, 0, myBytes.length);
                         myConn.getInputStream().close();
