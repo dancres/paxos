@@ -79,6 +79,6 @@ public interface Paxos {
      */
     public void submit(Proposal aValue) throws InactiveException;
     public void add(Listener aListener);
-    public void bringUpToDate(CheckpointHandle aHandle) throws Exception;
+    public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception;
     public FailureDetector getDetector();
 }

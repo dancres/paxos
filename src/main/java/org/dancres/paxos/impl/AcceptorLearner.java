@@ -312,7 +312,7 @@ public class AcceptorLearner {
      * @param aHandle obtained from the remote checkpoint.
      * @throws Exception
      */
-    public void bringUpToDate(CheckpointHandle aHandle) throws Exception {
+    public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
         if (! _common.testState(Common.FSMStates.OUT_OF_DATE))
             throw new IllegalStateException("Not out of date");
 
@@ -320,6 +320,9 @@ public class AcceptorLearner {
             throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
 
         ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
+
+        if (! myHandle.isNewerThan(_lastCheckpoint))
+            return false;
 
         /*
          * If we're out of date, there will be no active timers and no activity on the log.
@@ -349,6 +352,8 @@ public class AcceptorLearner {
                     myHandle.getLastCollect().getSeqNum(), myHandle.getLastCollect().getRndNumber(),
             		Proposal.NO_VALUE, myHandle.getLastCollect().getNodeId()));
         }
+
+        return true;
     }
 
     /* ********************************************************************************************

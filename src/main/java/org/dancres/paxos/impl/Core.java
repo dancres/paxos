@@ -74,8 +74,8 @@ public class Core implements Transport.Dispatcher, Paxos {
         return _al.newCheckpoint();
     }
 
-    public void bringUpToDate(CheckpointHandle aHandle) throws Exception {
-        _al.bringUpToDate(aHandle);
+    public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
+        return _al.bringUpToDate(aHandle);
     }
 
     public FailureDetector getDetector() {
