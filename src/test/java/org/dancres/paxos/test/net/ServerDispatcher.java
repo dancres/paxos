@@ -22,8 +22,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>Metadata passed to the <code>ServerDispatcher</code> constructors will be advertised via Heartbeats.</p>
  *
  * @see org.dancres.paxos.impl.faildet.Heartbeater
- *
- * @todo Implement client failover across leadership plus client discovery of servers in cluster.
  */
 public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 	private static final String HANDBACK_KEY = "org.dancres.paxos.handback";
