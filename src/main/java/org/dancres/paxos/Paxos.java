@@ -15,7 +15,7 @@ package org.dancres.paxos;
  * acceptable. If the state is timestamped in some fashion, once can use those timestamps to ensure that updates
  * based on the state are applied to the latest version (by checking its timestamp) or rejected.</p>
  *
- * <p>A server using this library needs to handle <code>VoteOutcome.Reason.OUT_OF_DATE</code>. It also needs to handle
+ * <p>A server using this library needs to handle <code>VoteOutcome.Reason.OUT_OF_DATE</code> and
  * <code>VoteOutcome.Reason.OTHER_LEADER</code>. In both cases it typically passes a message to it's client to request
  * a switch of leader. One means of doing this would be as follows:</p>
  *
@@ -54,6 +54,16 @@ package org.dancres.paxos;
  *     <li>Write the updated state and the <code>CheckpointHandle</code> from the remote checkpoint.=</li>
  *     <li>Invoke <code>WriteCheckpoint.saved</code></li>
  *     <li>Invoke <code>bringUpToDate</code> with the recovered CheckpointHandle</li>
+ * </ol>
+ *
+ * A server process would typically startup as follows:
+ *
+ * <ol>
+ *     <li>Obtain the most recent checkpoint via <code>CheckpointStorage.lastCheckpoint</code></li>
+ *     <li>Recover state from the checkpoint and the last <code>CheckpointHandle</code></li>
+ *     <li>Invoke <code>PaxosFactory.init</code>, passing in suitable logger options and the <code>CheckpointHandle
+ *     </code> - noting that the paxos instance requires a listener to replay any successful proposals more
+ *     recent than the checkpoint to.</li>
  * </ol>
  *
  * @see VoteOutcome

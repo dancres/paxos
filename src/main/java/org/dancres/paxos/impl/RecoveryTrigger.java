@@ -6,16 +6,16 @@ import java.net.InetSocketAddress;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-/*
-* We track each completed proposal expecting them to be in approximately linear order.
-* Gaps can appear because we miss some packets in which case we ultimately need to close them.
-* If we're slightly out of order then that proposal will be settled shortly and we can continue
-* processing however, if the gap remains and the proposal sequence number moves too far from the gap
-* it is likely we need to recover. In essence the maximum number of concurrent requests forms the
-* approx maximum distance from the low watermark that can be tolerated with gaps.
-*
-* Gap is measured between low watermark and the lowest above that mark completed recently.
-*/
+/**
+ * We track each completed proposal expecting them to be in approximately linear order.
+ * Gaps can appear because we miss some packets in which case we ultimately need to close them.
+ * If we're slightly out of order then that proposal will be settled shortly and we can continue
+ * processing however, if the gap remains and the proposal sequence number moves too far from the gap
+ * it is likely we need to recover. In essence the maximum number of concurrent requests forms the
+ * approx maximum distance from the low watermark that can be tolerated with gaps.
+ *
+ * Gap is measured between low watermark and the lowest above that mark completed recently.
+ */
 public class RecoveryTrigger {
     private static final long MAX_INFLIGHT = 1;
 
