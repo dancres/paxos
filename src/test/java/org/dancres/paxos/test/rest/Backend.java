@@ -29,7 +29,7 @@ public class Backend {
     private static final String HANDBACK_KEY = "org.dancres.paxos.test.backend.handback";
     private static final long CHECKPOINT_EVERY = 5;
     
-    private static Logger _logger = LoggerFactory.getLogger(Backend.class);
+    private static final Logger _logger = LoggerFactory.getLogger(Backend.class);
 
     private static class Result {
         private VoteOutcome _outcome;
@@ -56,25 +56,31 @@ public class Backend {
     
     private Paxos _paxos;
     private HowlLogger _txnLogger;
-    private AtomicLong _handbackSequence = new AtomicLong(0);
-    private AtomicLong _opCounter = new AtomicLong(0);
-    private AtomicBoolean _checkpointActive = new AtomicBoolean(false);
-    private AtomicBoolean _outOfDate = new AtomicBoolean(false);
-    private InetSocketAddress _serverAddr;
-    private ConcurrentHashMap<String, Result> _requestMap = new ConcurrentHashMap<String, Result>();
-    private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<String, String>();
     private CheckpointStorage _storage;
+
+    private final AtomicLong _handbackSequence = new AtomicLong(0);
+    private final AtomicLong _opCounter = new AtomicLong(0);
+    private final AtomicBoolean _checkpointActive = new AtomicBoolean(false);
+    private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
+    private final InetSocketAddress _serverAddr;
+    private final ConcurrentHashMap<String, Result> _requestMap = new ConcurrentHashMap<String, Result>();
+
+    private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<String, String>();
 
 
     public static void main(String[] anArgs) throws Exception {
-        new Backend().start(Integer.valueOf(anArgs[0]), anArgs[1]);
+        new Backend(Integer.valueOf(anArgs[0]).intValue()).start(anArgs[1]);
     }
 
-    private void start(Integer aPort, String aCheckpointDir) throws Exception {
+    private Backend(int aPort) {
+        _serverAddr = new InetSocketAddress(Utils.getWorkableInterface(), aPort);
+    }
+    
+    private void start(String aCheckpointDir) throws Exception {
         _storage = new DirectoryCheckpointStorage(new File(aCheckpointDir));
         _txnLogger = new HowlLogger(aCheckpointDir);
         
-        setPort(aPort.intValue());
+        setPort(_serverAddr.getPort());
 
         get(new Route("/checkpoint") {
             public Object handle(Request request, Response response) {
@@ -125,9 +131,6 @@ public class Backend {
                 
                 Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getDetector().getMemberMap();
                 
-                for (InetSocketAddress m : myMembers.keySet())
-                    _logger.info("Member: " + m);
-
                 Map<String, String> myMemberData = new HashMap<String, String>();
                 
                 try {
@@ -227,8 +230,6 @@ public class Backend {
             }
         });
         
-        _serverAddr = new InetSocketAddress(Utils.getWorkableInterface(), aPort.intValue());
-
         CheckpointHandle myHandle = CheckpointHandle.NO_CHECKPOINT;
         ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
         if (myCkpt != null) {
