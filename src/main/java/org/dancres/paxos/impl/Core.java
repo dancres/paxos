@@ -9,7 +9,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Constitutes the core implementation of paxos. Requires a <code>Transport</code> to use for membership,
- * failure detection and paxos rounds.
+ * failure detection and paxos rounds. In essence, this is the plumbing that glues the state machines and
+ * other bits together.
  */
 public class Core implements Transport.Dispatcher, Paxos {
     private static Logger _logger = LoggerFactory.getLogger(Core.class);
