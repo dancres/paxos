@@ -4,19 +4,31 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
 public class Codecs {
-    private static final Codec[] CODECS = new Codec[] {
-        new HeartbeatCodec(), new OutOfDateCodec(), new EnvelopeCodec(), new CollectCodec(), new LastCodec(),
-            new BeginCodec(), new AcceptCodec(), new SuccessCodec(), new EmptyCodec(), new OldRoundCodec(),
-            new NeedCodec(), new VoteOutcomeCodec()
-    };
+    private static final Map<Integer, Codec> CODECS =
+            Collections.unmodifiableMap(new HashMap<Integer, Codec>() {{
+                put(Operations.HEARTBEAT, new HeartbeatCodec());
+                put(Operations.OUTOFDATE, new OutOfDateCodec());
+                put(Operations.ENVELOPE, new EnvelopeCodec());
+                put(Operations.COLLECT, new CollectCodec());
+                put(Operations.LAST, new LastCodec());
+                put(Operations.BEGIN, new BeginCodec());
+                put(Operations.ACCEPT, new AcceptCodec());
+                put(Operations.SUCCESS, new SuccessCodec());
+                put(Operations.OLDROUND, new OldRoundCodec());
+                put(Operations.NEED, new NeedCodec());
+                put(Operations.EVENT, new VoteOutcomeCodec());
+            }});
 
     public static byte[] encode(PaxosMessage aMessage) {
-        int myType = aMessage.getType();
-        Codec myCodec = Codecs.CODECS[myType];
+        Codec myCodec = CODECS.get(aMessage.getType());
 
         return myCodec.encode(aMessage).array();
     }
@@ -27,7 +39,7 @@ public class Codecs {
         
 		myOp = myBuffer.getInt(0);
 
-        Codec myCodec = Codecs.CODECS[myOp];
+        Codec myCodec = CODECS.get(myOp);
 
         return (PaxosMessage) myCodec.decode(myBuffer);
     }
