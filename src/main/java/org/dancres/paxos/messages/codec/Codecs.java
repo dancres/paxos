@@ -28,20 +28,13 @@ public class Codecs {
             }});
 
     public static byte[] encode(PaxosMessage aMessage) {
-        Codec myCodec = CODECS.get(aMessage.getType());
-
-        return myCodec.encode(aMessage).array();
+        return CODECS.get(aMessage.getType()).encode(aMessage).array();
     }
 
     public static PaxosMessage decode(byte[] aBuffer) {
         ByteBuffer myBuffer = ByteBuffer.wrap(aBuffer);
-        int myOp;
-        
-		myOp = myBuffer.getInt(0);
 
-        Codec myCodec = CODECS.get(myOp);
-
-        return (PaxosMessage) myCodec.decode(myBuffer);
+        return (PaxosMessage) CODECS.get(myBuffer.getInt(0)).decode(myBuffer);
     }
 
     public static long flatten(InetSocketAddress anAddr) {
