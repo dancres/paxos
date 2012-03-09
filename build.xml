@@ -36,7 +36,7 @@
 	<path id="allclasses">
 		<pathelement location="${build}" />
 		<pathelement location="${macext}/dns_sd.jar" />
-		<pathelement location="${otherlib}/netty-3.2.7.Final.jar" />
+		<pathelement location="${otherlib}/netty-3.3.1.Final.jar" />
 		<pathelement location="${otherlib}/slf4j-api-1.6.4.jar" />
 		<pathelement location="${otherlib}/slf4j-jdk14-1.6.4.jar" />
 		<pathelement location="${otherlib}/jetty-webapp-7.3.0.v20110203.jar" />
