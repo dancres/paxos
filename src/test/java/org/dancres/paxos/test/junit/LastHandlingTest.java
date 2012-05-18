@@ -190,8 +190,8 @@ public class LastHandlingTest {
                 	}
                 }
 
-                public Stream connectTo(InetSocketAddress anAddr) {
-                	return _tp.connectTo(anAddr);
+                public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler) {
+                	_tp.connectTo(anAddr, aHandler);
                 }
                 
                 public void shutdown() {

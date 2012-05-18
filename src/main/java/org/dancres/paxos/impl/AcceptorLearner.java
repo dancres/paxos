@@ -34,15 +34,15 @@ public class AcceptorLearner {
     //
     private static final long SHUTDOWN_PAUSE = 1 * 1000;
 
-	private static Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
+	private static final Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
 	/**
 	 * Statistic that tracks the number of Collects this AcceptorLearner ignored
 	 * from competing leaders within DEFAULT_LEASE ms of activity from the
 	 * current leader.
 	 */
-	private AtomicLong _ignoredCollects = new AtomicLong();
-	private AtomicLong _receivedHeartbeats = new AtomicLong();
+	private final AtomicLong _ignoredCollects = new AtomicLong();
+	private final AtomicLong _receivedHeartbeats = new AtomicLong();
 
     private long _gracePeriod = DEFAULT_RECOVERY_GRACE_PERIOD;
 
@@ -611,7 +611,7 @@ public class AcceptorLearner {
 
 		switch (aMessage.getType()) {
             case Operations.NEED : {
-                Need myNeed = (Need) aMessage;
+                final Need myNeed = (Need) aMessage;
 
                 /*
                  * Make sure we can dispatch the recovery request - if the requested sequence number is less than
@@ -625,7 +625,13 @@ public class AcceptorLearner {
                 } else if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
                     _logger.debug("Running streamer: " + _localAddress);
 
-                    new RemoteStreamer(myNeed).run();
+
+                    _common.getTransport().connectTo(myNeed.getNodeId(),
+                            new Transport.ConnectionHandler() {
+                                public void connected(Stream aStream) {
+                                    new RemoteStreamer(myNeed, aStream).start();
+                                }
+                            });
                 }
 
                 break;
@@ -872,21 +878,13 @@ public class AcceptorLearner {
         private Need _need;
         private Stream _stream;
 
-        RemoteStreamer(Need aNeed) {
+        RemoteStreamer(Need aNeed, Stream aStream) {
             _need = aNeed;
+            _stream = aStream;
         }
 
         public void run() {
             _logger.info("RemoteStreamer starting, " + _localAddress);
-
-            _stream = _common.getTransport().connectTo(_need.getNodeId());
-
-            // Check we got a connection
-            //
-            if (_stream == null) {
-                _logger.warn("RemoteStreamer couldn't connect: " + _need.getNodeId());
-                return;
-            }
 
             try {
                 new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this, _storage).produce(0);

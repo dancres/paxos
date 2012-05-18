@@ -27,8 +27,12 @@ public interface Transport {
      */
     public void send(PaxosMessage aMessage, InetSocketAddress anAddr);
 
-    public Stream connectTo(InetSocketAddress anAddr);
-    
+    public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler);
+
+    public interface ConnectionHandler {
+        public void connected(Stream aStream);
+    }
+
     public void shutdown();
 
     public interface Dispatcher {

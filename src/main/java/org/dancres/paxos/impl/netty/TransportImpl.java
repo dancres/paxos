@@ -17,16 +17,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.ChildChannelStateEvent;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
+import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.DatagramChannel;
@@ -311,21 +302,22 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		}
 	}
 	
-	public Stream connectTo(InetSocketAddress aNodeId) {
+	public void connectTo(final InetSocketAddress aNodeId, final ConnectionHandler aHandler) {
 		guard();
 		
-		SocketChannel myChannel = _clientStreamFactory.newChannel(newPipeline());
-		
-		try {
-			myChannel.connect(aNodeId).await();
-			
-			_channels.add(myChannel);
-			
-			return new StreamImpl(myChannel);
-		} catch (Exception anE) {
-			_logger.error("Couldn't connect to: " + aNodeId, anE);
-			return null;
-		}
+		final SocketChannel myChannel = _clientStreamFactory.newChannel(newPipeline());
+
+        myChannel.connect(aNodeId).addListener(new ChannelFutureListener() {
+            public void operationComplete(ChannelFuture aFuture) throws Exception {
+                if (aFuture.isSuccess()) {
+                    _channels.add(myChannel);
+
+                    aHandler.connected(new StreamImpl(myChannel));
+                } else {
+                    _logger.error("Couldn't connect to: " + aNodeId, aFuture.getCause());
+                }
+            }
+        });
 	}
 	
 	private static class Encoder extends OneToOneEncoder {

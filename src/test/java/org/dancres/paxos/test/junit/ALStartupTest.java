@@ -53,9 +53,8 @@ public class ALStartupTest {
         public void shutdown() {
 		}
 
-		public Stream connectTo(InetSocketAddress aNodeId) {
-			return null;
-		}	
+		public void connectTo(InetSocketAddress aNodeId, ConnectionHandler aHandler) {
+		}
 	}
 		
 	@Before public void init() throws Exception {
