@@ -34,20 +34,20 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
     private AtomicLong _handbackGenerator = new AtomicLong(0);
 	private Map<String, InetSocketAddress> _requestMap = new ConcurrentHashMap<String, InetSocketAddress>();
 
-    public ServerDispatcher(long anUnresponsivenessThreshold, byte[] aMeta) {
-        this(anUnresponsivenessThreshold, new MemoryLogStorage(), aMeta);
+    public ServerDispatcher(MessageBasedFailureDetector anFD, byte[] aMeta) {
+        this(anFD, new MemoryLogStorage(), aMeta);
     }
 
-    public ServerDispatcher(long anUnresponsivenessThreshold) {
-    	this(anUnresponsivenessThreshold, new MemoryLogStorage());
+    public ServerDispatcher(MessageBasedFailureDetector anFD) {
+    	this(anFD, new MemoryLogStorage());
     }
 
-    public ServerDispatcher(long anUnresponsivenessThreshold, LogStorage aLogger) {
-        this(anUnresponsivenessThreshold, aLogger, null);
+    public ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger) {
+        this(anFD, aLogger, null);
     }
 
-    private ServerDispatcher(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta) {
-        _core = new Core(anUnresponsivenessThreshold, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, this);
+    private ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta) {
+        _core = new Core(anFD, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, this);
     }
 
 	public boolean messageReceived(Packet aPacket) {

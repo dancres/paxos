@@ -2,6 +2,7 @@ package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -16,7 +17,7 @@ public class NoMajorityTest {
     private TransportImpl _tport1;
 
     @Before public void init() throws Exception {
-        _node1 = new ServerDispatcher(5000);
+        _node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
         _tport1 = new TransportImpl();
         _tport1.add(_node1);
     }

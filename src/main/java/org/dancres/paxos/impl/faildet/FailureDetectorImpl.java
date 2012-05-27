@@ -60,9 +60,11 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
     private Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
 
     /**
+     * @param aMajority is the number of members in the cluster that must provide confirmation for an instance to
+     *                  succeed.
      * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
      */
-    private FailureDetectorImpl(int aMajority, long anUnresponsivenessThreshold) {
+    public FailureDetectorImpl(int aMajority, long anUnresponsivenessThreshold) {
         _majority = aMajority;
         _scanner = new Thread(this);
         _scanner.setDaemon(true);
@@ -71,6 +73,11 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
     }
 
+    /**
+     * Assumes a three-node cluster in which a majority of 2 is sufficient for progress
+     *
+     * @param anUnresponsivenessThreshold
+     */
     public FailureDetectorImpl(long anUnresponsivenessThreshold) {
         this(DEFAULT_MAJORITY, anUnresponsivenessThreshold);
     }

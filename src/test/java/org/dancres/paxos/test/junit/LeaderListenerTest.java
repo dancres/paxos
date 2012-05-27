@@ -7,6 +7,7 @@ import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.Envelope;
@@ -21,8 +22,8 @@ public class LeaderListenerTest {
     private TransportImpl _tport2;
 
     @Before public void init() throws Exception {
-        _node1 = new ServerDispatcher(5000);
-        _node2 = new ServerDispatcher(5000);
+        _node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
+        _node2 = new ServerDispatcher(new FailureDetectorImpl(5000));
         _tport1 = new TransportImpl();
         _tport1.add(_node1);
         _tport2 = new TransportImpl();

@@ -3,6 +3,7 @@ package org.dancres.paxos.test.junit;
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.After;
@@ -22,8 +23,8 @@ public class FDTest implements MembershipListener {
     private TransportImpl _tport2;
 
     @Before public void init() throws Exception {
-    	_node1 = new ServerDispatcher(5000, "node1".getBytes());
-    	_node2 = new ServerDispatcher(5000, "node2".getBytes());
+    	_node1 = new ServerDispatcher(new FailureDetectorImpl(5000), "node1".getBytes());
+    	_node2 = new ServerDispatcher(new FailureDetectorImpl(5000), "node2".getBytes());
         _tport1 = new TransportImpl();
         _tport1.add(_node1);
         _tport2 = new TransportImpl();

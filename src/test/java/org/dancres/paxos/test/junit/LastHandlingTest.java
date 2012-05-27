@@ -12,6 +12,7 @@ import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -39,7 +40,7 @@ public class LastHandlingTest {
     }
     
     @Before public void init() throws Exception {
-        _node1 = new ServerDispatcher(5000);
+        _node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
         _node2 = new LastDispatcher(5000);
 
         _tport1 = new TransportImpl();
@@ -120,7 +121,7 @@ public class LastHandlingTest {
 
     private static class LastDispatcher extends ServerDispatcher {
         public LastDispatcher(long anUnresponsivenessThreshold) {
-            super(anUnresponsivenessThreshold);
+            super(new FailureDetectorImpl(anUnresponsivenessThreshold));
         }
 
         /*

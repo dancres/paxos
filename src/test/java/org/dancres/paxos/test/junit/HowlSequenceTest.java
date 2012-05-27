@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.test.net.ClientDispatcher;
@@ -33,8 +34,8 @@ public class HowlSequenceTest {
     	
         Runtime.getRuntime().runFinalizersOnExit(true);
 
-        _node1 = new ServerDispatcher(5000, new HowlLogger(_node1Log));
-        _node2 = new ServerDispatcher(5000, new HowlLogger(_node2Log));
+        _node1 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node1Log));
+        _node2 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node2Log));
         _tport1 = new TransportImpl();
         _tport1.add(_node1);
         _tport2 = new TransportImpl();

@@ -24,20 +24,17 @@ public class Core implements Transport.Dispatcher, Paxos {
     private final CheckpointHandle _handle;
 
     /**
-     * @param anUnresponsivenessThreshold is the minimum period of time a node must be unresponsive for before being
-     * declared dead by the cluster
-     *
      * @param aLogger is the storage implementation to use for recording paxos transitions.
      * @param aMeta is the data to be advertised by this core to others. Might be used for server discovery in cases
      * where the server/client do not use the "well known" addresses of the core.
      * @param aListener is the handler for paxos outcomes. There can be many of these but there must be at least one at
      * initialisation time.
      */
-    public Core(long anUnresponsivenessThreshold, LogStorage aLogger, byte[] aMeta, CheckpointHandle aHandle,
+    public Core(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta, CheckpointHandle aHandle,
                 Paxos.Listener aListener) {
         _meta = aMeta;
         _log = aLogger;        
-        _common = new Common(anUnresponsivenessThreshold);
+        _common = new Common(anFD);
         _common.add(aListener);
         _handle = aHandle;
     }
@@ -130,6 +127,18 @@ public class Core implements Transport.Dispatcher, Paxos {
         }
     }
 
+    /**
+     * @todo Batching could be done here:
+     *
+     * <ol>
+     *     <li>If first in (effected by atomic CAS on a boolean), atomic-queue proposal and then create a leader.</li>
+     *     <li>Once leader is created, atomic-take all proposals in queue and reset first-in (CAS)</li>
+     *     <li>If not first in, atomic queue proposal</li>
+     * </ol>
+     *
+     * @param aVal
+     * @throws Paxos.InactiveException
+     */
     public void submit(Proposal aVal) throws Paxos.InactiveException {
         _ld.newLeader().submit(aVal);
     }

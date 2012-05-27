@@ -3,6 +3,7 @@ package org.dancres.paxos.test.junit;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Paxos;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.test.net.ClientDispatcher;
@@ -42,8 +43,8 @@ public class ALOutOfDateTest {
         FileSystem.deleteDirectory(new File(_node2Log));
         FileSystem.deleteDirectory(new File(_node3Log));
 
-        _node1 = new ServerDispatcher(5000, new HowlLogger(_node1Log));
-        _node2 = new ServerDispatcher(5000, new HowlLogger(_node2Log));
+        _node1 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node1Log));
+        _node2 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node2Log));
         _tport1 = new OODTransportImpl();
         _tport1.add(_node1);
         _tport2 = new OODTransportImpl();
@@ -109,7 +110,7 @@ public class ALOutOfDateTest {
 
         Listener myListener = new Listener();
 
-        _node3 = new ServerDispatcher(5000, new HowlLogger(_node3Log));
+        _node3 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node3Log));
         _tport3 = new TransportImpl();
         _tport3.add(_node3);
         _node3.add(myListener);

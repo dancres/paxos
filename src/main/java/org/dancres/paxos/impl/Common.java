@@ -39,8 +39,8 @@ public class Common {
         _fd = anFD;
     }
 
-    public Common(long anUnresponsivenessThreshold) {
-        _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);    	
+    public Common(MessageBasedFailureDetector anFD) {
+        _fd = anFD;
     }
     
     void setTransport(Transport aTransport) {
