@@ -208,6 +208,8 @@ public class LeaderFactory {
 
     public void shutdown() {
         synchronized (this) {
+            killHeartbeats();
+
             Iterator<Map.Entry<Long, Leader>> all = _leaders.entrySet().iterator();
 
             while (all.hasNext()) {
