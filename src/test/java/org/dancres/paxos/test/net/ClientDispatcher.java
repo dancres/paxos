@@ -34,11 +34,17 @@ public class ClientDispatcher implements Transport.Dispatcher {
 		_transport.send(aMessage, aTarget);
 	}
 	
+	/**
+	 * @param aTimeout the time in milliseconds to wait for the outcome of a negative number indicating no wait
+	 */
 	public VoteOutcome getNext(long aTimeout) {
 		synchronized(this) {
 			while (_queue.isEmpty()) {
 				try {
-					wait(aTimeout);
+					if (aTimeout >= 0)
+						wait(aTimeout);
+					else
+						return null;
 				} catch (InterruptedException anIE) {					
 				}
 			}
