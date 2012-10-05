@@ -69,6 +69,10 @@ public class OldAlStateTest {
 			}
 		}
 
+        public Transport.PacketPickler getPickler() {
+            return null;
+        }
+
         public InetSocketAddress getBroadcastAddress() {
             return _broadcast;
         }

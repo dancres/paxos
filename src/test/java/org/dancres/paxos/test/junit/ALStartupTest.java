@@ -36,6 +36,10 @@ public class ALStartupTest {
 			}
 		}		
 		
+        public Transport.PacketPickler getPickler() {
+            return null;
+        }
+		
 		PaxosMessage getNextMsg() {
 			synchronized(_messages) {
 				return _messages.remove(0);

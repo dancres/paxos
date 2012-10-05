@@ -78,6 +78,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private InetSocketAddress _unicastAddr;
     private InetSocketAddress _broadcastAddr;
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
+    private PacketPickler _pickler = new PicklerImpl();
 	
     private ChannelGroup _channels = new DefaultChannelGroup();
     
@@ -90,6 +91,33 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		}
     }
     
+    private class PicklerImpl implements PacketPickler {
+        public byte[] pickle(Packet aPacket) {
+			byte[] myBytes = Codecs.encode(aPacket.getMessage());
+			ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);
+			
+			myBuffer.putLong(Codecs.flatten(aPacket.getSource()));
+			myBuffer.putInt(myBytes.length);
+			myBuffer.put(myBytes);
+			myBuffer.flip();
+			
+			return myBuffer.array();
+        }
+
+        public Packet unpickle(byte[] aBytes) {
+			ByteBuffer myBuffer = ByteBuffer.wrap(aBytes);
+			
+			InetSocketAddress mySource = Codecs.expand(myBuffer.getLong());
+			int myLength = myBuffer.getInt();
+			byte[] myPaxosBytes = new byte[myLength];
+			myBuffer.get(myPaxosBytes);
+			
+			PaxosMessage myMessage = Codecs.decode(myPaxosBytes);
+			
+			return new PacketImpl(myMessage, mySource);        	
+        }
+    }
+
     static class PacketImpl implements Packet {
     	private PaxosMessage _msg;
     	private InetSocketAddress _source;
@@ -105,32 +133,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 		public PaxosMessage getMessage() {
 			return _msg;
-		}
-		
-		public byte[] flatten() {
-			byte[] myBytes = Codecs.encode(_msg);
-			ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);
-			
-			myBuffer.putLong(Codecs.flatten(_source));
-			myBuffer.putInt(myBytes.length);
-			myBuffer.put(myBytes);
-			myBuffer.flip();
-			
-			return myBuffer.array();
-		}
-		
-		public static Packet expand(byte[] aBytes) {
-			ByteBuffer myBuffer = ByteBuffer.wrap(aBytes);
-			
-			InetSocketAddress mySource = Codecs.expand(myBuffer.getLong());
-			int myLength = myBuffer.getInt();
-			byte[] myPaxosBytes = new byte[myLength];
-			myBuffer.get(myPaxosBytes);
-			
-			PaxosMessage myMessage = Codecs.decode(myPaxosBytes);
-			
-			return new PacketImpl(myMessage, mySource);
-		}
+		}		
     }
     
     static {
@@ -173,6 +176,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 				Executors.newCachedThreadPool());
     }
 
+    public PacketPickler getPickler() {
+    	return _pickler;
+    }
+    
 	private void guard() {
 		if (_isStopping.get())
 			throw new IllegalStateException("Transport is stopped");
@@ -320,22 +327,22 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         });
 	}
 	
-	private static class Encoder extends OneToOneEncoder {
+	private class Encoder extends OneToOneEncoder {
 		protected Object encode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
 			PacketImpl myPacket = (PacketImpl) anObject;
 			
-			return ByteBuffer.wrap(myPacket.flatten());
+			return ByteBuffer.wrap(_pickler.pickle(myPacket));
 		}
 	}
 	
-	private static class Decoder extends OneToOneDecoder {
+	private class Decoder extends OneToOneDecoder {
 		protected Object decode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
 			ByteBuffer myBuffer = (ByteBuffer) anObject;
-			return PacketImpl.expand(myBuffer.array());
+			return _pickler.unpickle(myBuffer.array());
 		}
 	}
 	
-	private static class Framer extends OneToOneEncoder {
+	private class Framer extends OneToOneEncoder {
 		protected Object encode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
 			ChannelBuffer myBuff = ChannelBuffers.dynamicBuffer();
 			ByteBuffer myMessage = (ByteBuffer) anObject;
@@ -347,7 +354,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		}
 	}
 
-	private static class Unframer extends FrameDecoder {
+	private class Unframer extends FrameDecoder {
 		protected Object decode(ChannelHandlerContext aCtx, Channel aChannel, ChannelBuffer aBuffer) throws Exception {
 			// Make sure if the length field was received.
 			//

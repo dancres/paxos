@@ -25,6 +25,10 @@ public class ALCheckpointTest {
         public void add(Dispatcher aDispatcher) {
         }
 
+        public Transport.PacketPickler getPickler() {
+            return null;
+        }
+
         private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
         public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {

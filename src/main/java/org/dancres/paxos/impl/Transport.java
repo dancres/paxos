@@ -15,6 +15,13 @@ public interface Transport {
 		public PaxosMessage getMessage();
 	}
 	
+    public interface PacketPickler {
+        public byte[] pickle(Packet aPacket);
+        public Packet unpickle(byte[] aBytes);
+    }
+
+    public PacketPickler getPickler();
+
     public void add(Dispatcher aDispatcher) throws Exception;
 
 	public InetSocketAddress getLocalAddress();

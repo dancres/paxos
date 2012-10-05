@@ -45,6 +45,10 @@ public class CheckpointHandleTest {
             _broadcastId = aBroadcastId;
         }
 
+        public Transport.PacketPickler getPickler() {
+            return null;
+        }
+
         public void add(Dispatcher aDispatcher) {
         }
 

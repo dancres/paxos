@@ -156,6 +156,10 @@ public class LastHandlingTest {
             		_tp = aTransport;
             	}
             	
+                public Transport.PacketPickler getPickler() {
+                    return _tp.getPickler();
+                }
+
                 public void add(Dispatcher aDispatcher) throws Exception {
                 	_tp.add(aDispatcher);
                 }

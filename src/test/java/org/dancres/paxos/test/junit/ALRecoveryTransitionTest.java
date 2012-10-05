@@ -77,6 +77,10 @@ public class ALRecoveryTransitionTest {
             return _broadcastId;
         }
 
+        public Transport.PacketPickler getPickler() {
+            return null;
+        }
+
         public void shutdown() {
 		}
 
