@@ -57,7 +57,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 			switch (myMessage.getClassification()) {
 				case PaxosMessage.CLIENT : {
                     String myHandback = Long.toString(_handbackGenerator.getAndIncrement());
-                    _requestMap.put(myHandback, myMessage.getNodeId());
+                    _requestMap.put(myHandback, aPacket.getSource());
 
                     Envelope myEnvelope = (Envelope) myMessage;
                     Proposal myProposal = myEnvelope.getValue();
