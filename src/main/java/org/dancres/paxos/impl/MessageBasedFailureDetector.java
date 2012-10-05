@@ -1,10 +1,10 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.impl.Transport.Packet;
 
 public interface MessageBasedFailureDetector extends FailureDetector {
-    public void processMessage(PaxosMessage aMessage) throws Exception;
+    public void processMessage(Packet aPacket) throws Exception;
     public Membership getMembers(MembershipListener aListener);
 
     /**

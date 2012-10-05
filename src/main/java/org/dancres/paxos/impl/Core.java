@@ -98,7 +98,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         try {
             switch (myMessage.getClassification()) {
                 case PaxosMessage.FAILURE_DETECTOR: {
-                    _common.getPrivateFD().processMessage(myMessage);
+                    _common.getPrivateFD().processMessage(aPacket);
 
                     return true;
                 }

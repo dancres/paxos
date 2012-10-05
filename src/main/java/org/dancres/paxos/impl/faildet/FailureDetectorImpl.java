@@ -4,6 +4,7 @@ import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.Membership;
 import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
+import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
@@ -131,18 +132,20 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
     /**
      * Examine a received {@link PaxosMessage} and update liveness information as appropriate.
      */
-    public void processMessage(PaxosMessage aMessage) throws Exception {
-        if (aMessage.getType() == Operations.HEARTBEAT) {
+    public void processMessage(Packet aPacket) throws Exception {
+        PaxosMessage myMessage = aPacket.getMessage();
+
+        if (myMessage.getType() == Operations.HEARTBEAT) {
             MetaDataImpl myLast;
 
-            final Heartbeat myHeartbeat = (Heartbeat) aMessage;
-            final InetSocketAddress myNodeId = myHeartbeat.getNodeId();
+            final Heartbeat myHeartbeat = (Heartbeat) myMessage;
+            final InetSocketAddress myNodeId = aPacket.getSource();
             
             synchronized (this) {
-                myLast = _lastHeartbeats.get(myHeartbeat.getNodeId());
+                myLast = _lastHeartbeats.get(myNodeId);
 
                 if (myLast == null) {
-                    _lastHeartbeats.put(myHeartbeat.getNodeId(),
+                    _lastHeartbeats.put(myNodeId,
                             new MetaDataImpl(System.currentTimeMillis(), myHeartbeat.getMetaData()));
                 } else
                     myLast._timestamp = System.currentTimeMillis();

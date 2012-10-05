@@ -4,7 +4,7 @@ import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.Membership;
 import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
-import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.impl.Transport.Packet;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -28,7 +28,7 @@ public class NullFailureDetector implements MessageBasedFailureDetector {
         return 2;
     }
 
-    public void processMessage(PaxosMessage aMessage) throws Exception {
+    public void processMessage(Packet aPacket) throws Exception {
     }
 
     class MembershipImpl implements Membership {
