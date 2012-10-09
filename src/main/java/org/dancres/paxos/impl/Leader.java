@@ -81,7 +81,7 @@ public class Leader implements MembershipListener {
      */
     private VoteOutcome _outcome;
 
-    private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
+    private List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
     public Leader(Common aCommon, LeaderFactory aFactory,
                   long aNextSeq, long aRndNumber) {
@@ -221,16 +221,16 @@ public class Leader implements MembershipListener {
             }
 
             case BEGIN : {
-                Last myLast = null;
+                Transport.Packet myLast = null;
                 
-                for(PaxosMessage m : _messages) {
-                    Last myNewLast = (Last) m;
+                for(Transport.Packet p : _messages) {                    
+                    Last myNewLast = (Last) p.getMessage();
 
-                    if (!myNewLast.getConsolidatedValue().equals(Proposal.NO_VALUE)) {
+                    if (! myNewLast.getConsolidatedValue().equals(Proposal.NO_VALUE)) {
                         if (myLast == null)
-                            myLast = myNewLast;
-                        else if (myNewLast.getRndNumber() > myLast.getRndNumber()) {
-                            myLast = myNewLast;
+                            myLast = p;
+                        else if (myNewLast.getRndNumber() > ((Last) myLast.getMessage()).getRndNumber()) {
+                            myLast = p;
                         }
                     }
                 }
@@ -241,11 +241,11 @@ public class Leader implements MembershipListener {
                  * compare the consolidated value we want to propose as the one in the LAST message will be a
                  * consolidated value.
                  */
-                if ((myLast != null) && (! myLast.getConsolidatedValue().equals(_prop))) {
+                if ((myLast != null) && (! ((Last) myLast.getMessage()).getConsolidatedValue().equals(_prop))) {
                     _common.signal(new VoteOutcome(VoteOutcome.Reason.OTHER_VALUE,
-                            _seqNum, _rndNumber, _prop, myLast.getNodeId()));
+                            _seqNum, _rndNumber, _prop, myLast.getSource()));
 
-                    _prop = myLast.getConsolidatedValue();
+                    _prop = ((Last) myLast.getMessage()).getConsolidatedValue();
                 }
 
                 _currentState = States.SUCCESS;
@@ -422,8 +422,10 @@ public class Leader implements MembershipListener {
      *
      * @param aMessage is a message from some acceptor/learner
      */
-    public void messageReceived(PaxosMessage aMessage) {
-        assert (aMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";
+    public void messageReceived(Transport.Packet aPacket) {
+        PaxosMessage myMessage = aPacket.getMessage();
+
+        assert (myMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";
 
         synchronized (this) {
             switch (_currentState) {
@@ -434,24 +436,24 @@ public class Leader implements MembershipListener {
                 }
             }
 
-            _logger.info(this + " rx: " + aMessage);
+            _logger.info(this + " rx: " + myMessage);
 
-            if (aMessage instanceof LeaderSelection) {
-                if (((LeaderSelection) aMessage).routeable(this)) {
-                    if (isFail(aMessage)) {
+            if (myMessage instanceof LeaderSelection) {
+                if (((LeaderSelection) myMessage).routeable(this)) {
+                    if (isFail(myMessage)) {
 
                         // Can only be an oldRound right now...
                         //
-                        oldRound(aMessage);
+                        oldRound(myMessage);
                     } else {
-                        _messages.add(aMessage);
-                        _membership.receivedResponse(aMessage.getNodeId());
+                        _messages.add(aPacket);
+                        _membership.receivedResponse(aPacket.getSource());
                     }
                     return;
                 }
             }
 
-            _logger.warn(this + ": Unexpected message received: " + aMessage);
+            _logger.warn(this + ": Unexpected message received: " + myMessage);
         }
     }
 

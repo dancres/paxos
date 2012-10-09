@@ -111,7 +111,7 @@ public class Core implements Transport.Dispatcher, Paxos {
                 }
 
                 case PaxosMessage.ACCEPTOR_LEARNER: {
-                    _ld.messageReceived(myMessage);
+                    _ld.messageReceived(aPacket);
 
                     return true;
                 }

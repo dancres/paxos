@@ -220,14 +220,14 @@ public class LeaderFactory {
         }
     }
 
-    void messageReceived(PaxosMessage aMessage) {
-        _logger.debug("Got packet for leaders: " + aMessage);
+    void messageReceived(Transport.Packet aPacket) {
+        _logger.debug("Got packet for leaders: " + aPacket.getSource() + "->" + aPacket.getMessage());
         
         synchronized(this) {
             _logger.debug("Routing packet to " + _leaders.size() + " leaders");
 
             for (Leader aLeader : new LinkedList<Leader>(_leaders.values())) {
-                aLeader.messageReceived(aMessage);
+                aLeader.messageReceived(aPacket);
             }
         }
     }
