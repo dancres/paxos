@@ -153,7 +153,7 @@ public class AcceptorLearner {
 
             byte[] myCollect = Codecs.encode(_lastCollect);
             aStream.writeInt(myCollect.length);
-            aStream.write(Codecs.encode(_lastCollect));
+            aStream.write(myCollect);
         }
 
         public void saved() throws Exception {
