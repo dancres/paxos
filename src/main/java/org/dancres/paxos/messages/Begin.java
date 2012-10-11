@@ -4,6 +4,8 @@ import org.dancres.paxos.Proposal;
 
 import java.net.InetSocketAddress;
 
+import org.dancres.paxos.impl.LeaderUtils;
+
 public class Begin implements PaxosMessage {
     private long _seqNum;
     private long _rndNumber;
@@ -56,14 +58,6 @@ public class Begin implements PaxosMessage {
         return "Begin: " + Long.toHexString(_seqNum) + " [ " +
                 Long.toHexString(_rndNumber) + ", " + _nodeId + " ] " +
                 _consolidatedValue.equals(Proposal.NO_VALUE);
-    }
-
-    public boolean originates(Collect aCollect) {
-        return ((_rndNumber == aCollect.getRndNumber()) && (_nodeId.equals(aCollect.getNodeId())));
-    }
-
-    public boolean precedes(Collect aCollect) {
-        return (_rndNumber < aCollect.getRndNumber());
     }
 
     public InetSocketAddress getNodeId() {

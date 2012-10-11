@@ -111,7 +111,7 @@ public class Common {
      */
     boolean supercedes(Collect aCollect) {
         synchronized(this) {
-            if (aCollect.supercedes(_lastCollect)) {
+            if (LeaderUtils.supercedes(aCollect, _lastCollect)) {
                 _lastCollect = aCollect;
 
                 return true;
@@ -136,7 +136,7 @@ public class Common {
 
                 return true;
             } else {
-                if (aCollect.sameLeader(getLastCollect())) {
+                if (LeaderUtils.sameLeader(aCollect, getLastCollect())) {
                     _logger.debug("Current collect is from same leader - allow");
 
                     return true;

@@ -1,6 +1,7 @@
 package org.dancres.paxos.messages;
 
 import org.dancres.paxos.impl.Constants;
+import org.dancres.paxos.impl.LeaderUtils;
 
 import java.net.InetSocketAddress;
 
@@ -46,14 +47,6 @@ public class Collect implements PaxosMessage {
                 Long.toHexString(_rndNumber) + ", " + _nodeId + " ] ";
     }
 
-    public boolean supercedes(Collect aCollect) {
-        return (_rndNumber > aCollect.getRndNumber());
-    }
-
-    public boolean sameLeader(Collect aCollect) {
-    	return ((_rndNumber >= aCollect._rndNumber) && (_nodeId.equals(aCollect._nodeId)));
-    }
-    
     public boolean isInitial() {
     	return this.equals(INITIAL);
     }
