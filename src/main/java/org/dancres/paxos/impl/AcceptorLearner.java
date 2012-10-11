@@ -25,6 +25,18 @@ import org.slf4j.LoggerFactory;
  * instance will receive those packets. This can be useful for processing client
  * requests correctly and signalling interested parties as necessary.
  *
+ * @todo Arrange for checkpoint handle to contain a packet pickler reference.
+ * That pickler can be used to flatten a packet containing collect etc into
+ * a byte[]. We then serialize the Pickler and save the byte[].
+ * We then reverse this process for de-serialization - deserialize the pickler, 
+ * recover the byte[] and use the pickler to unpack it.
+ *
+ * The initial value of _lastCheckpoint can be setup with an initial checkpoint
+ * that includes a reference to the transport's current pickler. BUT BEWARE:
+ * A number of the existing tests currently return null in response to a call
+ * to getPickler() so will need fixing to return some meaningful pickler
+ * implementation.
+ *
  * @author dan
  */
 public class AcceptorLearner {
@@ -51,12 +63,6 @@ public class AcceptorLearner {
 
 	private final List<PaxosMessage> _packetBuffer = new LinkedList<PaxosMessage>();
 
-	/**
-     * Tracks the last collect we accepted and thus represents our view of the current leader for instances.
-     * Other leaders wishing to take over must present a round number greater than this and after expiry of the
-     * lease for the previous leader. The last collect is also used to validate begins and ensure we don't accept
-     * any from other leaders whilst we're not in sync with the majority.
-	 */
 	private final LogStorage _storage;
     private final Common _common;
 	private final InetSocketAddress _localAddress;
@@ -124,17 +130,17 @@ public class AcceptorLearner {
         }
     }
 
-    static class ALCheckpointHandle extends CheckpointHandle {
-    	static final ALCheckpointHandle NO_CHECKPOINT = new ALCheckpointHandle(Watermark.INITIAL, Collect.INITIAL, null);
-    	
+    static class ALCheckpointHandle extends CheckpointHandle {    	
         private transient Watermark _lowWatermark;
         private transient Collect _lastCollect;
         private transient AtomicReference<AcceptorLearner> _al = new AtomicReference<AcceptorLearner>(null);
+        private transient Transport.PacketPickler _pr;
 
-        ALCheckpointHandle(Watermark aLowWatermark, Collect aCollect, AcceptorLearner anAl) {
+        ALCheckpointHandle(Watermark aLowWatermark, Collect aCollect, AcceptorLearner anAl, Transport.PacketPickler aPickler) {
             _lowWatermark = aLowWatermark;
             _lastCollect = aCollect;
             _al.set(anAl);
+            _pr = aPickler;
         }
 
         private void readObject(ObjectInputStream aStream) throws IOException, ClassNotFoundException {
@@ -197,7 +203,7 @@ public class AcceptorLearner {
         }
     }
 	
-	private ALCheckpointHandle _lastCheckpoint = ALCheckpointHandle.NO_CHECKPOINT;
+	private ALCheckpointHandle _lastCheckpoint;
 	
     /* ********************************************************************************************
      *
@@ -209,6 +215,7 @@ public class AcceptorLearner {
         _storage = aStore;
         _localAddress = aCommon.getTransport().getLocalAddress();
         _common = aCommon;
+        _lastCheckpoint = new ALCheckpointHandle(Watermark.INITIAL, Collect.INITIAL, null, _common.getTransport().getPickler());        
     }
 
     /**
@@ -279,7 +286,7 @@ public class AcceptorLearner {
         //
         synchronized (this) {
             return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
-                    _common.getLastCollect(), this);
+                    _common.getLastCollect(), this, _common.getTransport().getPickler());
         }
     }
 

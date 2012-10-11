@@ -20,6 +20,7 @@ import org.dancres.paxos.messages.Success;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
 import org.dancres.paxos.test.utils.Utils;
+import org.dancres.paxos.test.utils.StandalonePickler;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +37,8 @@ public class ALRecoveryTransitionTest {
 	}
 	
 	private static class TransportImpl implements Transport {
+        private Transport.PacketPickler _pickler = new StandalonePickler();
+
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 		private InetSocketAddress _nodeId;
         private InetSocketAddress _broadcastId;
@@ -78,7 +81,7 @@ public class ALRecoveryTransitionTest {
         }
 
         public Transport.PacketPickler getPickler() {
-            return null;
+            return _pickler;
         }
 
         public void shutdown() {

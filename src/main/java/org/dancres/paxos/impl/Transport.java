@@ -15,7 +15,7 @@ public interface Transport {
 		public PaxosMessage getMessage();
 	}
 	
-    public interface PacketPickler {
+    public interface PacketPickler extends java.io.Serializable {
         public byte[] pickle(Packet aPacket);
         public Packet unpickle(byte[] aBytes);
     }

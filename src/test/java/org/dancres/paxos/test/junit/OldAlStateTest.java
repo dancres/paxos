@@ -17,6 +17,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
 import org.dancres.paxos.test.utils.Utils;
+import org.dancres.paxos.test.utils.StandalonePickler;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +43,7 @@ public class OldAlStateTest {
 	
 	private class TransportImpl implements Transport {
         private InetSocketAddress _broadcast = Utils.getTestAddress();
+        private Transport.PacketPickler _pickler = new StandalonePickler();
 
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
@@ -70,7 +72,7 @@ public class OldAlStateTest {
 		}
 
         public Transport.PacketPickler getPickler() {
-            return null;
+            return _pickler;
         }
 
         public InetSocketAddress getBroadcastAddress() {
