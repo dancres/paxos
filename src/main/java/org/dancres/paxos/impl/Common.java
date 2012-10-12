@@ -110,20 +110,18 @@ public class Common {
         _lastLeaderActionTime = 0;        
     }
     
-    void setLastCollect(Collect aCollect) {
-        /*
+    void setLastCollect(Transport.Packet aCollect) {
         if (! (aCollect.getMessage() instanceof Collect))
             throw new IllegalArgumentException();
-        */
 
         synchronized(this) {
-            _lastCollect = new FakePacket(aCollect.getNodeId(), aCollect);
+            _lastCollect = aCollect;
         }
     }
     
-    public Collect getLastCollect() {
+    public Transport.Packet getLastCollect() {
         synchronized(this) {
-            return (Collect) _lastCollect.getMessage();
+            return _lastCollect;
         }
     }
     

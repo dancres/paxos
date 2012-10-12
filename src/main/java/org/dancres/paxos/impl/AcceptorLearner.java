@@ -132,11 +132,11 @@ public class AcceptorLearner {
 
     static class ALCheckpointHandle extends CheckpointHandle {    	
         private transient Watermark _lowWatermark;
-        private transient Collect _lastCollect;
+        private transient Transport.Packet _lastCollect;
         private transient AtomicReference<AcceptorLearner> _al = new AtomicReference<AcceptorLearner>(null);
         private transient Transport.PacketPickler _pr;
 
-        ALCheckpointHandle(Watermark aLowWatermark, Collect aCollect, AcceptorLearner anAl, Transport.PacketPickler aPickler) {
+        ALCheckpointHandle(Watermark aLowWatermark, Transport.Packet aCollect, AcceptorLearner anAl, Transport.PacketPickler aPickler) {
             _lowWatermark = aLowWatermark;
             _lastCollect = aCollect;
             _al.set(anAl);
@@ -146,18 +146,20 @@ public class AcceptorLearner {
         private void readObject(ObjectInputStream aStream) throws IOException, ClassNotFoundException {
             aStream.defaultReadObject();
             _lowWatermark = new Watermark(aStream.readLong(), aStream.readLong());
+            _pr = (Transport.PacketPickler) aStream.readObject();
 
             byte[] myBytes = new byte[aStream.readInt()];
             aStream.readFully(myBytes);
-            _lastCollect = (Collect) Codecs.decode(myBytes);
+            _lastCollect = (Transport.Packet) _pr.unpickle(myBytes);
         }
 
         private void writeObject(ObjectOutputStream aStream) throws IOException {
             aStream.defaultWriteObject();
             aStream.writeLong(_lowWatermark.getSeqNum());
             aStream.writeLong(_lowWatermark.getLogOffset());
+            aStream.writeObject(_pr);
 
-            byte[] myCollect = Codecs.encode(_lastCollect);
+            byte[] myCollect = _pr.pickle(_lastCollect);
             aStream.writeInt(myCollect.length);
             aStream.write(myCollect);
         }
@@ -188,7 +190,7 @@ public class AcceptorLearner {
             return _lowWatermark;
         }
 
-        Collect getLastCollect() {
+        Transport.Packet getLastCollect() {
             return _lastCollect;
         }
         
@@ -196,7 +198,9 @@ public class AcceptorLearner {
         	if (anObject instanceof ALCheckpointHandle) {
         		ALCheckpointHandle myOther = (ALCheckpointHandle) anObject;
         		
-        		return ((_lowWatermark.equals(myOther._lowWatermark)) && (_lastCollect.equals(myOther._lastCollect)));
+        		return ((_lowWatermark.equals(myOther._lowWatermark)) && 
+                    (_lastCollect.getSource().equals(myOther._lastCollect.getSource())) &&
+                    (_lastCollect.getMessage().equals(myOther._lastCollect.getMessage())));
         	}
         	
         	return false;
@@ -215,7 +219,7 @@ public class AcceptorLearner {
         _storage = aStore;
         _localAddress = aCommon.getTransport().getLocalAddress();
         _common = aCommon;
-        _lastCheckpoint = new ALCheckpointHandle(Watermark.INITIAL, Collect.INITIAL, null, _common.getTransport().getPickler());        
+        _lastCheckpoint = new ALCheckpointHandle(Watermark.INITIAL, _common.getLastCollect(), null, _common.getTransport().getPickler());        
     }
 
     /**
@@ -342,7 +346,7 @@ public class AcceptorLearner {
             
             // Write collect from our new checkpoint to log and use that as the starting point for replay.
             //
-            _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
+            _storage.mark(new LiveWriter().write(((Collect) myHandle.getLastCollect().getMessage()), false), true);
 
             _common.setState(Common.FSMStates.ACTIVE);
             _recoveryWindow = null;
@@ -356,8 +360,9 @@ public class AcceptorLearner {
              */
             _common.leaderAction();
             _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE,
-                    myHandle.getLastCollect().getSeqNum(), myHandle.getLastCollect().getRndNumber(),
-            		Proposal.NO_VALUE, myHandle.getLastCollect().getNodeId()));
+                    ((Collect) myHandle.getLastCollect().getMessage()).getSeqNum(), 
+                    ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
+            		Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
         }
 
         return true;
