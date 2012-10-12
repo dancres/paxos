@@ -14,10 +14,7 @@ import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Last;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.test.utils.FileSystem;
-import org.dancres.paxos.test.utils.NullFailureDetector;
-import org.dancres.paxos.test.utils.Utils;
-import org.dancres.paxos.test.utils.StandalonePickler;
+import org.dancres.paxos.test.utils.*;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -101,7 +98,7 @@ public class OldAlStateTest {
 		
 		// First collect, Al has no state so this is accepted
 		//
-		myAl.messageReceived(new Collect(mySeqNum, myRndNum, _nodeId));
+		myAl.messageReceived(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum, _nodeId)));
 		
 		PaxosMessage myResponse = myTransport.getNextMsg();	
 		Assert.assertTrue(myResponse.getType() == Operations.LAST);
@@ -113,8 +110,8 @@ public class OldAlStateTest {
 		myValue.put("data", myData);
 		myValue.put("handback", HANDBACK);
 		
-		myAl.messageReceived(
-				new Begin(mySeqNum, myRndNum, myValue, _nodeId));
+		myAl.messageReceived(new FakePacket(_nodeId,
+				new Begin(mySeqNum, myRndNum, myValue, _nodeId)));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
@@ -123,7 +120,7 @@ public class OldAlStateTest {
 		 * Emulate leader having to do recovery and re-run the paxos instance with a new rnd number - the response
 		 * should be a last
 		 */		
-		myAl.messageReceived(new Collect(mySeqNum, myRndNum + 1, _nodeId));
+		myAl.messageReceived(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum + 1, _nodeId)));
 		
 		Last myLast = (Last) myTransport.getNextMsg();
 		
@@ -132,8 +129,8 @@ public class OldAlStateTest {
 		
 		// Push the value again
 		//
-		myAl.messageReceived(
-				new Begin(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue(), _nodeId));
+		myAl.messageReceived(new FakePacket(_nodeId,
+				new Begin(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue(), _nodeId)));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);

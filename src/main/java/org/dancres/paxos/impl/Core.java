@@ -105,7 +105,7 @@ public class Core implements Transport.Dispatcher, Paxos {
 
                 case PaxosMessage.LEADER:
                 case PaxosMessage.RECOVERY: {
-                    _al.messageReceived(myMessage);
+                    _al.messageReceived(aPacket);
 
                     return true;
                 }

@@ -16,10 +16,7 @@ import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Success;
-import org.dancres.paxos.test.utils.FileSystem;
-import org.dancres.paxos.test.utils.NullFailureDetector;
-import org.dancres.paxos.test.utils.Utils;
-import org.dancres.paxos.test.utils.StandalonePickler;
+import org.dancres.paxos.test.utils.*;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,7 +106,7 @@ public class CheckpointHandleTest {
         
         // First collect, Al has no state so this is accepted and will be held in packet buffer
         //
-        myAl.messageReceived(new Collect(mySeqNum, myRndNum, _nodeId));
+        myAl.messageReceived(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum, _nodeId)));
 
         PaxosMessage myResponse = myTransport.getNextMsg();
         Assert.assertTrue(myResponse.getType() == Operations.LAST);
@@ -121,15 +118,15 @@ public class CheckpointHandleTest {
         myValue.put("data", myData);
         myValue.put("handback", HANDBACK);
 
-        myAl.messageReceived(
-                new Begin(mySeqNum, myRndNum, myValue, _nodeId));
+        myAl.messageReceived(new FakePacket(_nodeId,
+                new Begin(mySeqNum, myRndNum, myValue, _nodeId)));
 
         myResponse = myTransport.getNextMsg();
         Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
 
         // Commit this instance
         //
-        myAl.messageReceived(new Success(mySeqNum, myRndNum, _nodeId));
+        myAl.messageReceived(new FakePacket(_nodeId, new Success(mySeqNum, myRndNum, _nodeId)));
 
         CheckpointHandle mySecondHandle = myAl.newCheckpoint();
         
@@ -137,15 +134,15 @@ public class CheckpointHandleTest {
 
         // Execute and commit another instance
         //
-        myAl.messageReceived(
-                new Begin(mySeqNum + 1, myRndNum, myValue, _nodeId));
+        myAl.messageReceived(new FakePacket(_nodeId,
+                new Begin(mySeqNum + 1, myRndNum, myValue, _nodeId)));
 
         myResponse = myTransport.getNextMsg();
         Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
 
         // Commit this instance
         //
-        myAl.messageReceived(new Success(mySeqNum + 1, myRndNum, _nodeId));
+        myAl.messageReceived(new FakePacket(_nodeId, new Success(mySeqNum + 1, myRndNum, _nodeId)));
 
         CheckpointHandle myThirdHandle = myAl.newCheckpoint();
 

@@ -403,19 +403,20 @@ public class AcceptorLearner {
 	/**
 	 * @param aMessage
 	 */
-	public void messageReceived(PaxosMessage aMessage) {
+	public void messageReceived(Transport.Packet aPacket) {
         // If we're not processing packets because we're out of date or because we're shutting down
         //
         if ((_common.testState(Common.FSMStates.OUT_OF_DATE)) || (_common.testState(Common.FSMStates.SHUTDOWN)))
             return;
 
-        long mySeqNum = aMessage.getSeqNum();
+        PaxosMessage myMessage = aPacket.getMessage();
+        long mySeqNum = myMessage.getSeqNum();
         Writer myWriter = new LiveWriter();
 
 		if (_common.testState(Common.FSMStates.RECOVERING)) {
             Sender mySender = new RecoverySender();
             
-            switch (aMessage.getType()) {
+            switch (myMessage.getType()) {
                 // If the packet is a recovery request, ignore it
                 //
                 case Operations.NEED : return;
@@ -432,7 +433,7 @@ public class AcceptorLearner {
                     //
                     _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
                             _common.getLeaderRndNum(),
-                            new Proposal(), aMessage.getNodeId()));
+                            new Proposal(), aPacket.getSource()));
                     return;
                 }
             }
@@ -441,13 +442,13 @@ public class AcceptorLearner {
 			//
 			if (mySeqNum > _recoveryWindow.getMaxSeq()) {
 				synchronized(this) {
-					_packetBuffer.add(aMessage);
+					_packetBuffer.add(myMessage);
 				}
 				
 			// If the packet is for a sequence number within the window, process it now for catchup
 			//
 			} else if (mySeqNum > _recoveryWindow.getMinSeq()) {
-				process(aMessage, myWriter, mySender);
+				process(myMessage, myWriter, mySender);
 				
 				/*
 				 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
@@ -456,15 +457,15 @@ public class AcceptorLearner {
 				if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
                         _recoveryWindow.getMaxSeq()) {
 					synchronized(this) {
-						for (PaxosMessage myMessage : _packetBuffer) {
+						for (PaxosMessage myReplayMessage : _packetBuffer) {
 
 							// May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
 							//
-							if (_common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(),
+							if (_common.getRecoveryTrigger().shouldRecover(myReplayMessage.getSeqNum(),
                                     _localAddress) != null)
 								break;
 
-							process(myMessage, myWriter, mySender);
+							process(myReplayMessage, myWriter, mySender);
 						}
 						
                         completedRecovery();
@@ -478,7 +479,7 @@ public class AcceptorLearner {
 		} else {
             Sender mySender = new LiveSender();
 
-			Need myWindow = _common.getRecoveryTrigger().shouldRecover(aMessage.getSeqNum(), _localAddress);
+			Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress);
 
 			if (myWindow != null) {
 				/*
@@ -493,7 +494,7 @@ public class AcceptorLearner {
 				synchronized(this) {
 					// Must store up the packet which triggered recovery for later replay
 					//
-					_packetBuffer.add(aMessage);
+					_packetBuffer.add(myMessage);
 					
 					/*
 					 * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
@@ -513,7 +514,7 @@ public class AcceptorLearner {
                     reschedule();
 				}
 			} else
-				process(aMessage, myWriter, mySender);
+				process(myMessage, myWriter, mySender);
 		}
 	}
 
