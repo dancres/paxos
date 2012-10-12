@@ -4,11 +4,15 @@ import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Collect;
+import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Need;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -22,12 +26,40 @@ public class Common {
     
     private Transport _transport;
     private final MessageBasedFailureDetector _fd;
-    private Collect _lastCollect = Collect.INITIAL;
+    private Transport.Packet _lastCollect = new FakePacket(Collect.INITIAL);
     private long _lastLeaderActionTime = 0;
     private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
     private final Timer _watchdog = new Timer("Paxos timers");
     private final AtomicReference<FSMStates> _fsmState = new AtomicReference<FSMStates>(FSMStates.INITIAL);
+
+    class FakePacket implements Transport.Packet {
+        private PaxosMessage _message;
+        private InetSocketAddress _address;
+
+        FakePacket(PaxosMessage aMessage) {
+            _message = aMessage;
+
+            try {
+                _address = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
+            } catch (Exception anE) {
+                throw new RuntimeException("No localhost address, doomed");
+            }
+        }
+
+        FakePacket(InetSocketAddress anAddr, PaxosMessage aMessage) {
+            _address = anAddr;
+            _message = aMessage;
+        }
+
+        public InetSocketAddress getSource() {
+            return _address;
+        }
+
+        public PaxosMessage getMessage() {
+            return _message;
+        }
+    }
 
     public Common(Transport aTransport, long anUnresponsivenessThreshold) {
         _transport = aTransport;
@@ -74,19 +106,24 @@ public class Common {
     }
     
     void resetLeader() {
-        _lastCollect = Collect.INITIAL;
+        _lastCollect = new FakePacket(Collect.INITIAL);
         _lastLeaderActionTime = 0;        
     }
     
     void setLastCollect(Collect aCollect) {
+        /*
+        if (! (aCollect.getMessage() instanceof Collect))
+            throw new IllegalArgumentException();
+        */
+
         synchronized(this) {
-            _lastCollect = aCollect;
+            _lastCollect = new FakePacket(aCollect.getNodeId(), aCollect);
         }
     }
     
     public Collect getLastCollect() {
         synchronized(this) {
-            return _lastCollect;
+            return (Collect) _lastCollect.getMessage();
         }
     }
     
@@ -111,8 +148,8 @@ public class Common {
      */
     boolean supercedes(Collect aCollect) {
         synchronized(this) {
-            if (LeaderUtils.supercedes(aCollect, _lastCollect)) {
-                _lastCollect = aCollect;
+            if (LeaderUtils.supercedes(new FakePacket(aCollect.getNodeId(), aCollect), _lastCollect)) {
+                _lastCollect = new FakePacket(aCollect.getNodeId(), aCollect);
 
                 return true;
             } else {
@@ -131,12 +168,12 @@ public class Common {
         long myCurrentTime = System.currentTimeMillis();
 
         synchronized(this) {
-            if (_lastCollect.isInitial()) {
+            if (((Collect) _lastCollect.getMessage()).isInitial()) {
                 _logger.debug("Current collect is initial - allow leader");
 
                 return true;
             } else {
-                if (LeaderUtils.sameLeader(aCollect, getLastCollect())) {
+                if (sameLeader(aCollect)) {
                     _logger.debug("Current collect is from same leader - allow");
 
                     return true;
@@ -150,6 +187,24 @@ public class Common {
         }
     }
 
+    boolean sameLeader(Collect aCollect) {
+        synchronized(this) {
+            return LeaderUtils.sameLeader(new FakePacket(aCollect.getNodeId(), aCollect), _lastCollect);
+        }
+    }
+
+    boolean originates(Begin aBegin) {
+        synchronized(this) {
+            return LeaderUtils.originates(new FakePacket(aBegin.getNodeId(), aBegin), _lastCollect);
+        }
+    }
+
+    boolean precedes(Begin aBegin) {
+        synchronized(this) {
+            return LeaderUtils.precedes(new FakePacket(aBegin.getNodeId(), aBegin), _lastCollect);
+        }
+    }
+    
     void add(Paxos.Listener aListener) {
         synchronized(_listeners) {
             _listeners.add(aListener);

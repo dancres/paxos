@@ -667,7 +667,7 @@ public class AcceptorLearner {
 					 * and node), we apply the multi-paxos optimisation, no need to
 					 * save to disk, just respond with last proposal etc
 					 */
-				} else if (LeaderUtils.sameLeader(myCollect, _common.getLastCollect())) {
+				} else if (_common.sameLeader(myCollect)) {
                     aSender.send(constructLast(mySeqNum), myNodeId);
 
 				} else {
@@ -687,7 +687,7 @@ public class AcceptorLearner {
 
 				// If the begin matches the last round of a collect we're fine
 				//
-				if (LeaderUtils.originates(myBegin, _common.getLastCollect())) {
+				if (_common.originates(myBegin)) {
 					_common.leaderAction();
                     cacheBegin(myBegin);
                     
@@ -695,7 +695,7 @@ public class AcceptorLearner {
 
 					aSender.send(new Accept(mySeqNum, _common.getLastCollect().getRndNumber(),
                             _localAddress), myNodeId);
-				} else if (LeaderUtils.precedes(myBegin, _common.getLastCollect())) {
+				} else if (_common.precedes(myBegin)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
