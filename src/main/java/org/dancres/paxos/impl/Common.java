@@ -141,6 +141,18 @@ public class Common {
         return _fsmState.get().equals(aState);
     }
 
+    public long getLeaderRndNum() {
+        synchronized(this) {
+            return ((Collect) _lastCollect.getMessage()).getRndNumber();
+        }
+    }
+
+    InetSocketAddress getLeaderAddress() {
+        synchronized(this) {
+            return _lastCollect.getSource();
+        }
+    }
+
     /**
      * @param aCollect
      *            should be tested to see if it supercedes the current COLLECT
@@ -204,7 +216,7 @@ public class Common {
             return LeaderUtils.precedes(new FakePacket(aBegin.getNodeId(), aBegin), _lastCollect);
         }
     }
-    
+
     void add(Paxos.Listener aListener) {
         synchronized(_listeners) {
             _listeners.add(aListener);

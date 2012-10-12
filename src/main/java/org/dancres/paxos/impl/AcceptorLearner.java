@@ -307,7 +307,7 @@ public class AcceptorLearner {
         _lastCheckpoint = aHandle;
         _common.setLastCollect(aHandle.getLastCollect());
 
-        _logger.info("Checkpoint installed: " + _common.getLastCollect() + " @ " + aHandle.getLowWatermark());
+        _logger.info("Checkpoint installed: " + aHandle.getLastCollect() + " @ " + aHandle.getLowWatermark());
 
         return _common.getRecoveryTrigger().install(aHandle.getLowWatermark());
     }
@@ -426,7 +426,7 @@ public class AcceptorLearner {
                     // Signal with the node that pronounced us out of date - likely user code will get ckpt from there.
                     //
                     _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
-                            _common.getLastCollect().getRndNumber(),
+                            _common.getLeaderRndNum(),
                             new Proposal(), aMessage.getNodeId()));
                     return;
                 }
@@ -673,10 +673,8 @@ public class AcceptorLearner {
 				} else {
 					// Another collect has already arrived with a higher priority, tell the proposer it has competition
 					//
-					Collect myLastCollect = _common.getLastCollect();
-
                     aSender.send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
-                            myLastCollect.getNodeId(), myLastCollect.getRndNumber(), _localAddress), myNodeId);
+                            _common.getLeaderAddress(), _common.getLeaderRndNum(), _localAddress), myNodeId);
 				}
 				
 				break;
@@ -693,16 +691,14 @@ public class AcceptorLearner {
                     
 					aWriter.write(aMessage, true);
 
-					aSender.send(new Accept(mySeqNum, _common.getLastCollect().getRndNumber(),
+					aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum(),
                             _localAddress), myNodeId);
 				} else if (_common.precedes(myBegin)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
-					Collect myLastCollect = _common.getLastCollect();
-
 					aSender.send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
-                            myLastCollect.getNodeId(), myLastCollect.getRndNumber(), _localAddress), myNodeId);
+                            _common.getLeaderAddress(), _common.getLeaderRndNum(), _localAddress), myNodeId);
 				} else {
 					/*
 					 * Quiet, didn't see the collect, leader hasn't accounted for
@@ -747,7 +743,7 @@ public class AcceptorLearner {
                             _logger.info("AL:Learnt value: " + mySeqNum + ", " + _localAddress);
 
                             _common.signal(new VoteOutcome(VoteOutcome.Reason.DECISION, mySeqNum,
-                                    _common.getLastCollect().getRndNumber(),
+                                    _common.getLeaderRndNum(),
                                     myBegin.getConsolidatedValue(), myBegin.getNodeId()));
                         }
                     }
@@ -791,8 +787,8 @@ public class AcceptorLearner {
              * sequence number to completion, we must tell it.
              */
             if (aSeqNum <= myLow.getSeqNum())
-                return new OldRound(aSeqNum, _common.getLastCollect().getNodeId(),
-                        _common.getLastCollect().getRndNumber(), _localAddress);
+                return new OldRound(aSeqNum, _common.getLeaderAddress(),
+                        _common.getLeaderRndNum(), _localAddress);
             else
                 return new Last(aSeqNum, myLow.getSeqNum(),
                     Long.MIN_VALUE, Proposal.NO_VALUE, _localAddress);            

@@ -73,7 +73,7 @@ public class IgnoreCollectsTest {
         Common myCommon = _node2.getCommon();
 
         Collect myCollect = new Collect(myCommon.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1,
-        		myCommon.getLastCollect().getRndNumber(), myTransport.getLocalAddress());
+        		myCommon.getLeaderRndNum(), myTransport.getLocalAddress());
 
         myClient.send(myCollect, _tport2.getLocalAddress());
 

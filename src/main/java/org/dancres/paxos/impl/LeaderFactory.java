@@ -81,7 +81,7 @@ public class LeaderFactory {
 
     private Leader newLeaderImpl() {
         long mySeqNum = _common.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1;
-        long myRndNum = _common.getLastCollect().getRndNumber() + 1;
+        long myRndNum = _common.getLeaderRndNum() + 1;
         Leader.States myState = Leader.States.COLLECT;
 
         if (_leaders.size() > 0) {
