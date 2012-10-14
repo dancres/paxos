@@ -179,7 +179,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     public PacketPickler getPickler() {
     	return _pickler;
     }
-    
+
 	private void guard() {
 		if (_isStopping.get())
 			throw new IllegalStateException("Transport is stopped");
@@ -306,6 +306,13 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
                 _channel.write(new PacketImpl(aMessage, getLocalAddress())).await();
             } catch (InterruptedException anIE) {
             }
+		}
+
+		public void sendRaw(Packet aPacket) {
+			try {
+				_channel.write(aPacket).await();
+			} catch (InterruptedException anIE) {				
+			}
 		}
 	}
 	
