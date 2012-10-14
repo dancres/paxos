@@ -16,7 +16,7 @@ public class LeaderUtils {
 		Collect myCurrent = (Collect) aCurrent.getMessage();
 
 		return ((myProspective.getRndNumber() >= myCurrent.getRndNumber()) &&
-			(myProspective.getNodeId().equals(myCurrent.getNodeId())));
+			(aProspective.getSource().equals(aCurrent.getSource())));
 	}
 
 	public static boolean originates(Transport.Packet aBegin, Transport.Packet aCollect) {
@@ -24,7 +24,7 @@ public class LeaderUtils {
 		Collect myCollect = (Collect) aCollect.getMessage();
 
 		return ((myBegin.getRndNumber() == myCollect.getRndNumber()) &&
-			(myBegin.getNodeId().equals(myCollect.getNodeId())));
+			(aBegin.getSource().equals(aCollect.getSource())));
 	}
 
 	public static boolean precedes(Transport.Packet aBegin, Transport.Packet aCollect) {
