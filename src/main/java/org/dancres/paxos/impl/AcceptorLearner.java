@@ -653,7 +653,7 @@ public class AcceptorLearner {
 			case Operations.COLLECT: {
 				Collect myCollect = (Collect) myMessage;
 
-				if (!_common.amAccepting(myCollect)) {
+				if (!_common.amAccepting(aPacket)) {
 					_ignoredCollects.incrementAndGet();
 
 					_logger.warn("AL:Not accepting: " + myCollect + ", "
@@ -663,7 +663,7 @@ public class AcceptorLearner {
 
 				// If the collect supercedes our previous collect save it, return last proposal etc
 				//
-				if (_common.supercedes(myCollect)) {
+				if (_common.supercedes(aPacket)) {
 					aWriter.write(aPacket, true);
                     
                     aSender.send(constructLast(mySeqNum), myNodeId);
@@ -673,7 +673,7 @@ public class AcceptorLearner {
 					 * and node), we apply the multi-paxos optimisation, no need to
 					 * save to disk, just respond with last proposal etc
 					 */
-				} else if (_common.sameLeader(myCollect)) {
+				} else if (_common.sameLeader(aPacket)) {
                     aSender.send(constructLast(mySeqNum), myNodeId);
 
 				} else {
@@ -691,7 +691,7 @@ public class AcceptorLearner {
 
 				// If the begin matches the last round of a collect we're fine
 				//
-				if (_common.originates(myBegin)) {
+				if (_common.originates(aPacket)) {
 					_common.leaderAction();
                     cacheBegin(myBegin);
                     
@@ -699,7 +699,7 @@ public class AcceptorLearner {
 
 					aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum(),
                             _localAddress), myNodeId);
-				} else if (_common.precedes(myBegin)) {
+				} else if (_common.precedes(aPacket)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//

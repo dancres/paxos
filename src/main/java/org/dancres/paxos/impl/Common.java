@@ -33,7 +33,7 @@ public class Common {
     private final Timer _watchdog = new Timer("Paxos timers");
     private final AtomicReference<FSMStates> _fsmState = new AtomicReference<FSMStates>(FSMStates.INITIAL);
 
-    class FakePacket implements Transport.Packet {
+    private class FakePacket implements Transport.Packet {
         private PaxosMessage _message;
         private InetSocketAddress _address;
 
@@ -156,10 +156,10 @@ public class Common {
      *            should be tested to see if it supercedes the current COLLECT
      * @return <code>true</code> if it supercedes, <code>false</code> otherwise
      */
-    boolean supercedes(Collect aCollect) {
+    boolean supercedes(Transport.Packet aCollect) {
         synchronized(this) {
-            if (LeaderUtils.supercedes(new FakePacket(aCollect.getNodeId(), aCollect), _lastCollect)) {
-                _lastCollect = new FakePacket(aCollect.getNodeId(), aCollect);
+            if (LeaderUtils.supercedes(aCollect, _lastCollect)) {
+                _lastCollect = aCollect;
 
                 return true;
             } else {
@@ -174,7 +174,7 @@ public class Common {
      *         the current leader within DEFAULT_LEASE milliseconds else
      *         <code>false</code>
      */
-    boolean amAccepting(Collect aCollect) {
+    boolean amAccepting(Transport.Packet aCollect) {
         long myCurrentTime = System.currentTimeMillis();
 
         synchronized(this) {
@@ -183,7 +183,7 @@ public class Common {
 
                 return true;
             } else {
-                if (sameLeader(aCollect)) {
+                if (LeaderUtils.sameLeader(aCollect, _lastCollect)) {
                     _logger.debug("Current collect is from same leader - allow");
 
                     return true;
@@ -197,21 +197,21 @@ public class Common {
         }
     }
 
-    boolean sameLeader(Collect aCollect) {
+    boolean sameLeader(Transport.Packet aCollect) {
         synchronized(this) {
-            return LeaderUtils.sameLeader(new FakePacket(aCollect.getNodeId(), aCollect), _lastCollect);
+            return LeaderUtils.sameLeader(aCollect, _lastCollect);
         }
     }
 
-    boolean originates(Begin aBegin) {
+    boolean originates(Transport.Packet aBegin) {
         synchronized(this) {
-            return LeaderUtils.originates(new FakePacket(aBegin.getNodeId(), aBegin), _lastCollect);
+            return LeaderUtils.originates(aBegin, _lastCollect);
         }
     }
 
-    boolean precedes(Begin aBegin) {
+    boolean precedes(Transport.Packet aBegin) {
         synchronized(this) {
-            return LeaderUtils.precedes(new FakePacket(aBegin.getNodeId(), aBegin), _lastCollect);
+            return LeaderUtils.precedes(aBegin, _lastCollect);
         }
     }
 
