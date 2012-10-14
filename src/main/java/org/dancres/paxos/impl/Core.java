@@ -117,7 +117,7 @@ public class Core implements Transport.Dispatcher, Paxos {
                 }
 
                 default: {
-                    _logger.debug("Unrecognised message:" + myMessage);
+                    _logger.debug("Unrecognised message:" + aPacket.getSource() + " " + myMessage);
                     return false;
                 }
             }

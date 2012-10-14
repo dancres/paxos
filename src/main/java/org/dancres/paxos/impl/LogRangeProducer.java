@@ -17,6 +17,7 @@ class LogRangeProducer implements LogStorage.RecordListener, Producer {
     private long _maximumSeq;
     private Consumer _consumer;
     private LogStorage _storage;
+    private Transport.PacketPickler _pickler;
 
     /**
      * @param aLowerBoundSeq the sequence number above (>) which to stream records.
@@ -24,11 +25,12 @@ class LogRangeProducer implements LogStorage.RecordListener, Producer {
      * @param aConsumer
      * @param aStorage
      */
-    LogRangeProducer(long aLowerBoundSeq, long aMaximumSeq, Consumer aConsumer, LogStorage aStorage) {
+    LogRangeProducer(long aLowerBoundSeq, long aMaximumSeq, Consumer aConsumer, LogStorage aStorage, Transport.PacketPickler aPickler) {
         _lowerBoundSeq = aLowerBoundSeq;
         _maximumSeq = aMaximumSeq;
         _consumer = aConsumer;
         _storage = aStorage;
+        _pickler = aPickler;
     }
 
     public void produce(long aLogOffset) throws Exception {
@@ -36,14 +38,15 @@ class LogRangeProducer implements LogStorage.RecordListener, Producer {
     }
 
     public void onRecord(long anOffset, byte[] aRecord) {
-        PaxosMessage myMessage = Codecs.decode(aRecord);
+        Transport.Packet myPacket = _pickler.unpickle(aRecord);
+        PaxosMessage myMessage = myPacket.getMessage();
 
         // Only send messages in the specified window
         //
         if ((myMessage.getSeqNum() > _lowerBoundSeq)
                 && (myMessage.getSeqNum() <= _maximumSeq)) {
             _logger.debug("Producing: " + myMessage);
-            _consumer.process(myMessage, anOffset);
+            _consumer.process(myPacket, anOffset);
         } else {
             _logger.debug("Not producing: " + myMessage);
         }
