@@ -107,7 +107,7 @@ public class SuperiorLeaderAtBeginTest {
                             getTransport().send(
                                     new OldRound(myBegin.getSeqNum(), getTransport().getLocalAddress(),
                                             myBegin.getRndNumber() + 1, getTransport().getLocalAddress()),
-                                    myMessage.getNodeId());
+                                    aPacket.getSource());
 
                             return true;
                         } else

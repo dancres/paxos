@@ -203,7 +203,7 @@ public class ALOutOfDateTest {
                 return;
             }
 
-            send(new OutOfDate(getLocalAddress()), myPacket.getMessage().getNodeId());
+            send(new OutOfDate(getLocalAddress()), myPacket.getSource());
         }
     }
 }

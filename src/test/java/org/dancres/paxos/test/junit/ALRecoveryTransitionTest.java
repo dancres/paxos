@@ -137,7 +137,6 @@ public class ALRecoveryTransitionTest {
 		 */
 		Need myNeed = (Need) myTransport.getNextMsg();
 		
-		Assert.assertEquals(myNeed.getNodeId(), myTransport.getLocalAddress());
 		Assert.assertEquals(myNeed.getMinSeq(), 0);
 		Assert.assertEquals(myNeed.getMaxSeq(), mySeqNum + 4);
 		
