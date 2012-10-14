@@ -617,7 +617,7 @@ public class AcceptorLearner {
 	 */
 	private void process(Transport.Packet aPacket, Writer aWriter, Sender aSender) {
         PaxosMessage myMessage = aPacket.getMessage();
-		InetSocketAddress myNodeId = myMessage.getNodeId();
+		InetSocketAddress myNodeId = aPacket.getSource();
 		long mySeqNum = myMessage.getSeqNum();
 
 		_logger.info("AL: got " + myNodeId + " " + myMessage + ", " + _localAddress);
@@ -633,13 +633,13 @@ public class AcceptorLearner {
                  * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
                  */
                 if (myNeed.getMinSeq() < _lastCheckpoint.getLowWatermark().getSeqNum()) {
-                    _common.getTransport().send(new OutOfDate(_localAddress), myNeed.getNodeId());
+                    _common.getTransport().send(new OutOfDate(_localAddress), aPacket.getSource());
 
                 } else if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
                     _logger.debug("Running streamer: " + _localAddress);
 
 
-                    _common.getTransport().connectTo(myNeed.getNodeId(),
+                    _common.getTransport().connectTo(aPacket.getSource(),
                             new Transport.ConnectionHandler() {
                                 public void connected(Stream aStream) {
                                     new RemoteStreamer(myNeed, aStream).start();
@@ -750,7 +750,7 @@ public class AcceptorLearner {
 
                             _common.signal(new VoteOutcome(VoteOutcome.Reason.DECISION, mySeqNum,
                                     _common.getLeaderRndNum(),
-                                    myBegin.getConsolidatedValue(), myBegin.getNodeId()));
+                                    myBegin.getConsolidatedValue(), aPacket.getSource()));
                         }
                     }
 				}
