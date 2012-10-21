@@ -9,12 +9,11 @@ public class CollectCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
         Collect myCollect = (Collect) anObject;
 
-        ByteBuffer myBuffer = ByteBuffer.allocate(4 + 8 + 8 + 8);
+        ByteBuffer myBuffer = ByteBuffer.allocate(4 + 8 + 8);
 
         myBuffer.putInt(Operations.COLLECT);
         myBuffer.putLong(myCollect.getSeqNum());
         myBuffer.putLong(myCollect.getRndNumber());
-        myBuffer.putLong(Codecs.flatten(myCollect.getNodeId()));
 
         myBuffer.flip();
         return myBuffer;
@@ -26,8 +25,7 @@ public class CollectCodec implements Codec {
 
         long mySeq = aBuffer.getLong();
         long myRnd = aBuffer.getLong();
-        long myNode = aBuffer.getLong();
 
-        return new Collect(mySeq, myRnd, Codecs.expand(myNode));
+        return new Collect(mySeq, myRnd);
     }
 }

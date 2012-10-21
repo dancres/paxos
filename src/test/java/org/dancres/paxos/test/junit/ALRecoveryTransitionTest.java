@@ -103,7 +103,7 @@ public class ALRecoveryTransitionTest {
 		
 		// First collect, Al has no state so this is accepted and will be held in packet buffer
 		//
-		myAl.messageReceived(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum, _nodeId)));
+		myAl.messageReceived(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum)));
 		
 		PaxosMessage myResponse = myTransport.getNextMsg();	
 		Assert.assertTrue(myResponse.getType() == Operations.LAST);
@@ -116,18 +116,18 @@ public class ALRecoveryTransitionTest {
 		myValue.put("handback", HANDBACK);
 		
 		myAl.messageReceived(new FakePacket(_nodeId,
-				new Begin(mySeqNum, myRndNum, myValue, _nodeId)));
+				new Begin(mySeqNum, myRndNum, myValue)));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
 
 		// Commit this instance
 		//
-		myAl.messageReceived(new FakePacket(_nodeId, new Success(mySeqNum, myRndNum, _nodeId)));
+		myAl.messageReceived(new FakePacket(_nodeId, new Success(mySeqNum, myRndNum)));
 
 		// Now start an instance which should trigger recovery - happens on collect boundary
 		//
-		myAl.messageReceived(new FakePacket(_nodeId, new Collect(mySeqNum + 5, myRndNum + 2, _nodeId)));
+		myAl.messageReceived(new FakePacket(_nodeId, new Collect(mySeqNum + 5, myRndNum + 2)));
 		
 		Assert.assertTrue(myCommon.testState(Common.FSMStates.RECOVERING));
 		

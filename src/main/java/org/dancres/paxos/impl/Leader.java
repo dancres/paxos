@@ -215,7 +215,7 @@ public class Leader implements MembershipListener {
              */
             case COLLECT : {
             	_currentState = States.BEGIN;
-                emit(new Collect(_seqNum, _rndNumber, _common.getTransport().getLocalAddress()));
+                emit(new Collect(_seqNum, _rndNumber));
 
             	break;
             }
@@ -249,8 +249,7 @@ public class Leader implements MembershipListener {
                 }
 
                 _currentState = States.SUCCESS;
-                emit(new Begin(_seqNum, _rndNumber, _prop,
-                        _common.getTransport().getLocalAddress()));
+                emit(new Begin(_seqNum, _rndNumber, _prop));
 
                 break;
             }
@@ -259,14 +258,13 @@ public class Leader implements MembershipListener {
                 if (_messages.size() >= _common.getPrivateFD().getMajority()) {
                     // Send success
                     //
-                    emit(new Success(_seqNum, _rndNumber, _common.getTransport().getLocalAddress()));
+                    emit(new Success(_seqNum, _rndNumber));
                     cancelInteraction();
                     successful(VoteOutcome.Reason.DECISION);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
-                    emit(new Begin(_seqNum, _rndNumber, _prop,
-                            _common.getTransport().getLocalAddress()));
+                    emit(new Begin(_seqNum, _rndNumber, _prop));
                 }
 
                 break;

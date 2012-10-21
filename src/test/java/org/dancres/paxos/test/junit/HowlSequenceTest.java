@@ -74,8 +74,7 @@ public class HowlSequenceTest {
             
             Proposal myProp = new Proposal("data", myBuffer.array());
 
-            myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
-            	_tport2.getLocalAddress());
+            myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 
             VoteOutcome myEv = myClient.getNext(10000);
 

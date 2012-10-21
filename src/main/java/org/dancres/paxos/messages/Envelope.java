@@ -7,17 +7,14 @@ import org.dancres.paxos.Proposal;
 public class Envelope implements PaxosMessage {
     private long _seqNum = -1;
     private Proposal _proposal;
-    private InetSocketAddress _nodeId;
     
-    public Envelope(Proposal aValue, InetSocketAddress aNodeId) {
+    public Envelope(Proposal aValue) {
         _proposal = aValue;
-        _nodeId = aNodeId;
     }
     
-    public Envelope(long aSeqNum, Proposal aValue, InetSocketAddress aNodeId) {
+    public Envelope(long aSeqNum, Proposal aValue) {
         _seqNum = aSeqNum;
         _proposal = aValue;
-        _nodeId = aNodeId;
     }
 
     public long getSeqNum() {
@@ -32,10 +29,6 @@ public class Envelope implements PaxosMessage {
     	return CLIENT;
     }
      
-    public InetSocketAddress getNodeId() {
-    	return _nodeId;
-    }
-    
     public String toString() {
         return "Post";
     }

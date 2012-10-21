@@ -35,7 +35,7 @@ public class Heartbeater extends Thread {
     
     public void run() {
         while (! isStopping()) {
-            _transport.send(new Heartbeat(_transport.getLocalAddress(), _metaData), _transport.getBroadcastAddress());
+            _transport.send(new Heartbeat(_metaData), _transport.getBroadcastAddress());
 
             try {
                 Thread.sleep(2000);

@@ -12,5 +12,4 @@ public interface PaxosMessage {
     public int getType();
     public long getSeqNum();
     public short getClassification();
-    public InetSocketAddress getNodeId();
 }

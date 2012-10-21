@@ -59,8 +59,7 @@ public class IgnoreCollectsTest {
         myBuffer.putInt(55);
         Proposal myProp = new Proposal("data", myBuffer.array());
         
-        myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
-        		_tport1.getLocalAddress());
+        myClient.send(new Envelope(myProp), _tport1.getLocalAddress());
 
         VoteOutcome myEv = myClient.getNext(10000);
 
@@ -73,7 +72,7 @@ public class IgnoreCollectsTest {
         Common myCommon = _node2.getCommon();
 
         Collect myCollect = new Collect(myCommon.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1,
-        		myCommon.getLeaderRndNum(), myTransport.getLocalAddress());
+        		myCommon.getLeaderRndNum());
 
         myClient.send(myCollect, _tport2.getLocalAddress());
 

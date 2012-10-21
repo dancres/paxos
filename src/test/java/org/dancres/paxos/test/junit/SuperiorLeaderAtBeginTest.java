@@ -63,8 +63,7 @@ public class SuperiorLeaderAtBeginTest {
             Thread.sleep(5000);
         }
 
-        myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
-        		_tport1.getLocalAddress());
+        myClient.send(new Envelope(myProposal), _tport1.getLocalAddress());
 
         VoteOutcome myEv = myClient.getNext(10000);
 
@@ -106,8 +105,7 @@ public class SuperiorLeaderAtBeginTest {
 
                             getTransport().send(
                                     new OldRound(myBegin.getSeqNum(), getTransport().getLocalAddress(),
-                                            myBegin.getRndNumber() + 1, getTransport().getLocalAddress()),
-                                    aPacket.getSource());
+                                            myBegin.getRndNumber() + 1), aPacket.getSource());
 
                             return true;
                         } else

@@ -10,7 +10,6 @@ public class Last implements PaxosMessage, LeaderSelection {
     private long _seqNum;
     private long _low;
     private long _rndNumber;
-    private InetSocketAddress _nodeId;
     private Proposal _value;
 
     /**
@@ -19,13 +18,11 @@ public class Last implements PaxosMessage, LeaderSelection {
      * @param aMostRecentRound is the most recent leader round seen
      * @param aValue is the value, if any, associated with the sequence number of the related collect
      */
-    public Last(long aSeqNum, long aLowWatermark, long aMostRecentRound, Proposal aValue,
-                InetSocketAddress aNodeId) {
+    public Last(long aSeqNum, long aLowWatermark, long aMostRecentRound, Proposal aValue) {
         _seqNum = aSeqNum;
         _low = aLowWatermark;
         _rndNumber = aMostRecentRound;
         _value = aValue;
-        _nodeId = aNodeId;
     }
 
     public int getType() {
@@ -47,10 +44,6 @@ public class Last implements PaxosMessage, LeaderSelection {
         return _value;
     }
 
-    public InetSocketAddress getNodeId() {
-    	return _nodeId;
-    }
-    
     /**
      * @return the most recent leader round seen
      */
@@ -74,15 +67,14 @@ public class Last implements PaxosMessage, LeaderSelection {
 
     public int hashCode() {
     	return new Long(_seqNum).hashCode() ^ new Long(_low).hashCode() ^ 
-    		new Long(_rndNumber).hashCode() ^ _nodeId.hashCode();
+    		new Long(_rndNumber).hashCode();
     }
     
     public boolean equals(Object anObject) {
     	if (anObject instanceof Last) {
     		Last myOther = (Last) anObject;
     		
-    		return (_seqNum == myOther._seqNum) && (_low == myOther._low) && (_rndNumber == myOther._rndNumber) &&
-    			(_nodeId.equals(myOther._nodeId));
+    		return (_seqNum == myOther._seqNum) && (_low == myOther._low) && (_rndNumber == myOther._rndNumber);
     	}
     	
     	return false;

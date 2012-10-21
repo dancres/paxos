@@ -7,22 +7,16 @@ import java.net.InetSocketAddress;
  * Actual range of instances required is _minSeq < i < _maxSeq, where i is a single instance.
  */
 public class Need implements PaxosMessage {
-	private InetSocketAddress _nodeId;
 	private long _minSeq;
 	private long _maxSeq;
 	
-	public Need(long aMin, long aMax, InetSocketAddress aNodeId) {
+	public Need(long aMin, long aMax) {
 		_minSeq = aMin;
 		_maxSeq = aMax;
-		_nodeId = aNodeId;
 	}
 	
 	public short getClassification() {
 		return RECOVERY;
-	}
-
-	public InetSocketAddress getNodeId() {
-		return _nodeId;
 	}
 
 	public long getSeqNum() {
@@ -44,7 +38,6 @@ public class Need implements PaxosMessage {
 	}
 	
 	public String toString() {
-        return "Need: " + Long.toHexString(_minSeq) + " -> " + Long.toHexString(_maxSeq) + ", " +
-        	_nodeId + " ]";		
+        return "Need: " + Long.toHexString(_minSeq) + " -> " + Long.toHexString(_maxSeq);
 	}
 }

@@ -16,13 +16,12 @@ class BeginCodec implements Codec {
         
         ByteBuffer myBuffer;
 
-        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + 8 + myBytes.length);
+        myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + myBytes.length);
 
         myBuffer.putInt(Operations.BEGIN);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myBegin.getSeqNum());
         myBuffer.putLong(myBegin.getRndNumber());
-        myBuffer.putLong(Codecs.flatten(myBegin.getNodeId()));
         myBuffer.put(myBytes);
 
         myBuffer.flip();
@@ -37,11 +36,10 @@ class BeginCodec implements Codec {
         
         long mySeqNum = aBuffer.getLong();
         long myRndNum = aBuffer.getLong();
-        long myNodeId = aBuffer.getLong();
 
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
         
-        return new Begin(mySeqNum, myRndNum, new Proposal(myBytes), Codecs.expand(myNodeId));
+        return new Begin(mySeqNum, myRndNum, new Proposal(myBytes));
     }
 }

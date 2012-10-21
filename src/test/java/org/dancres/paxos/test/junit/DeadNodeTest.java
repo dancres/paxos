@@ -70,8 +70,7 @@ public class DeadNodeTest {
 
         // And perform the test
         //
-        myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
-        		_tport1.getLocalAddress());
+        myClient.send(new Envelope(myProp), _tport1.getLocalAddress());
         VoteOutcome myEv = myClient.getNext(10000);
 
         Assert.assertFalse(myEv == null);

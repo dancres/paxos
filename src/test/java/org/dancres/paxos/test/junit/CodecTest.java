@@ -14,16 +14,15 @@ public class CodecTest {
     private InetSocketAddress _testAddress = Utils.getTestAddress();
 
     @Test public void outOfDate() throws Exception {
-        OutOfDate myOOD = new OutOfDate(_testAddress);
+        OutOfDate myOOD = new OutOfDate();
 
         byte[] myBuffer = Codecs.encode(myOOD);
 
         OutOfDate myOOD2 = (OutOfDate) Codecs.decode(myBuffer);
-        Assert.assertTrue(myOOD.getNodeId().equals(myOOD2.getNodeId()));
     }
 
     @Test public void accept() throws Exception {
-        Accept myAccept = new Accept(1, 2, _testAddress);
+        Accept myAccept = new Accept(1, 2);
 
         byte[] myBuffer = Codecs.encode(myAccept);
 
@@ -31,7 +30,6 @@ public class CodecTest {
 
         Assert.assertTrue(myAccept.getRndNumber() == myAccept2.getRndNumber());
         Assert.assertTrue(myAccept.getSeqNum() == myAccept2.getSeqNum());
-        Assert.assertTrue(myAccept.getNodeId().equals( myAccept2.getNodeId()));
     }
 
     @Test public void event() throws Exception {
@@ -49,8 +47,8 @@ public class CodecTest {
 
         Assert.assertEquals(myEvent.getSeqNum(), myEvent2.getSeqNum());
         Assert.assertEquals(myEvent.getResult(), myEvent2.getResult());
-        Assert.assertEquals(myEvent.getNodeId(), myEvent2.getNodeId());
         Assert.assertEquals(myEvent.getValues(), myEvent2.getValues());
+        Assert.assertEquals(myEvent.getNodeId(), myEvent2.getNodeId());
     }
     
     @Test public void begin() throws Exception {
@@ -60,7 +58,7 @@ public class CodecTest {
         myVal.put("data", myData);
         myVal.put("handback", myHandback);
         
-        Begin myBegin = new Begin(1, 2, myVal, _testAddress);
+        Begin myBegin = new Begin(1, 2, myVal);
 
         byte[] myBuffer = Codecs.encode(myBegin);
 
@@ -68,12 +66,11 @@ public class CodecTest {
 
         Assert.assertEquals(myBegin.getSeqNum(), myBegin2.getSeqNum());
         Assert.assertEquals(myBegin.getRndNumber(), myBegin2.getRndNumber());
-        Assert.assertEquals(myBegin.getNodeId(), myBegin2.getNodeId());
         Assert.assertEquals(myBegin.getConsolidatedValue(), myBegin2.getConsolidatedValue());
     }
 
     @Test public void collect() throws Exception {
-        Collect myCollect = new Collect(1, 2, _testAddress);
+        Collect myCollect = new Collect(1, 2);
 
         byte[] myBuffer = Codecs.encode(myCollect);
 
@@ -81,18 +78,16 @@ public class CodecTest {
 
         Assert.assertEquals(myCollect.getSeqNum(), myCollect.getSeqNum());
         Assert.assertEquals(myCollect.getRndNumber(), myCollect2.getRndNumber());
-        Assert.assertEquals(myCollect.getNodeId(), myCollect2.getNodeId());
     }
 
     @Test public void heartbeat() throws Exception {
         String myMeta = "MetaData";
-        Heartbeat myHeartbeat = new Heartbeat(_testAddress, myMeta.getBytes());
+        Heartbeat myHeartbeat = new Heartbeat(myMeta.getBytes());
 
         byte[] myBuffer = Codecs.encode(myHeartbeat);
 
         Heartbeat myHeartbeat2 = (Heartbeat) Codecs.decode(myBuffer);
         
-        Assert.assertEquals(myHeartbeat.getNodeId(), myHeartbeat2.getNodeId());
         Assert.assertEquals(myMeta, new String(myHeartbeat.getMetaData()));
     }
 
@@ -103,7 +98,7 @@ public class CodecTest {
         myVal.put("data", myData);
         myVal.put("handback", myHandback);
         
-        Last myLast = new Last(0, 1, 2, myVal, _testAddress);
+        Last myLast = new Last(0, 1, 2, myVal);
 
         byte[] myBuffer = Codecs.encode(myLast);
 
@@ -113,11 +108,10 @@ public class CodecTest {
         Assert.assertEquals(myLast.getLowWatermark(), myLast2.getLowWatermark());
         Assert.assertEquals(myLast.getRndNumber(), myLast2.getRndNumber());
         Assert.assertEquals(myLast.getConsolidatedValue(), myLast2.getConsolidatedValue());
-        Assert.assertEquals(myLast.getNodeId(), myLast2.getNodeId());
     }
 
     @Test public void oldRound() throws Exception {
-        OldRound myOldRound = new OldRound(1, _testAddress, 3, _testAddress);
+        OldRound myOldRound = new OldRound(1, _testAddress, 3);
 
         byte[] myBuffer = Codecs.encode(myOldRound);
 
@@ -126,28 +120,26 @@ public class CodecTest {
         Assert.assertEquals(myOldRound.getSeqNum(), myOldRound2.getSeqNum());
         Assert.assertEquals(myOldRound.getLeaderNodeId(), myOldRound2.getLeaderNodeId());
         Assert.assertEquals(myOldRound.getLastRound(), myOldRound2.getLastRound());
-        Assert.assertEquals(myOldRound.getNodeId(), myOldRound2.getNodeId());
     }
 
     @Test public void post() throws Exception {
         byte[] myData = {55};
         Proposal myProp = new Proposal("data", myData);
 
-        Envelope myEnv = new Envelope(myProp, _testAddress);
+        Envelope myEnv = new Envelope(myProp);
 
         byte[] myBuffer = Codecs.encode(myEnv);
 
         Envelope myEnv2 = (Envelope) Codecs.decode(myBuffer);
 
         Assert.assertEquals(myEnv.getValue(), myEnv2.getValue());
-        Assert.assertEquals(myEnv.getNodeId(), myEnv2.getNodeId());
     }
 
     @Test public void success() throws Exception {
         byte[] myData = {55};
         byte[] myHandback = {56};
 
-        Success mySuccess = new Success(1, 2, _testAddress);
+        Success mySuccess = new Success(1, 2);
 
         byte[] myBuffer = Codecs.encode(mySuccess);
 
@@ -155,11 +147,10 @@ public class CodecTest {
 
         Assert.assertEquals(mySuccess.getSeqNum(), mySuccess2.getSeqNum());
         Assert.assertEquals(mySuccess.getRndNum(), mySuccess2.getRndNum());
-        Assert.assertEquals(mySuccess.getNodeId(), mySuccess2.getNodeId());
     }
 
     @Test public void need() throws Exception {
-    	Need myNeed = new Need(1, 2, _testAddress);
+    	Need myNeed = new Need(1, 2);
     	
     	byte[] myBuffer = Codecs.encode(myNeed);
     	
@@ -167,7 +158,6 @@ public class CodecTest {
     	
     	Assert.assertEquals(myNeed.getMinSeq(), myNeed2.getMinSeq());
     	Assert.assertEquals(myNeed.getMaxSeq(), myNeed2.getMaxSeq());
-    	Assert.assertEquals(myNeed.getNodeId(), myNeed2.getNodeId());    	
     }
     
     private void dump(byte[] aBuffer) {

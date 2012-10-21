@@ -14,9 +14,9 @@ public class LastCodec implements Codec {
         ByteBuffer myBuffer;
 
         if (myBytes == null)
-            myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + 8);
+            myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8);
         else
-            myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + 8 + myBytes.length);
+            myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + myBytes.length);
 
         myBuffer.putInt(Operations.LAST);
 
@@ -28,7 +28,6 @@ public class LastCodec implements Codec {
         myBuffer.putLong(myLast.getSeqNum());
         myBuffer.putLong(myLast.getLowWatermark());
         myBuffer.putLong(myLast.getRndNumber());
-        myBuffer.putLong(Codecs.flatten(myLast.getNodeId()));
         
         if (myBytes != null)
             myBuffer.put(myBytes);
@@ -48,11 +47,10 @@ public class LastCodec implements Codec {
         long mySeqNum = aBuffer.getLong();
         long myLow = aBuffer.getLong();
         long myRndNum = aBuffer.getLong();
-        long myNodeId = aBuffer.getLong();
         
 		byte[] myBytes = new byte[myArrLength];
 		aBuffer.get(myBytes);
 
-		return new Last(mySeqNum, myLow, myRndNum, new Proposal(myBytes), Codecs.expand(myNodeId));
+		return new Last(mySeqNum, myLow, myRndNum, new Proposal(myBytes));
     }
 }

@@ -633,7 +633,7 @@ public class AcceptorLearner {
                  * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
                  */
                 if (myNeed.getMinSeq() < _lastCheckpoint.getLowWatermark().getSeqNum()) {
-                    _common.getTransport().send(new OutOfDate(_localAddress), aPacket.getSource());
+                    _common.getTransport().send(new OutOfDate(), aPacket.getSource());
 
                 } else if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
                     _logger.debug("Running streamer: " + _localAddress);
@@ -680,7 +680,7 @@ public class AcceptorLearner {
 					// Another collect has already arrived with a higher priority, tell the proposer it has competition
 					//
                     aSender.send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
-                            _common.getLeaderAddress(), _common.getLeaderRndNum(), _localAddress), myNodeId);
+                            _common.getLeaderAddress(), _common.getLeaderRndNum()), myNodeId);
 				}
 				
 				break;
@@ -697,14 +697,13 @@ public class AcceptorLearner {
                     
 					aWriter.write(aPacket, true);
 
-					aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum(),
-                            _localAddress), myNodeId);
+					aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()), myNodeId);
 				} else if (_common.precedes(aPacket)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
 					aSender.send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
-                            _common.getLeaderAddress(), _common.getLeaderRndNum(), _localAddress), myNodeId);
+                            _common.getLeaderAddress(), _common.getLeaderRndNum()), myNodeId);
 				} else {
 					/*
 					 * Quiet, didn't see the collect, leader hasn't accounted for
@@ -783,8 +782,7 @@ public class AcceptorLearner {
 		}
 		
 		if (myState != null) {
-            return new Last(aSeqNum, myLow.getSeqNum(), myState.getRndNumber(), myState.getConsolidatedValue(),
-                    _localAddress);
+            return new Last(aSeqNum, myLow.getSeqNum(), myState.getRndNumber(), myState.getConsolidatedValue());
 		} else {
             /*
              * If we've got here, we've not found the sequence number in our log. If the sequence number is less
@@ -794,10 +792,10 @@ public class AcceptorLearner {
              */
             if (aSeqNum <= myLow.getSeqNum())
                 return new OldRound(aSeqNum, _common.getLeaderAddress(),
-                        _common.getLeaderRndNum(), _localAddress);
+                        _common.getLeaderRndNum());
             else
                 return new Last(aSeqNum, myLow.getSeqNum(),
-                    Long.MIN_VALUE, Proposal.NO_VALUE, _localAddress);            
+                    Long.MIN_VALUE, Proposal.NO_VALUE);            
 		}
 	}
 

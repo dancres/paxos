@@ -11,16 +11,10 @@ import java.net.InetSocketAddress;
  * @author dan
  */
 public class Heartbeat implements PaxosMessage {
-    private InetSocketAddress _addr;
     private byte[] _metaData;
     
-    public Heartbeat(InetSocketAddress anAddr, byte[] metaData) {
-    	_addr = anAddr;
+    public Heartbeat(byte[] metaData) {
         _metaData = metaData;
-    }
-    
-    public InetSocketAddress getNodeId() {
-    	return _addr;
     }
     
     public int getType() {
@@ -44,20 +38,6 @@ public class Heartbeat implements PaxosMessage {
     }
     
     public boolean isResponse() {
-    	return false;
-    }
-    
-    public int hashCode() {
-    	return _addr.hashCode();
-    }
-    
-    public boolean equals(Object anObject) {
-    	if (anObject instanceof Heartbeat) {
-    		Heartbeat myOther = (Heartbeat) anObject;
-    		
-    		return (myOther._addr.equals(_addr));
-    	}
-    	
     	return false;
     }
 }

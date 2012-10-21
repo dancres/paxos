@@ -61,8 +61,7 @@ public class HeartbeatTest {
         ensureFD(_node1.getCommon().getPrivateFD());
         ensureFD(_node2.getCommon().getPrivateFD());
 
-        myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
-        		_tport2.getLocalAddress());
+        myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 
         VoteOutcome myEv = myClient.getNext(10000);
 

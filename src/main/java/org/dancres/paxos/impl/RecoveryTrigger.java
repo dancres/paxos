@@ -59,11 +59,9 @@ public class RecoveryTrigger {
             //
             if (_completed.size() == 0) {
                 if (aProposalSeqNum > _lowSeqNumWatermark.getSeqNum() + MAX_INFLIGHT)
-                    return new Need(_lowSeqNumWatermark.getSeqNum(), aProposalSeqNum - 1,
-                            aLocalAddress);
+                    return new Need(_lowSeqNumWatermark.getSeqNum(), aProposalSeqNum - 1);
             } else if (_lowSeqNumWatermark.getSeqNum() + MAX_INFLIGHT < _completed.last().getSeqNum()) {
-                return new Need(_lowSeqNumWatermark.getSeqNum(), _completed.first().getSeqNum() - 1,
-                        aLocalAddress);
+                return new Need(_lowSeqNumWatermark.getSeqNum(), _completed.first().getSeqNum() - 1);
             }
 
             return null;

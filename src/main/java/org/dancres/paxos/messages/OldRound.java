@@ -13,13 +13,11 @@ public class OldRound implements PaxosMessage, LeaderSelection {
     private long _seqNum;
     private long _lastRound;
     private InetSocketAddress _leaderNodeId;
-    private InetSocketAddress _nodeId;
     
-    public OldRound(long aSeqNum, InetSocketAddress aLeaderNodeId, long aLastRound, InetSocketAddress aNodeId) {
+    public OldRound(long aSeqNum, InetSocketAddress aLeaderNodeId, long aLastRound) {
         _seqNum = aSeqNum;
         _leaderNodeId = aLeaderNodeId;
         _lastRound = aLastRound;
-        _nodeId = aNodeId;
     }
 
     public int getType() {
@@ -38,10 +36,6 @@ public class OldRound implements PaxosMessage, LeaderSelection {
         return _leaderNodeId;
     }
 
-    public InetSocketAddress getNodeId() {
-    	return _nodeId;
-    }
-        
     public long getLastRound() {
         return _lastRound;
     }
@@ -53,8 +47,7 @@ public class OldRound implements PaxosMessage, LeaderSelection {
     }
 
     public int hashCode() {
-    	return new Long(_seqNum).hashCode() ^ new Long(_lastRound).hashCode() ^ _leaderNodeId.hashCode() ^
-    		_nodeId.hashCode();
+    	return new Long(_seqNum).hashCode() ^ new Long(_lastRound).hashCode() ^ _leaderNodeId.hashCode();
     }
     
     public boolean equals(Object anObject) {
@@ -62,7 +55,7 @@ public class OldRound implements PaxosMessage, LeaderSelection {
     		OldRound myOther = (OldRound) anObject;
     		
     		return (myOther._seqNum == _seqNum) && (myOther._lastRound == _lastRound) && 
-    			(myOther._leaderNodeId.equals(_leaderNodeId)) && (myOther._nodeId.equals(_nodeId));
+    			(myOther._leaderNodeId.equals(_leaderNodeId));
     	}
     	
     	return false;

@@ -11,14 +11,13 @@ public class EnvelopeCodec implements Codec {
         Envelope myEnvelope = (Envelope) anObject;
         byte[] myBytes = myEnvelope.getValue().marshall();
 
-        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + 8 + myBytes.length);
+        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 8 + myBytes.length);
 
         // Length count does not include length bytes themselves
         //
         myBuffer.putInt(Operations.ENVELOPE);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myEnvelope.getSeqNum());
-        myBuffer.putLong(Codecs.flatten(myEnvelope.getNodeId()));
         myBuffer.put(myBytes);
         myBuffer.flip();
         return myBuffer;
@@ -31,10 +30,9 @@ public class EnvelopeCodec implements Codec {
         int myArrLength = aBuffer.getInt();
 
         long mySeqNum = aBuffer.getLong();
-        long myNodeId = aBuffer.getLong();
         
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
-        return new Envelope(mySeqNum, new Proposal(myBytes), Codecs.expand(myNodeId));
+        return new Envelope(mySeqNum, new Proposal(myBytes));
     }
 }

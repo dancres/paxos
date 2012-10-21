@@ -101,8 +101,7 @@ public class LastHandlingTest {
             Thread.sleep(5000);
         }
 
-        myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
-        		_tport1.getLocalAddress());
+        myClient.send(new Envelope(myProposal), _tport1.getLocalAddress());
 
         VoteOutcome myEv = myClient.getNext(10000);
 
@@ -191,7 +190,7 @@ public class LastHandlingTest {
                 			
                 			_seenLast = true;
                 			_tp.send(new Last(myOrig.getSeqNum(), myOrig.getLowWatermark(), myOrig.getRndNumber() + 1,
-                					new Proposal("data", myBuffer.array()), myOrig.getNodeId()), anAddr);
+                					new Proposal("data", myBuffer.array())), anAddr);
                 		} else {
                     		_tp.send(aMessage, anAddr);                			
                 		}

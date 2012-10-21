@@ -66,8 +66,7 @@ public class PacketDropTest {
          * If there is no stable majority and we cannot circumvent packet loss we expect the leader to ultimately
          * give up.
          */
-        myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
-        		_tport1.getLocalAddress());
+        myClient.send(new Envelope(myProposal), _tport1.getLocalAddress());
 
         VoteOutcome myEv = myClient.getNext(15000);
 

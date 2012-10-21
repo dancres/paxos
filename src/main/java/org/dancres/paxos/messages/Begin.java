@@ -9,13 +9,11 @@ import org.dancres.paxos.impl.LeaderUtils;
 public class Begin implements PaxosMessage {
     private long _seqNum;
     private long _rndNumber;
-    private InetSocketAddress _nodeId;
     private Proposal _consolidatedValue;
     
-    public Begin(long aSeqNum, long aRndNumber, Proposal aValue, InetSocketAddress aNodeId) {
+    public Begin(long aSeqNum, long aRndNumber, Proposal aValue) {
         _seqNum = aSeqNum;
         _rndNumber = aRndNumber;
-        _nodeId = aNodeId;
         _consolidatedValue = aValue;
     }
 
@@ -40,7 +38,7 @@ public class Begin implements PaxosMessage {
     }
     
     public int hashCode() {
-    	return new Long(_seqNum).hashCode() ^ new Long(_rndNumber).hashCode() ^ _nodeId.hashCode();
+    	return new Long(_seqNum).hashCode() ^ new Long(_rndNumber).hashCode();
     }
     
     public boolean equals(Object anObject) {
@@ -48,7 +46,7 @@ public class Begin implements PaxosMessage {
     		Begin myOther = (Begin) anObject;
     		
     		return (_seqNum == myOther._seqNum) &&
-                    (_rndNumber == myOther._rndNumber) && (_nodeId.equals(myOther._nodeId));
+                    (_rndNumber == myOther._rndNumber);
     	}
     	
     	return false;
@@ -56,11 +54,7 @@ public class Begin implements PaxosMessage {
     
     public String toString() {
         return "Begin: " + Long.toHexString(_seqNum) + " [ " +
-                Long.toHexString(_rndNumber) + ", " + _nodeId + " ] " +
+                Long.toHexString(_rndNumber) +
                 _consolidatedValue.equals(Proposal.NO_VALUE);
-    }
-
-    public InetSocketAddress getNodeId() {
-        return _nodeId;
     }
 }

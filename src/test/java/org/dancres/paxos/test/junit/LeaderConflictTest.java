@@ -73,11 +73,9 @@ public class LeaderConflictTest {
         Proposal myProp1 = new Proposal("data", myBuffer1.array());
         Proposal myProp2 = new Proposal("data", myBuffer2.array());
 
-        myClient1.send(new Envelope(myProp1, myTransport1.getLocalAddress()),
-                _tport1.getLocalAddress());
+        myClient1.send(new Envelope(myProp1), _tport1.getLocalAddress());
 
-        myClient2.send(new Envelope(myProp2, myTransport2.getLocalAddress()),
-                _tport2.getLocalAddress());
+        myClient2.send(new Envelope(myProp2), _tport2.getLocalAddress());
 
         VoteOutcome myMsg1 = myClient1.getNext(10000);
         VoteOutcome myMsg2 = myClient2.getNext(10000);

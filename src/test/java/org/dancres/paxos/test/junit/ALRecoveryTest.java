@@ -84,8 +84,7 @@ public class ALRecoveryTest {
             myBuffer.putInt(i);
             Proposal myProp = new Proposal("data", myBuffer.array());
 
-            myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
-            	_tport2.getLocalAddress());
+            myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 
             VoteOutcome myEv = myClient.getNext(10000);
 
@@ -117,8 +116,7 @@ public class ALRecoveryTest {
         myBuffer.putInt(67);
         Proposal myProp = new Proposal("data", myBuffer.array());
         
-        myClient.send(new Envelope(myProp, myTransport.getLocalAddress()),
-            	_tport2.getLocalAddress());
+        myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 
         PaxosMessage myMsg = myClient.getNext(10000);
         
@@ -128,8 +126,7 @@ public class ALRecoveryTest {
         
         System.err.println("Run another instance - in progress");
         
-        myClient.send(new Envelope(myProp2, myTransport.getLocalAddress()),
-            	_tport2.getLocalAddress());
+        myClient.send(new Envelope(myProp2), _tport2.getLocalAddress());
 
         myMsg = myClient.getNext(10000);
         

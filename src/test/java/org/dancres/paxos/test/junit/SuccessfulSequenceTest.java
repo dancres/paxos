@@ -58,8 +58,7 @@ public class SuccessfulSequenceTest {
             myBuffer.putInt(i);
             Proposal myProposal = new Proposal("data", myBuffer.array());
 
-            myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
-            		_tport1.getLocalAddress());
+            myClient.send(new Envelope(myProposal), _tport1.getLocalAddress());
 
             VoteOutcome myEv = myClient.getNext(10000);
 

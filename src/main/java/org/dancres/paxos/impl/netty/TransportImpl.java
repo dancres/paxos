@@ -411,8 +411,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		Transport _tport2 = new TransportImpl();
         _tport2.add(new DispatcherImpl());
 		
-		_tport1.send(new Accept(1, 2, _tport1.getLocalAddress()), _tport1.getBroadcastAddress());
-		_tport1.send(new Accept(2, 3, _tport2.getLocalAddress()), _tport2.getLocalAddress());
+		_tport1.send(new Accept(1, 2), _tport1.getBroadcastAddress());
+		_tport1.send(new Accept(2, 3), _tport2.getLocalAddress());
 
 		Thread.sleep(5000);
 		_tport1.shutdown();
