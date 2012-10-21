@@ -173,8 +173,11 @@ public class LastHandlingTest {
                 }
 
                 /*
-                 *  Introducing a valid LAST should cause the leader to deliver up this value and then re-propose(non-Javadoc)
-                 *  the original value above
+                 * The repsonding AL will be starting from zero state and thus would normally generate a
+                 * "permissive" LAST that permits the leader (also at zero state) to make a new proposal 
+                 * immediately. We want the leader to have to clear out a previous proposal prior to that. So
+                 * we replace the "permissive" last, introducing a valid LAST that should cause the leader to
+                 * deliver up the included value and then re-propose(non-Javadoc) the original value above.
                  */                
                 public void send(PaxosMessage aMessage, InetSocketAddress anAddr) {
                 	if (_seenLast)
