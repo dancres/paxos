@@ -20,7 +20,7 @@ public class VoteOutcomeCodec implements Codec {
         myBuffer.putLong(myEvent.getSeqNum());
         myBuffer.putLong(myEvent.getRndNumber());
         myBuffer.putInt(myEvent.getResult());
-        myBuffer.putLong(Codecs.flatten(myEvent.getNodeId()));
+        myBuffer.putLong(Codecs.flatten(myEvent.getLeader()));
         myBuffer.put(myBytes);
 
         myBuffer.flip();

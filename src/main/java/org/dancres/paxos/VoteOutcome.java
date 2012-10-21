@@ -117,8 +117,4 @@ public class VoteOutcome implements PaxosMessage {
 	public short getClassification() {
 		return CLIENT;
 	}
-
-	public InetSocketAddress getNodeId() {
-		return _leader;
-	}
 }

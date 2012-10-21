@@ -48,7 +48,7 @@ public class CodecTest {
         Assert.assertEquals(myEvent.getSeqNum(), myEvent2.getSeqNum());
         Assert.assertEquals(myEvent.getResult(), myEvent2.getResult());
         Assert.assertEquals(myEvent.getValues(), myEvent2.getValues());
-        Assert.assertEquals(myEvent.getNodeId(), myEvent2.getNodeId());
+        Assert.assertEquals(myEvent.getLeader(), myEvent2.getLeader());
     }
     
     @Test public void begin() throws Exception {

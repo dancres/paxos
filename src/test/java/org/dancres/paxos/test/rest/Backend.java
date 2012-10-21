@@ -287,7 +287,7 @@ public class Backend {
                     if (_outOfDate.compareAndSet(false, true)) {
                         try {
                             new Recovery(
-                                    toHttp(_paxos.getDetector().getMemberMap().get(anEvent.getNodeId()).getData())
+                                    toHttp(_paxos.getDetector().getMemberMap().get(anEvent.getLeader()).getData())
                             ).start();
                         } catch (Exception anE) {
                             _logger.error("Couldn't start recovery thread", anE);
