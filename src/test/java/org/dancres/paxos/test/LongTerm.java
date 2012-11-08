@@ -18,9 +18,27 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+/**
+ * This test is not yet deterministic enough. We need a deterministic packet delivery structure to ensure
+ * things are dispatched appropriately. This might best be effected by creating some form of transport with
+ * queuing that can be processed at the behest of the thread that makes the leader requests. The transport
+ * could potentially share one queue with all other instances of the transport. This transport or an
+ * instance thereof would be passed ServerDispatchers.
+ *
+ * An alternative is to create a separate "network" that runs off a single ordered queue and one thread
+ * simulating failure in accordance with the RNG used for all else. Similar failure schedules could be
+ * applied at logger level etc. So  we create all the components and have them generate a failure
+ * schedule meaningful to themselves (e.g. fail a logfile after the 20th write). Conceptually the single
+ * thread and its queue are a network switch with a number of connections each with an address 
+ * (transport implementations). The switch delivers packets to the connection with the appropriate address.
+ * Obviously, the broadcast address results in an ordered delivery of one packet to all connections.
+ * Ordering could be done on port number which is assigned via test.Utils as they are atomic and
+ * monotonically increasing.
+ */
 public class LongTerm {
-    private static final long MAX_CYCLES = 100000;
+    private static final long MAX_CYCLES = 20000;
     private static final long CKPT_CYCLES = 10000;
+    private static final String BASEDIR = "/Volumes/LaCie/paxoslogs/";
 
     private class Environment {
         final Random _rng;
@@ -33,12 +51,11 @@ public class LongTerm {
             _rng = new Random(aSeed);
 
             for (int i = 0; i < 5; i++) {
-                FileSystem.deleteDirectory(new File("node" + Integer.toString(i) + "logs"));
+                FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(i) + "logs"));
 
                 ServerDispatcher myDisp =
-                        new ServerDispatcher(new FailureDetectorImpl(3, 5000) // ,
-                                // new HowlLogger("node" + Integer.toString(i) + "logs"));
-                                );
+                        new ServerDispatcher(new FailureDetectorImpl(3, 5000),
+                                new HowlLogger(BASEDIR + "node" + Integer.toString(i) + "logs"));
 
                 TransportImpl myTp = new DroppingTransportImpl();
                 myTp.add(myDisp);
