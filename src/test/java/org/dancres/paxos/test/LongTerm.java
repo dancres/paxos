@@ -12,6 +12,7 @@ import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.FileSystem;
+import org.dancres.paxos.test.utils.OrderedMemoryTransportFactory;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -44,11 +45,14 @@ public class LongTerm {
         final Random _rng;
         final Map<Long, Strategy> _actions = new TreeMap<Long, Strategy>();
         final List<ServerDispatcher> _servers = new LinkedList<ServerDispatcher>();
-        DroppingTransportImpl _currentLeader;
+        Transport _currentLeader;
+        final OrderedMemoryTransportFactory _factory;
+
         long _opCount = 0;
 
         Environment(long aSeed) throws Exception {
             _rng = new Random(aSeed);
+            _factory = new OrderedMemoryTransportFactory();
 
             for (int i = 0; i < 5; i++) {
                 FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(i) + "logs"));
@@ -57,13 +61,13 @@ public class LongTerm {
                         new ServerDispatcher(new FailureDetectorImpl(3, 5000),
                                 new HowlLogger(BASEDIR + "node" + Integer.toString(i) + "logs"));
 
-                TransportImpl myTp = new DroppingTransportImpl();
+                Transport myTp = _factory.newTransport();
                 myTp.add(myDisp);
 
                 _servers.add(myDisp);
             }
 
-            _currentLeader = (DroppingTransportImpl) _servers.get(0).getTransport();
+            _currentLeader = _servers.get(0).getTransport();
         }
 
         void updateLeader(InetSocketAddress anAddr) {
@@ -71,7 +75,7 @@ public class LongTerm {
                 Transport myTp = mySD.getTransport();
 
                 if (myTp.getLocalAddress().equals(anAddr)) {
-                    _currentLeader = (DroppingTransportImpl) myTp;
+                    _currentLeader = myTp;
                     break;
                 }
             }
@@ -124,7 +128,7 @@ public class LongTerm {
 
     private void run() throws Exception {
         ClientDispatcher myClient = new ClientDispatcher();
-        TransportImpl myTransport = new TransportImpl();
+        Transport myTransport = _env._factory.newTransport();
         myTransport.add(myClient);
 
         long opsSinceCkpt = 0;
@@ -189,6 +193,8 @@ public class LongTerm {
 
         for (ServerDispatcher mySd : _env._servers)
             mySd.stop();
+
+        _env._factory.stop();
     }
 
     /**
