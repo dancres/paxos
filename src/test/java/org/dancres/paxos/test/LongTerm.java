@@ -143,7 +143,7 @@ public class LongTerm {
             myBuffer.putLong(_env._opCount);
             Proposal myProposal = new Proposal("data", myBuffer.array());
 
-            myClient.send(new Envelope(myProposal, myTransport.getLocalAddress()),
+            myClient.send(new Envelope(myProposal),
                     _env._currentLeader.getLocalAddress());
 
             VoteOutcome myEv = myClient.getNext(10000);
