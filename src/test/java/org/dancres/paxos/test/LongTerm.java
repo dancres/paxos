@@ -82,31 +82,6 @@ public class LongTerm {
         }
     }
 
-    static class DroppingTransportImpl extends TransportImpl {
-        private boolean _drop;
-
-        DroppingTransportImpl() throws Exception {
-            super();
-        }
-
-        public void send(PaxosMessage aMessage, InetSocketAddress anAddress) {
-            if (canSend())
-                super.send(aMessage, anAddress);
-        }
-
-        private boolean canSend() {
-            synchronized(this) {
-                return ! _drop;
-            }
-        }
-
-        void setDrop(boolean aDropStatus) {
-            synchronized(this) {
-                _drop = aDropStatus;
-            }
-        }
-    }
-
     private static final Strategy[] _happenings = new Strategy[]{new Fake()};
 
     private Environment _env;
