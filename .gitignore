@@ -7,8 +7,6 @@ reports
 *logs*
 *.iml
 .idea/*
-./production
-./test
-./scripts
-./ckptdir
-
+scripts
+ckptdir
+target
