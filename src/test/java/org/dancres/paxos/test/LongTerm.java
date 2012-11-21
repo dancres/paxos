@@ -25,21 +25,21 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
- * This test is not yet deterministic enough. We need a deterministic packet delivery structure to ensure
- * things are dispatched appropriately. This might best be effected by creating some form of transport with
- * queuing that can be processed at the behest of the thread that makes the leader requests. The transport
- * could potentially share one queue with all other instances of the transport. This transport or an
- * instance thereof would be passed ServerDispatchers.
+ * Need a statistical failure model with varying probabilities for each thing within a tolerance / order
+ * For normalisation against a test duration, one year is 525600 minutes.
+ * 
+ * <ol>
+ * <li>Hard disk failure - 6 to 10% </li>
+ * <li>Node failure - 1 to 2% up to 15 minutes to recover</li>
+ * <li>DC-wide network failure - 0 to 1% up to  5.26 minutes/year</li>
+ * <li>Rack-level failure - 0 to 1% downtime up to 8.76 hours/year</li>
+ * <li>Link-level failure - 0 to 1% up to 52.56 minutes/year</li>
+ * <li>DC-wide packet loss - 1 to 2% with loss of 2 to 10's packets</li>
+ * <li>Rack-level packet loss - 1 to 2% with loss of 2 to 10's packets</li>
+ * <li>Link-level packet loss - 1 to 2% with loss of 2 to 10's packets</li>
+ * </ol>
  *
- * An alternative is to create a separate "network" that runs off a single ordered queue and one thread
- * simulating failure in accordance with the RNG used for all else. Similar failure schedules could be
- * applied at logger level etc. So  we create all the components and have them generate a failure
- * schedule meaningful to themselves (e.g. fail a logfile after the 20th write). Conceptually the single
- * thread and its queue are a network switch with a number of connections each with an address 
- * (transport implementations). The switch delivers packets to the connection with the appropriate address.
- * Obviously, the broadcast address results in an ordered delivery of one packet to all connections.
- * Ordering could be done on port number which is assigned via test.Utils as they are atomic and
- * monotonically increasing.
+ * Each of these will also have a typical time to fix. In essence we want an MTBF/MTRR model.
  */
 public class LongTerm {
     private static final long MAX_CYCLES = 20000;
