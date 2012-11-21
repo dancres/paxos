@@ -42,12 +42,14 @@ import java.util.*;
  * Each of these will also have a typical time to fix. In essence we want an MTBF/MTRR model.
  */
 public class LongTerm {
-    private static final long MAX_CYCLES = 20000;
     private static final long CKPT_CYCLES = 10000;
     private static final String BASEDIR = "/Volumes/LaCie/paxoslogs/";
 
     static interface Args {
-        @Option(defaultValue="10000")
+        @Option(defaultValue="0")
+        long getSeed();
+
+        @Option(defaultValue="200")
         int getCycles();
 
         @Option
@@ -55,6 +57,8 @@ public class LongTerm {
     }
 
     private class Environment {
+        final boolean _calibrate;
+        final long _maxCycles;
         final Random _rng;
         final Map<Long, Strategy> _actions = new TreeMap<Long, Strategy>();
         final List<ServerDispatcher> _servers = new LinkedList<ServerDispatcher>();
@@ -63,7 +67,9 @@ public class LongTerm {
 
         long _opCount = 0;
 
-        Environment(long aSeed) throws Exception {
+        Environment(long aSeed, long aCycles, boolean doCalibrate) throws Exception {
+            _calibrate = doCalibrate;
+            _maxCycles = aCycles;
             _rng = new Random(aSeed);
             _factory = new OrderedMemoryTransportFactory();
 
@@ -99,18 +105,28 @@ public class LongTerm {
 
     private Environment _env;
 
-    private LongTerm(long aSeed) throws Exception {
-        _env = new Environment(aSeed);
+    private LongTerm(long aSeed, long aCycles, boolean doCalibrate) throws Exception {
+        _env = new Environment(aSeed, aCycles, doCalibrate);
     }
 
     public static void main(String[] anArgs) throws Exception {
         Args myArgs = CliFactory.parseArguments(Args.class, anArgs);
-        LongTerm myTest;
+        
+        long myStart = System.currentTimeMillis();
 
-        if (myArgs.isCalibrate())
-            throw new RuntimeException("Calibration not supported yet");
-        else
-            new LongTerm(myArgs.getCycles()).run();
+        new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate()).run();
+
+        double myDuration = (System.currentTimeMillis() - myStart) / 1000.0;
+
+        System.out.println("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
+
+        if (myArgs.isCalibrate()) {
+            double myOpsPerSec = myDuration / myArgs.getCycles();
+            double myOpsHour = myOpsPerSec * 60 * 60;
+
+            System.out.println("Calibration recommendation - ops/sec: " + myOpsPerSec + 
+                " iterations in an hour would be: " + myOpsHour);
+        }
     }
 
     private void run() throws Exception {
@@ -120,20 +136,22 @@ public class LongTerm {
 
         long opsSinceCkpt = 0;
 
-        for (long i = 0; i < MAX_CYCLES; i++) {
-            // Pick a percent chance of a failure
-            //
-            int myChancePercent = _env._rng.nextInt(101);
+        if (! _env._calibrate) {
+            for (long i = 0; i < _env._maxCycles; i++) {
+                // Pick a percent chance of a failure
+                //
+                int myChancePercent = _env._rng.nextInt(101);
 
-            int myResultPercent = _env._rng.nextInt(101);
+                int myResultPercent = _env._rng.nextInt(101);
 
-            if (myResultPercent <= myChancePercent) {
-                if (_env._actions.get(i) == null)
-                    _env._actions.put(i, _happenings[_env._rng.nextInt(_happenings.length)]);
+                if (myResultPercent <= myChancePercent) {
+                    if (_env._actions.get(i) == null)
+                        _env._actions.put(i, _happenings[_env._rng.nextInt(_happenings.length)]);
+                }
             }
         }
 
-        while (_env._opCount < MAX_CYCLES) {
+        while (_env._opCount < _env._maxCycles) {
 
             // If there's an action this round
             //
