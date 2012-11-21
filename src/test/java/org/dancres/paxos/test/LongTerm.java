@@ -14,6 +14,11 @@ import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.OrderedMemoryTransportFactory;
 
+import com.lexicalscope.jewel.cli.ArgumentValidationException;
+import com.lexicalscope.jewel.cli.Cli;
+import com.lexicalscope.jewel.cli.CliFactory;
+import com.lexicalscope.jewel.cli.Option;
+
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -40,6 +45,14 @@ public class LongTerm {
     private static final long MAX_CYCLES = 20000;
     private static final long CKPT_CYCLES = 10000;
     private static final String BASEDIR = "/Volumes/LaCie/paxoslogs/";
+
+    static interface Args {
+        @Option(defaultValue="10000")
+        int getCycles();
+
+        @Option
+        boolean isCalibrate();
+    }
 
     private class Environment {
         final Random _rng;
@@ -91,14 +104,13 @@ public class LongTerm {
     }
 
     public static void main(String[] anArgs) throws Exception {
+        Args myArgs = CliFactory.parseArguments(Args.class, anArgs);
         LongTerm myTest;
 
-        if (anArgs.length == 0)
-            myTest = new LongTerm(0);
+        if (myArgs.isCalibrate())
+            throw new RuntimeException("Calibration not supported yet");
         else
-            myTest = new LongTerm(Long.parseLong(anArgs[0]));
-
-        myTest.run();
+            new LongTerm(myArgs.getCycles()).run();
     }
 
     private void run() throws Exception {
