@@ -1,6 +1,7 @@
 package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.impl.Heartbeater;
 
 /**
  * Broadcasts <code>Heartbeat</code> messages at an appropriate rate for <code>FailureDetectorImpl</code>'s in
@@ -10,14 +11,14 @@ import org.dancres.paxos.impl.Transport;
  *
  * @author dan
  */
-public class Heartbeater extends Thread {
+class HeartbeaterImpl extends Thread implements Heartbeater {
     private Transport _transport;
     private byte[] _metaData;
     private long _pulseRate;
 
     private boolean _stopping = false;
     
-    public Heartbeater(Transport aTransport, byte[] metaData, long aPulseRate) {
+    HeartbeaterImpl(Transport aTransport, byte[] metaData, long aPulseRate) {
         _transport = aTransport;
         _metaData = metaData;
         _pulseRate = aPulseRate;

@@ -2,7 +2,7 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport.Packet;
-import org.dancres.paxos.impl.faildet.Heartbeater;
+import org.dancres.paxos.impl.Heartbeater;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -6,7 +6,7 @@ import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.Transport;
-import org.dancres.paxos.impl.faildet.Heartbeater;
+import org.dancres.paxos.impl.Heartbeater;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;

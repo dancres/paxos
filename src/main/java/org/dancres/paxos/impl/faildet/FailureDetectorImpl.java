@@ -1,12 +1,12 @@
 package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.Heartbeater;
 import org.dancres.paxos.impl.Membership;
 import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
-import org.dancres.paxos.impl.faildet.Heartbeater;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
@@ -99,7 +99,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
     }
     
     public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
-        return new Heartbeater(aTransport, aMetaData, 2000);
+        return new HeartbeaterImpl(aTransport, aMetaData, 2000);
     }   
      
     private boolean isStopping() {

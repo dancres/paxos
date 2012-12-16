@@ -3,7 +3,7 @@ package org.dancres.paxos.impl;
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
-import org.dancres.paxos.impl.faildet.Heartbeater;
+import org.dancres.paxos.impl.Heartbeater;
 
 public interface MessageBasedFailureDetector extends FailureDetector {
     public void processMessage(Packet aPacket) throws Exception;
