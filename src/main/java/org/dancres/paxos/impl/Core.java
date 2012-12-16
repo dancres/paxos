@@ -58,9 +58,9 @@ public class Core implements Transport.Dispatcher, Paxos {
         _common.setTransport(aTransport);
 
         if (_meta == null)
-            _hb = new Heartbeater(aTransport, aTransport.getLocalAddress().toString().getBytes(), 2000);
+            _hb = _common.getPrivateFD().newHeartbeater(aTransport, aTransport.getLocalAddress().toString().getBytes());
         else
-            _hb = new Heartbeater(aTransport, _meta, 2000);
+            _hb = _common.getPrivateFD().newHeartbeater(aTransport, _meta);
 
         _al = new AcceptorLearner(_log, _common);
         _al.open(_handle);

@@ -5,6 +5,8 @@ import org.dancres.paxos.impl.Membership;
 import org.dancres.paxos.impl.MembershipListener;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport.Packet;
+import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.impl.faildet.Heartbeater;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -27,6 +29,10 @@ public class NullFailureDetector implements MessageBasedFailureDetector {
     public int getMajority() {
         return 2;
     }
+
+	public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
+		return null;
+	}
 
     public void processMessage(Packet aPacket) throws Exception {
     }

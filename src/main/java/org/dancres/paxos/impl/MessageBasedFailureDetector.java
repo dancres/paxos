@@ -1,7 +1,9 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
+import org.dancres.paxos.impl.faildet.Heartbeater;
 
 public interface MessageBasedFailureDetector extends FailureDetector {
     public void processMessage(Packet aPacket) throws Exception;
@@ -19,6 +21,8 @@ public interface MessageBasedFailureDetector extends FailureDetector {
      * @return the size of membership required for a majority
      */
     public int getMajority();
+
+    public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData);
 
     public void stop();
 }
