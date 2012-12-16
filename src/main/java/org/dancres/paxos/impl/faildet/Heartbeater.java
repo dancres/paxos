@@ -13,12 +13,14 @@ import org.dancres.paxos.impl.Transport;
 public class Heartbeater extends Thread {
     private Transport _transport;
     private byte[] _metaData;
+    private long _pulseRate;
 
     private boolean _stopping = false;
     
-    public Heartbeater(Transport aTransport, byte[] metaData) {
+    public Heartbeater(Transport aTransport, byte[] metaData, long aPulseRate) {
         _transport = aTransport;
         _metaData = metaData;
+        _pulseRate = aPulseRate;
     }
 
     public void halt() {
@@ -38,7 +40,7 @@ public class Heartbeater extends Thread {
             _transport.send(new Heartbeat(_metaData), _transport.getBroadcastAddress());
 
             try {
-                Thread.sleep(2000);
+                Thread.sleep(_pulseRate);
             } catch (InterruptedException e) {}
         }
     }
