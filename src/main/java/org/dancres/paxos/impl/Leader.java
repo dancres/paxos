@@ -109,7 +109,7 @@ public class Leader implements MembershipListener {
 
     void shutdown() {
     	synchronized(this) {
-            if (! isDone()) {
+            if ((! isDone()) && (_currentState != States.SHUTDOWN)) {
     		    _currentState = States.SHUTDOWN;
                 _outcome = null;
                 process();
