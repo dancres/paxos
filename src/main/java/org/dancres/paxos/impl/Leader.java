@@ -141,13 +141,13 @@ public class Leader implements MembershipListener {
         }
     }
 
-   private void cleanUp() {
-       _messages.clear();
+    private void cleanUp() {
+     _messages.clear();
 
-       if (_membership != null)
-           _membership.dispose();       
-   }
-    
+     if (_membership != null)
+         _membership.dispose();       
+    }
+
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
