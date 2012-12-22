@@ -83,7 +83,7 @@ public class Leader implements MembershipListener {
 
     private List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
-    public Leader(Common aCommon, LeaderFactory aFactory,
+    Leader(Common aCommon, LeaderFactory aFactory,
                   long aNextSeq, long aRndNumber) {
         _common = aCommon;
         _factory = aFactory;
@@ -92,7 +92,7 @@ public class Leader implements MembershipListener {
         _startState = States.COLLECT;
     }
 
-    public Leader(Common aCommon, LeaderFactory aFactory,
+    Leader(Common aCommon, LeaderFactory aFactory,
                   long aNextSeq, long aRndNumber, States aStartState) {
         _common = aCommon;
         _factory = aFactory;
