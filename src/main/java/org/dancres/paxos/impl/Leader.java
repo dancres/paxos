@@ -137,8 +137,7 @@ public class Leader implements MembershipListener {
 
     boolean isDone() {
         synchronized(this) {
-            return ((_currentState.equals(States.EXIT)) || (_currentState.equals(States.ABORT)) ||
-                    (_currentState.equals(States.SHUTDOWN)));
+            return ((_currentState.equals(States.EXIT)) || (_currentState.equals(States.ABORT)));
         }
     }
 
