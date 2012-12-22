@@ -160,6 +160,9 @@ public class Leader implements MembershipListener {
                 
                 cleanUp();
 
+                if (_interactionAlarm != null)
+                    cancelInteraction();
+
                 _currentState = States.ABORT;
 
                 return;
