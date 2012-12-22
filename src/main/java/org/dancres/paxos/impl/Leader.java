@@ -83,7 +83,15 @@ public class Leader implements MembershipListener {
 
     private List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
-    Leader(Common aCommon, LeaderFactory aFactory,
+    Leader(Common aCommon, LeaderFactory aFactory) {
+        _common = aCommon;
+        _factory = aFactory;
+        _startState = States.COLLECT;
+        _seqNum = _common.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1;
+        _rndNumber = _common.getLeaderRndNum() + 1;        
+    }
+
+    private Leader(Common aCommon, LeaderFactory aFactory,
                   long aNextSeq, long aRndNumber, States aStartState) {
         _common = aCommon;
         _factory = aFactory;
@@ -139,10 +147,54 @@ public class Leader implements MembershipListener {
          _membership.dispose();       
     }
 
+    Leader nextLeader() {
+        synchronized(this) {
+            while (! isDone()) {
+                try {
+                    wait();
+                } catch (InterruptedException anIE) {                
+                }
+            }
+
+            // If we have nothing else meaningful we start with what the AL knows so far...
+            //
+            long mySeqNum = _common.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1;
+            long myRndNum = _common.getLeaderRndNum() + 1;
+
+            // Default start state, only changes if we're applying multi-paxos
+            //
+            Leader.States myState = Leader.States.COLLECT;
+
+            switch(_outcome.getResult()) {
+                case VoteOutcome.Reason.DECISION :
+                case VoteOutcome.Reason.OTHER_VALUE : {
+
+                    // Likely we can apply multi-paxos
+                    //
+                    myState = Leader.States.BEGIN;
+                    mySeqNum = _outcome.getSeqNum() + 1;
+                    myRndNum = _outcome.getRndNumber();
+                    break;
+                }
+
+                case VoteOutcome.Reason.OTHER_LEADER : {
+                    mySeqNum = _outcome.getSeqNum() + 1;
+                    myRndNum = _outcome.getRndNumber() + 1;
+                    break;
+                }
+            }
+
+            return new Leader(_common, _factory, mySeqNum, myRndNum, myState);
+        }
+    }
+
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
      * we expect ACCEPT or OLDROUND
+     *
+     * @todo Shutdown needs sorting in the context of chained leaders (which can't happen whilst nextLeader
+     * is a blocking implementation).
      */
     private void process() {
         switch (_currentState) {
