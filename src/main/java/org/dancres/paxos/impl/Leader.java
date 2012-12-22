@@ -397,7 +397,7 @@ public class Leader implements MembershipListener {
         }
     }
 
-    boolean isFail(PaxosMessage aMessage) {
+    private boolean isFail(PaxosMessage aMessage) {
         return (aMessage instanceof OldRound);
     }
     
