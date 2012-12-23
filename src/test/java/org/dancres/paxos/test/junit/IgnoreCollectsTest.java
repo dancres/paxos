@@ -33,8 +33,8 @@ public class IgnoreCollectsTest {
     }
     
     @After public void stop() throws Exception {
-    	_node1.stop();
-    	_node2.stop();
+    	_tport1.terminate();
+    	_tport2.terminate();
     }
     
     @Test public void post() throws Exception {

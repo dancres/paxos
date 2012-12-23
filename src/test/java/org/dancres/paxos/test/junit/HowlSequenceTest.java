@@ -43,8 +43,8 @@ public class HowlSequenceTest {
     }
 
     @After public void stop() throws Exception {
-    	_node1.stop();
-    	_node2.stop();
+    	_tport1.terminate();
+    	_tport2.terminate();
     }
 
     private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
@@ -94,6 +94,6 @@ public class HowlSequenceTest {
          */
         Thread.sleep(5000);
         
-        myClient.shutdown();
+        myTransport.terminate();
     }
 }

@@ -34,8 +34,8 @@ public class SuperiorLeaderTest {
     }
 
     @After public void stop() throws Exception {
-    	_node1.stop();
-    	_node2.stop();
+    	_tport1.terminate();
+    	_tport2.terminate();
     }
     
     @Test public void post() throws Exception {
@@ -86,6 +86,9 @@ public class SuperiorLeaderTest {
 
             DroppingListenerImpl(Core aCore) {
                 _core = aCore;
+            }
+
+            public void terminate() {
             }
 
             public void setTransport(Transport aTransport) throws Exception {

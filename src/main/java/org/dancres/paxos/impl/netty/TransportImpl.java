@@ -194,10 +194,19 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         }
     }
 
-    public void shutdown() {
+    public void terminate() {
 		_isStopping.set(true);
 		
 		try {
+            synchronized(this) {
+                for (Dispatcher d: _dispatcher)
+                    try {
+                        d.terminate();
+                    } catch (Exception anE) {
+                        _logger.warn("Dispatcher didn't terminate cleanly", anE);
+                    }
+            }
+
 			_channels.close().await();
 			
 			_logger.debug("Stop mcast factory");
@@ -415,8 +424,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		_tport1.send(new Accept(2, 3), _tport2.getLocalAddress());
 
 		Thread.sleep(5000);
-		_tport1.shutdown();
-		_tport2.shutdown();
+		_tport1.terminate();
+		_tport2.terminate();
 	}
 	
 	static class DispatcherImpl implements Dispatcher {
@@ -428,6 +437,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 		public void setTransport(Transport aTransport) {
 			System.err.println("Dispatcher " + this + " got transport: " + aTransport);
-		}		
+		}
+
+        public void terminate() {
+            System.err.println("Dispatcher " + this + " got terminate");
+        }
 	}
 }

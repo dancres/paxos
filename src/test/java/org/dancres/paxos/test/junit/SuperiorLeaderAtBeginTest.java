@@ -38,8 +38,8 @@ public class SuperiorLeaderAtBeginTest {
     }
 
     @After public void stop() throws Exception {
-    	_node1.stop();
-    	_node2.stop();
+    	_tport1.terminate();
+    	_tport2.terminate();
     }
     
     @Test public void post() throws Exception {
@@ -94,6 +94,9 @@ public class SuperiorLeaderAtBeginTest {
 
             public void setTransport(Transport aTransport) throws Exception {
                 _core.setTransport(aTransport);
+            }
+
+            public void terminate() {
             }
 
             public boolean messageReceived(Packet aPacket) {

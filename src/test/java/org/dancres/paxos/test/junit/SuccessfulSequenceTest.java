@@ -32,8 +32,8 @@ public class SuccessfulSequenceTest {
     }
 
     @After public void stop() throws Exception {
-    	_node1.stop();
-    	_node2.stop();
+    	_tport1.terminate();
+    	_tport2.terminate();
     }
     
     @Test public void post() throws Exception {
@@ -77,6 +77,6 @@ public class SuccessfulSequenceTest {
          */
         Thread.sleep(5000);
         
-        myClient.shutdown();
+        myTransport.terminate();
     }
 }

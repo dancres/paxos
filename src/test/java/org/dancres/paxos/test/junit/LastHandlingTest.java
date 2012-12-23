@@ -50,8 +50,8 @@ public class LastHandlingTest {
     }
 
     @After public void stop() throws Exception {
-    	_node1.stop();
-    	_node2.stop();
+    	_tport1.terminate();
+    	_tport2.terminate();
     }
     
     private class ListenerImpl implements Paxos.Listener {
@@ -145,6 +145,9 @@ public class LastHandlingTest {
             public boolean messageReceived(Packet aPacket) {
                 return _core.messageReceived(aPacket);
             }
+
+            public void terminate() {
+            }
             
             class LastTrapper implements Transport {
             	private boolean _seenLast = false;
@@ -201,8 +204,7 @@ public class LastHandlingTest {
                 	_tp.connectTo(anAddr, aHandler);
                 }
                 
-                public void shutdown() {
-                	_tp.shutdown();
+                public void terminate() {
                 }
             }
         }

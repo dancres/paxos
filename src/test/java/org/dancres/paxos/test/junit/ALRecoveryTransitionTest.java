@@ -81,7 +81,7 @@ public class ALRecoveryTransitionTest {
             return _pickler;
         }
 
-        public void shutdown() {
+        public void terminate() {
 		}
 
 		public void connectTo(InetSocketAddress aNodeId, ConnectionHandler aHandler) {

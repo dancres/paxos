@@ -52,11 +52,11 @@ public class ALNonRecoveryTest {
 
     @After
     public void stop() throws Exception {
-        _node1.stop();
-        _node2.stop();
+        _tport1.terminate();
+        _tport2.terminate();
 
-        if (_node3 != null)
-            _node3.stop();
+        if (_tport3 != null)
+            _tport3.terminate();
     }
 
     private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
@@ -151,7 +151,7 @@ public class ALNonRecoveryTest {
 
         System.err.println("Shutdown");
 
-        myClient.shutdown();
+        myTransport.terminate();
     }
 
     public static void main(String[] anArgs) throws Exception {

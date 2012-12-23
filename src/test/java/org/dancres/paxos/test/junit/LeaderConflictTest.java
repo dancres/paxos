@@ -35,8 +35,8 @@ public class LeaderConflictTest {
     }
 
     @After public void stop() throws Exception {
-        _node1.stop();
-        _node2.stop();
+        _tport1.terminate();
+        _tport2.terminate();
     }
 
     private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
@@ -80,8 +80,8 @@ public class LeaderConflictTest {
         VoteOutcome myMsg1 = myClient1.getNext(10000);
         VoteOutcome myMsg2 = myClient2.getNext(10000);
 
-        myClient1.shutdown();
-        myClient2.shutdown();
+        myTransport1.terminate();
+        myTransport2.terminate();
 
         Assert.assertTrue(
         		(myMsg1.getResult() == VoteOutcome.Reason.OTHER_LEADER && myMsg2.getResult() == VoteOutcome.Reason.DECISION) ||

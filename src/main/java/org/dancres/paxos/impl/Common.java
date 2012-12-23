@@ -101,7 +101,6 @@ public class Common {
 
     void stop() {
         _fd.stop();
-        _transport.shutdown();
         _watchdog.cancel();
     }
     

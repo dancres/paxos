@@ -197,7 +197,7 @@ public class LongTerm {
         }
 
         for (ServerDispatcher mySd : _env._servers)
-            mySd.stop();
+            mySd.getTransport().terminate();
 
         _env._factory.stop();
     }

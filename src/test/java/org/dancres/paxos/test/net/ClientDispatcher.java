@@ -57,7 +57,6 @@ public class ClientDispatcher implements Transport.Dispatcher {
 		_transport = aTransport;
 	}
 	
-	public void shutdown() {
-		_transport.shutdown();
+	public void terminate() {
 	}
 }

@@ -20,8 +20,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * related to paxos instances, membership, failure detection etc.</p>
  *
  * <p>Metadata passed to the <code>ServerDispatcher</code> constructors will be advertised via Heartbeats.</p>
- *
- * @see org.dancres.paxos.impl.faildet.Heartbeater
  */
 public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 	private static final String HANDBACK_KEY = "org.dancres.paxos.handback";
@@ -88,8 +86,7 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 		return _tp;
 	}
 	
-    public void stop() {
-        _core.close();
+    public void terminate() {
     }
 
     public void done(VoteOutcome anEvent) {

@@ -40,6 +40,10 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public void close() {
+        _common.getTransport().terminate();
+    }
+
+    public void terminate() {
         _hb.halt();
 
         try {

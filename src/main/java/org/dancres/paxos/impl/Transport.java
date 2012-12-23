@@ -40,7 +40,7 @@ public interface Transport {
         public void connected(Stream aStream);
     }
 
-    public void shutdown();
+    public void terminate();
 
     public interface Dispatcher {
         public void setTransport(Transport aTransport) throws Exception;
@@ -51,5 +51,7 @@ public interface Transport {
          * other handlers.
          */
         public boolean messageReceived(Packet aPacket);
+
+        public void terminate() throws Exception;
     }
 }

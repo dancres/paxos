@@ -81,7 +81,7 @@ public class CheckpointHandleTest {
             return _broadcastId;
         }
 
-        public void shutdown() {
+        public void terminate() {
         }
 
         public void connectTo(InetSocketAddress aNodeId, ConnectionHandler aHandler) {

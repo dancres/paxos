@@ -23,7 +23,7 @@ public class NoMajorityTest {
     }
 
     @After public void stop() throws Exception {
-    	_node1.stop();
+    	_tport1.terminate();
     }
     
     @Test public void post() throws Exception {

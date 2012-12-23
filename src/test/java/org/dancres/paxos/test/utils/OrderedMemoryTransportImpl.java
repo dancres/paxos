@@ -120,7 +120,18 @@ public class OrderedMemoryTransportImpl implements Transport {
         aHandler.connected(new StreamImpl(aNodeId));
 	}
 
-    public void shutdown() {
+    public void terminate() {
+        guard();
+
 		_isStopping.set(true);
+
+        synchronized(this) {
+            for (Dispatcher d: _dispatcher)
+                try {
+                    d.terminate();
+                } catch (Exception anE) {
+                    _logger.warn("Dispatcher didn't terminate cleanly", anE);
+                }
+        }
     }	
 }

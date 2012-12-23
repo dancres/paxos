@@ -30,8 +30,8 @@ public class SimpleSuccessTest {
     }
 
     @After public void stop() throws Exception {
-    	_node1.stop();
-    	_node2.stop();
+    	_tport1.terminate();
+    	_tport2.terminate();
     }
     
     @Test public void post() throws Exception {
@@ -65,7 +65,7 @@ public class SimpleSuccessTest {
 
         Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
         
-        myClient.shutdown();
+        myTransport.terminate();
     }
     
     public static void main(String[] anArgs) throws Exception {
