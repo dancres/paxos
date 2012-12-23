@@ -67,7 +67,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 	private static final int BROADCAST_PORT = 41952;
 
-	private static InetSocketAddress _mcastAddr;
+	private static final InetSocketAddress _mcastAddr;
 	private DatagramChannelFactory _mcastFactory;
 	private DatagramChannel _mcast;
 	private DatagramChannelFactory _unicastFactory;
