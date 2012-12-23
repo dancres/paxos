@@ -67,20 +67,20 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 	private static final int BROADCAST_PORT = 41952;
 
-	private static final InetSocketAddress _mcastAddr;
-	private DatagramChannelFactory _mcastFactory;
-	private DatagramChannel _mcast;
-	private DatagramChannelFactory _unicastFactory;
-	private DatagramChannel _unicast;
-	private NioServerSocketChannelFactory _serverStreamFactory; 
-	private NioClientSocketChannelFactory _clientStreamFactory;
-	private Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
-	private InetSocketAddress _unicastAddr;
-    private InetSocketAddress _broadcastAddr;
-    private AtomicBoolean _isStopping = new AtomicBoolean(false);
-    private PacketPickler _pickler = new PicklerImpl();
+	private final InetSocketAddress _mcastAddr;
+	private final DatagramChannelFactory _mcastFactory;
+	private final DatagramChannel _mcast;
+	private final DatagramChannelFactory _unicastFactory;
+	private final DatagramChannel _unicast;
+	private final NioServerSocketChannelFactory _serverStreamFactory;
+	private final NioClientSocketChannelFactory _clientStreamFactory;
+	private final Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
+	private final InetSocketAddress _unicastAddr;
+    private final InetSocketAddress _broadcastAddr;
+    private final AtomicBoolean _isStopping = new AtomicBoolean(false);
+    private final PacketPickler _pickler = new PicklerImpl();
 	
-    private ChannelGroup _channels = new DefaultChannelGroup();
+    private final ChannelGroup _channels = new DefaultChannelGroup();
     
     private class Factory implements ThreadFactory {
 		public Thread newThread(Runnable aRunnable) {
@@ -141,11 +141,11 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     }
     
 	public TransportImpl() throws Exception {
+        _mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
         _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
 
 		InetSocketAddress myMcastTarget = new InetSocketAddress((InetAddress) null,
 				BROADCAST_PORT);
-		_mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
 
 		_mcastFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
 
