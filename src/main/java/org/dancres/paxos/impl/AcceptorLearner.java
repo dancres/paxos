@@ -5,7 +5,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -61,7 +63,7 @@ public class AcceptorLearner {
     private TimerTask _recoveryAlarm = null;
     private Need _recoveryWindow = null;
 
-	private final List<Transport.Packet> _packetBuffer = new LinkedList<Transport.Packet>();
+	private final BlockingQueue<Transport.Packet> _packetBuffer = new LinkedBlockingQueue<Transport.Packet>();
 
 	private final LogStorage _storage;
     private final Common _common;
@@ -271,11 +273,11 @@ public class AcceptorLearner {
             synchronized(this) {
                 _recoveryAlarm = null;
                 _recoveryWindow = null;
-                _packetBuffer.clear();
                 _common.resetLeader();
                 _common.getRecoveryTrigger().reset();
             }
 
+            _packetBuffer.clear();
             _cachedBegins.clear();
 
             _storage.close();
@@ -351,7 +353,6 @@ public class AcceptorLearner {
 
             _common.setState(Common.FSMStates.ACTIVE);
             _recoveryWindow = null;
-            _packetBuffer.clear();
 
             /*
              * We do not want to allow a leader to immediately over-rule us, make it work a bit,
@@ -365,6 +366,7 @@ public class AcceptorLearner {
             		Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
         }
 
+        _packetBuffer.clear();
         _cachedBegins.clear();
 
         return true;
@@ -412,8 +414,6 @@ public class AcceptorLearner {
         Writer myWriter = new LiveWriter();
 
 		if (_common.testState(Common.FSMStates.RECOVERING)) {
-            Sender mySender = new RecoverySender();
-            
             switch (myMessage.getType()) {
                 // If the packet is a recovery request, ignore it
                 //
@@ -435,18 +435,27 @@ public class AcceptorLearner {
                     return;
                 }
             }
+        }
 
+        boolean myRecoveryInProgress = _common.testState(Common.FSMStates.RECOVERING);
+        Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress);
+
+        if (myRecoveryInProgress) {
 			// If the packet is for a sequence number above the recovery window - save it for later
 			//
 			if (mySeqNum > _recoveryWindow.getMaxSeq()) {
-				synchronized(this) {
-					_packetBuffer.add(aPacket);
-				}
+                try {
+                    _packetBuffer.put(aPacket);
+                } catch (InterruptedException anIE) {
+                    _logger.error("Coudn't queue to PacketBuffer", anIE);
+                    throw new RuntimeException("Serious recovery failure", anIE);
+                }
+
 				
 			// If the packet is for a sequence number within the window, process it now for catchup
 			//
 			} else if (mySeqNum > _recoveryWindow.getMinSeq()) {
-				process(aPacket, myWriter, mySender);
+				process(aPacket, myWriter, new RecoverySender());
 				
 				/*
 				 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
@@ -463,7 +472,7 @@ public class AcceptorLearner {
                                     _localAddress) != null)
 								break;
 
-							process(myReplayPacket, myWriter, mySender);
+							process(myReplayPacket, myWriter, new RecoverySender());
 						}
 						
                         completedRecovery();
@@ -475,10 +484,6 @@ public class AcceptorLearner {
 				//
 			}
 		} else {
-            Sender mySender = new LiveSender();
-
-			Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress);
-
 			if (myWindow != null) {
 				/*
 				 * Ideally we catch up to the end of a complete instance but we don't have to. The AL state machine
@@ -489,18 +494,24 @@ public class AcceptorLearner {
 				 * optimisation a similar thing would happen should a new leader have just taken over. Otherwise,
 				 * we'll likely recover the collect from another AL and thus apply all the packets since successfully.
 				 */
-				synchronized(this) {
-					// Must store up the packet which triggered recovery for later replay
-					//
-					_packetBuffer.add(aPacket);
-					
+
+                // Must store up the packet which triggered recovery for later replay
+                //
+                try {
+                    _packetBuffer.put(aPacket);
+                } catch (InterruptedException anIE) {
+                    _logger.error("Coudn't queue to PacketBuffer", anIE);
+                    throw new RuntimeException("Serious recovery failure", anIE);
+                }
+
+                synchronized(this) {
 					/*
 					 * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
 					 * If that's the case, it won't stream at all or will only stream some part of our recovery
 					 * window. As the recovery watchdog measures progress through the recovery window, a partial
 					 * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
 					 */
-					mySender.send(myWindow, _common.getFD().getRandomMember(_localAddress));
+					new LiveSender().send(myWindow, _common.getFD().getRandomMember(_localAddress));
 
 					// Declare recovery active - which stops this AL emitting responses
 					//
@@ -512,7 +523,7 @@ public class AcceptorLearner {
                     reschedule();
 				}
 			} else
-				process(aPacket, myWriter, mySender);
+				process(aPacket, myWriter, new LiveSender());
 		}
 	}
 
@@ -600,8 +611,9 @@ public class AcceptorLearner {
     private void postRecovery() {
         synchronized(this) {
             _recoveryWindow = null;
-            _packetBuffer.clear();
         }
+
+        _packetBuffer.clear();
     }
 
     /* ********************************************************************************************
