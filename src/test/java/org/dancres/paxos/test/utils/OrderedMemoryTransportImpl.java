@@ -125,6 +125,8 @@ public class OrderedMemoryTransportImpl implements Transport {
 
 		_isStopping.set(true);
 
+        _factory.destroy(this);
+
         synchronized(this) {
             for (Dispatcher d: _dispatcher)
                 try {

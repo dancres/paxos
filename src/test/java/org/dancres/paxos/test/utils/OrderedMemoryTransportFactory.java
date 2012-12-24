@@ -96,4 +96,8 @@ public class OrderedMemoryTransportFactory implements Runnable {
 
         return myTrans;
     }
+
+    void destroy(OrderedMemoryTransportImpl aTransport) {
+        _nodes.remove(aTransport.getLocalAddress());
+    }
 }
