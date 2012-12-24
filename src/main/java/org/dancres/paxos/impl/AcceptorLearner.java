@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -73,7 +74,7 @@ public class AcceptorLearner {
      * instance we remove the value from the cache and send it to any listeners. This saves us having to disk scans
      * for values and also placing the value in the Success message.
      */
-    private final Map<Long, Begin> _cachedBegins = new HashMap<Long, Begin>();
+    private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<Long, Begin>();
 
     /**
      * Tracks the last contiguous sequence number for which we have a value.
@@ -271,10 +272,11 @@ public class AcceptorLearner {
                 _recoveryAlarm = null;
                 _recoveryWindow = null;
                 _packetBuffer.clear();
-                _cachedBegins.clear();
                 _common.resetLeader();
                 _common.getRecoveryTrigger().reset();
             }
+
+            _cachedBegins.clear();
 
             _storage.close();
 
@@ -350,7 +352,6 @@ public class AcceptorLearner {
             _common.setState(Common.FSMStates.ACTIVE);
             _recoveryWindow = null;
             _packetBuffer.clear();
-            _cachedBegins.clear();
 
             /*
              * We do not want to allow a leader to immediately over-rule us, make it work a bit,
@@ -363,6 +364,8 @@ public class AcceptorLearner {
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
             		Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
         }
+
+        _cachedBegins.clear();
 
         return true;
     }
@@ -382,15 +385,11 @@ public class AcceptorLearner {
 	}
 
     private void cacheBegin(Begin aBegin) {
-        synchronized(this) {
-            _cachedBegins.put(new Long(aBegin.getSeqNum()), aBegin);
-        }
+        _cachedBegins.put(new Long(aBegin.getSeqNum()), aBegin);
     }
 
     private Begin expungeBegin(long aSeqNum) {
-        synchronized(this) {
-            return _cachedBegins.remove(new Long(aSeqNum));
-        }
+        return _cachedBegins.remove(new Long(aSeqNum));
     }
 
     /* ********************************************************************************************
