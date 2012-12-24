@@ -462,8 +462,6 @@ public class Leader implements MembershipListener {
      * essence if we've progressed through enough phases to get a majority commit we can go ahead and set the value as
      * any future leader wading in will pick up our value. NOTE: This optimisation requires the membership impl to
      * understand the concept of minimum acceptable majority.
-     *
-     * @param aMessage is a message from some acceptor/learner
      */
     public void messageReceived(Transport.Packet aPacket) {
         PaxosMessage myMessage = aPacket.getMessage();
