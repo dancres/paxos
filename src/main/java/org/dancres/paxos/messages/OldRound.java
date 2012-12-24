@@ -1,6 +1,6 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.impl.Leader;
+import org.dancres.paxos.impl.Instance;
 import org.dancres.paxos.impl.LeaderSelection;
 
 import java.net.InetSocketAddress;
@@ -40,10 +40,10 @@ public class OldRound implements PaxosMessage, LeaderSelection {
         return _lastRound;
     }
 
-    public boolean routeable(Leader aLeader) {
-        return ((_lastRound >= aLeader.getRound()) &&
-                ((aLeader.getState().equals(Leader.States.BEGIN)) ||
-                 (aLeader.getState().equals(Leader.States.SUCCESS))));
+    public boolean routeable(Instance anInstance) {
+        return ((_lastRound >= anInstance.getRound()) &&
+                ((anInstance.getState().equals(Instance.State.BEGIN)) ||
+                 (anInstance.getState().equals(Instance.State.SUCCESS))));
     }
 
     public int hashCode() {

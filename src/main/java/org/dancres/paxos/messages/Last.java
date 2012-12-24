@@ -1,10 +1,8 @@
 package org.dancres.paxos.messages;
 
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.impl.Leader;
+import org.dancres.paxos.impl.Instance;
 import org.dancres.paxos.impl.LeaderSelection;
-
-import java.net.InetSocketAddress;
 
 public class Last implements PaxosMessage, LeaderSelection {
     private long _seqNum;
@@ -33,8 +31,8 @@ public class Last implements PaxosMessage, LeaderSelection {
     	return ACCEPTOR_LEARNER;
     }
 
-    public boolean routeable(Leader aLeader) {
-        return ((_seqNum == aLeader.getSeqNum()) && (aLeader.getState().equals(Leader.States.BEGIN)));
+    public boolean routeable(Instance anInstance) {
+        return ((_seqNum == anInstance.getSeqNum()) && (anInstance.getState().equals(Instance.State.BEGIN)));
     }
 
     /**

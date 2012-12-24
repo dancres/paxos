@@ -21,37 +21,13 @@ import java.util.TimerTask;
  *
  * @author dan
  */
-public class Leader implements MembershipListener {
+class Leader implements MembershipListener, Instance {
     
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
 
     private static final long GRACE_PERIOD = 1000;
 
     private static final long MAX_TRIES = 3;
-
-    /**
-     * Leader reaches COLLECT after SUBMITTED unless <code>LeaderFactory</code> overrides that to transition to
-     * BEGIN (the multi-paxos optimisation).
-     * 
-     * In BEGIN we attempt to reserve a slot in the sequence of operations. Transition to SUCCESS after emitting begin 
-     * to see if the slot was granted.
-     * 
-     * In SUCCESS, Leader has sent a BEGIN and now determines if it has secured the slot associated with the sequence 
-     * number. If the slot was secured, a value will be sent to all members of the current instance after which there
-     * will be a transition to COMMITTED.
-     * 
-     * In EXIT a paxos instance was completed successfully, clean up is all that remains.
-     * 
-     * In ABORT a paxos instance failed for some reason (which will be found in </code>_outcome</code>).
-     * 
-     * In SUBMITTED, Leader has been given a value and should attempt to complete a paxos instance.
-     *
-     * In SHUTDOWN, we do a little cleanup and halt, processing no messages etc.
-     */
-    public enum States {
-    	INITIAL, SUBMITTED, COLLECT, BEGIN, SUCCESS, EXIT, ABORT, SHUTDOWN
-    }
-    
 
     private final Common _common;
     private final LeaderFactory _factory;
@@ -73,8 +49,8 @@ public class Leader implements MembershipListener {
      */
     private Membership _membership;
 
-    private final States _startState;
-    private States _currentState = States.INITIAL;
+    private final State _startState;
+    private State _currentState = State.INITIAL;
 
     /**
      * In cases of ABORT, indicates the reason
@@ -86,13 +62,13 @@ public class Leader implements MembershipListener {
     Leader(Common aCommon, LeaderFactory aFactory) {
         _common = aCommon;
         _factory = aFactory;
-        _startState = States.COLLECT;
+        _startState = State.COLLECT;
         _seqNum = _common.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1;
         _rndNumber = _common.getLeaderRndNum() + 1;        
     }
 
     private Leader(Common aCommon, LeaderFactory aFactory,
-                  long aNextSeq, long aRndNumber, States aStartState) {
+                  long aNextSeq, long aRndNumber, State aStartState) {
         _common = aCommon;
         _factory = aFactory;
         _seqNum = aNextSeq;
@@ -108,8 +84,8 @@ public class Leader implements MembershipListener {
 
     void shutdown() {
     	synchronized(this) {
-            if ((! isDone()) && (_currentState != States.SHUTDOWN)) {
-    		    _currentState = States.SHUTDOWN;
+            if ((! isDone()) && (_currentState != State.SHUTDOWN)) {
+    		    _currentState = State.SHUTDOWN;
                 _outcome = null;
                 process();
             }
@@ -128,7 +104,7 @@ public class Leader implements MembershipListener {
         return _seqNum;
     }
 
-    public States getState() {
+    public State getState() {
         synchronized(this) {
             return _currentState;
         }
@@ -136,7 +112,7 @@ public class Leader implements MembershipListener {
 
     boolean isDone() {
         synchronized(this) {
-            return ((_currentState.equals(States.EXIT)) || (_currentState.equals(States.ABORT)));
+            return ((_currentState.equals(State.EXIT)) || (_currentState.equals(State.ABORT)));
         }
     }
 
@@ -163,7 +139,7 @@ public class Leader implements MembershipListener {
 
             // Default start state, only changes if we're applying multi-paxos
             //
-            Leader.States myState = Leader.States.COLLECT;
+            State myState = State.COLLECT;
 
             switch(_outcome.getResult()) {
                 case VoteOutcome.Reason.DECISION :
@@ -171,7 +147,7 @@ public class Leader implements MembershipListener {
 
                     // Likely we can apply multi-paxos
                     //
-                    myState = Leader.States.BEGIN;
+                    myState = State.BEGIN;
                     mySeqNum = _outcome.getSeqNum() + 1;
                     myRndNum = _outcome.getRndNumber();
                     break;
@@ -206,7 +182,7 @@ public class Leader implements MembershipListener {
                 if (_interactionAlarm != null)
                     cancelInteraction();
 
-                _currentState = States.ABORT;
+                _currentState = State.ABORT;
 
                 return;
             }
@@ -259,7 +235,7 @@ public class Leader implements MembershipListener {
              * missing instances to catch-up and recover that state from those around them.
              */
             case COLLECT : {
-            	_currentState = States.BEGIN;
+            	_currentState = State.BEGIN;
                 emit(new Collect(_seqNum, _rndNumber));
 
             	break;
@@ -293,7 +269,7 @@ public class Leader implements MembershipListener {
                     _prop = ((Last) myLast.getMessage()).getConsolidatedValue();
                 }
 
-                _currentState = States.SUCCESS;
+                _currentState = State.SUCCESS;
                 emit(new Begin(_seqNum, _rndNumber, _prop));
 
                 break;
@@ -320,7 +296,7 @@ public class Leader implements MembershipListener {
     }
 
     private boolean canRetry() {
-        return _currentState.equals(States.SUCCESS);
+        return _currentState.equals(State.SUCCESS);
     }
 
     /**
@@ -334,7 +310,7 @@ public class Leader implements MembershipListener {
         _logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
                 Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
-        _currentState = States.ABORT;
+        _currentState = State.ABORT;
         _outcome = new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
                 myOldRound.getLastRound(), _prop, myCompetingNodeId);
 
@@ -342,7 +318,7 @@ public class Leader implements MembershipListener {
     }
 
     private void successful(int aReason) {
-        _currentState = States.EXIT;
+        _currentState = State.EXIT;
         _outcome = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
                 _common.getTransport().getLocalAddress());
 
@@ -354,7 +330,7 @@ public class Leader implements MembershipListener {
     }
     
     private void error(int aReason, InetSocketAddress aLeader) {
-        _currentState = States.ABORT;
+        _currentState = State.ABORT;
         _outcome = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader);
         
         _logger.info("Leader encountered error: " + _outcome);
@@ -436,14 +412,14 @@ public class Leader implements MembershipListener {
      */
     public void submit(Proposal aValue) {
         synchronized (this) {
-            if (_currentState != States.INITIAL)
+            if (_currentState != State.INITIAL)
                 throw new IllegalStateException("Submit already done, create another leader");
 
             _logger.info(this + ": Submitted operation (initialising leader)");
 
             _prop = aValue;
 
-            _currentState = States.SUBMITTED;
+            _currentState = State.SUBMITTED;
 
             process();
         }
@@ -499,7 +475,7 @@ public class Leader implements MembershipListener {
     }
 
     public String toString() {
-        States myState;
+        State myState;
 
         synchronized(this) {
             myState = _currentState;

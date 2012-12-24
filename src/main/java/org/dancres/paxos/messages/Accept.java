@@ -1,6 +1,6 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.impl.Leader;
+import org.dancres.paxos.impl.Instance;
 import org.dancres.paxos.impl.LeaderSelection;
 
 public class Accept implements PaxosMessage, LeaderSelection {
@@ -28,8 +28,8 @@ public class Accept implements PaxosMessage, LeaderSelection {
         return _seqNum;
     }
 
-    public boolean routeable(Leader aLeader) {
-        return ((_seqNum == aLeader.getSeqNum()) && (aLeader.getState().equals(Leader.States.SUCCESS)));
+    public boolean routeable(Instance anInstance) {
+        return ((_seqNum == anInstance.getSeqNum()) && (anInstance.getState().equals(Instance.State.SUCCESS)));
     }
 
     public int hashCode() {
