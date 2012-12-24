@@ -439,92 +439,98 @@ public class AcceptorLearner {
 
         boolean myRecoveryInProgress = _common.testState(Common.FSMStates.RECOVERING);
         Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress);
+        int mySeqNumPosition = (myRecoveryInProgress) ? _recoveryWindow.relativeToWindow(mySeqNum) : Integer.MIN_VALUE;
 
-        if (myRecoveryInProgress) {
-			// If the packet is for a sequence number above the recovery window - save it for later
-			//
-			if (mySeqNum > _recoveryWindow.getMaxSeq()) {
-                try {
-                    _packetBuffer.put(aPacket);
-                } catch (InterruptedException anIE) {
-                    _logger.error("Coudn't queue to PacketBuffer", anIE);
-                    throw new RuntimeException("Serious recovery failure", anIE);
-                }
+        // If the packet is for a sequence number above the recovery window - save it for later
+        //
+        if ((myRecoveryInProgress) && (mySeqNumPosition == 1)) {
+            try {
+                _packetBuffer.put(aPacket);
+            } catch (InterruptedException anIE) {
+                _logger.error("Coudn't queue to PacketBuffer", anIE);
+                throw new RuntimeException("Serious recovery failure", anIE);
+            }
 
+            return;
+        }
+
+        // If the packet is for a sequence number within the window, process it now for catchup
+        //
+        if ((myRecoveryInProgress) && (mySeqNumPosition == 0)) {
+            process(aPacket, myWriter, new RecoverySender());
 				
-			// If the packet is for a sequence number within the window, process it now for catchup
-			//
-			} else if (mySeqNum > _recoveryWindow.getMinSeq()) {
-				process(aPacket, myWriter, new RecoverySender());
-				
-				/*
-				 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
-				 *  streamed through the packet buffer
-				 */
-				if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
-                        _recoveryWindow.getMaxSeq()) {
-					synchronized(this) {
-						for (Transport.Packet myReplayPacket : _packetBuffer) {
-
-							// May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
-							//
-							if (_common.getRecoveryTrigger().shouldRecover(myReplayPacket.getMessage().getSeqNum(),
-                                    _localAddress) != null)
-								break;
-
-							process(myReplayPacket, myWriter, new RecoverySender());
-						}
-						
-                        completedRecovery();
-                        _common.setState(Common.FSMStates.ACTIVE);
-					}
-				}
-			} else {			
-				// Packet is below recovery window, ignore it.
-				//
-			}
-		} else {
-			if (myWindow != null) {
-				/*
-				 * Ideally we catch up to the end of a complete instance but we don't have to. The AL state machine
-				 * will simply discard some packets and then trigger another recovery.
-				 *
-				 * It's possible that, for example, we miss a collect but catch a begin and a success. In such a
-				 * case we'd drop the messages and then issue another recovery. In the case of the multi-paxos
-				 * optimisation a similar thing would happen should a new leader have just taken over. Otherwise,
-				 * we'll likely recover the collect from another AL and thus apply all the packets since successfully.
-				 */
-
-                // Must store up the packet which triggered recovery for later replay
-                //
-                try {
-                    _packetBuffer.put(aPacket);
-                } catch (InterruptedException anIE) {
-                    _logger.error("Coudn't queue to PacketBuffer", anIE);
-                    throw new RuntimeException("Serious recovery failure", anIE);
-                }
-
+            /*
+             *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
+             *  streamed through the packet buffer
+             */
+            if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
+                    _recoveryWindow.getMaxSeq()) {
                 synchronized(this) {
-					/*
-					 * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
-					 * If that's the case, it won't stream at all or will only stream some part of our recovery
-					 * window. As the recovery watchdog measures progress through the recovery window, a partial
-					 * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
-					 */
-					new LiveSender().send(myWindow, _common.getFD().getRandomMember(_localAddress));
+                    for (Transport.Packet myReplayPacket : _packetBuffer) {
 
-					// Declare recovery active - which stops this AL emitting responses
-					//
-                    _common.setState(Common.FSMStates.RECOVERING);
-                    _recoveryWindow = myWindow;
+                        // May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
+                        //
+                        if (_common.getRecoveryTrigger().shouldRecover(myReplayPacket.getMessage().getSeqNum(),
+                                _localAddress) != null)
+                            break;
 
-                    // Startup recovery watchdog
-                    //
-                    reschedule();
-				}
-			} else
-				process(aPacket, myWriter, new LiveSender());
-		}
+                        process(myReplayPacket, myWriter, new RecoverySender());
+                    }
+
+                    completedRecovery();
+                    _common.setState(Common.FSMStates.ACTIVE);
+                }
+            }
+
+            return;
+        }
+
+        if ((! myRecoveryInProgress) && (myWindow != null)) {
+            /*
+             * Ideally we catch up to the end of a complete instance but we don't have to. The AL state machine
+             * will simply discard some packets and then trigger another recovery.
+             *
+             * It's possible that, for example, we miss a collect but catch a begin and a success. In such a
+             * case we'd drop the messages and then issue another recovery. In the case of the multi-paxos
+             * optimisation a similar thing would happen should a new leader have just taken over. Otherwise,
+             * we'll likely recover the collect from another AL and thus apply all the packets since successfully.
+             */
+
+            // Must store up the packet which triggered recovery for later replay
+            //
+            try {
+                _packetBuffer.put(aPacket);
+            } catch (InterruptedException anIE) {
+                _logger.error("Coudn't queue to PacketBuffer", anIE);
+                throw new RuntimeException("Serious recovery failure", anIE);
+            }
+
+            synchronized(this) {
+                /*
+                 * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
+                 * If that's the case, it won't stream at all or will only stream some part of our recovery
+                 * window. As the recovery watchdog measures progress through the recovery window, a partial
+                 * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
+                 */
+                new LiveSender().send(myWindow, _common.getFD().getRandomMember(_localAddress));
+
+                // Declare recovery active - which stops this AL emitting responses
+                //
+                _common.setState(Common.FSMStates.RECOVERING);
+                _recoveryWindow = myWindow;
+
+                // Startup recovery watchdog
+                //
+                reschedule();
+            }
+
+            return;
+        }
+
+        if ((! myRecoveryInProgress) && (myWindow == null)) {
+            process(aPacket, myWriter, new LiveSender());
+            return;
+        }
 	}
 
     /* ********************************************************************************************
