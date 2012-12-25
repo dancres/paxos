@@ -58,9 +58,9 @@ public class AcceptorLearner {
 	private final AtomicLong _ignoredCollects = new AtomicLong();
 	private final AtomicLong _receivedHeartbeats = new AtomicLong();
 
-    private long _gracePeriod = DEFAULT_RECOVERY_GRACE_PERIOD;
+    private final AtomicLong _gracePeriod = new AtomicLong(DEFAULT_RECOVERY_GRACE_PERIOD);
 
-    private TimerTask _recoveryAlarm = null;
+    private final AtomicReference<TimerTask> _recoveryAlarm = new AtomicReference<TimerTask>(null);
     private Need _recoveryWindow = null;
 
 	private final BlockingQueue<Transport.Packet> _packetBuffer = new LinkedBlockingQueue<Transport.Packet>();
@@ -270,8 +270,9 @@ public class AcceptorLearner {
                 Thread.sleep(SHUTDOWN_PAUSE);
             } catch (Exception anE) {}
 
+            _recoveryAlarm.set(null);
+
             synchronized(this) {
-                _recoveryAlarm = null;
                 _recoveryWindow = null;
                 _common.resetLeader();
                 _common.getRecoveryTrigger().reset();
@@ -400,9 +401,6 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-	/**
-	 * @param aMessage
-	 */
 	public void messageReceived(Transport.Packet aPacket) {
         // If we're not processing packets because we're out of date or because we're shutting down
         //
@@ -440,51 +438,10 @@ public class AcceptorLearner {
         boolean myRecoveryInProgress = _common.testState(Common.FSMStates.RECOVERING);
         Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress);
         int mySeqNumPosition = (myRecoveryInProgress) ? _recoveryWindow.relativeToWindow(mySeqNum) : Integer.MIN_VALUE;
+        Sender mySender = (myRecoveryInProgress) ? new RecoverySender() : new LiveSender();
 
-        // If the packet is for a sequence number above the recovery window - save it for later
+        // Are we transitioning into recovery?
         //
-        if ((myRecoveryInProgress) && (mySeqNumPosition == 1)) {
-            try {
-                _packetBuffer.put(aPacket);
-            } catch (InterruptedException anIE) {
-                _logger.error("Coudn't queue to PacketBuffer", anIE);
-                throw new RuntimeException("Serious recovery failure", anIE);
-            }
-
-            return;
-        }
-
-        // If the packet is for a sequence number within the window, process it now for catchup
-        //
-        if ((myRecoveryInProgress) && (mySeqNumPosition == 0)) {
-            process(aPacket, myWriter, new RecoverySender());
-				
-            /*
-             *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
-             *  streamed through the packet buffer
-             */
-            if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
-                    _recoveryWindow.getMaxSeq()) {
-                synchronized(this) {
-                    for (Transport.Packet myReplayPacket : _packetBuffer) {
-
-                        // May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
-                        //
-                        if (_common.getRecoveryTrigger().shouldRecover(myReplayPacket.getMessage().getSeqNum(),
-                                _localAddress) != null)
-                            break;
-
-                        process(myReplayPacket, myWriter, new RecoverySender());
-                    }
-
-                    completedRecovery();
-                    _common.setState(Common.FSMStates.ACTIVE);
-                }
-            }
-
-            return;
-        }
-
         if ((! myRecoveryInProgress) && (myWindow != null)) {
             /*
              * Ideally we catch up to the end of a complete instance but we don't have to. The AL state machine
@@ -495,26 +452,30 @@ public class AcceptorLearner {
              * optimisation a similar thing would happen should a new leader have just taken over. Otherwise,
              * we'll likely recover the collect from another AL and thus apply all the packets since successfully.
              */
-
-            // Must store up the packet which triggered recovery for later replay
-            //
-            try {
-                _packetBuffer.put(aPacket);
-            } catch (InterruptedException anIE) {
-                _logger.error("Coudn't queue to PacketBuffer", anIE);
-                throw new RuntimeException("Serious recovery failure", anIE);
-            }
-
             synchronized(this) {
+                _packetBuffer.clear();
+
                 /*
                  * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
                  * If that's the case, it won't stream at all or will only stream some part of our recovery
                  * window. As the recovery watchdog measures progress through the recovery window, a partial
                  * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
                  */
-                new LiveSender().send(myWindow, _common.getFD().getRandomMember(_localAddress));
+                mySender.send(myWindow, _common.getFD().getRandomMember(_localAddress));
 
                 // Declare recovery active - which stops this AL emitting responses
+                // THIS NEEDS TO BE THE ATOMIC RECOVERY TRANSITION IN ABSENCE OF THE SYNCHRONIZED.
+                // We do that using a test and set. If we win, by setting the recovery window and send the window
+                // If we lose, we need to set myRecoveryInProgress to true and do the necessary processing.
+                //
+                // How and where do we make the exit from recovery transition atomic? We proceed to drain the
+                // packet buffer until we believe it's empty. We then lock the buffer and empty out anything remaining.
+                // Whilst still holding the lock, we clear the recovering mode. Note we will jettison the state held
+                // in common, instead using _recoveryWindow as the indicator of recovery. Note that _packetBuffer.clear
+                // cannot stay in postRecovery() if we're employing this approach.
+                //
+                // BEFORE WE DO THIS, MAKE THE WATCHDOG/ALARM HANDLING INDEPENDENTLY ATOMIC. THIS WILL REDUCE OUR
+                // CONCERNS TO NOTHING OTHER THAN THE RECOVERY TRANSITION AND PACKETBUFFER HANDLING.
                 //
                 _common.setState(Common.FSMStates.RECOVERING);
                 _recoveryWindow = myWindow;
@@ -523,13 +484,56 @@ public class AcceptorLearner {
                 //
                 reschedule();
             }
-
-            return;
         }
 
-        if ((! myRecoveryInProgress) && (myWindow == null)) {
-            process(aPacket, myWriter, new LiveSender());
-            return;
+        /*
+         * If a recovery window just became active or the packet is for a sequence number above an active recovery
+         * window, save it for later
+         */
+        if (((myRecoveryInProgress) && (mySeqNumPosition == 1)) ||
+                ((! myRecoveryInProgress) && (myWindow != null))) {
+            try {
+                // THIS IS CURRENTLY BROKEN BECAUSE WE HAVEN'T GOT A PROPER LOCK TRANSITION AROUND IT
+                //
+                _packetBuffer.put(aPacket);
+            } catch (InterruptedException anIE) {
+                _logger.error("Couldn't queue to PacketBuffer", anIE);
+                throw new RuntimeException("Serious recovery failure", anIE);
+            }
+        }
+
+        /*
+         * If the packet is for a sequence number within an active recovery window or we're healthy,
+         * process it.
+         */
+        if (((myRecoveryInProgress) && (mySeqNumPosition == 0)) ||
+                ((! myRecoveryInProgress) && (myWindow == null))) {
+            process(aPacket, myWriter, mySender);
+
+            if (myRecoveryInProgress) {
+                /*
+                 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
+                 *  streamed through the packet buffer
+                 */
+                if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
+                        _recoveryWindow.getMaxSeq()) {
+                    synchronized(this) {
+                        for (Transport.Packet myReplayPacket : _packetBuffer) {
+
+                            // May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
+                            //
+                            if (_common.getRecoveryTrigger().shouldRecover(myReplayPacket.getMessage().getSeqNum(),
+                                    _localAddress) != null)
+                                break;
+
+                            process(myReplayPacket, myWriter, mySender);
+                        }
+
+                        completedRecovery();
+                        _common.setState(Common.FSMStates.ACTIVE);
+                    }
+                }
+            }
         }
 	}
 
@@ -566,27 +570,30 @@ public class AcceptorLearner {
         }
     }
 
+    // Reschedule is only ever called when either we enter recovery (in which case there is no alarm) or
+    // when the alarm has expired (thus does not need cancelling) when it is called from the alarm itself.
+    //
     private void reschedule() {
         _logger.debug("Rescheduling, " + _localAddress);
 
-        synchronized(this) {
-            _recoveryAlarm = new Watchdog();
-            _common.getWatchdog().schedule(_recoveryAlarm, calculateRecoveryGracePeriod());
+        TimerTask myAlarm = new Watchdog();
+
+        if (_recoveryAlarm.compareAndSet(null, myAlarm)) {
+            _common.getWatchdog().schedule(myAlarm, calculateRecoveryGracePeriod());
         }
     }
 
     public void setRecoveryGracePeriod(long aPeriod) {
-        synchronized(this) {
-            _gracePeriod = aPeriod;
-        }
+        _gracePeriod.set(aPeriod);
     }
 
     private long calculateRecoveryGracePeriod() {
-        synchronized(this) {
-            return _gracePeriod;
-        }
+        return _gracePeriod.get();
     }
 
+    // Fold this away into recovery watchdog - terminate is only ever called from within the alarm itself
+    // thus there's no need to cancel the alarm.
+    //
     private void terminateRecovery() {
         _logger.debug("Recovery terminate, " + _localAddress);
 
@@ -594,32 +601,25 @@ public class AcceptorLearner {
          * This will cause the AL to re-enter recovery when another packet is received and thus a new
          * NEED will be issued. Eventually we'll get too out-of-date or updated
          */
+        _recoveryAlarm.set(null);
+
         synchronized(this) {
-            _recoveryAlarm = null;
-            postRecovery();
+            _recoveryWindow = null;
         }
     }
 
     private void completedRecovery() {
         _logger.info("Recovery complete, " + _localAddress);
 
-        synchronized(this) {
-            if (_recoveryAlarm != null) {
-                _recoveryAlarm.cancel();
-                _common.getWatchdog().purge();
-                _recoveryAlarm = null;
-            }
-
-            postRecovery();
+        TimerTask myAlarm = _recoveryAlarm.getAndSet(null);
+        if (myAlarm != null) {
+            myAlarm.cancel();
+            _common.getWatchdog().purge();
         }
-    }
 
-    private void postRecovery() {
         synchronized(this) {
             _recoveryWindow = null;
         }
-
-        _packetBuffer.clear();
     }
 
     /* ********************************************************************************************
@@ -628,10 +628,6 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-	/**
-	 * @param aMessage is the message to process
-	 * @return is any message to send
-	 */
 	private void process(Transport.Packet aPacket, Writer aWriter, Sender aSender) {
         PaxosMessage myMessage = aPacket.getMessage();
 		InetSocketAddress myNodeId = aPacket.getSource();
