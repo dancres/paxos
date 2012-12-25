@@ -61,7 +61,7 @@ public class AcceptorLearner {
     private final AtomicLong _gracePeriod = new AtomicLong(DEFAULT_RECOVERY_GRACE_PERIOD);
 
     private final AtomicReference<TimerTask> _recoveryAlarm = new AtomicReference<TimerTask>(null);
-    private Need _recoveryWindow = null;
+    private final AtomicReference<Need> _recoveryWindow = new AtomicReference<Need>(null);
 
 	private final BlockingQueue<Transport.Packet> _packetBuffer = new LinkedBlockingQueue<Transport.Packet>();
 
@@ -274,8 +274,9 @@ public class AcceptorLearner {
             if (myAlarm != null)
                 myAlarm.cancel();
 
+            _recoveryWindow.set(null);
+
             synchronized(this) {
-                _recoveryWindow = null;
                 _common.resetLeader();
                 _common.getRecoveryTrigger().reset();
             }
@@ -294,7 +295,7 @@ public class AcceptorLearner {
     public CheckpointHandle newCheckpoint() {
         // Can't allow watermark and last collect to vary independently
         //
-        synchronized (this) {
+        synchronized(this) {
             return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
                     _common.getLastCollect(), this, _common.getTransport().getPickler());
         }
@@ -355,7 +356,6 @@ public class AcceptorLearner {
             _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
 
             _common.setState(Common.FSMStates.ACTIVE);
-            _recoveryWindow = null;
 
             /*
              * We do not want to allow a leader to immediately over-rule us, make it work a bit,
@@ -369,6 +369,7 @@ public class AcceptorLearner {
             		Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
         }
 
+        _recoveryWindow.set(null);
         _packetBuffer.clear();
         _cachedBegins.clear();
 
@@ -439,7 +440,8 @@ public class AcceptorLearner {
 
         boolean myRecoveryInProgress = _common.testState(Common.FSMStates.RECOVERING);
         Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress);
-        int mySeqNumPosition = (myRecoveryInProgress) ? _recoveryWindow.relativeToWindow(mySeqNum) : Integer.MIN_VALUE;
+        int mySeqNumPosition = (myRecoveryInProgress) ?
+                _recoveryWindow.get().relativeToWindow(mySeqNum) : Integer.MIN_VALUE;
         Sender mySender = (myRecoveryInProgress) ? new RecoverySender() : new LiveSender();
 
         // Are we transitioning into recovery?
@@ -480,7 +482,7 @@ public class AcceptorLearner {
                 // CONCERNS TO NOTHING OTHER THAN THE RECOVERY TRANSITION AND PACKETBUFFER HANDLING.
                 //
                 _common.setState(Common.FSMStates.RECOVERING);
-                _recoveryWindow = myWindow;
+                _recoveryWindow.set(myWindow);
 
                 // Startup recovery watchdog
                 //
@@ -518,7 +520,7 @@ public class AcceptorLearner {
                  *  streamed through the packet buffer
                  */
                 if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
-                        _recoveryWindow.getMaxSeq()) {
+                        _recoveryWindow.get().getMaxSeq()) {
                     synchronized(this) {
                         for (Transport.Packet myReplayPacket : _packetBuffer) {
 
@@ -604,10 +606,7 @@ public class AcceptorLearner {
          * NEED will be issued. Eventually we'll get too out-of-date or updated
          */
         _recoveryAlarm.set(null);
-
-        synchronized(this) {
-            _recoveryWindow = null;
-        }
+        _recoveryWindow.set(null);
     }
 
     private void completedRecovery() {
@@ -619,9 +618,7 @@ public class AcceptorLearner {
             _common.getWatchdog().purge();
         }
 
-        synchronized(this) {
-            _recoveryWindow = null;
-        }
+        _recoveryWindow.set(null);
     }
 
     /* ********************************************************************************************
