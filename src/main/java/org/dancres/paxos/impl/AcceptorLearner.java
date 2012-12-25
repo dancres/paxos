@@ -209,7 +209,7 @@ public class AcceptorLearner {
         }
     }
 	
-	private ALCheckpointHandle _lastCheckpoint;
+	private final AtomicReference<ALCheckpointHandle> _lastCheckpoint = new AtomicReference<ALCheckpointHandle>();
 	
     /* ********************************************************************************************
      *
@@ -221,7 +221,9 @@ public class AcceptorLearner {
         _storage = aStore;
         _localAddress = aCommon.getTransport().getLocalAddress();
         _common = aCommon;
-        _lastCheckpoint = new ALCheckpointHandle(Watermark.INITIAL, _common.getLastCollect(), null, _common.getTransport().getPickler());        
+        _lastCheckpoint.set(
+                new ALCheckpointHandle(Watermark.INITIAL, _common.getLastCollect(),
+                        null, _common.getTransport().getPickler()));
     }
 
     /**
@@ -239,9 +241,10 @@ public class AcceptorLearner {
             long myStartSeqNum = -1;
             
             if (! aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
-                if (aHandle instanceof ALCheckpointHandle)
+                if (aHandle instanceof ALCheckpointHandle) {
+                    testAndSetCheckpoint((ALCheckpointHandle) aHandle);
                     myStartSeqNum = installCheckpoint((ALCheckpointHandle) aHandle);
-                else
+                } else
                     throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
             }
 
@@ -255,7 +258,7 @@ public class AcceptorLearner {
                 _logger.error("Failed to replay log", anE);
             }
         } finally {
-            _common.setState(Common.FSMStates.ACTIVE);
+            _common.testAndSetState(Common.FSMStates.RECOVERING, Common.FSMStates.ACTIVE);
         }
     }
 
@@ -300,20 +303,26 @@ public class AcceptorLearner {
     }
 
     private void saved(ALCheckpointHandle aHandle) throws Exception {
+        if (testAndSetCheckpoint(aHandle))
+            _storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
+    }
+
+    private boolean testAndSetCheckpoint(ALCheckpointHandle aHandle) {
         // If the checkpoint we're installing is newer...
         //
-        synchronized(this) {
-            if (aHandle.isNewerThan(_lastCheckpoint))
-                _lastCheckpoint = aHandle;
-            else
-                return;
-        }
+        ALCheckpointHandle myCurrent;
+        do {
+            myCurrent = _lastCheckpoint.get();
 
-        _storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
+            if (! aHandle.isNewerThan(myCurrent))
+                return false;
+
+        } while (! _lastCheckpoint.compareAndSet(myCurrent, aHandle));
+
+        return true;
     }
 
     private long installCheckpoint(ALCheckpointHandle aHandle) {
-        _lastCheckpoint = aHandle;
         _common.setLastCollect(aHandle.getLastCollect());
 
         _logger.info("Checkpoint installed: " + aHandle.getLastCollect() + " @ " + aHandle.getLowWatermark());
@@ -337,7 +346,7 @@ public class AcceptorLearner {
 
         ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
 
-        if (! myHandle.isNewerThan(_lastCheckpoint))
+        if (! testAndSetCheckpoint(myHandle))
             return false;
 
         /*
@@ -346,14 +355,12 @@ public class AcceptorLearner {
          * of Paxos. Additional state will be obtained from another AL via the lightweight recovery protocol.
          * Out of date means that the existing log has no useful data within it implying it can be discarded.
          */
-        synchronized(this) {
+        if (_common.testAndSetState(Common.FSMStates.OUT_OF_DATE, Common.FSMStates.ACTIVE)) {
             installCheckpoint(myHandle);
             
             // Write collect from our new checkpoint to log and use that as the starting point for replay.
             //
             _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
-
-            _common.setState(Common.FSMStates.ACTIVE);
         }
 
         /*
@@ -532,7 +539,7 @@ public class AcceptorLearner {
                         }
 
                         completedRecovery();
-                        _common.setState(Common.FSMStates.ACTIVE);
+                        _common.testAndSetState(Common.FSMStates.RECOVERING, Common.FSMStates.ACTIVE);
                     }
                 }
             }
@@ -567,7 +574,7 @@ public class AcceptorLearner {
                 _logger.warn("Recovery is NOT progressing - terminate, " + _localAddress);
 
                 terminateRecovery();
-                _common.setState(Common.FSMStates.ACTIVE);
+                _common.testAndSetState(Common.FSMStates.RECOVERING, Common.FSMStates.ACTIVE);
             }
         }
     }
@@ -642,7 +649,7 @@ public class AcceptorLearner {
                  * date. Since Paxos will tend to keep replica's mostly in sync there's no need to see if other
                  * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
                  */
-                if (myNeed.getMinSeq() < _lastCheckpoint.getLowWatermark().getSeqNum()) {
+                if (myNeed.getMinSeq() < _lastCheckpoint.get().getLowWatermark().getSeqNum()) {
                     _common.getTransport().send(new OutOfDate(), aPacket.getSource());
 
                 } else if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {

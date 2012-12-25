@@ -127,8 +127,12 @@ public class Common {
         }
     }
 
-    FSMStates setState(FSMStates aState) {
-        return _fsmState.getAndSet(aState);
+    void setState(FSMStates aState) {
+        _fsmState.getAndSet(aState);
+    }
+
+    boolean testAndSetState(FSMStates anExpected, FSMStates aNewState) {
+        return _fsmState.compareAndSet(anExpected, aNewState);
     }
 
     public boolean testState(FSMStates aState) {
