@@ -276,10 +276,8 @@ public class AcceptorLearner {
 
             _recoveryWindow.set(null);
 
-            synchronized(this) {
-                _common.resetLeader();
-                _common.getRecoveryTrigger().reset();
-            }
+            _common.resetLeader();
+            _common.getRecoveryTrigger().reset();
 
             _packetBuffer.clear();
             _cachedBegins.clear();
@@ -356,18 +354,18 @@ public class AcceptorLearner {
             _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
 
             _common.setState(Common.FSMStates.ACTIVE);
-
-            /*
-             * We do not want to allow a leader to immediately over-rule us, make it work a bit,
-             * otherwise we risk leader jitter. This ensures we get proper leader leasing as per
-             * live packet processing.
-             */
-            _common.leaderAction();
-            _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE,
-                    ((Collect) myHandle.getLastCollect().getMessage()).getSeqNum(), 
-                    ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
-            		Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
         }
+
+        /*
+         * We do not want to allow a leader to immediately over-rule us, make it work a bit,
+         * otherwise we risk leader jitter. This ensures we get proper leader leasing as per
+         * live packet processing.
+         */
+        _common.leaderAction();
+        _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE,
+                ((Collect) myHandle.getLastCollect().getMessage()).getSeqNum(),
+                ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
+            		Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
 
         _recoveryWindow.set(null);
         _packetBuffer.clear();

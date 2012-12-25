@@ -26,7 +26,8 @@ public class Common {
     
     private Transport _transport;
     private final MessageBasedFailureDetector _fd;
-    private Transport.Packet _lastCollect = new FakePacket(Collect.INITIAL);
+    private final AtomicReference<Transport.Packet> _lastCollect =
+            new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
     private long _lastLeaderActionTime = 0;
     private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
@@ -105,7 +106,7 @@ public class Common {
     }
     
     void resetLeader() {
-        _lastCollect = new FakePacket(Collect.INITIAL);
+        _lastCollect.set(new FakePacket(Collect.INITIAL));
         _lastLeaderActionTime = 0;        
     }
     
@@ -113,15 +114,11 @@ public class Common {
         if (! (aCollect.getMessage() instanceof Collect))
             throw new IllegalArgumentException();
 
-        synchronized(this) {
-            _lastCollect = aCollect;
-        }
+        _lastCollect.set(aCollect);
     }
     
     public Transport.Packet getLastCollect() {
-        synchronized(this) {
-            return _lastCollect;
-        }
+        return _lastCollect.get();
     }
     
     void leaderAction() {
@@ -139,15 +136,11 @@ public class Common {
     }
 
     public long getLeaderRndNum() {
-        synchronized(this) {
-            return ((Collect) _lastCollect.getMessage()).getRndNumber();
-        }
+        return ((Collect) _lastCollect.get().getMessage()).getRndNumber();
     }
 
     InetSocketAddress getLeaderAddress() {
-        synchronized(this) {
-            return _lastCollect.getSource();
-        }
+        return _lastCollect.get().getSource();
     }
 
     /**
@@ -156,14 +149,12 @@ public class Common {
      * @return <code>true</code> if it supercedes, <code>false</code> otherwise
      */
     boolean supercedes(Transport.Packet aCollect) {
-        synchronized(this) {
-            if (LeaderUtils.supercedes(aCollect, _lastCollect)) {
-                _lastCollect = aCollect;
+        if (LeaderUtils.supercedes(aCollect, _lastCollect.get())) {
+            _lastCollect.set(aCollect);
 
-                return true;
-            } else {
-                return false;
-            }
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -176,42 +167,34 @@ public class Common {
     boolean amAccepting(Transport.Packet aCollect) {
         long myCurrentTime = System.currentTimeMillis();
 
-        synchronized(this) {
-            if (((Collect) _lastCollect.getMessage()).isInitial()) {
-                _logger.debug("Current collect is initial - allow leader");
+        if (((Collect) _lastCollect.get().getMessage()).isInitial()) {
+            _logger.debug("Current collect is initial - allow leader");
+
+            return true;
+        } else {
+            if (LeaderUtils.sameLeader(aCollect, _lastCollect.get())) {
+                _logger.debug("Current collect is from same leader - allow");
 
                 return true;
-            } else {
-                if (LeaderUtils.sameLeader(aCollect, _lastCollect)) {
-                    _logger.debug("Current collect is from same leader - allow");
+            } else
+                _logger.debug("Check leader expiry: " + (myCurrentTime > _lastLeaderActionTime
+                        + Constants.getLeaderLeaseDuration()));
 
-                    return true;
-                } else
-                    _logger.debug("Check leader expiry: " + (myCurrentTime > _lastLeaderActionTime
-                            + Constants.getLeaderLeaseDuration()));
-
-                return (myCurrentTime > _lastLeaderActionTime
-                        + Constants.getLeaderLeaseDuration());
-            }
+            return (myCurrentTime > _lastLeaderActionTime
+                    + Constants.getLeaderLeaseDuration());
         }
     }
 
     boolean sameLeader(Transport.Packet aCollect) {
-        synchronized(this) {
-            return LeaderUtils.sameLeader(aCollect, _lastCollect);
-        }
+        return LeaderUtils.sameLeader(aCollect, _lastCollect.get());
     }
 
     boolean originates(Transport.Packet aBegin) {
-        synchronized(this) {
-            return LeaderUtils.originates(aBegin, _lastCollect);
-        }
+        return LeaderUtils.originates(aBegin, _lastCollect.get());
     }
 
     boolean precedes(Transport.Packet aBegin) {
-        synchronized(this) {
-            return LeaderUtils.precedes(aBegin, _lastCollect);
-        }
+        return LeaderUtils.precedes(aBegin, _lastCollect.get());
     }
 
     void add(Paxos.Listener aListener) {
