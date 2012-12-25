@@ -270,7 +270,9 @@ public class AcceptorLearner {
                 Thread.sleep(SHUTDOWN_PAUSE);
             } catch (Exception anE) {}
 
-            _recoveryAlarm.set(null);
+            TimerTask myAlarm = _recoveryAlarm.getAndSet(null);
+            if (myAlarm != null)
+                myAlarm.cancel();
 
             synchronized(this) {
                 _recoveryWindow = null;
