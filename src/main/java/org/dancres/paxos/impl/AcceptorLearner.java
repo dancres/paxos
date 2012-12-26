@@ -294,12 +294,10 @@ public class AcceptorLearner {
     }
 
     public CheckpointHandle newCheckpoint() {
-        // Can't allow watermark and last collect to vary independently
+        // Low watermark will always lag collect so no need for atomicity here
         //
-        synchronized(this) {
-            return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
-                    _common.getLastCollect(), this, _common.getTransport().getPickler());
-        }
+        return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
+                _common.getLastCollect(), this, _common.getTransport().getPickler());
     }
 
     private void saved(ALCheckpointHandle aHandle) throws Exception {
@@ -482,9 +480,6 @@ public class AcceptorLearner {
                 // Whilst still holding the lock, we clear the recovering mode. Note we will jettison the state held
                 // in common, instead using _recoveryWindow as the indicator of recovery. Note that _packetBuffer.clear
                 // cannot stay in postRecovery() if we're employing this approach.
-                //
-                // BEFORE WE DO THIS, MAKE THE WATCHDOG/ALARM HANDLING INDEPENDENTLY ATOMIC. THIS WILL REDUCE OUR
-                // CONCERNS TO NOTHING OTHER THAN THE RECOVERY TRANSITION AND PACKETBUFFER HANDLING.
                 //
                 _common.setState(Common.FSMStates.RECOVERING);
                 _recoveryWindow.set(myWindow);
