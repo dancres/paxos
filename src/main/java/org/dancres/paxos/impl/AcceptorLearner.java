@@ -462,6 +462,15 @@ public class AcceptorLearner {
             synchronized(this) {
                 _packetBuffer.clear();
 
+                try {
+                    // THIS IS CURRENTLY BROKEN BECAUSE WE HAVEN'T GOT A PROPER LOCK TRANSITION AROUND IT
+                    //
+                    _packetBuffer.put(aPacket);
+                } catch (InterruptedException anIE) {
+                    _logger.error("Couldn't queue to PacketBuffer", anIE);
+                    throw new RuntimeException("Serious recovery failure", anIE);
+                }
+
                 /*
                  * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
                  * If that's the case, it won't stream at all or will only stream some part of our recovery
@@ -491,11 +500,9 @@ public class AcceptorLearner {
         }
 
         /*
-         * If a recovery window just became active or the packet is for a sequence number above an active recovery
-         * window, save it for later
+         * If the packet is for a sequence number above an active recovery window, save it for later
          */
-        if (((myRecoveryInProgress) && (mySeqNumPosition == 1)) ||
-                ((! myRecoveryInProgress) && (myWindow != null))) {
+        if ((myRecoveryInProgress) && (mySeqNumPosition == 1)) {
             try {
                 // THIS IS CURRENTLY BROKEN BECAUSE WE HAVEN'T GOT A PROPER LOCK TRANSITION AROUND IT
                 //
