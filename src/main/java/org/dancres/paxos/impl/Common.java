@@ -153,13 +153,17 @@ public class Common {
      * @return <code>true</code> if it supercedes, <code>false</code> otherwise
      */
     boolean supercedes(Transport.Packet aCollect) {
-        if (LeaderUtils.supercedes(aCollect, _lastCollect.get())) {
-            _lastCollect.set(aCollect);
+        Transport.Packet myCurrentLast;
 
-            return true;
-        } else {
-            return false;
-        }
+        do {
+            myCurrentLast = _lastCollect.get();
+
+            if (! LeaderUtils.supercedes(aCollect, myCurrentLast))
+                return false;
+
+        } while (! _lastCollect.compareAndSet(myCurrentLast, aCollect));
+
+        return true;
     }
 
     /**
