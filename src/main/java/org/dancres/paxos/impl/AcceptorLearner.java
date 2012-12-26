@@ -446,6 +446,7 @@ public class AcceptorLearner {
         int mySeqNumPosition = (myRecoveryInProgress) ?
                 _recoveryWindow.get().relativeToWindow(mySeqNum) : Integer.MIN_VALUE;
         Sender mySender = (myRecoveryInProgress) ? new RecoverySender() : new LiveSender();
+        boolean myMisfire = false;
 
         // Are we transitioning into recovery?
         //
@@ -459,18 +460,30 @@ public class AcceptorLearner {
              * optimisation a similar thing would happen should a new leader have just taken over. Otherwise,
              * we'll likely recover the collect from another AL and thus apply all the packets since successfully.
              */
-            synchronized(this) {
-                _packetBuffer.clear();
+            boolean madeRecoveryTransition = false;
 
-                try {
-                    // THIS IS CURRENTLY BROKEN BECAUSE WE HAVEN'T GOT A PROPER LOCK TRANSITION AROUND IT
+            synchronized(_packetBuffer) {
+                madeRecoveryTransition = _common.testAndSetState(Common.FSMStates.ACTIVE, Common.FSMStates.RECOVERING);
+
+                if (madeRecoveryTransition) {
+                    // We've made the recovery transition time to dispatch our atomic duties
                     //
-                    _packetBuffer.put(aPacket);
-                } catch (InterruptedException anIE) {
-                    _logger.error("Couldn't queue to PacketBuffer", anIE);
-                    throw new RuntimeException("Serious recovery failure", anIE);
-                }
+                    _packetBuffer.clear();
 
+                    try {
+                        _packetBuffer.put(aPacket);
+                    } catch (InterruptedException anIE) {
+                        _logger.error("Couldn't queue to PacketBuffer", anIE);
+                        throw new RuntimeException("Serious recovery failure", anIE);
+                    }
+
+                    _recoveryWindow.set(myWindow);
+                }
+            }
+
+            // Non-atomic duties
+            //
+            if (madeRecoveryTransition) {
                 /*
                  * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
                  * If that's the case, it won't stream at all or will only stream some part of our recovery
@@ -479,23 +492,13 @@ public class AcceptorLearner {
                  */
                 mySender.send(myWindow, _common.getFD().getRandomMember(_localAddress));
 
-                // Declare recovery active - which stops this AL emitting responses
-                // THIS NEEDS TO BE THE ATOMIC RECOVERY TRANSITION IN ABSENCE OF THE SYNCHRONIZED.
-                // We do that using a test and set. If we win, by setting the recovery window and send the window
-                // If we lose, we need to set myRecoveryInProgress to true and do the necessary processing.
-                //
-                // How and where do we make the exit from recovery transition atomic? We proceed to drain the
-                // packet buffer until we believe it's empty. We then lock the buffer and empty out anything remaining.
-                // Whilst still holding the lock, we clear the recovering mode. Note we will jettison the state held
-                // in common, instead using _recoveryWindow as the indicator of recovery. Note that _packetBuffer.clear
-                // cannot stay in postRecovery() if we're employing this approach.
-                //
-                _common.setState(Common.FSMStates.RECOVERING);
-                _recoveryWindow.set(myWindow);
-
                 // Startup recovery watchdog
                 //
                 reschedule();
+            } else {
+                // We got a misfire - someone else made the transition, our duties just change, try again
+                //
+                myMisfire = true;
             }
         }
 
@@ -503,13 +506,19 @@ public class AcceptorLearner {
          * If the packet is for a sequence number above an active recovery window, save it for later
          */
         if ((myRecoveryInProgress) && (mySeqNumPosition == 1)) {
-            try {
-                // THIS IS CURRENTLY BROKEN BECAUSE WE HAVEN'T GOT A PROPER LOCK TRANSITION AROUND IT
-                //
-                _packetBuffer.put(aPacket);
-            } catch (InterruptedException anIE) {
-                _logger.error("Couldn't queue to PacketBuffer", anIE);
-                throw new RuntimeException("Serious recovery failure", anIE);
+            synchronized(_packetBuffer) {
+                if (_common.testState(Common.FSMStates.RECOVERING)) {
+                    try {
+                        _packetBuffer.put(aPacket);
+                    } catch (InterruptedException anIE) {
+                        _logger.error("Couldn't queue to PacketBuffer", anIE);
+                        throw new RuntimeException("Serious recovery failure", anIE);
+                    }
+                } else {
+                    // We got a misfire - someone else transitioned us out of recovery, our duties change, try again
+                    //
+                    myMisfire = true;
+                }
             }
         }
 
@@ -528,24 +537,35 @@ public class AcceptorLearner {
                  */
                 if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
                         _recoveryWindow.get().getMaxSeq()) {
-                    synchronized(this) {
-                        for (Transport.Packet myReplayPacket : _packetBuffer) {
-
-                            // May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
+                    synchronized(_packetBuffer) {
+                        if (_common.testState(Common.FSMStates.RECOVERING)) {
+                            // We'll be making the recovery transition
                             //
-                            if (_common.getRecoveryTrigger().shouldRecover(myReplayPacket.getMessage().getSeqNum(),
-                                    _localAddress) != null)
-                                break;
+                            for (Transport.Packet myReplayPacket : _packetBuffer) {
 
-                            process(myReplayPacket, myWriter, mySender);
+                                // May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
+                                //
+                                if (_common.getRecoveryTrigger().shouldRecover(myReplayPacket.getMessage().getSeqNum(),
+                                        _localAddress) != null)
+                                    break;
+
+                                process(myReplayPacket, myWriter, mySender);
+                            }
+
+                            completedRecovery();
+                            _common.testAndSetState(Common.FSMStates.RECOVERING, Common.FSMStates.ACTIVE);
+                        } else {
+                            // Mis-fire, someone else has made the transition, our duties change, try again
+                            //
+                            myMisfire = true;
                         }
-
-                        completedRecovery();
-                        _common.testAndSetState(Common.FSMStates.RECOVERING, Common.FSMStates.ACTIVE);
                     }
                 }
             }
         }
+
+        if (myMisfire)
+            messageReceived(aPacket);
 	}
 
     /* ********************************************************************************************
