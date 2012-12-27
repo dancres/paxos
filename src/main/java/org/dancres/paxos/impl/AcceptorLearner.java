@@ -10,6 +10,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.LogStorage;
@@ -77,6 +80,10 @@ public class AcceptorLearner {
      * for values and also placing the value in the Success message.
      */
     private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<Long, Begin>();
+
+    private final Lock _guardLock = new ReentrantLock();
+    private final Condition _notActive = _guardLock.newCondition();
+    private int _activeCount;
 
     /**
      * Tracks the last contiguous sequence number for which we have a value.
@@ -226,6 +233,33 @@ public class AcceptorLearner {
                         null, _common.getTransport().getPickler()));
     }
 
+    private boolean guard() {
+        _guardLock.lock();
+
+        try {
+            if (_common.testState(Common.FSMStates.SHUTDOWN))
+                return true;
+
+            _activeCount++;
+            return false;
+        } finally {
+            _guardLock.unlock();
+        }
+    }
+
+    private void unguard() {
+        _guardLock.lock();
+
+        try {
+            assert(_activeCount > 0);
+
+            --_activeCount;
+            _notActive.signal();
+        } finally {
+            _guardLock.unlock();
+        }
+    }
+
     /**
      * If this method fails be sure to invoke close regardless.
      *
@@ -267,11 +301,18 @@ public class AcceptorLearner {
             /*
              * Allow for the fact we might be actively processing packets. Mark ourselves shutdown and drain...
              */
-        	_common.setState(Common.FSMStates.SHUTDOWN);
+            synchronized(_packetBuffer) {
+        	    _common.setState(Common.FSMStates.SHUTDOWN);
+            }
+
+            _guardLock.lock();
 
             try {
-                Thread.sleep(SHUTDOWN_PAUSE);
-            } catch (Exception anE) {}
+                while (_activeCount != 0)
+                    _notActive.await();
+            } finally {
+                _guardLock.unlock();
+            }
 
             TimerTask myAlarm = _recoveryAlarm.getAndSet(null);
             if (myAlarm != null)
@@ -294,15 +335,29 @@ public class AcceptorLearner {
     }
 
     public CheckpointHandle newCheckpoint() {
+        if (guard())
+            throw new IllegalStateException("Instance is shutdown");
+
         // Low watermark will always lag collect so no need for atomicity here
         //
-        return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
-                _common.getLastCollect(), this, _common.getTransport().getPickler());
+        try {
+            return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
+                    _common.getLastCollect(), this, _common.getTransport().getPickler());
+        } finally {
+            unguard();
+        }
     }
 
     private void saved(ALCheckpointHandle aHandle) throws Exception {
-        if (testAndSetCheckpoint(aHandle))
-            _storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
+        if (guard())
+            throw new IllegalStateException("Instance is shutdown");
+
+        try {
+            if (testAndSetCheckpoint(aHandle))
+                _storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
+        } finally {
+            unguard();
+        }
     }
 
     private boolean testAndSetCheckpoint(ALCheckpointHandle aHandle) {
@@ -336,47 +391,55 @@ public class AcceptorLearner {
      * @throws Exception
      */
     public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
-        if (! _common.testState(Common.FSMStates.OUT_OF_DATE))
-            throw new IllegalStateException("Not out of date");
+        if (guard())
+            throw new IllegalStateException("Instance is shutdown");
 
-        if (! (aHandle instanceof ALCheckpointHandle))
-            throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
+        try {
+            if (! _common.testState(Common.FSMStates.OUT_OF_DATE))
+                throw new IllegalStateException("Not out of date");
 
-        ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
+            if (! (aHandle instanceof ALCheckpointHandle))
+                throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
 
-        if (! testAndSetCheckpoint(myHandle))
-            return false;
+            ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
 
-        /*
-         * If we're out of date, there will be no active timers and no activity on the log.
-         * We should install the checkpoint and clear out all state associated with known instances
-         * of Paxos. Additional state will be obtained from another AL via the lightweight recovery protocol.
-         * Out of date means that the existing log has no useful data within it implying it can be discarded.
-         */
-        if (_common.testAndSetState(Common.FSMStates.OUT_OF_DATE, Common.FSMStates.ACTIVE)) {
-            installCheckpoint(myHandle);
-            
-            // Write collect from our new checkpoint to log and use that as the starting point for replay.
-            //
-            _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
+            if (! testAndSetCheckpoint(myHandle))
+                return false;
+
+            /*
+             * If we're out of date, there will be no active timers and no activity on the log.
+             * We should install the checkpoint and clear out all state associated with known instances
+             * of Paxos. Additional state will be obtained from another AL via the lightweight recovery protocol.
+             * Out of date means that the existing log has no useful data within it implying it can be discarded.
+             */
+            if (_common.testAndSetState(Common.FSMStates.OUT_OF_DATE, Common.FSMStates.ACTIVE)) {
+                installCheckpoint(myHandle);
+
+                // Write collect from our new checkpoint to log and use that as the starting point for replay.
+                //
+                _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
+            }
+
+            /*
+             * We do not want to allow a leader to immediately over-rule us, make it work a bit,
+             * otherwise we risk leader jitter. This ensures we get proper leader leasing as per
+             * live packet processing.
+             */
+            _common.leaderAction();
+            _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE,
+                    ((Collect) myHandle.getLastCollect().getMessage()).getSeqNum(),
+                    ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
+                        Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
+
+            _recoveryWindow.set(null);
+            _packetBuffer.clear();
+            _cachedBegins.clear();
+
+            return true;
+
+        } finally {
+            unguard();
         }
-
-        /*
-         * We do not want to allow a leader to immediately over-rule us, make it work a bit,
-         * otherwise we risk leader jitter. This ensures we get proper leader leasing as per
-         * live packet processing.
-         */
-        _common.leaderAction();
-        _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE,
-                ((Collect) myHandle.getLastCollect().getMessage()).getSeqNum(),
-                ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
-            		Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
-
-        _recoveryWindow.set(null);
-        _packetBuffer.clear();
-        _cachedBegins.clear();
-
-        return true;
     }
 
     /* ********************************************************************************************
@@ -408,164 +471,176 @@ public class AcceptorLearner {
      ******************************************************************************************** */
 
 	public void messageReceived(Transport.Packet aPacket) {
-        // If we're not processing packets because we're out of date or because we're shutting down
+        // Silently drop packets once we're shutdown - this is internal implementation so don't throw public exceptions
         //
-        if ((_common.testState(Common.FSMStates.OUT_OF_DATE)) || (_common.testState(Common.FSMStates.SHUTDOWN)))
+        if (guard())
             return;
 
-        PaxosMessage myMessage = aPacket.getMessage();
-        long mySeqNum = myMessage.getSeqNum();
-        Writer myWriter = new LiveWriter();
-
-		if (_common.testState(Common.FSMStates.RECOVERING)) {
-            switch (myMessage.getType()) {
-                // If the packet is a recovery request, ignore it
-                //
-                case Operations.NEED : return;
-
-                // If we're out of date, we need to get the user-code to find a checkpoint
-                //
-                case Operations.OUTOFDATE : {
-                    synchronized(this) {
-                        completedRecovery();
-                        _common.setState(Common.FSMStates.OUT_OF_DATE);
-                    }
-
-                    // Signal with the node that pronounced us out of date - likely user code will get ckpt from there.
-                    //
-                    _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
-                            _common.getLeaderRndNum(),
-                            new Proposal(), aPacket.getSource()));
-                    return;
-                }
-            }
-        }
-
-        boolean myRecoveryInProgress = _common.testState(Common.FSMStates.RECOVERING);
-        Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress);
-        int mySeqNumPosition = (myRecoveryInProgress) ?
-                _recoveryWindow.get().relativeToWindow(mySeqNum) : Integer.MIN_VALUE;
-        Sender mySender = (myRecoveryInProgress) ? new RecoverySender() : new LiveSender();
-        boolean myMisfire = false;
-
-        // Are we transitioning into recovery?
-        //
-        if ((! myRecoveryInProgress) && (myWindow != null)) {
-            /*
-             * Ideally we catch up to the end of a complete instance but we don't have to. The AL state machine
-             * will simply discard some packets and then trigger another recovery.
-             *
-             * It's possible that, for example, we miss a collect but catch a begin and a success. In such a
-             * case we'd drop the messages and then issue another recovery. In the case of the multi-paxos
-             * optimisation a similar thing would happen should a new leader have just taken over. Otherwise,
-             * we'll likely recover the collect from another AL and thus apply all the packets since successfully.
-             */
-            boolean madeRecoveryTransition = false;
-
-            synchronized(_packetBuffer) {
-                madeRecoveryTransition = _common.testAndSetState(Common.FSMStates.ACTIVE, Common.FSMStates.RECOVERING);
-
-                if (madeRecoveryTransition) {
-                    // We've made the recovery transition time to dispatch our atomic duties
-                    //
-                    _packetBuffer.clear();
-
-                    try {
-                        _packetBuffer.put(aPacket);
-                    } catch (InterruptedException anIE) {
-                        _logger.error("Couldn't queue to PacketBuffer", anIE);
-                        throw new RuntimeException("Serious recovery failure", anIE);
-                    }
-
-                    _recoveryWindow.set(myWindow);
-                }
-            }
-
-            // Non-atomic duties
+        try {
+            // If we're not processing packets because we're out of date or because we're shutting down
             //
-            if (madeRecoveryTransition) {
-                /*
-                 * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
-                 * If that's the case, it won't stream at all or will only stream some part of our recovery
-                 * window. As the recovery watchdog measures progress through the recovery window, a partial
-                 * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
-                 */
-                mySender.send(myWindow, _common.getFD().getRandomMember(_localAddress));
-
-                // Startup recovery watchdog
-                //
-                reschedule();
-            } else {
-                // We got a misfire - someone else made the transition, our duties just change, try again
-                //
-                myMisfire = true;
+            if (_common.testState(Common.FSMStates.OUT_OF_DATE)) {
+                return;
             }
-        }
 
-        /*
-         * If the packet is for a sequence number above an active recovery window, save it for later
-         */
-        if ((myRecoveryInProgress) && (mySeqNumPosition == 1)) {
-            synchronized(_packetBuffer) {
-                if (_common.testState(Common.FSMStates.RECOVERING)) {
-                    try {
-                        _packetBuffer.put(aPacket);
-                    } catch (InterruptedException anIE) {
-                        _logger.error("Couldn't queue to PacketBuffer", anIE);
-                        throw new RuntimeException("Serious recovery failure", anIE);
+            PaxosMessage myMessage = aPacket.getMessage();
+            long mySeqNum = myMessage.getSeqNum();
+            Writer myWriter = new LiveWriter();
+
+            if (_common.testState(Common.FSMStates.RECOVERING)) {
+                switch (myMessage.getType()) {
+                    // If the packet is a recovery request, ignore it
+                    //
+                    case Operations.NEED : return;
+
+                    // If we're out of date, we need to get the user-code to find a checkpoint
+                    //
+                    case Operations.OUTOFDATE : {
+                        synchronized(this) {
+                            completedRecovery();
+                            _common.setState(Common.FSMStates.OUT_OF_DATE);
+                        }
+
+                        // Signal with node that pronounced us out of date - likely user code will get ckpt from there.
+                        //
+                        _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
+                                _common.getLeaderRndNum(),
+                                new Proposal(), aPacket.getSource()));
+                        return;
                     }
+                }
+            }
+
+            boolean myRecoveryInProgress = _common.testState(Common.FSMStates.RECOVERING);
+            Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress);
+            int mySeqNumPosition = (myRecoveryInProgress) ?
+                    _recoveryWindow.get().relativeToWindow(mySeqNum) : Integer.MIN_VALUE;
+            Sender mySender = (myRecoveryInProgress) ? new RecoverySender() : new LiveSender();
+            boolean myMisfire = false;
+
+            // Are we transitioning into recovery?
+            //
+            if ((! myRecoveryInProgress) && (myWindow != null)) {
+                /*
+                 * Ideally we catch up to the end of a complete instance but we don't have to. The AL state machine
+                 * will simply discard some packets and then trigger another recovery.
+                 *
+                 * It's possible that, for example, we miss a collect but catch a begin and a success. In such a
+                 * case we'd drop the messages and then issue another recovery. In the case of the multi-paxos
+                 * optimisation a similar thing would happen should a new leader have just taken over. Otherwise,
+                 * we'll likely recover the collect from another AL and thus apply all the packets since successfully.
+                 */
+                boolean madeRecoveryTransition = false;
+
+                synchronized(_packetBuffer) {
+                    madeRecoveryTransition =
+                            _common.testAndSetState(Common.FSMStates.ACTIVE, Common.FSMStates.RECOVERING);
+
+                    if (madeRecoveryTransition) {
+                        // We've made the recovery transition time to dispatch our atomic duties
+                        //
+                        _packetBuffer.clear();
+
+                        try {
+                            _packetBuffer.put(aPacket);
+                        } catch (InterruptedException anIE) {
+                            _logger.error("Couldn't queue to PacketBuffer", anIE);
+                            throw new RuntimeException("Serious recovery failure", anIE);
+                        }
+
+                        _recoveryWindow.set(myWindow);
+                    }
+                }
+
+                // Non-atomic duties
+                //
+                if (madeRecoveryTransition) {
+                    /*
+                     * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
+                     * If that's the case, it won't stream at all or will only stream some part of our recovery
+                     * window. As the recovery watchdog measures progress through the recovery window, a partial
+                     * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
+                     */
+                    mySender.send(myWindow, _common.getFD().getRandomMember(_localAddress));
+
+                    // Startup recovery watchdog
+                    //
+                    reschedule();
                 } else {
-                    // We got a misfire - someone else transitioned us out of recovery, our duties change, try again
+                    // We got a misfire - someone else made the transition, our duties just change, try again
                     //
                     myMisfire = true;
                 }
             }
-        }
 
-        /*
-         * If the packet is for a sequence number within an active recovery window or we're healthy,
-         * process it.
-         */
-        if (((myRecoveryInProgress) && (mySeqNumPosition == 0)) ||
-                ((! myRecoveryInProgress) && (myWindow == null))) {
-            process(aPacket, myWriter, mySender);
+            /*
+             * If the packet is for a sequence number above an active recovery window, save it for later
+             */
+            if ((myRecoveryInProgress) && (mySeqNumPosition == 1)) {
+                synchronized(_packetBuffer) {
+                    if (_common.testState(Common.FSMStates.RECOVERING)) {
+                        try {
+                            _packetBuffer.put(aPacket);
+                        } catch (InterruptedException anIE) {
+                            _logger.error("Couldn't queue to PacketBuffer", anIE);
+                            throw new RuntimeException("Serious recovery failure", anIE);
+                        }
+                    } else {
+                        // We got a misfire - someone else transitioned us out of recovery, our duties change, try again
+                        //
+                        myMisfire = true;
+                    }
+                }
+            }
 
-            if (myRecoveryInProgress) {
-                /*
-                 *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
-                 *  streamed through the packet buffer
-                 */
-                if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
-                        _recoveryWindow.get().getMaxSeq()) {
-                    synchronized(_packetBuffer) {
-                        if (_common.testState(Common.FSMStates.RECOVERING)) {
-                            // We'll be making the recovery transition
-                            //
-                            for (Transport.Packet myReplayPacket : _packetBuffer) {
+            /*
+             * If the packet is for a sequence number within an active recovery window or we're healthy,
+             * process it.
+             */
+            if (((myRecoveryInProgress) && (mySeqNumPosition == 0)) ||
+                    ((! myRecoveryInProgress) && (myWindow == null))) {
+                process(aPacket, myWriter, mySender);
 
-                                // May be excessive gaps in buffer, catch that, exit early, recovery will trigger again
+                if (myRecoveryInProgress) {
+                    /*
+                     *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
+                     *  streamed through the packet buffer
+                     */
+                    if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
+                            _recoveryWindow.get().getMaxSeq()) {
+                        synchronized(_packetBuffer) {
+                            if (_common.testState(Common.FSMStates.RECOVERING)) {
+                                // We'll be making the recovery transition
                                 //
-                                if (_common.getRecoveryTrigger().shouldRecover(myReplayPacket.getMessage().getSeqNum(),
-                                        _localAddress) != null)
-                                    break;
+                                for (Transport.Packet myReplayPacket : _packetBuffer) {
 
-                                process(myReplayPacket, myWriter, mySender);
+                                    // Maybe excessive gaps in buffer, catch it, exit early, recovery will trigger again
+                                    //
+                                    if (_common.getRecoveryTrigger().shouldRecover(
+                                            myReplayPacket.getMessage().getSeqNum(), _localAddress) != null)
+                                        break;
+
+                                    process(myReplayPacket, myWriter, mySender);
+                                }
+
+                                completedRecovery();
+                                _common.testAndSetState(Common.FSMStates.RECOVERING, Common.FSMStates.ACTIVE);
+                            } else {
+                                // Mis-fire, someone else has made the transition, our duties change, try again
+                                //
+                                myMisfire = true;
                             }
-
-                            completedRecovery();
-                            _common.testAndSetState(Common.FSMStates.RECOVERING, Common.FSMStates.ACTIVE);
-                        } else {
-                            // Mis-fire, someone else has made the transition, our duties change, try again
-                            //
-                            myMisfire = true;
                         }
                     }
                 }
             }
-        }
 
-        if (myMisfire)
-            messageReceived(aPacket);
+            if (myMisfire)
+                messageReceived(aPacket);
+
+        } finally {
+            unguard();
+        }
 	}
 
     /* ********************************************************************************************
@@ -615,7 +690,14 @@ public class AcceptorLearner {
     }
 
     public void setRecoveryGracePeriod(long aPeriod) {
-        _gracePeriod.set(aPeriod);
+        if (guard())
+            throw new IllegalStateException("Instance is shutdown");
+
+        try {
+            _gracePeriod.set(aPeriod);
+        } finally {
+            unguard();
+        }
     }
 
     private long calculateRecoveryGracePeriod() {
@@ -844,6 +926,11 @@ public class AcceptorLearner {
     
     class LiveSender implements Sender {
         public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
+            // Go silent if we're shutting down - shutdown process can be brutal, we don't want to send out lies
+            //
+            if (_common.testState(Common.FSMStates.SHUTDOWN))
+                return;
+
             _logger.debug("AL sending: " + aMessage);
             _common.getTransport().send(aMessage, aNodeId);
         }        
@@ -932,14 +1019,21 @@ public class AcceptorLearner {
         }
 
         public void run() {
-            _logger.info("RemoteStreamer starting, " + _localAddress);
+            if (guard()) {
+                _logger.warn("Aborting RemoteStreamer, " + _localAddress);
+                return;
+            } else {
+                _logger.info("RemoteStreamer starting, " + _localAddress);
+            }
 
             try {
-                new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this, _storage, _common.getTransport().getPickler()).produce(0);
+                new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this, _storage,
+                        _common.getTransport().getPickler()).produce(0);
             } catch (Exception anE) {
                 _logger.error("Failed to replay log", anE);
             } finally {
                 _stream.close();
+                unguard();
             }
         }
 
