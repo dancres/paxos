@@ -48,10 +48,12 @@ import java.util.*;
  * @todo Implement failure model (might affect design for OUT_OF_DATE handling).
  */
 public class LongTerm {
-    private static final long CKPT_CYCLES = 100;
     private static final String BASEDIR = "/Volumes/LaCie/paxoslogs/";
 
     static interface Args {
+        @Option(defaultValue="1000")
+        long getCkptCycle();
+
         @Option(defaultValue="0")
         long getSeed();
 
@@ -65,6 +67,7 @@ public class LongTerm {
     private class Environment {
         final boolean _calibrate;
         final long _maxCycles;
+        final long _ckptCycle;
         final Random _rng;
         final List<ServerDispatcher> _servers = new LinkedList<ServerDispatcher>();
         final Map<ServerDispatcher, CheckpointStorage> _checkpoints =
@@ -74,7 +77,8 @@ public class LongTerm {
 
         long _opCount = 0;
 
-        Environment(long aSeed, long aCycles, boolean doCalibrate) throws Exception {
+        Environment(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
+            _ckptCycle = aCkptCycle;
             _calibrate = doCalibrate;
             _maxCycles = aCycles;
             _rng = new Random(aSeed);
@@ -111,8 +115,8 @@ public class LongTerm {
 
     private Environment _env;
 
-    private LongTerm(long aSeed, long aCycles, boolean doCalibrate) throws Exception {
-        _env = new Environment(aSeed, aCycles, doCalibrate);
+    private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
+        _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle);
     }
 
     public static void main(String[] anArgs) throws Exception {
@@ -120,7 +124,7 @@ public class LongTerm {
         
         long myStart = System.currentTimeMillis();
 
-        new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate()).run();
+        new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate(), myArgs.getCkptCycle()).run();
 
         double myDuration = (System.currentTimeMillis() - myStart) / 1000.0;
 
@@ -166,7 +170,7 @@ public class LongTerm {
             if (myEv.getResult() == VoteOutcome.Reason.OTHER_LEADER) {
                 _env.updateLeader(myEv.getLeader());
             } else if (myEv.getResult() == VoteOutcome.Reason.DECISION) {
-                if (opsSinceCkpt >= CKPT_CYCLES) {
+                if (opsSinceCkpt >= _env._ckptCycle) {
                     for (ServerDispatcher mySD : _env._servers) {
                         CheckpointHandle myHandle = mySD.getAcceptorLearner().newCheckpoint();
                         CheckpointStorage myStorage = _env._checkpoints.get(mySD);
