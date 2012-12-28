@@ -1,6 +1,7 @@
 package org.dancres.paxos.test;
 
 import org.dancres.paxos.CheckpointHandle;
+import org.dancres.paxos.CheckpointStorage;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.Transport;
@@ -12,6 +13,7 @@ import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.FileSystem;
+import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
 import org.dancres.paxos.test.utils.OrderedMemoryTransportFactory;
 
 import com.lexicalscope.jewel.cli.ArgumentValidationException;
@@ -20,6 +22,7 @@ import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.Option;
 
 import java.io.File;
+import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -42,7 +45,7 @@ import java.util.*;
  * Each of these will also have a typical time to fix. In essence we want an MTBF/MTRR model.
  */
 public class LongTerm {
-    private static final long CKPT_CYCLES = 10000;
+    private static final long CKPT_CYCLES = 100;
     private static final String BASEDIR = "/Volumes/LaCie/paxoslogs/";
 
     static interface Args {
@@ -62,6 +65,8 @@ public class LongTerm {
         final Random _rng;
         final Map<Long, Strategy> _actions = new TreeMap<Long, Strategy>();
         final List<ServerDispatcher> _servers = new LinkedList<ServerDispatcher>();
+        final Map<ServerDispatcher, CheckpointStorage> _checkpoints =
+                new HashMap<ServerDispatcher, CheckpointStorage>();
         Transport _currentLeader;
         final OrderedMemoryTransportFactory _factory;
 
@@ -84,6 +89,7 @@ public class LongTerm {
                 myTp.add(myDisp);
 
                 _servers.add(myDisp);
+                _checkpoints.put(myDisp, new MemoryCheckpointStorage());
             }
 
             _currentLeader = _servers.get(0).getTransport();
@@ -180,11 +186,18 @@ public class LongTerm {
                 _env.updateLeader(myEv.getLeader());
             } else if (myEv.getResult() == VoteOutcome.Reason.DECISION) {
                 if (opsSinceCkpt >= CKPT_CYCLES) {
-                    System.err.println("Marking");
-
                     for (ServerDispatcher mySD : _env._servers) {
                         CheckpointHandle myHandle = mySD.getAcceptorLearner().newCheckpoint();
+                        CheckpointStorage myStorage = _env._checkpoints.get(mySD);
+                        CheckpointStorage.WriteCheckpoint myCkpt = myStorage.newCheckpoint();
+                        ObjectOutputStream myStream = new ObjectOutputStream(myCkpt.getStream());
+                        myStream.writeObject(myHandle);
+                        myStream.close();
+
+                        myCkpt.saved();
                         myHandle.saved();
+
+                        assert(myStorage.numFiles() == 1);
                     }
 
                     opsSinceCkpt = 0;
