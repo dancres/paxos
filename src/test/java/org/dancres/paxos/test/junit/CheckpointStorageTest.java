@@ -22,8 +22,8 @@ public class CheckpointStorageTest {
     @Test public void test() throws Exception {
         CheckpointStorage myStorage = new DirectoryCheckpointStorage(new File(_checkpointDir));
 
-        File[] myFiles = myStorage.getFiles();
-        Assert.assertTrue(myFiles.length == 0);
+        int myTotalFiles = myStorage.numFiles();
+        Assert.assertTrue(myTotalFiles == 0);
 
         WriteCheckpoint myCkpt = myStorage.newCheckpoint();
         ObjectOutputStream myOOS = new ObjectOutputStream(myCkpt.getStream());

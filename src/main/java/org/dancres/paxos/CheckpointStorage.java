@@ -19,7 +19,7 @@ public interface CheckpointStorage {
         public InputStream getStream() throws IOException;
     }
 
-    public File[] getFiles();
+    public int numFiles();
     public ReadCheckpoint getLastCheckpoint();
     public WriteCheckpoint newCheckpoint();
 }

@@ -63,8 +63,12 @@ public class DirectoryCheckpointStorage implements CheckpointStorage {
             }
         };
     }
-    
-    public File[] getFiles() {
+
+    public int numFiles() {
+        return getFiles().length;
+    }
+
+    private File[] getFiles() {
         File[] myFiles = _dir.listFiles(new FilenameFilter() {
             public boolean accept(File file, String s) {
                 return s.startsWith("ckpt");
