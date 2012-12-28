@@ -66,7 +66,6 @@ public class LongTerm {
         final boolean _calibrate;
         final long _maxCycles;
         final Random _rng;
-        final Map<Long, Strategy> _actions = new TreeMap<Long, Strategy>();
         final List<ServerDispatcher> _servers = new LinkedList<ServerDispatcher>();
         final Map<ServerDispatcher, CheckpointStorage> _checkpoints =
                 new HashMap<ServerDispatcher, CheckpointStorage>();
@@ -110,8 +109,6 @@ public class LongTerm {
         }
     }
 
-    private static final Strategy[] _happenings = new Strategy[]{new Fake()};
-
     private Environment _env;
 
     private LongTerm(long aSeed, long aCycles, boolean doCalibrate) throws Exception {
@@ -146,29 +143,10 @@ public class LongTerm {
         long opsSinceCkpt = 0;
 
         if (! _env._calibrate) {
-            for (long i = 0; i < _env._maxCycles; i++) {
-                // Pick a percent chance of a failure
-                //
-                int myChancePercent = _env._rng.nextInt(101);
-
-                int myResultPercent = _env._rng.nextInt(101);
-
-                if (myResultPercent <= myChancePercent) {
-                    if (_env._actions.get(i) == null)
-                        _env._actions.put(i, _happenings[_env._rng.nextInt(_happenings.length)]);
-                }
-            }
+            // Setup failure model
         }
 
         while (_env._opCount < _env._maxCycles) {
-
-            // If there's an action this round
-            //
-            Strategy myAction = _env._actions.remove(new Long(_env._opCount));
-
-            if (myAction != null)
-                myAction.execute(_env);
-
             /*
              * Perform a paxos vote - need to react to other leader messages but ignore all else - allows us to
              * cope with strategies that switch our leader to test out election and recover from them (assuming we
@@ -216,19 +194,5 @@ public class LongTerm {
             mySd.getTransport().terminate();
 
         _env._factory.stop();
-    }
-
-    /**
-     * network outages, message delays, timeouts, process crashes and recoveries, file corruptions,
-     * schedule interleavings, leader switch, etc.
-     */
-    public interface Strategy {
-        public void execute(Environment anEnv);
-    }
-
-    private static class Fake implements Strategy {
-        public void execute(Environment anEnv) {
-            System.err.println("Failure event");
-        }
     }
 }
