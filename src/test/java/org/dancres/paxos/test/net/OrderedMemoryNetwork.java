@@ -53,7 +53,7 @@ public class OrderedMemoryNetwork implements Runnable {
         }
     }
 
-    private Factory _factory;
+    private Factory _factory = new DefaultFactory();
     private BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<PacketWrapper>();
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
     private InetSocketAddress  _broadcastAddr;
@@ -61,17 +61,6 @@ public class OrderedMemoryNetwork implements Runnable {
             new ConcurrentHashMap<InetSocketAddress, OrderedMemoryTransport>();
 
     public OrderedMemoryNetwork() throws Exception {
-        _factory = new DefaultFactory();
-        _broadcastAddr = new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getBroadcastAddress(), 255);
-
-        Thread myDispatcher = new Thread(this);
-
-        myDispatcher.setDaemon(true);
-        myDispatcher.start();
-    }
-
-    public OrderedMemoryNetwork(Factory aFactory) throws Exception {
-        _factory = aFactory;
         _broadcastAddr = new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getBroadcastAddress(), 255);
 
         Thread myDispatcher = new Thread(this);
@@ -117,9 +106,10 @@ public class OrderedMemoryNetwork implements Runnable {
             _logger.warn("Couldn't distribute packet to target: " + aPayload.getTarget());
     }
 
-    public Transport newTransport() {
+    public Transport newTransport(Factory aFactory) {
         InetSocketAddress myAddr = Utils.getTestAddress();
-        OrderedMemoryTransport myTrans = _factory.newTransport(myAddr, _broadcastAddr, this);
+        OrderedMemoryTransport myTrans = (aFactory == null) ? _factory.newTransport(myAddr, _broadcastAddr, this) :
+                aFactory.newTransport(myAddr, _broadcastAddr, this);
 
         _nodes.put(myAddr, myTrans);
 
