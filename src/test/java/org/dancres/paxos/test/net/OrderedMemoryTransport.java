@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.utils;
+package org.dancres.paxos.test.net;
 
 import org.dancres.paxos.impl.Transport;
 
@@ -16,8 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class OrderedMemoryTransportFactory implements Runnable {
-    private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportFactory.class);
+public class OrderedMemoryTransport implements Runnable {
+    private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransport.class);
 
     private class PacketWrapper {
         private Transport.Packet _packet;
@@ -42,7 +42,7 @@ public class OrderedMemoryTransportFactory implements Runnable {
     private InetSocketAddress  _broadcastAddr;
     private Map<InetSocketAddress, OrderedMemoryTransportImpl> _nodes = new ConcurrentHashMap<InetSocketAddress, OrderedMemoryTransportImpl>();
 
-    public OrderedMemoryTransportFactory() throws Exception {
+    public OrderedMemoryTransport() throws Exception {
         _broadcastAddr = new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getBroadcastAddress(), 255);
 
         Thread myDispatcher = new Thread(this);

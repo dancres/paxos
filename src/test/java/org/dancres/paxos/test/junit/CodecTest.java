@@ -5,7 +5,7 @@ import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.impl.faildet.Heartbeat;
-import org.dancres.paxos.test.utils.Utils;
+import org.dancres.paxos.test.net.Utils;
 import org.junit.*;
 
 import java.net.InetSocketAddress;

@@ -6,18 +6,13 @@ import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Envelope;
-import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.net.ClientDispatcher;
+import org.dancres.paxos.test.net.OrderedMemoryTransport;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
-import org.dancres.paxos.test.utils.OrderedMemoryTransportFactory;
-
-import com.lexicalscope.jewel.cli.ArgumentValidationException;
-import com.lexicalscope.jewel.cli.Cli;
 import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.Option;
 
@@ -73,7 +68,7 @@ public class LongTerm {
         final Map<ServerDispatcher, CheckpointStorage> _checkpoints =
                 new HashMap<ServerDispatcher, CheckpointStorage>();
         Transport _currentLeader;
-        final OrderedMemoryTransportFactory _factory;
+        final OrderedMemoryTransport _factory;
 
         long _opCount = 0;
 
@@ -82,7 +77,7 @@ public class LongTerm {
             _calibrate = doCalibrate;
             _maxCycles = aCycles;
             _rng = new Random(aSeed);
-            _factory = new OrderedMemoryTransportFactory();
+            _factory = new OrderedMemoryTransport();
 
             for (int i = 0; i < 5; i++) {
                 FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(i) + "logs"));

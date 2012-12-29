@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.utils;
+package org.dancres.paxos.test.net;
 
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Stream;
@@ -17,17 +17,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class OrderedMemoryTransportImpl implements Transport {
 	private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
 
-	private OrderedMemoryTransportFactory _factory;
+	private OrderedMemoryTransport _parent;
 	private PacketPickler _pickler = new StandalonePickler();
 	private Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
 	private InetSocketAddress _unicastAddr;
     private InetSocketAddress _broadcastAddr;
 
-    public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr, OrderedMemoryTransportFactory aFactory) {
+    public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr, OrderedMemoryTransport aParent) {
     	_unicastAddr = aLocalAddr;
     	_broadcastAddr = aBroadAddr;
-    	_factory = aFactory;
+    	_parent = aParent;
     }
 
     public PacketPickler getPickler() {
@@ -64,7 +64,7 @@ public class OrderedMemoryTransportImpl implements Transport {
 		guard();
 		
 		try {
-			_factory.enqueue(new FakePacket(_unicastAddr, aMessage), anAddr);			
+			_parent.enqueue(new FakePacket(_unicastAddr, aMessage), anAddr);
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
 		}
@@ -96,7 +96,7 @@ public class OrderedMemoryTransportImpl implements Transport {
 				throw new RuntimeException("Stream is closed");
 
 			try {
-				_factory.enqueue(new FakePacket(_unicastAddr, aMessage), _target);
+				_parent.enqueue(new FakePacket(_unicastAddr, aMessage), _target);
 			} catch (Exception anE) {
 				_logger.error("Couldn't enqueue packet", anE);
 			}
@@ -107,7 +107,7 @@ public class OrderedMemoryTransportImpl implements Transport {
 				throw new RuntimeException("Stream is closed");
 
 			try {
-				_factory.enqueue(aPacket, _target);
+				_parent.enqueue(aPacket, _target);
 			} catch (Exception anE) {
 				_logger.error("Couldn't enqueue packet", anE);
 			}
@@ -125,7 +125,7 @@ public class OrderedMemoryTransportImpl implements Transport {
 
 		_isStopping.set(true);
 
-        _factory.destroy(this);
+        _parent.destroy(this);
 
         synchronized(this) {
             for (Dispatcher d: _dispatcher)

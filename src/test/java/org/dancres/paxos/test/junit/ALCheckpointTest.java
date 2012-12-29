@@ -6,8 +6,8 @@ import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
-import org.dancres.paxos.test.utils.Utils;
-import org.dancres.paxos.test.utils.StandalonePickler;
+import org.dancres.paxos.test.net.Utils;
+import org.dancres.paxos.test.net.StandalonePickler;
 import org.junit.Before;
 import org.junit.Test;
 

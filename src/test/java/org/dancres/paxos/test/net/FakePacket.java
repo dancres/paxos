@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.utils;
+package org.dancres.paxos.test.net;
 
 import java.net.InetSocketAddress;
 import java.net.InetAddress;
