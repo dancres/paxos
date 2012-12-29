@@ -19,6 +19,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class OrderedMemoryNetwork implements Runnable {
     private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryNetwork.class);
 
+    public interface OrderedMemoryTransport extends Transport {
+        public void distribute(Transport.Packet aPacket);
+    }
+
+    public interface Factory {
+        public OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
+                                                   OrderedMemoryNetwork aNetwork);
+    }
+
     private class PacketWrapper {
         private Transport.Packet _packet;
         private InetSocketAddress _target;
@@ -37,12 +46,32 @@ public class OrderedMemoryNetwork implements Runnable {
         }
     }
 
+    private class DefaultFactory implements Factory {
+        public OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
+                                                   OrderedMemoryNetwork aNetwork) {
+            return new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
+        }
+    }
+
+    private Factory _factory;
     private BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<PacketWrapper>();
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
     private InetSocketAddress  _broadcastAddr;
-    private Map<InetSocketAddress, OrderedMemoryTransportImpl> _nodes = new ConcurrentHashMap<InetSocketAddress, OrderedMemoryTransportImpl>();
+    private Map<InetSocketAddress, OrderedMemoryTransport> _nodes =
+            new ConcurrentHashMap<InetSocketAddress, OrderedMemoryTransport>();
 
     public OrderedMemoryNetwork() throws Exception {
+        _factory = new DefaultFactory();
+        _broadcastAddr = new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getBroadcastAddress(), 255);
+
+        Thread myDispatcher = new Thread(this);
+
+        myDispatcher.setDaemon(true);
+        myDispatcher.start();
+    }
+
+    public OrderedMemoryNetwork(Factory aFactory) throws Exception {
+        _factory = aFactory;
         _broadcastAddr = new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getBroadcastAddress(), 255);
 
         Thread myDispatcher = new Thread(this);
@@ -80,7 +109,7 @@ public class OrderedMemoryNetwork implements Runnable {
     }
 
     private void dispatch(PacketWrapper aPayload) {
-        OrderedMemoryTransportImpl myDest = _nodes.get(aPayload.getTarget());
+        OrderedMemoryTransport myDest = _nodes.get(aPayload.getTarget());
 
         if (myDest != null)
             myDest.distribute(aPayload.getPacket());
@@ -90,14 +119,14 @@ public class OrderedMemoryNetwork implements Runnable {
 
     public Transport newTransport() {
         InetSocketAddress myAddr = Utils.getTestAddress();
-        OrderedMemoryTransportImpl myTrans = new OrderedMemoryTransportImpl(myAddr, _broadcastAddr, this);
+        OrderedMemoryTransport myTrans = _factory.newTransport(myAddr, _broadcastAddr, this);
 
         _nodes.put(myAddr, myTrans);
 
         return myTrans;
     }
 
-    void destroy(OrderedMemoryTransportImpl aTransport) {
+    void destroy(OrderedMemoryTransport aTransport) {
         _nodes.remove(aTransport.getLocalAddress());
     }
 }

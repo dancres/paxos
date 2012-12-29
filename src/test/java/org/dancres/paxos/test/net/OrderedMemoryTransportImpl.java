@@ -14,7 +14,7 @@ import java.util.Set;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class OrderedMemoryTransportImpl implements Transport {
+public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedMemoryTransport {
 	private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
 
 	private OrderedMemoryNetwork _parent;
@@ -70,7 +70,7 @@ public class OrderedMemoryTransportImpl implements Transport {
 		}
     }
 
-    void distribute(Transport.Packet aPacket) {
+    public void distribute(Transport.Packet aPacket) {
     	synchronized(this) {
             for(Dispatcher d : _dispatcher) {
                 if (d.messageReceived(aPacket))
