@@ -46,7 +46,7 @@ public class LongTerm {
     private static final String BASEDIR = "/Volumes/LaCie/paxoslogs/";
 
     static interface Args {
-        @Option(defaultValue="1000")
+        @Option(defaultValue="100")
         long getCkptCycle();
 
         @Option(defaultValue="0")
