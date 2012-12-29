@@ -7,9 +7,11 @@ import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
+import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
@@ -17,6 +19,7 @@ import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.Option;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -59,16 +62,127 @@ public class LongTerm {
         boolean isCalibrate();
     }
 
+    private static class Factory implements OrderedMemoryNetwork.Factory {
+        private int _nextNodeNum = 0;
+        private Environment _environment;
+
+        Factory(Environment anEnv) {
+            _environment = anEnv;
+        }
+
+        public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
+                                                                        InetSocketAddress aBroadcastAddr,
+                                                                        OrderedMemoryNetwork aNetwork) {
+            TestTransport myTp = new TestTransport(aLocalAddr, aBroadcastAddr, aNetwork, _nextNodeNum);
+
+            _environment._nodes.add(myTp);
+            _nextNodeNum++;
+
+            return myTp;
+        }
+
+        class TestTransport implements OrderedMemoryNetwork.OrderedMemoryTransport, NodeAdmin {
+            private OrderedMemoryTransportImpl _transport;
+            private ServerDispatcher _dispatcher;
+            private CheckpointStorage _ckptStorage;
+
+            TestTransport(InetSocketAddress aLocalAddr,
+                      InetSocketAddress aBroadcastAddr,
+                      OrderedMemoryNetwork aNetwork,
+                      int aNodeNum) {
+                _ckptStorage = new MemoryCheckpointStorage();
+                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
+
+                FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
+
+                _dispatcher =
+                        new ServerDispatcher(new FailureDetectorImpl(3, 5000),
+                                new HowlLogger(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
+
+                try {
+                    _transport.add(_dispatcher);
+                } catch (Exception anE) {
+                    throw new RuntimeException("Failed to add a dispatcher", anE);
+                }
+            }
+
+            @Override
+            public void distribute(Packet aPacket) {
+                _transport.distribute(aPacket);
+            }
+
+            @Override
+            public PacketPickler getPickler() {
+                return _transport.getPickler();
+            }
+
+            @Override
+            public void add(Dispatcher aDispatcher) throws Exception {
+                _transport.add(aDispatcher);
+            }
+
+            @Override
+            public InetSocketAddress getLocalAddress() {
+                return _transport.getLocalAddress();
+            }
+
+            @Override
+            public InetSocketAddress getBroadcastAddress() {
+                return _transport.getBroadcastAddress();
+            }
+
+            @Override
+            public void send(PaxosMessage aMessage, InetSocketAddress anAddr) {
+                _transport.send(aMessage, anAddr);
+            }
+
+            @Override
+            public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler) {
+                _transport.connectTo(anAddr, aHandler);
+            }
+
+            @Override
+            public void terminate() {
+                _transport.terminate();
+            }
+
+            @Override
+            public Transport getTransport() {
+                return this;
+            }
+
+            @Override
+            public void checkpoint() throws Exception {
+                CheckpointHandle myHandle = _dispatcher.getAcceptorLearner().newCheckpoint();
+                CheckpointStorage.WriteCheckpoint myCkpt = _ckptStorage.newCheckpoint();
+                ObjectOutputStream myStream = new ObjectOutputStream(myCkpt.getStream());
+                myStream.writeObject(myHandle);
+                myStream.close();
+
+                myCkpt.saved();
+                myHandle.saved();
+
+                assert(_ckptStorage.numFiles() == 1);
+            }
+        }
+    }
+
+    interface NodeAdmin {
+        Transport getTransport();
+        void checkpoint() throws Exception;
+        void terminate();
+    }
+
     private class Environment {
         final boolean _calibrate;
         final long _maxCycles;
         final long _ckptCycle;
         final Random _rng;
-        final List<ServerDispatcher> _servers = new LinkedList<ServerDispatcher>();
-        final Map<ServerDispatcher, CheckpointStorage> _checkpoints =
-                new HashMap<ServerDispatcher, CheckpointStorage>();
+        final List<NodeAdmin> _nodes = new LinkedList<NodeAdmin>();
+
         Transport _currentLeader;
         final OrderedMemoryNetwork _factory;
+        final Factory _tpFactory;
 
         long _opCount = 0;
 
@@ -77,28 +191,19 @@ public class LongTerm {
             _calibrate = doCalibrate;
             _maxCycles = aCycles;
             _rng = new Random(aSeed);
+            _tpFactory = new Factory(this);
             _factory = new OrderedMemoryNetwork();
 
             for (int i = 0; i < 5; i++) {
-                FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(i) + "logs"));
-
-                ServerDispatcher myDisp =
-                        new ServerDispatcher(new FailureDetectorImpl(3, 5000),
-                                new HowlLogger(BASEDIR + "node" + Integer.toString(i) + "logs"));
-
-                Transport myTp = _factory.newTransport();
-                myTp.add(myDisp);
-
-                _servers.add(myDisp);
-                _checkpoints.put(myDisp, new MemoryCheckpointStorage());
+                _factory.newTransport(_tpFactory);
             }
 
-            _currentLeader = _servers.get(0).getTransport();
+            _currentLeader = _nodes.get(0).getTransport();
         }
 
         void updateLeader(InetSocketAddress anAddr) {
-            for (ServerDispatcher mySD : _servers) {
-                Transport myTp = mySD.getTransport();
+            for (NodeAdmin myNA : _nodes) {
+                Transport myTp = myNA.getTransport();
 
                 if (myTp.getLocalAddress().equals(anAddr)) {
                     _currentLeader = myTp;
@@ -136,7 +241,7 @@ public class LongTerm {
 
     private void run() throws Exception {
         ClientDispatcher myClient = new ClientDispatcher();
-        Transport myTransport = _env._factory.newTransport();
+        Transport myTransport = _env._factory.newTransport(null);
         myTransport.add(myClient);
 
         long opsSinceCkpt = 0;
@@ -166,18 +271,8 @@ public class LongTerm {
                 _env.updateLeader(myEv.getLeader());
             } else if (myEv.getResult() == VoteOutcome.Reason.DECISION) {
                 if (opsSinceCkpt >= _env._ckptCycle) {
-                    for (ServerDispatcher mySD : _env._servers) {
-                        CheckpointHandle myHandle = mySD.getAcceptorLearner().newCheckpoint();
-                        CheckpointStorage myStorage = _env._checkpoints.get(mySD);
-                        CheckpointStorage.WriteCheckpoint myCkpt = myStorage.newCheckpoint();
-                        ObjectOutputStream myStream = new ObjectOutputStream(myCkpt.getStream());
-                        myStream.writeObject(myHandle);
-                        myStream.close();
-
-                        myCkpt.saved();
-                        myHandle.saved();
-
-                        assert(myStorage.numFiles() == 1);
+                    for (NodeAdmin myNA : _env._nodes) {
+                        myNA.checkpoint();
                     }
 
                     opsSinceCkpt = 0;
@@ -189,8 +284,8 @@ public class LongTerm {
             _env._opCount++;
         }
 
-        for (ServerDispatcher mySd : _env._servers)
-            mySd.getTransport().terminate();
+        for (NodeAdmin myNA : _env._nodes)
+            myNA.terminate();
 
         _env._factory.stop();
     }
