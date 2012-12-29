@@ -9,7 +9,7 @@ import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.net.ClientDispatcher;
-import org.dancres.paxos.test.net.OrderedMemoryTransport;
+import org.dancres.paxos.test.net.OrderedMemoryNetwork;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
@@ -68,7 +68,7 @@ public class LongTerm {
         final Map<ServerDispatcher, CheckpointStorage> _checkpoints =
                 new HashMap<ServerDispatcher, CheckpointStorage>();
         Transport _currentLeader;
-        final OrderedMemoryTransport _factory;
+        final OrderedMemoryNetwork _factory;
 
         long _opCount = 0;
 
@@ -77,7 +77,7 @@ public class LongTerm {
             _calibrate = doCalibrate;
             _maxCycles = aCycles;
             _rng = new Random(aSeed);
-            _factory = new OrderedMemoryTransport();
+            _factory = new OrderedMemoryNetwork();
 
             for (int i = 0; i < 5; i++) {
                 FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(i) + "logs"));

@@ -16,8 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class OrderedMemoryTransport implements Runnable {
-    private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransport.class);
+public class OrderedMemoryNetwork implements Runnable {
+    private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryNetwork.class);
 
     private class PacketWrapper {
         private Transport.Packet _packet;
@@ -42,7 +42,7 @@ public class OrderedMemoryTransport implements Runnable {
     private InetSocketAddress  _broadcastAddr;
     private Map<InetSocketAddress, OrderedMemoryTransportImpl> _nodes = new ConcurrentHashMap<InetSocketAddress, OrderedMemoryTransportImpl>();
 
-    public OrderedMemoryTransport() throws Exception {
+    public OrderedMemoryNetwork() throws Exception {
         _broadcastAddr = new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getBroadcastAddress(), 255);
 
         Thread myDispatcher = new Thread(this);

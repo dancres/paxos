@@ -17,14 +17,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class OrderedMemoryTransportImpl implements Transport {
 	private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
 
-	private OrderedMemoryTransport _parent;
+	private OrderedMemoryNetwork _parent;
 	private PacketPickler _pickler = new StandalonePickler();
 	private Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
 	private InetSocketAddress _unicastAddr;
     private InetSocketAddress _broadcastAddr;
 
-    public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr, OrderedMemoryTransport aParent) {
+    public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr, OrderedMemoryNetwork aParent) {
     	_unicastAddr = aLocalAddr;
     	_broadcastAddr = aBroadAddr;
     	_parent = aParent;
