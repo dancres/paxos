@@ -14,7 +14,7 @@ import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Success;
+import org.dancres.paxos.messages.Learned;
 import org.dancres.paxos.test.net.*;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
@@ -127,7 +127,7 @@ public class CheckpointHandleTest {
 
         // Commit this instance
         //
-        myAl.messageReceived(new FakePacket(_nodeId, new Success(mySeqNum, myRndNum)));
+        myAl.messageReceived(new FakePacket(_nodeId, new Learned(mySeqNum, myRndNum)));
 
         CheckpointHandle mySecondHandle = myAl.newCheckpoint();
         
@@ -143,7 +143,7 @@ public class CheckpointHandleTest {
 
         // Commit this instance
         //
-        myAl.messageReceived(new FakePacket(_nodeId, new Success(mySeqNum + 1, myRndNum)));
+        myAl.messageReceived(new FakePacket(_nodeId, new Learned(mySeqNum + 1, myRndNum)));
 
         CheckpointHandle myThirdHandle = myAl.newCheckpoint();
 

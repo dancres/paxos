@@ -2,20 +2,20 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.messages.Success;
+import org.dancres.paxos.messages.Learned;
 import org.dancres.paxos.messages.Operations;
 
 public class SuccessCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
-        Success mySuccess = (Success) anObject;
+        Learned myLearned = (Learned) anObject;
 
         ByteBuffer myBuffer;
 
         myBuffer = ByteBuffer.allocate(4 + 8 + 8);
 
         myBuffer.putInt(Operations.LEARNED);
-        myBuffer.putLong(mySuccess.getSeqNum());
-        myBuffer.putLong(mySuccess.getRndNum());
+        myBuffer.putLong(myLearned.getSeqNum());
+        myBuffer.putLong(myLearned.getRndNum());
 
         myBuffer.flip();
         return myBuffer;
@@ -28,6 +28,6 @@ public class SuccessCodec implements Codec {
         long mySeqNum = aBuffer.getLong();
         long myRndNum = aBuffer.getLong();
         
-        return new Success(mySeqNum, myRndNum);
+        return new Learned(mySeqNum, myRndNum);
     }
 }

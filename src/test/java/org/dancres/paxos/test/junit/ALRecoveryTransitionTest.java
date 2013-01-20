@@ -15,7 +15,7 @@ import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Need;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Success;
+import org.dancres.paxos.messages.Learned;
 import org.dancres.paxos.test.net.*;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.NullFailureDetector;
@@ -124,7 +124,7 @@ public class ALRecoveryTransitionTest {
 
 		// Commit this instance
 		//
-		myAl.messageReceived(new FakePacket(_nodeId, new Success(mySeqNum, myRndNum)));
+		myAl.messageReceived(new FakePacket(_nodeId, new Learned(mySeqNum, myRndNum)));
 
 		// Now start an instance which should trigger recovery - happens on collect boundary
 		//

@@ -838,7 +838,7 @@ public class AcceptorLearner {
 			}
 
 			case Operations.LEARNED: {
-				Success mySuccess = (Success) myMessage;
+				Learned myLearned = (Learned) myMessage;
 
                 _common.leaderAction();
 
@@ -847,10 +847,10 @@ public class AcceptorLearner {
 				} else {
                     Begin myBegin = expungeBegin(mySeqNum);
 
-                    if ((myBegin == null) || (myBegin.getRndNumber() != mySuccess.getRndNum())) {
+                    if ((myBegin == null) || (myBegin.getRndNumber() != myLearned.getRndNum())) {
                         // We never saw the appropriate begin
                         //
-                        _logger.debug("AL: Discarding success: " + myBegin + ", " + mySuccess +
+                        _logger.debug("AL: Discarding success: " + myBegin + ", " + myLearned +
                                 ", " + _localAddress);
                     } else {
                         // Record the success even if it's the heartbeat so there are no gaps in the Paxos sequence

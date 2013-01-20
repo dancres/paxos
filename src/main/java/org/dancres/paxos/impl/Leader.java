@@ -279,7 +279,7 @@ class Leader implements MembershipListener, Instance {
                 if (_messages.size() >= _common.getPrivateFD().getMajority()) {
                     // Send success
                     //
-                    emit(new Success(_seqNum, _rndNumber));
+                    emit(new Learned(_seqNum, _rndNumber));
                     cancelInteraction();
                     successful(VoteOutcome.Reason.DECISION);
                 } else {

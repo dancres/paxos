@@ -1,10 +1,10 @@
 package org.dancres.paxos.messages;
 
-public class Success implements PaxosMessage {
+public class Learned implements PaxosMessage {
     private long _seqNum;
     private long _rndNum;
     
-    public Success(long aSeqNum, long aRndNumber) {
+    public Learned(long aSeqNum, long aRndNumber) {
         _seqNum = aSeqNum;
         _rndNum = aRndNumber;
     }
@@ -30,8 +30,8 @@ public class Success implements PaxosMessage {
     }
     
     public boolean equals(Object anObject) {
-    	if (anObject instanceof Success) {
-    		Success myOther = (Success) anObject;
+    	if (anObject instanceof Learned) {
+    		Learned myOther = (Learned) anObject;
     		
     		return (_seqNum == myOther._seqNum) && (_rndNum == myOther._rndNum);
     	}

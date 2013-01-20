@@ -139,14 +139,14 @@ public class CodecTest {
         byte[] myData = {55};
         byte[] myHandback = {56};
 
-        Success mySuccess = new Success(1, 2);
+        Learned myLearned = new Learned(1, 2);
 
-        byte[] myBuffer = Codecs.encode(mySuccess);
+        byte[] myBuffer = Codecs.encode(myLearned);
 
-        Success mySuccess2 = (Success) Codecs.decode(myBuffer);
+        Learned myLearned2 = (Learned) Codecs.decode(myBuffer);
 
-        Assert.assertEquals(mySuccess.getSeqNum(), mySuccess2.getSeqNum());
-        Assert.assertEquals(mySuccess.getRndNum(), mySuccess2.getRndNum());
+        Assert.assertEquals(myLearned.getSeqNum(), myLearned2.getSeqNum());
+        Assert.assertEquals(myLearned.getRndNum(), myLearned2.getRndNum());
     }
 
     @Test public void need() throws Exception {
