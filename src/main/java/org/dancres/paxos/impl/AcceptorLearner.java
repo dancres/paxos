@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
  * Implements the Acceptor/Learner state machine. Note that the instance running
  * in the same JVM as the current leader is to all intents and purposes (bar
  * very strange hardware or operating system failures) guaranteed to receive
- * packets from the leader. Thus if a leader declares SUCCESS then the local
+ * packets from the leader. Thus if a leader declares LEARNED then the local
  * instance will receive those packets. This can be useful for processing client
  * requests correctly and signalling interested parties as necessary.
  *
@@ -837,7 +837,7 @@ public class AcceptorLearner {
 				break;
 			}
 
-			case Operations.SUCCESS: {
+			case Operations.LEARNED: {
 				Success mySuccess = (Success) myMessage;
 
                 _common.leaderAction();

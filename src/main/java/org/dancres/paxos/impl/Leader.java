@@ -166,7 +166,7 @@ class Leader implements MembershipListener, Instance {
 
     /**
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
-     * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in SUCCESS state
+     * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in LEARNED state
      * we expect ACCEPT or OLDROUND
      *
      * @todo Shutdown needs sorting in the context of chained leaders (which can't happen whilst nextLeader

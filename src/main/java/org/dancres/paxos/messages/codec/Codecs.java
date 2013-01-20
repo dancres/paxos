@@ -21,7 +21,7 @@ public class Codecs {
                 put(Operations.LAST, new LastCodec());
                 put(Operations.BEGIN, new BeginCodec());
                 put(Operations.ACCEPT, new AcceptCodec());
-                put(Operations.SUCCESS, new SuccessCodec());
+                put(Operations.LEARNED, new SuccessCodec());
                 put(Operations.OLDROUND, new OldRoundCodec());
                 put(Operations.NEED, new NeedCodec());
                 put(Operations.EVENT, new VoteOutcomeCodec());

@@ -1,9 +1,5 @@
 package org.dancres.paxos.messages;
 
-import org.dancres.paxos.Proposal;
-
-import java.net.InetSocketAddress;
-
 public class Success implements PaxosMessage {
     private long _seqNum;
     private long _rndNum;
@@ -14,7 +10,7 @@ public class Success implements PaxosMessage {
     }
 
     public int getType() {
-        return Operations.SUCCESS;
+        return Operations.LEARNED;
     }
 
     public short getClassification() {

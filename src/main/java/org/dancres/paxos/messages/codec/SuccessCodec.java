@@ -2,7 +2,6 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Success;
 import org.dancres.paxos.messages.Operations;
 
@@ -14,7 +13,7 @@ public class SuccessCodec implements Codec {
 
         myBuffer = ByteBuffer.allocate(4 + 8 + 8);
 
-        myBuffer.putInt(Operations.SUCCESS);
+        myBuffer.putInt(Operations.LEARNED);
         myBuffer.putLong(mySuccess.getSeqNum());
         myBuffer.putLong(mySuccess.getRndNum());
 
