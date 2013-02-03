@@ -175,7 +175,7 @@ class Leader implements MembershipListener, Instance {
     private void process() {
         switch (_currentState) {
             case SHUTDOWN : {
-                _logger.info(this + ": SHUTDOWN");
+                _logger.info(stateToString());
                 
                 cleanUp();
 
@@ -188,7 +188,7 @@ class Leader implements MembershipListener, Instance {
             }
 
             case ABORT : {
-                _logger.info(this + ": ABORT " + _outcome);
+                _logger.info(stateToString() + " : " + _outcome);
 
                 cleanUp();
 
@@ -202,7 +202,7 @@ class Leader implements MembershipListener, Instance {
             }
 
             case EXIT : {
-            	_logger.info(this + ": EXIT " + _outcome);
+            	_logger.info(stateToString() + " : " + _outcome);
 
                 cleanUp();
 
@@ -215,7 +215,7 @@ class Leader implements MembershipListener, Instance {
                 _tries = 0;
                 _membership = _common.getPrivateFD().getMembers(this);
 
-                _logger.debug(this + ": got membership: (" +
+                _logger.debug(stateToString() + " : got membership: (" +
                         _membership.getSize() + ")");
 
                 _currentState = _startState;
@@ -235,8 +235,8 @@ class Leader implements MembershipListener, Instance {
              * missing instances to catch-up and recover that state from those around them.
              */
             case COLLECT : {
-            	_currentState = State.BEGIN;
                 emit(new Collect(_seqNum, _rndNumber));
+                _currentState = State.BEGIN;
 
             	break;
             }
@@ -269,8 +269,8 @@ class Leader implements MembershipListener, Instance {
                     _prop = ((Last) myLast.getMessage()).getConsolidatedValue();
                 }
 
-                _currentState = State.SUCCESS;
                 emit(new Begin(_seqNum, _rndNumber, _prop));
+                _currentState = State.SUCCESS;
 
                 break;
             }
@@ -307,7 +307,7 @@ class Leader implements MembershipListener, Instance {
 
         InetSocketAddress myCompetingNodeId = myOldRound.getLeaderNodeId();
 
-        _logger.info(this + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
+        _logger.info(stateToString() + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
                 Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
         _currentState = State.ABORT;
@@ -333,7 +333,7 @@ class Leader implements MembershipListener, Instance {
         _currentState = State.ABORT;
         _outcome = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader);
         
-        _logger.info("Leader encountered error: " + _outcome);
+        _logger.info(stateToString() + " : " + _outcome);
 
         process();
     }
@@ -342,7 +342,7 @@ class Leader implements MembershipListener, Instance {
         _messages.clear();
 
         if (startInteraction()) {
-            _logger.info(this + ": tx: " + aMessage);
+            _logger.info(stateToString() + " : " + aMessage);
 
             _common.getTransport().send(aMessage, _common.getTransport().getBroadcastAddress());
         }
@@ -363,7 +363,7 @@ class Leader implements MembershipListener, Instance {
     }
 
     public void abort() {
-        _logger.info(this + ": Membership requested abort");
+        _logger.info(stateToString() + " : Membership requested abort");
 
         synchronized(this) {
             error(VoteOutcome.Reason.BAD_MEMBERSHIP);
@@ -388,7 +388,7 @@ class Leader implements MembershipListener, Instance {
     }
 
     private void expired() {
-        _logger.info(this + ": Watchdog requested abort: ");
+        _logger.info(stateToString() + " : Watchdog requested abort: ");
 
         synchronized(this) {
             if (canRetry()) {
@@ -415,7 +415,7 @@ class Leader implements MembershipListener, Instance {
             if (_currentState != State.INITIAL)
                 throw new IllegalStateException("Submit already done, create another leader");
 
-            _logger.info(this + ": Submitted operation (initialising leader)");
+            _logger.info(stateToString());
 
             _prop = aValue;
 
@@ -453,7 +453,7 @@ class Leader implements MembershipListener, Instance {
                 }
             }
 
-            _logger.info(this + " rx: " + myMessage);
+            _logger.info(stateToString() + " : " + myMessage);
 
             if (myMessage instanceof LeaderSelection) {
                 if (((LeaderSelection) myMessage).routeable(this)) {
@@ -470,8 +470,20 @@ class Leader implements MembershipListener, Instance {
                 }
             }
 
-            _logger.warn(this + ": Unexpected message received: " + myMessage);
+            _logger.warn(stateToString() + ": Unexpected message received: " + myMessage);
         }
+    }
+
+    public String stateToString() {
+        State myState;
+
+        synchronized(this) {
+            myState = _currentState;
+        }
+
+        return _common.getTransport().getLocalAddress() +
+                ": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " : " + myState +
+                " tries: " + _tries + "/" + MAX_TRIES;
     }
 
     public String toString() {
