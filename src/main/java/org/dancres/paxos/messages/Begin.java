@@ -54,7 +54,7 @@ public class Begin implements PaxosMessage {
     
     public String toString() {
         return "Begin: " + Long.toHexString(_seqNum) + " [ " +
-                Long.toHexString(_rndNumber) +
-                _consolidatedValue.equals(Proposal.NO_VALUE);
+                Long.toHexString(_rndNumber) + " value = " +
+                ! _consolidatedValue.equals(Proposal.NO_VALUE) + " ]";
     }
 }
