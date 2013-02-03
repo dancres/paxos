@@ -40,6 +40,6 @@ public class Learned implements PaxosMessage {
     }
     
     public String toString() {
-        return "Success: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNum);
+        return "Learned: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNum);
     }
 }
