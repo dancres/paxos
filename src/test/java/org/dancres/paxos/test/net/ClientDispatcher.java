@@ -7,6 +7,7 @@ import java.util.List;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
+import org.dancres.paxos.messages.Event;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
@@ -20,7 +21,8 @@ public class ClientDispatcher implements Transport.Dispatcher {
 		synchronized(this) {
 	        switch (myMessage.getType()) {
 	        	case Operations.EVENT : {
-	        		_queue.add((VoteOutcome) myMessage);
+                    Event myEvent = (Event) myMessage;
+	        		_queue.add(myEvent.getOutcome());
 	        		notifyAll();
 	        		break;
 	        	}

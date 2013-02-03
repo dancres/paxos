@@ -8,7 +8,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 /**
  * Status indication returned from the state machine for each vote requested
  */
-public class VoteOutcome implements PaxosMessage {
+public class VoteOutcome {
 	public static final class Reason {
         /**
          * Paxos has agreed a value for the specified instance
@@ -107,14 +107,6 @@ public class VoteOutcome implements PaxosMessage {
     }
 
     public String toString() {
-        return "Event: " + Reason.nameFor(_result) + ", " + Long.toHexString(_seqNum) + ", " + _leader;
+        return "VoteOutcome: " + Reason.nameFor(_result) + ", " + Long.toHexString(_seqNum) + ", " + _leader;
     }
-
-	public int getType() {
-		return Operations.EVENT;
-	}
-
-	public short getClassification() {
-		return CLIENT;
-	}
 }

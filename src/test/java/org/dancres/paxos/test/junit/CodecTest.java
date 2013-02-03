@@ -41,9 +41,9 @@ public class CodecTest {
         
         VoteOutcome myEvent = new VoteOutcome(1, 2, 3, myVal, _testAddress);
 
-        byte[] myBuffer = Codecs.encode(myEvent);
+        byte[] myBuffer = Codecs.encode(new Event(myEvent));
 
-        VoteOutcome myEvent2 = (VoteOutcome) Codecs.decode(myBuffer);
+        VoteOutcome myEvent2 = ((Event) Codecs.decode(myBuffer)).getOutcome();
 
         Assert.assertEquals(myEvent.getSeqNum(), myEvent2.getSeqNum());
         Assert.assertEquals(myEvent.getResult(), myEvent2.getResult());

@@ -3,6 +3,7 @@ package org.dancres.paxos.test.net;
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
+import org.dancres.paxos.messages.Event;
 import org.dancres.paxos.storage.MemoryLogStorage;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
@@ -89,18 +90,18 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
     public void terminate() {
     }
 
-    public void done(VoteOutcome anEvent) {
+    public void done(VoteOutcome anOutcome) {
         // If we're not the originating node for the post, because we're not leader, we won't have an address stored up
         //
         InetSocketAddress myAddr =
-                (anEvent.getValues().get(HANDBACK_KEY) != null) ? 
-                		_requestMap.remove(new String(anEvent.getValues().get(HANDBACK_KEY))) :
+                (anOutcome.getValues().get(HANDBACK_KEY) != null) ?
+                		_requestMap.remove(new String(anOutcome.getValues().get(HANDBACK_KEY))) :
                         null;
 
         if (myAddr == null)
             return;
 
-		_tp.send(anEvent, myAddr);
+		_tp.send(new Event(anOutcome), myAddr);
     }
 
     public void add(Paxos.Listener aListener) {

@@ -127,7 +127,7 @@ public class ALOutOfDateTest {
         
         myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 
-        PaxosMessage myMsg = myClient.getNext(10000);
+        VoteOutcome myOutcome = myClient.getNext(10000);
 
         System.err.println("Wait for settle");
 

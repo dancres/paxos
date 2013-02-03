@@ -118,7 +118,7 @@ public class ALRecoveryTest {
         
         myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 
-        PaxosMessage myMsg = myClient.getNext(10000);
+        VoteOutcome myMsg = myClient.getNext(10000);
         
         myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(69);

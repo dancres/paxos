@@ -4,12 +4,18 @@ import java.nio.ByteBuffer;
 
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
+import org.dancres.paxos.messages.Event;
 import org.dancres.paxos.messages.Operations;
 
-public class VoteOutcomeCodec implements Codec {
+public class EventCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
-        VoteOutcome myEvent = (VoteOutcome) anObject;
-        byte[] myBytes = myEvent.getValues().marshall();
+        /*
+         * Event is really a simple adapter around VoteOutcome which contains all the value so encode VoteOutcome only
+         */
+        Event myEvent = (Event) anObject;
+        VoteOutcome myOutcome = myEvent.getOutcome();
+
+        byte[] myBytes = myOutcome.getValues().marshall();
         
         ByteBuffer myBuffer;
 
@@ -18,9 +24,9 @@ public class VoteOutcomeCodec implements Codec {
         myBuffer.putInt(Operations.EVENT);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myEvent.getSeqNum());
-        myBuffer.putLong(myEvent.getRndNumber());
-        myBuffer.putInt(myEvent.getResult());
-        myBuffer.putLong(Codecs.flatten(myEvent.getLeader()));
+        myBuffer.putLong(myOutcome.getRndNumber());
+        myBuffer.putInt(myOutcome.getResult());
+        myBuffer.putLong(Codecs.flatten(myOutcome.getLeader()));
         myBuffer.put(myBytes);
 
         myBuffer.flip();
@@ -41,7 +47,7 @@ public class VoteOutcomeCodec implements Codec {
         byte[] myBytes = new byte[myArrLength];
         aBuffer.get(myBytes);
         
-        return new VoteOutcome(myResult, mySeqNum, myRndNum, new Proposal(myBytes),
-                Codecs.expand(myNodeId));
+        return new Event(new VoteOutcome(myResult, mySeqNum, myRndNum, new Proposal(myBytes),
+                Codecs.expand(myNodeId)));
     }
 }

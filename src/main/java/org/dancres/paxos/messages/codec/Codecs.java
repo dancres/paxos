@@ -24,7 +24,7 @@ public class Codecs {
                 put(Operations.LEARNED, new SuccessCodec());
                 put(Operations.OLDROUND, new OldRoundCodec());
                 put(Operations.NEED, new NeedCodec());
-                put(Operations.EVENT, new VoteOutcomeCodec());
+                put(Operations.EVENT, new EventCodec());
             }});
 
     public static byte[] encode(PaxosMessage aMessage) {
