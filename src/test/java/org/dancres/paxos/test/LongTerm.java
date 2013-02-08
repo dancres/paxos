@@ -60,12 +60,12 @@ public class LongTerm {
         boolean isCalibrate();
     }
 
-    private class Environment {
+    private static class Environment {
         final boolean _calibrate;
         final long _maxCycles;
         final long _ckptCycle;
         final Random _rng;
-        final List<NodeAdmin> _nodes = new LinkedList<NodeAdmin>();
+        private final List<NodeAdmin> _nodes = new LinkedList<NodeAdmin>();
 
         Transport _currentLeader;
         final OrderedMemoryNetwork _factory;
@@ -86,6 +86,11 @@ public class LongTerm {
             }
 
             _currentLeader = _nodes.get(0).getTransport();
+        }
+
+        void terminate() {
+            for (NodeAdmin myNA : _nodes)
+                myNA.terminate();
         }
 
         void updateLeader(InetSocketAddress anAddr) {
@@ -295,8 +300,7 @@ public class LongTerm {
             _env._opCount++;
         }
 
-        for (NodeAdmin myNA : _env._nodes)
-            myNA.terminate();
+        _env.terminate();
 
         _env._factory.stop();
     }
