@@ -338,6 +338,12 @@ public class AcceptorLearner {
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
+        if (_common.testState(Common.FSMStates.OUT_OF_DATE)) {
+            unguard();
+
+            throw new IllegalStateException("Instance is out of date");
+        }
+
         // Low watermark will always lag collect so no need for atomicity here
         //
         try {

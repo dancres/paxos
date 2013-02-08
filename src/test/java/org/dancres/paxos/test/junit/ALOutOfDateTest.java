@@ -151,6 +151,16 @@ public class ALOutOfDateTest {
 
         Assert.assertTrue(isInactive);
 
+        boolean stateChecked = false;
+
+        try {
+            _node3.getCore().newCheckpoint();
+        } catch (IllegalStateException anISE) {
+            stateChecked = true;
+        }
+
+        Assert.assertTrue(stateChecked);
+
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is
          *  because there are two nodes at play. Leader achieves success and posts this to both AL's, the first
