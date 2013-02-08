@@ -14,8 +14,11 @@ import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
 import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -44,6 +47,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @todo Implement failure model (might affect design for OUT_OF_DATE handling).
  */
 public class LongTerm {
+    private static final Logger _logger = LoggerFactory.getLogger(LongTerm.class);
     private static final String BASEDIR = "/Volumes/LaCie/paxoslogs/";
 
     static interface Args {
@@ -111,10 +115,41 @@ public class LongTerm {
                 } catch (Throwable aT) {
                     // We can get one of these if the AL is currently OUT_OF_DATE, ignore it
                     //
-                    System.out.println("Exception at checkpoint");
-                    aT.printStackTrace(System.out);
+                    _logger.warn("Exception at checkpoint", aT);
                 }
             }
+
+            // Bring any out of date nodes back up
+            //
+            for (NodeAdmin myNA : _nodes) {
+                if (myNA.isOutOfDate())
+                    resolve(myNA);
+            }
+        }
+
+        boolean resolve(NodeAdmin anAdmin) {
+            for (NodeAdmin myNA : _nodes) {
+                if ((! myNA.isOutOfDate()) && (myNA.lastCheckpointTime() > anAdmin.lastCheckpointTime())) {
+
+                    try {
+                        CheckpointStorage.ReadCheckpoint myCkpt = myNA.getLastCheckpoint();
+
+                        try {
+                            if (anAdmin.bringUpToDate(myCkpt)) {
+                                _logger.info("AL is now back up to date");
+
+                                return true;
+                            }
+                        } catch (Exception anE) {
+                            _logger.warn("Exception at bring up to date", anE);
+                        }
+                    } catch (Exception anE) {
+                        _logger.warn("Exception reading back checkpoint handle", anE);
+                    }
+                }
+            }
+
+            return false;
         }
     }
 
@@ -135,7 +170,7 @@ public class LongTerm {
         public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
                                                                         InetSocketAddress aBroadcastAddr,
                                                                         OrderedMemoryNetwork aNetwork) {
-            TestTransport myTp = new TestTransport(aLocalAddr, aBroadcastAddr, aNetwork, _nextNodeNum);
+            TestTransport myTp = new TestTransport(aLocalAddr, aBroadcastAddr, aNetwork, _nextNodeNum, _environment);
 
             _environment._nodes.add(myTp);
             _nextNodeNum++;
@@ -143,17 +178,20 @@ public class LongTerm {
             return myTp;
         }
 
-        class TestTransport implements OrderedMemoryNetwork.OrderedMemoryTransport, NodeAdmin, Paxos.Listener {
+        static class TestTransport implements OrderedMemoryNetwork.OrderedMemoryTransport, NodeAdmin, Paxos.Listener {
             private OrderedMemoryTransportImpl _transport;
             private ServerDispatcher _dispatcher;
             private CheckpointStorage _ckptStorage;
             private AtomicBoolean _outOfDate = new AtomicBoolean(false);
             private AtomicLong _checkpointTime = new AtomicLong(0);
+            private Environment _env;
 
             TestTransport(InetSocketAddress aLocalAddr,
                       InetSocketAddress aBroadcastAddr,
                       OrderedMemoryNetwork aNetwork,
-                      int aNodeNum) {
+                      int aNodeNum,
+                      Environment anEnv) {
+                _env = anEnv;
                 _ckptStorage = new MemoryCheckpointStorage();
                 _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
 
@@ -208,6 +246,28 @@ public class LongTerm {
                 return this;
             }
 
+            public boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt) {
+                try {
+                    ObjectInputStream myOIS = new ObjectInputStream(aCkpt.getStream());
+                    CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+
+                    try {
+                        boolean myAnswer = _dispatcher.getCore().bringUpToDate(myHandle);
+
+                        if (myAnswer)
+                            _outOfDate.set(false);
+
+                        return myAnswer;
+                    } catch (Exception anE) {
+                        _logger.warn("Exception at bring up to date", anE);
+                    }
+                } catch (Exception anE) {
+                    _logger.warn("Exception reading back checkpoint handle", anE);
+                }
+
+                return false;
+            }
+
             public void checkpoint() throws Exception {
                 CheckpointHandle myHandle = _dispatcher.getAcceptorLearner().newCheckpoint();
                 CheckpointStorage.WriteCheckpoint myCkpt = _ckptStorage.newCheckpoint();
@@ -223,6 +283,10 @@ public class LongTerm {
                 assert(_ckptStorage.numFiles() == 1);
             }
 
+            public CheckpointStorage.ReadCheckpoint getLastCheckpoint() {
+                return _ckptStorage.getLastCheckpoint();
+            }
+
             public boolean isOutOfDate() {
                 return _outOfDate.get();
             }
@@ -234,7 +298,10 @@ public class LongTerm {
             public void done(VoteOutcome anEvent) {
                 switch (anEvent.getResult()) {
                     case VoteOutcome.Reason.OUT_OF_DATE : {
-                        _outOfDate.set(true);
+                        // Seek an instant resolution and if it fails, flag it for later recovery
+                        //
+                        if (! _env.resolve(this))
+                            _outOfDate.set(true);
 
                         break;
                     }
@@ -252,9 +319,11 @@ public class LongTerm {
     interface NodeAdmin {
         Transport getTransport();
         void checkpoint() throws Exception;
+        CheckpointStorage.ReadCheckpoint getLastCheckpoint();
         long lastCheckpointTime();
         boolean isOutOfDate();
         void terminate();
+        boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt);
     }
 
     private void run() throws Exception {
