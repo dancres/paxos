@@ -1,9 +1,6 @@
 package org.dancres.paxos.test;
 
-import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.CheckpointStorage;
-import org.dancres.paxos.Proposal;
-import org.dancres.paxos.VoteOutcome;
+import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
@@ -19,11 +16,12 @@ import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.Option;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Need a statistical failure model with varying probabilities for each thing within a tolerance / order
@@ -81,10 +79,12 @@ public class LongTerm {
             return myTp;
         }
 
-        class TestTransport implements OrderedMemoryNetwork.OrderedMemoryTransport, NodeAdmin {
+        class TestTransport implements OrderedMemoryNetwork.OrderedMemoryTransport, NodeAdmin, Paxos.Listener {
             private OrderedMemoryTransportImpl _transport;
             private ServerDispatcher _dispatcher;
             private CheckpointStorage _ckptStorage;
+            private AtomicBoolean _outOfDate = new AtomicBoolean(false);
+            private AtomicLong _checkpointTime = new AtomicLong(0);
 
             TestTransport(InetSocketAddress aLocalAddr,
                       InetSocketAddress aBroadcastAddr,
@@ -98,6 +98,8 @@ public class LongTerm {
                 _dispatcher =
                         new ServerDispatcher(new FailureDetectorImpl(3, 5000),
                                 new HowlLogger(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
+
+                _dispatcher.add(this);
 
                 try {
                     _transport.add(_dispatcher);
@@ -152,7 +154,33 @@ public class LongTerm {
                 myCkpt.saved();
                 myHandle.saved();
 
+                _checkpointTime.set(System.currentTimeMillis());
+
                 assert(_ckptStorage.numFiles() == 1);
+            }
+
+            public boolean isOutOfDate() {
+                return _outOfDate.get();
+            }
+
+            public long lastCheckpointTime() {
+                return _checkpointTime.get();
+            }
+
+            public void done(VoteOutcome anEvent) {
+                switch (anEvent.getResult()) {
+                    case VoteOutcome.Reason.OUT_OF_DATE : {
+                        _outOfDate.set(true);
+
+                        break;
+                    }
+
+                    case VoteOutcome.Reason.UP_TO_DATE : {
+                        _outOfDate.set(false);
+
+                        break;
+                    }
+                }
             }
         }
     }
@@ -160,6 +188,8 @@ public class LongTerm {
     interface NodeAdmin {
         Transport getTransport();
         void checkpoint() throws Exception;
+        long lastCheckpointTime();
+        boolean isOutOfDate();
         void terminate();
     }
 
