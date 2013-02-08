@@ -48,6 +48,9 @@ public class LeaderFactory {
     /**
      * @throws org.dancres.paxos.Paxos.InactiveException if the Paxos process is currently out of date or shutting down
      *
+     * We stop allowing leaders in this process so as to avoid breaching the constraint where we can be sure we've
+     * recorded an outcome at least locally.
+     *
      * @return a leader for a new sequence
      */
     Leader newLeader() throws Paxos.InactiveException {
