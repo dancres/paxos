@@ -60,11 +60,70 @@ public class LongTerm {
         boolean isCalibrate();
     }
 
-    private static class Factory implements OrderedMemoryNetwork.Factory {
+    private class Environment {
+        final boolean _calibrate;
+        final long _maxCycles;
+        final long _ckptCycle;
+        final Random _rng;
+        final List<NodeAdmin> _nodes = new LinkedList<NodeAdmin>();
+
+        Transport _currentLeader;
+        final OrderedMemoryNetwork _factory;
+        final TransportFactory _tpFactory;
+
+        long _opCount = 0;
+
+        Environment(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
+            _ckptCycle = aCkptCycle;
+            _calibrate = doCalibrate;
+            _maxCycles = aCycles;
+            _rng = new Random(aSeed);
+            _tpFactory = new TransportFactory(this);
+            _factory = new OrderedMemoryNetwork();
+
+            for (int i = 0; i < 5; i++) {
+                _factory.newTransport(_tpFactory);
+            }
+
+            _currentLeader = _nodes.get(0).getTransport();
+        }
+
+        void updateLeader(InetSocketAddress anAddr) {
+            for (NodeAdmin myNA : _nodes) {
+                Transport myTp = myNA.getTransport();
+
+                if (myTp.getLocalAddress().equals(anAddr)) {
+                    _currentLeader = myTp;
+                    break;
+                }
+            }
+        }
+
+        public void checkpoint() {
+            for (NodeAdmin myNA : _nodes) {
+                try {
+                    myNA.checkpoint();
+                } catch (Throwable aT) {
+                    // We can get one of these if the AL is currently OUT_OF_DATE, ignore it
+                    //
+                    System.out.println("Exception at checkpoint");
+                    aT.printStackTrace(System.out);
+                }
+            }
+        }
+    }
+
+    private Environment _env;
+
+    private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
+        _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle);
+    }
+
+    private static class TransportFactory implements OrderedMemoryNetwork.Factory {
         private int _nextNodeNum = 0;
         private Environment _environment;
 
-        Factory(Environment anEnv) {
+        TransportFactory(Environment anEnv) {
             _environment = anEnv;
         }
 
@@ -193,72 +252,6 @@ public class LongTerm {
         void terminate();
     }
 
-    private class Environment {
-        final boolean _calibrate;
-        final long _maxCycles;
-        final long _ckptCycle;
-        final Random _rng;
-        final List<NodeAdmin> _nodes = new LinkedList<NodeAdmin>();
-
-        Transport _currentLeader;
-        final OrderedMemoryNetwork _factory;
-        final Factory _tpFactory;
-
-        long _opCount = 0;
-
-        Environment(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
-            _ckptCycle = aCkptCycle;
-            _calibrate = doCalibrate;
-            _maxCycles = aCycles;
-            _rng = new Random(aSeed);
-            _tpFactory = new Factory(this);
-            _factory = new OrderedMemoryNetwork();
-
-            for (int i = 0; i < 5; i++) {
-                _factory.newTransport(_tpFactory);
-            }
-
-            _currentLeader = _nodes.get(0).getTransport();
-        }
-
-        void updateLeader(InetSocketAddress anAddr) {
-            for (NodeAdmin myNA : _nodes) {
-                Transport myTp = myNA.getTransport();
-
-                if (myTp.getLocalAddress().equals(anAddr)) {
-                    _currentLeader = myTp;
-                    break;
-                }
-            }
-        }
-    }
-
-    private Environment _env;
-
-    private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
-        _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle);
-    }
-
-    public static void main(String[] anArgs) throws Exception {
-        Args myArgs = CliFactory.parseArguments(Args.class, anArgs);
-        
-        long myStart = System.currentTimeMillis();
-
-        new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate(), myArgs.getCkptCycle()).run();
-
-        double myDuration = (System.currentTimeMillis() - myStart) / 1000.0;
-
-        System.out.println("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
-
-        if (myArgs.isCalibrate()) {
-            double myOpsPerSec = myDuration / myArgs.getCycles();
-            double myOpsHour = myOpsPerSec * 60 * 60;
-
-            System.out.println("Calibration recommendation - ops/sec: " + myOpsPerSec + 
-                " iterations in an hour would be: " + myOpsHour);
-        }
-    }
-
     private void run() throws Exception {
         ClientDispatcher myClient = new ClientDispatcher();
         Transport myTransport = _env._factory.newTransport(null);
@@ -291,14 +284,7 @@ public class LongTerm {
                 _env.updateLeader(myEv.getLeader());
             } else if (myEv.getResult() == VoteOutcome.Reason.DECISION) {
                 if (opsSinceCkpt >= _env._ckptCycle) {
-                    for (NodeAdmin myNA : _env._nodes) {
-                        try {
-                            myNA.checkpoint();
-                        } catch (Throwable aT) {
-                            System.out.println("Exception at checkpoint");
-                            aT.printStackTrace(System.out);
-                        }
-                    }
+                    _env.checkpoint();
 
                     opsSinceCkpt = 0;
                 }
@@ -313,5 +299,25 @@ public class LongTerm {
             myNA.terminate();
 
         _env._factory.stop();
+    }
+
+    public static void main(String[] anArgs) throws Exception {
+        Args myArgs = CliFactory.parseArguments(Args.class, anArgs);
+
+        long myStart = System.currentTimeMillis();
+
+        new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate(), myArgs.getCkptCycle()).run();
+
+        double myDuration = (System.currentTimeMillis() - myStart) / 1000.0;
+
+        System.out.println("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
+
+        if (myArgs.isCalibrate()) {
+            double myOpsPerSec = myDuration / myArgs.getCycles();
+            double myOpsHour = myOpsPerSec * 60 * 60;
+
+            System.out.println("Calibration recommendation - ops/sec: " + myOpsPerSec +
+                    " iterations in an hour would be: " + myOpsHour);
+        }
     }
 }
