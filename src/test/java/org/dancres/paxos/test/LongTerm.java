@@ -106,52 +106,42 @@ public class LongTerm {
                 }
             }
 
-            @Override
             public void distribute(Packet aPacket) {
                 _transport.distribute(aPacket);
             }
 
-            @Override
             public PacketPickler getPickler() {
                 return _transport.getPickler();
             }
 
-            @Override
             public void add(Dispatcher aDispatcher) throws Exception {
                 _transport.add(aDispatcher);
             }
 
-            @Override
             public InetSocketAddress getLocalAddress() {
                 return _transport.getLocalAddress();
             }
 
-            @Override
             public InetSocketAddress getBroadcastAddress() {
                 return _transport.getBroadcastAddress();
             }
 
-            @Override
             public void send(PaxosMessage aMessage, InetSocketAddress anAddr) {
                 _transport.send(aMessage, anAddr);
             }
 
-            @Override
             public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler) {
                 _transport.connectTo(anAddr, aHandler);
             }
 
-            @Override
             public void terminate() {
                 _transport.terminate();
             }
 
-            @Override
             public Transport getTransport() {
                 return this;
             }
 
-            @Override
             public void checkpoint() throws Exception {
                 CheckpointHandle myHandle = _dispatcher.getAcceptorLearner().newCheckpoint();
                 CheckpointStorage.WriteCheckpoint myCkpt = _ckptStorage.newCheckpoint();
