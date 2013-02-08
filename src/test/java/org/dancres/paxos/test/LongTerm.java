@@ -272,7 +272,12 @@ public class LongTerm {
             } else if (myEv.getResult() == VoteOutcome.Reason.DECISION) {
                 if (opsSinceCkpt >= _env._ckptCycle) {
                     for (NodeAdmin myNA : _env._nodes) {
-                        myNA.checkpoint();
+                        try {
+                            myNA.checkpoint();
+                        } catch (Throwable aT) {
+                            System.out.println("Exception at checkpoint");
+                            aT.printStackTrace(System.out);
+                        }
                     }
 
                     opsSinceCkpt = 0;
