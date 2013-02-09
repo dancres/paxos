@@ -12,7 +12,7 @@ public class MemoryLogStorage implements LogStorage {
     private Logger _logger = LoggerFactory.getLogger(MemoryLogStorage.class);
 
     private long _nextKey = 0;    
-    private SortedMap<Long, byte[]> _log = new TreeMap<Long, byte[]>();
+    private final SortedMap<Long, byte[]> _log = new TreeMap<Long, byte[]>();
 
     private boolean isClosed = false;
     private boolean isOpened = false;

@@ -3,7 +3,7 @@ package org.dancres.paxos.impl;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Begin;
 
-public class LeaderUtils {
+class LeaderUtils {
 	public static boolean supercedes(Transport.Packet aProspective, Transport.Packet aCurrent) {
 		Collect myProspective = (Collect) aProspective.getMessage();
 		Collect myCurrent = (Collect) aCurrent.getMessage();

@@ -1,8 +1,8 @@
 package org.dancres.paxos.messages;
 
 public class Learned implements PaxosMessage {
-    private long _seqNum;
-    private long _rndNum;
+    private final long _seqNum;
+    private final long _rndNum;
     
     public Learned(long aSeqNum, long aRndNumber) {
         _seqNum = aSeqNum;

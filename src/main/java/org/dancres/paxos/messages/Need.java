@@ -7,8 +7,8 @@ import java.net.InetSocketAddress;
  * Actual range of instances required is _minSeq < i <= _maxSeq, where i is a single instance.
  */
 public class Need implements PaxosMessage {
-	private long _minSeq;
-	private long _maxSeq;
+	private final long _minSeq;
+	private final long _maxSeq;
 	
 	public Need(long aMin, long aMax) {
 		_minSeq = aMin;

@@ -20,9 +20,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Common {
-    private static Logger _logger = LoggerFactory.getLogger(Common.class);
+    private static final Logger _logger = LoggerFactory.getLogger(Common.class);
 
-    public enum FSMStates {INITIAL, ACTIVE, RECOVERING, OUT_OF_DATE, SHUTDOWN};
+    public enum FSMStates {INITIAL, ACTIVE, RECOVERING, OUT_OF_DATE, SHUTDOWN}
     
     private Transport _transport;
     private final MessageBasedFailureDetector _fd;
@@ -35,7 +35,7 @@ public class Common {
     private final AtomicReference<FSMStates> _fsmState = new AtomicReference<FSMStates>(FSMStates.INITIAL);
 
     private class FakePacket implements Transport.Packet {
-        private PaxosMessage _message;
+        private final PaxosMessage _message;
         private InetSocketAddress _address;
 
         FakePacket(PaxosMessage aMessage) {
@@ -48,11 +48,6 @@ public class Common {
             }
         }
 
-        FakePacket(InetSocketAddress anAddr, PaxosMessage aMessage) {
-            _address = anAddr;
-            _message = aMessage;
-        }
-
         public InetSocketAddress getSource() {
             return _address;
         }
@@ -62,7 +57,7 @@ public class Common {
         }
     }
 
-    public Common(Transport aTransport, long anUnresponsivenessThreshold) {
+    private Common(Transport aTransport, long anUnresponsivenessThreshold) {
         _transport = aTransport;
         _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
     }

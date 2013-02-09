@@ -57,7 +57,7 @@ class Leader implements MembershipListener, Instance {
      */
     private VoteOutcome _outcome;
 
-    private List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
+    private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
     Leader(Common aCommon, LeaderFactory aFactory) {
         _common = aCommon;
@@ -474,7 +474,7 @@ class Leader implements MembershipListener, Instance {
         }
     }
 
-    public String stateToString() {
+    String stateToString() {
         State myState;
 
         synchronized(this) {

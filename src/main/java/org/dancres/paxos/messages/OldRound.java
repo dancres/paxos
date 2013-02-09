@@ -10,9 +10,9 @@ import java.net.InetSocketAddress;
  * specific sequence number and thus OldRound can contain most recent successful sequence number not the original
  */
 public class OldRound implements PaxosMessage, LeaderSelection {
-    private long _seqNum;
-    private long _lastRound;
-    private InetSocketAddress _leaderNodeId;
+    private final long _seqNum;
+    private final long _lastRound;
+    private final InetSocketAddress _leaderNodeId;
     
     public OldRound(long aSeqNum, InetSocketAddress aLeaderNodeId, long aLastRound) {
         _seqNum = aSeqNum;

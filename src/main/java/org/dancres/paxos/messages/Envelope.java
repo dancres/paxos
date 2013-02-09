@@ -6,7 +6,7 @@ import org.dancres.paxos.Proposal;
 
 public class Envelope implements PaxosMessage {
     private long _seqNum = -1;
-    private Proposal _proposal;
+    private final Proposal _proposal;
     
     public Envelope(Proposal aValue) {
         _proposal = aValue;

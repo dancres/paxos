@@ -12,9 +12,9 @@ import org.dancres.paxos.impl.Heartbeater;
  * @author dan
  */
 class HeartbeaterImpl extends Thread implements Heartbeater {
-    private Transport _transport;
-    private byte[] _metaData;
-    private long _pulseRate;
+    private final Transport _transport;
+    private final byte[] _metaData;
+    private final long _pulseRate;
 
     private boolean _stopping = false;
     

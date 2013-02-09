@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
  * </ol>
  */
 public class TransportImpl extends SimpleChannelHandler implements Transport {
-	private static Logger _logger = LoggerFactory
+	private static final Logger _logger = LoggerFactory
 			.getLogger(TransportImpl.class);
 
 	private static final int BROADCAST_PORT = 41952;
@@ -119,8 +119,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     }
 
     static class PacketImpl implements Packet {
-    	private PaxosMessage _msg;
-    	private InetSocketAddress _source;
+    	private final PaxosMessage _msg;
+    	private final InetSocketAddress _source;
     	
     	PacketImpl(PaxosMessage aMsg, InetSocketAddress aSource) {
     		_msg = aMsg;
@@ -296,7 +296,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 
 	private class StreamImpl implements Stream {
-		private SocketChannel _channel;
+		private final SocketChannel _channel;
 		
 		StreamImpl(SocketChannel aChannel) {
 			_channel = aChannel;

@@ -4,8 +4,8 @@ import org.dancres.paxos.impl.Instance;
 import org.dancres.paxos.impl.LeaderSelection;
 
 public class Accept implements PaxosMessage, LeaderSelection {
-    private long _seqNum;
-    private long _rndNumber;
+    private final long _seqNum;
+    private final long _rndNumber;
     
     public Accept(long aSeqNum, long aRndNumber) {
         _seqNum = aSeqNum;

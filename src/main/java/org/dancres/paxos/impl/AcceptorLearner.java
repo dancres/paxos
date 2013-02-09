@@ -35,10 +35,6 @@ import org.slf4j.LoggerFactory;
 public class AcceptorLearner {
     private static final long DEFAULT_RECOVERY_GRACE_PERIOD = 30 * 1000;
 
-    // Pause should be less than DEFAULT_GRACE_PERIOD
-    //
-    private static final long SHUTDOWN_PAUSE = 1 * 1000;
-
 	private static final Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
 	/**
@@ -130,7 +126,7 @@ public class AcceptorLearner {
     static class ALCheckpointHandle extends CheckpointHandle {    	
         private transient Watermark _lowWatermark;
         private transient Transport.Packet _lastCollect;
-        private transient AtomicReference<AcceptorLearner> _al = new AtomicReference<AcceptorLearner>(null);
+        private final transient AtomicReference<AcceptorLearner> _al = new AtomicReference<AcceptorLearner>(null);
         private transient Transport.PacketPickler _pr;
 
         ALCheckpointHandle(Watermark aLowWatermark, Transport.Packet aCollect, AcceptorLearner anAl, Transport.PacketPickler aPickler) {
@@ -147,7 +143,7 @@ public class AcceptorLearner {
 
             byte[] myBytes = new byte[aStream.readInt()];
             aStream.readFully(myBytes);
-            _lastCollect = (Transport.Packet) _pr.unpickle(myBytes);
+            _lastCollect = _pr.unpickle(myBytes);
         }
 
         private void writeObject(ObjectOutputStream aStream) throws IOException {
@@ -421,7 +417,7 @@ public class AcceptorLearner {
              */
             _common.leaderAction();
             _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE,
-                    ((Collect) myHandle.getLastCollect().getMessage()).getSeqNum(),
+                    myHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
                         Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
 
@@ -1004,8 +1000,8 @@ public class AcceptorLearner {
      * and dispatches them to a particular remote node.
      */
     private class RemoteStreamer extends Thread implements Consumer {
-        private Need _need;
-        private Stream _stream;
+        private final Need _need;
+        private final Stream _stream;
 
         RemoteStreamer(Need aNeed, Stream aStream) {
             _need = aNeed;

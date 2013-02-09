@@ -1,13 +1,10 @@
 package org.dancres.paxos.messages;
 
 import org.dancres.paxos.impl.Constants;
-import org.dancres.paxos.impl.LeaderUtils;
-
-import java.net.InetSocketAddress;
 
 public class Collect implements PaxosMessage {
-    private long _seqNum;
-    private long _rndNumber;
+    private final long _seqNum;
+    private final long _rndNumber;
 
     public static final Collect INITIAL = new Collect(Constants.UNKNOWN_SEQ, Long.MIN_VALUE);
 

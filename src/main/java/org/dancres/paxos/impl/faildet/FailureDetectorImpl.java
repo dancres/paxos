@@ -34,18 +34,18 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
      */
     private static final int DEFAULT_MAJORITY = 2;
 
-    private Random _random = new Random();
-    private Map<InetSocketAddress, MetaDataImpl> _lastHeartbeats = new HashMap<InetSocketAddress, MetaDataImpl>();
-    private ExecutorService _executor = Executors.newFixedThreadPool(1);
-    private Thread _scanner;
-    private CopyOnWriteArraySet<MembershipImpl> _listeners;
-    private long _maximumPeriodOfUnresponsiveness;
-    private AtomicBoolean _stopping = new AtomicBoolean(false);
-    private int _majority;
+    private final Random _random = new Random();
+    private final Map<InetSocketAddress, MetaDataImpl> _lastHeartbeats = new HashMap<InetSocketAddress, MetaDataImpl>();
+    private final ExecutorService _executor = Executors.newFixedThreadPool(1);
+    private final Thread _scanner;
+    private final CopyOnWriteArraySet<MembershipImpl> _listeners;
+    private final long _maximumPeriodOfUnresponsiveness;
+    private final AtomicBoolean _stopping = new AtomicBoolean(false);
+    private final int _majority;
 
     class MetaDataImpl implements FailureDetector.MetaData {
         public long _timestamp;
-        public byte[] _metaData;
+        public final byte[] _metaData;
 
         MetaDataImpl(long aTimestamp, byte[] aMeta) {
             _timestamp = aTimestamp;
@@ -61,7 +61,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
         }
     }
 
-    private Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
+    private final Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
 
     /**
      * @param aMajority is the number of members in the cluster that must provide confirmation for an instance to
@@ -245,7 +245,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
         /**
          * Tracks the membership that forms the base for each round
          */
-        private Set<InetSocketAddress> _initialMemberAddresses = new HashSet<InetSocketAddress>();
+        private final Set<InetSocketAddress> _initialMemberAddresses = new HashSet<InetSocketAddress>();
 
         /**
          * Tracks the members that have yet to respond in a round
@@ -253,7 +253,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
         private Set<InetSocketAddress> _outstandingMemberAddresses;
 
         private boolean _populated = false;
-        private MembershipListener _listener;
+        private final MembershipListener _listener;
 
         private int _expectedResponses;
         private int _receivedResponses;

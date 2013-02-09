@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * other bits together.
  */
 public class Core implements Transport.Dispatcher, Paxos {
-    private static Logger _logger = LoggerFactory.getLogger(Core.class);
+    private static final Logger _logger = LoggerFactory.getLogger(Core.class);
 
     private final byte[] _meta;
     private AcceptorLearner _al;

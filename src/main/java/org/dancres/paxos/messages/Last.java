@@ -5,10 +5,10 @@ import org.dancres.paxos.impl.Instance;
 import org.dancres.paxos.impl.LeaderSelection;
 
 public class Last implements PaxosMessage, LeaderSelection {
-    private long _seqNum;
-    private long _low;
-    private long _rndNumber;
-    private Proposal _value;
+    private final long _seqNum;
+    private final long _low;
+    private final long _rndNumber;
+    private final Proposal _value;
 
     /**
      * @param aSeqNum is the sequence number received in the related collect

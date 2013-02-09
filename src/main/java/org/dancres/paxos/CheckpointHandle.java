@@ -20,7 +20,7 @@ import java.io.Serializable;
 public abstract class CheckpointHandle implements Serializable {
     public static final CheckpointHandle NO_CHECKPOINT =
             new CheckpointHandle() {
-                public void saved() {};
+                public void saved() {}
 
                 public boolean isNewerThan(CheckpointHandle aHandle) {
                     // We're not newer than anything

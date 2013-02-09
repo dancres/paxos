@@ -27,7 +27,7 @@ public class RecoveryTrigger {
      */
     private AcceptorLearner.Watermark _lowSeqNumWatermark = AcceptorLearner.Watermark.INITIAL;
 
-    private SortedSet<AcceptorLearner.Watermark> _completed = new TreeSet<AcceptorLearner.Watermark>();
+    private final SortedSet<AcceptorLearner.Watermark> _completed = new TreeSet<AcceptorLearner.Watermark>();
 
     public AcceptorLearner.Watermark getLowWatermark() {
         synchronized(this) {

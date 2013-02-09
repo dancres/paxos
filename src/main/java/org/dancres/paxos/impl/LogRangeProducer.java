@@ -11,13 +11,13 @@ import org.slf4j.LoggerFactory;
  * number range.
  */
 class LogRangeProducer implements LogStorage.RecordListener, Producer {
-	private static Logger _logger = LoggerFactory.getLogger(LogRangeProducer.class);
+	private static final Logger _logger = LoggerFactory.getLogger(LogRangeProducer.class);
 
-	private long _lowerBoundSeq;
-    private long _maximumSeq;
-    private Consumer _consumer;
-    private LogStorage _storage;
-    private Transport.PacketPickler _pickler;
+	private final long _lowerBoundSeq;
+    private final long _maximumSeq;
+    private final Consumer _consumer;
+    private final LogStorage _storage;
+    private final Transport.PacketPickler _pickler;
 
     /**
      * @param aLowerBoundSeq the sequence number above (>) which to stream records.

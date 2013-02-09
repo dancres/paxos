@@ -4,12 +4,10 @@ import org.dancres.paxos.Proposal;
 
 import java.net.InetSocketAddress;
 
-import org.dancres.paxos.impl.LeaderUtils;
-
 public class Begin implements PaxosMessage {
-    private long _seqNum;
-    private long _rndNumber;
-    private Proposal _consolidatedValue;
+    private final long _seqNum;
+    private final long _rndNumber;
+    private final Proposal _consolidatedValue;
     
     public Begin(long aSeqNum, long aRndNumber, Proposal aValue) {
         _seqNum = aSeqNum;

@@ -11,7 +11,7 @@ import java.net.InetSocketAddress;
  * @author dan
  */
 public class Heartbeat implements PaxosMessage {
-    private byte[] _metaData;
+    private final byte[] _metaData;
     
     public Heartbeat(byte[] metaData) {
         _metaData = metaData;
@@ -35,9 +35,5 @@ public class Heartbeat implements PaxosMessage {
     
     public String toString() {
         return "Hbeat";
-    }
-    
-    public boolean isResponse() {
-    	return false;
     }
 }

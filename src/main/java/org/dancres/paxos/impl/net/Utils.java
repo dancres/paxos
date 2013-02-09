@@ -11,7 +11,7 @@ import java.util.*;
 import java.io.ObjectOutputStream;
 
 public class Utils {
-    private static Logger _logger = LoggerFactory.getLogger(Utils.class);
+    private static final Logger _logger = LoggerFactory.getLogger(Utils.class);
 
     private static NetworkInterface _workableInterface = null;
     private static InetAddress _workableAddress = null;
