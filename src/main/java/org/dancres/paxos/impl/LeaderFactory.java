@@ -83,8 +83,6 @@ public class LeaderFactory {
     }
 
     /*
-     * @todo
-     *
      * We currently infer multi-paxos by lining up AL seq num with our own. We should
      * ideally infer it from the direct result of the previous leader. Similarly for
      * sequence number to use, round number etc.

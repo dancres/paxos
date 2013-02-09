@@ -43,7 +43,6 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * Each of these will also have a typical time to fix. In essence we want an MTBF/MTRR model.
  *
- * @todo Implement node recovery in face of reports of OUT_OF_DATE.
  * @todo Implement failure model (might affect design for OUT_OF_DATE handling).
  */
 public class LongTerm {

@@ -30,18 +30,6 @@ import org.slf4j.LoggerFactory;
  * instance will receive those packets. This can be useful for processing client
  * requests correctly and signalling interested parties as necessary.
  *
- * @todo Arrange for checkpoint handle to contain a packet pickler reference.
- * That pickler can be used to flatten a packet containing collect etc into
- * a byte[]. We then serialize the Pickler and save the byte[].
- * We then reverse this process for de-serialization - deserialize the pickler, 
- * recover the byte[] and use the pickler to unpack it.
- *
- * The initial value of _lastCheckpoint can be setup with an initial checkpoint
- * that includes a reference to the transport's current pickler. BUT BEWARE:
- * A number of the existing tests currently return null in response to a call
- * to getPickler() so will need fixing to return some meaningful pickler
- * implementation.
- *
  * @author dan
  */
 public class AcceptorLearner {
