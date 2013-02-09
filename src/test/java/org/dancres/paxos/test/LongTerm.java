@@ -64,6 +64,16 @@ public class LongTerm {
         boolean isCalibrate();
     }
 
+    interface NodeAdmin {
+        Transport getTransport();
+        void checkpoint() throws Exception;
+        CheckpointStorage.ReadCheckpoint getLastCheckpoint();
+        long lastCheckpointTime();
+        boolean isOutOfDate();
+        void terminate();
+        boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt);
+    }
+
     private static class Environment {
         final boolean _calibrate;
         final long _maxCycles;
@@ -314,16 +324,6 @@ public class LongTerm {
                 }
             }
         }
-    }
-
-    interface NodeAdmin {
-        Transport getTransport();
-        void checkpoint() throws Exception;
-        CheckpointStorage.ReadCheckpoint getLastCheckpoint();
-        long lastCheckpointTime();
-        boolean isOutOfDate();
-        void terminate();
-        boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt);
     }
 
     private void run() throws Exception {
