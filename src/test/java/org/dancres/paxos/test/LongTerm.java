@@ -193,6 +193,7 @@ public class LongTerm {
             private AtomicBoolean _outOfDate = new AtomicBoolean(false);
             private CheckpointHandling _checkpointer = new CheckpointHandling();
             private Environment _env;
+            private Random _rng;
 
             TestTransport(InetSocketAddress aLocalAddr,
                       InetSocketAddress aBroadcastAddr,
@@ -200,6 +201,7 @@ public class LongTerm {
                       int aNodeNum,
                       Environment anEnv) {
                 _env = anEnv;
+                _rng = new Random(_env._rng.nextLong());
                 _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
 
                 FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
