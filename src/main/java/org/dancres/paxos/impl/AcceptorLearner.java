@@ -304,7 +304,7 @@ public class AcceptorLearner {
 
             _recoveryWindow.set(null);
 
-            _common.resetLeader();
+            _common.clearLeadership();
             _common.getRecoveryTrigger().reset();
 
             _packetBuffer.clear();

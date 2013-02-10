@@ -95,7 +95,7 @@ public class Common {
         _watchdog.cancel();
     }
     
-    void resetLeader() {
+    void clearLeadership() {
         _lastCollect.set(new FakePacket(Collect.INITIAL));
         _lastLeaderActionTime = 0;        
     }
