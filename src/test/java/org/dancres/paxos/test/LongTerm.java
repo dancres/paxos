@@ -219,14 +219,25 @@ public class LongTerm {
                 }
             }
 
-            public void distribute(Packet aPacket) {
-                _transport.distribute(aPacket);
-            }
-
             public PacketPickler getPickler() {
                 return _transport.getPickler();
             }
 
+            /*
+             * Create failure state machine at construction (passing in rng).
+             *
+             * Wedge each of distributed, send and connectTo to hit the state machine.
+             * State machine has listener and if it decides to trigger a failure it invokes
+             * on that listener so that appropriate implementation can be done.
+             *
+             * State machine returns type of fail or proceed to the caller. Caller
+             * can then determine what it should do (might be stop or continue or ...)
+             *
+             * State machine not only considers failures to inject but also sweeps it's current
+             * list of failures and if any have expired, invokes the listener appropriately
+             * to allow appropriate implementation of restore
+             *
+             */
             public void add(Dispatcher aDispatcher) throws Exception {
                 _transport.add(aDispatcher);
             }
@@ -237,6 +248,10 @@ public class LongTerm {
 
             public InetSocketAddress getBroadcastAddress() {
                 return _transport.getBroadcastAddress();
+            }
+
+            public void distribute(Packet aPacket) {
+                _transport.distribute(aPacket);
             }
 
             public void send(PaxosMessage aMessage, InetSocketAddress anAddr) {
