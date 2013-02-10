@@ -36,6 +36,12 @@ public interface Transport {
 
     public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler);
 
+    public interface Stream {
+        public void close();
+        public void send(PaxosMessage aMessage);
+        public void sendRaw(Transport.Packet aPacket);
+    }
+
     public interface ConnectionHandler {
         public void connected(Stream aStream);
     }
@@ -46,7 +52,6 @@ public interface Transport {
         public void setTransport(Transport aTransport) throws Exception;
 
         /**
-         * @param aMessage
          * @return <code>true</code> to indicate that this packet has been processed and should not be given to
          * other handlers.
          */

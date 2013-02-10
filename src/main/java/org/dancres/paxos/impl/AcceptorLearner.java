@@ -752,7 +752,7 @@ public class AcceptorLearner {
 
                     _common.getTransport().connectTo(aPacket.getSource(),
                             new Transport.ConnectionHandler() {
-                                public void connected(Stream aStream) {
+                                public void connected(Transport.Stream aStream) {
                                     new RemoteStreamer(myNeed, aStream).start();
                                 }
                             });
@@ -1001,9 +1001,9 @@ public class AcceptorLearner {
      */
     private class RemoteStreamer extends Thread implements Consumer {
         private final Need _need;
-        private final Stream _stream;
+        private final Transport.Stream _stream;
 
-        RemoteStreamer(Need aNeed, Stream aStream) {
+        RemoteStreamer(Need aNeed, Transport.Stream aStream) {
             _need = aNeed;
             _stream = aStream;
         }

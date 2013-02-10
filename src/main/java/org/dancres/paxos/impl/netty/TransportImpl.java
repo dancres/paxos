@@ -9,7 +9,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.Accept;

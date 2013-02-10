@@ -1,7 +1,6 @@
 package org.dancres.paxos.test.net;
 
 import org.dancres.paxos.impl.Transport;
-import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import org.slf4j.Logger;

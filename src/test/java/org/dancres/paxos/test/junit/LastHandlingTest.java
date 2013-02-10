@@ -3,13 +3,11 @@ package org.dancres.paxos.test.junit;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.Core;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
-import org.dancres.paxos.impl.Stream;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
