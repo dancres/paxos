@@ -190,9 +190,8 @@ public class LongTerm {
         static class TestTransport implements OrderedMemoryNetwork.OrderedMemoryTransport, NodeAdmin, Paxos.Listener {
             private OrderedMemoryTransportImpl _transport;
             private ServerDispatcher _dispatcher;
-            private CheckpointStorage _ckptStorage;
             private AtomicBoolean _outOfDate = new AtomicBoolean(false);
-            private AtomicLong _checkpointTime = new AtomicLong(0);
+            private CheckpointHandling _checkpointer = new CheckpointHandling();
             private Environment _env;
 
             TestTransport(InetSocketAddress aLocalAddr,
@@ -201,7 +200,6 @@ public class LongTerm {
                       int aNodeNum,
                       Environment anEnv) {
                 _env = anEnv;
-                _ckptStorage = new MemoryCheckpointStorage();
                 _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
 
                 FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
@@ -256,52 +254,28 @@ public class LongTerm {
             }
 
             public boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt) {
-                try {
-                    ObjectInputStream myOIS = new ObjectInputStream(aCkpt.getStream());
-                    CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+                boolean myAnswer = _checkpointer.bringUpToDate(aCkpt, _dispatcher);
 
-                    try {
-                        boolean myAnswer = _dispatcher.getCore().bringUpToDate(myHandle);
+                if (myAnswer)
+                    _outOfDate.set(false);
 
-                        if (myAnswer)
-                            _outOfDate.set(false);
-
-                        return myAnswer;
-                    } catch (Exception anE) {
-                        _logger.warn("Exception at bring up to date", anE);
-                    }
-                } catch (Exception anE) {
-                    _logger.warn("Exception reading back checkpoint handle", anE);
-                }
-
-                return false;
+                return myAnswer;
             }
 
             public void checkpoint() throws Exception {
-                CheckpointHandle myHandle = _dispatcher.getAcceptorLearner().newCheckpoint();
-                CheckpointStorage.WriteCheckpoint myCkpt = _ckptStorage.newCheckpoint();
-                ObjectOutputStream myStream = new ObjectOutputStream(myCkpt.getStream());
-                myStream.writeObject(myHandle);
-                myStream.close();
-
-                myCkpt.saved();
-                myHandle.saved();
-
-                _checkpointTime.set(System.currentTimeMillis());
-
-                assert(_ckptStorage.numFiles() == 1);
+                _checkpointer.checkpoint(_dispatcher);
             }
 
             public CheckpointStorage.ReadCheckpoint getLastCheckpoint() {
-                return _ckptStorage.getLastCheckpoint();
+                return _checkpointer.getLastCheckpoint();
+            }
+
+            public long lastCheckpointTime() {
+                return _checkpointer.lastCheckpointTime();
             }
 
             public boolean isOutOfDate() {
                 return _outOfDate.get();
-            }
-
-            public long lastCheckpointTime() {
-                return _checkpointTime.get();
             }
 
             public void done(VoteOutcome anEvent) {
@@ -322,6 +296,51 @@ public class LongTerm {
                     }
                 }
             }
+        }
+    }
+
+    static class CheckpointHandling {
+        private CheckpointStorage _ckptStorage = new MemoryCheckpointStorage();
+        private AtomicLong _checkpointTime = new AtomicLong(0);
+
+        boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt, ServerDispatcher aDispatcher) {
+            try {
+                ObjectInputStream myOIS = new ObjectInputStream(aCkpt.getStream());
+                CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+
+                try {
+                    return aDispatcher.getCore().bringUpToDate(myHandle);
+                } catch (Exception anE) {
+                    _logger.warn("Exception at bring up to date", anE);
+                }
+            } catch (Exception anE) {
+                _logger.warn("Exception reading back checkpoint handle", anE);
+            }
+
+            return false;
+        }
+
+        void checkpoint(ServerDispatcher aDispatcher) throws Exception {
+            CheckpointHandle myHandle = aDispatcher.getCore().newCheckpoint();
+            CheckpointStorage.WriteCheckpoint myCkpt = _ckptStorage.newCheckpoint();
+            ObjectOutputStream myStream = new ObjectOutputStream(myCkpt.getStream());
+            myStream.writeObject(myHandle);
+            myStream.close();
+
+            myCkpt.saved();
+            myHandle.saved();
+
+            _checkpointTime.set(System.currentTimeMillis());
+
+            assert(_ckptStorage.numFiles() == 1);
+        }
+
+        public CheckpointStorage.ReadCheckpoint getLastCheckpoint() {
+            return _ckptStorage.getLastCheckpoint();
+        }
+
+        public long lastCheckpointTime() {
+            return _checkpointTime.get();
         }
     }
 
