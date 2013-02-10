@@ -18,8 +18,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class Common {
     private static final Logger _logger = LoggerFactory.getLogger(Common.class);
 
-    public enum FSMStates {INITIAL, ACTIVE, RECOVERING, OUT_OF_DATE, SHUTDOWN}
-    
     private Transport _transport;
     private final MessageBasedFailureDetector _fd;
     private final AtomicReference<Transport.Packet> _lastCollect =
@@ -28,7 +26,8 @@ public class Common {
     private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
     private final Timer _watchdog = new Timer("Paxos timers");
-    private final AtomicReference<FSMStates> _fsmState = new AtomicReference<FSMStates>(FSMStates.INITIAL);
+    private final AtomicReference<Constants.FSMStates> _fsmState =
+            new AtomicReference<Constants.FSMStates>(Constants.FSMStates.INITIAL);
     private final LeaderUtils _leaderUtils = new LeaderUtils();
 
     private class FakePacket implements Transport.Packet {
@@ -114,15 +113,15 @@ public class Common {
         }
     }
 
-    void setState(FSMStates aState) {
+    void setState(Constants.FSMStates aState) {
         _fsmState.getAndSet(aState);
     }
 
-    boolean testAndSetState(FSMStates anExpected, FSMStates aNewState) {
+    boolean testAndSetState(Constants.FSMStates anExpected, Constants.FSMStates aNewState) {
         return _fsmState.compareAndSet(anExpected, aNewState);
     }
 
-    public boolean testState(FSMStates aState) {
+    public boolean testState(Constants.FSMStates aState) {
         return _fsmState.get().equals(aState);
     }
 

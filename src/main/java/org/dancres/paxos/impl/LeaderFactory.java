@@ -62,7 +62,8 @@ public class LeaderFactory {
 
             killHeartbeats();
 
-            if ((_common.testState(Common.FSMStates.SHUTDOWN)) || (_common.testState(Common.FSMStates.OUT_OF_DATE)))
+            if ((_common.testState(Constants.FSMStates.SHUTDOWN)) ||
+                    (_common.testState(Constants.FSMStates.OUT_OF_DATE)))
                 throw new Paxos.InactiveException();
 
             return newLeaderImpl();

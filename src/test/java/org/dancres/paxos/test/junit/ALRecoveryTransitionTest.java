@@ -97,7 +97,7 @@ public class ALRecoveryTransitionTest {
 		AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon);
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
 		
-		Assert.assertFalse(myCommon.testState(Common.FSMStates.RECOVERING));
+		Assert.assertFalse(myCommon.testState(Constants.FSMStates.RECOVERING));
 		
 		long myRndNum = 1;
 		long mySeqNum = 0;
@@ -130,7 +130,7 @@ public class ALRecoveryTransitionTest {
 		//
 		myAl.messageReceived(new FakePacket(_nodeId, new Collect(mySeqNum + 5, myRndNum + 2)));
 		
-		Assert.assertTrue(myCommon.testState(Common.FSMStates.RECOVERING));
+		Assert.assertTrue(myCommon.testState(Constants.FSMStates.RECOVERING));
 		
 		/*
 		 * Recovery range r is lwm < r <= x - 1 (where x = tooNewCollect.seqNum)

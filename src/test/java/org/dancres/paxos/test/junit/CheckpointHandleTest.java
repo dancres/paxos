@@ -98,7 +98,7 @@ public class CheckpointHandleTest {
         AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon);
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
 
-        Assert.assertFalse(myCommon.testState(Common.FSMStates.RECOVERING));
+        Assert.assertFalse(myCommon.testState(Constants.FSMStates.RECOVERING));
 
         long myRndNum = 1;
         long mySeqNum = 0;
