@@ -50,6 +50,9 @@ public class LeaderFactory {
      * We stop allowing leaders in this process so as to avoid breaching the constraint where we can be sure we've
      * recorded an outcome at least locally.
      *
+     * @todo Allow concurrent leaders - this would also require modifications to the out-of-date detection used in
+     * AcceptorLearner.
+     *
      * @return a leader for a new sequence
      */
     Leader newLeader() throws Paxos.InactiveException {
@@ -82,34 +85,6 @@ public class LeaderFactory {
         return ((_currentLeader != null) && (! _currentLeader.isDone()));
     }
 
-    /*
-     * We currently infer multi-paxos by lining up AL seq num with our own. We should
-     * ideally infer it from the direct result of the previous leader. Similarly for
-     * sequence number to use, round number etc.
-     *
-     * Currently we try and make this work by not constructing a leader until the
-     * previous leader has finished one way or another. A better design would be
-     * to pass into the next leader it's previous leader and treat that as a state
-     * input for the next leader. The leader state machine would wait on that
-     * state input stabilising and, when it happens, proceed accordingly
-     * (setup for multi-paxos, choose a sequence number etc).
-     *
-     * Open challenge to solve with this approach is what to do when there is no
-     * previous leader. We'd need to construct an initial fake leader that can
-     * trigger no multi-paxos, a sequence number from the AL etc.
-     *
-     * Another challenge is how to signal/trigger the chained leader to proceed.
-     * It might be done by delivering a new message of the form (PRIOR_STATE) into
-     * the next leader's core message processing loop.
-     *
-     * Another challenge is heartbeating with this construct. Perhaps we chain
-     * a fake leader to receive the PRIOR_STATE and add the next leader to that
-     * creating a chain of real->fake->real->fake->real->fake. If a fake detects
-     * it is last in the queue it holds the state and uses it to determine if
-     * heartbeats should run. When the next real leader is chained onto it,
-     * heartbeats would be stopped and the held state is passed over to the next
-     * real leader.
-     */
     private Leader newLeaderImpl() {
         if (_currentLeader == null)
             _currentLeader = new Leader(_common, this);
