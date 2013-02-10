@@ -57,11 +57,6 @@ public class Common {
         }
     }
 
-    private Common(Transport aTransport, long anUnresponsivenessThreshold) {
-        _transport = aTransport;
-        _fd = new FailureDetectorImpl(anUnresponsivenessThreshold);
-    }
-    
     public Common(Transport aTransport, MessageBasedFailureDetector anFD) {
         _transport = aTransport;
         _fd = anFD;
