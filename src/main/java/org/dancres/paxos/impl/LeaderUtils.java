@@ -4,14 +4,14 @@ import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Begin;
 
 class LeaderUtils {
-	public static boolean supercedes(Transport.Packet aProspective, Transport.Packet aCurrent) {
+	public boolean supercedes(Transport.Packet aProspective, Transport.Packet aCurrent) {
 		Collect myProspective = (Collect) aProspective.getMessage();
 		Collect myCurrent = (Collect) aCurrent.getMessage();
 
 		return (myProspective.getRndNumber() > myCurrent.getRndNumber());
 	}
 
-	public  static boolean sameLeader(Transport.Packet aProspective, Transport.Packet aCurrent) {
+	public boolean sameLeader(Transport.Packet aProspective, Transport.Packet aCurrent) {
 		Collect myProspective = (Collect) aProspective.getMessage();
 		Collect myCurrent = (Collect) aCurrent.getMessage();
 
@@ -19,7 +19,7 @@ class LeaderUtils {
 			(aProspective.getSource().equals(aCurrent.getSource())));
 	}
 
-	public static boolean originates(Transport.Packet aBegin, Transport.Packet aCollect) {
+	public boolean originates(Transport.Packet aBegin, Transport.Packet aCollect) {
 		Begin myBegin = (Begin) aBegin.getMessage();
 		Collect myCollect = (Collect) aCollect.getMessage();
 
@@ -27,7 +27,7 @@ class LeaderUtils {
 			(aBegin.getSource().equals(aCollect.getSource())));
 	}
 
-	public static boolean precedes(Transport.Packet aBegin, Transport.Packet aCollect) {
+	public boolean precedes(Transport.Packet aBegin, Transport.Packet aCollect) {
 		Begin myBegin = (Begin) aBegin.getMessage();
 		Collect myCollect = (Collect) aCollect.getMessage();
 

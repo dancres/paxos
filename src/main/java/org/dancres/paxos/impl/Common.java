@@ -33,6 +33,7 @@ public class Common {
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
     private final Timer _watchdog = new Timer("Paxos timers");
     private final AtomicReference<FSMStates> _fsmState = new AtomicReference<FSMStates>(FSMStates.INITIAL);
+    private final LeaderUtils _leaderUtils = new LeaderUtils();
 
     private class FakePacket implements Transport.Packet {
         private final PaxosMessage _message;
@@ -148,7 +149,7 @@ public class Common {
         do {
             myCurrentLast = _lastCollect.get();
 
-            if (! LeaderUtils.supercedes(aCollect, myCurrentLast))
+            if (! _leaderUtils.supercedes(aCollect, myCurrentLast))
                 return false;
 
         } while (! _lastCollect.compareAndSet(myCurrentLast, aCollect));
@@ -170,7 +171,7 @@ public class Common {
 
             return true;
         } else {
-            if (LeaderUtils.sameLeader(aCollect, _lastCollect.get())) {
+            if (_leaderUtils.sameLeader(aCollect, _lastCollect.get())) {
                 _logger.debug("Current collect is from same leader - allow");
 
                 return true;
@@ -184,15 +185,15 @@ public class Common {
     }
 
     boolean sameLeader(Transport.Packet aCollect) {
-        return LeaderUtils.sameLeader(aCollect, _lastCollect.get());
+        return _leaderUtils.sameLeader(aCollect, _lastCollect.get());
     }
 
     boolean originates(Transport.Packet aBegin) {
-        return LeaderUtils.originates(aBegin, _lastCollect.get());
+        return _leaderUtils.originates(aBegin, _lastCollect.get());
     }
 
     boolean precedes(Transport.Packet aBegin) {
-        return LeaderUtils.precedes(aBegin, _lastCollect.get());
+        return _leaderUtils.precedes(aBegin, _lastCollect.get());
     }
 
     void add(Paxos.Listener aListener) {
