@@ -1,12 +1,12 @@
 package org.dancres.paxos.storage;
 
-import java.util.Iterator;
-import java.util.SortedMap;
-import java.util.TreeMap;
-
 import org.dancres.paxos.LogStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Iterator;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class MemoryLogStorage implements LogStorage {
     private Logger _logger = LoggerFactory.getLogger(MemoryLogStorage.class);

@@ -1,11 +1,11 @@
 package org.dancres.paxos.messages.codec;
 
-import java.nio.ByteBuffer;
-
-import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
+import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.messages.Event;
 import org.dancres.paxos.messages.Operations;
+
+import java.nio.ByteBuffer;
 
 public class EventCodec implements Codec {
     public ByteBuffer encode(Object anObject) {

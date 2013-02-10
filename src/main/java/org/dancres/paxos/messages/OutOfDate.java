@@ -1,7 +1,5 @@
 package org.dancres.paxos.messages;
 
-import java.net.InetSocketAddress;
-
 public class OutOfDate implements PaxosMessage {
     public OutOfDate() {
     }

@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Begin;
+import org.dancres.paxos.messages.Collect;
 
 class LeaderUtils {
 	public boolean supercedes(Transport.Packet aProspective, Transport.Packet aCurrent) {

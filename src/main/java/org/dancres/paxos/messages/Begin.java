@@ -2,8 +2,6 @@ package org.dancres.paxos.messages;
 
 import org.dancres.paxos.Proposal;
 
-import java.net.InetSocketAddress;
-
 public class Begin implements PaxosMessage {
     private final long _seqNum;
     private final long _rndNumber;

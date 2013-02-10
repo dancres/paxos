@@ -1,10 +1,10 @@
 package org.dancres.paxos.messages.codec;
 
-import java.nio.ByteBuffer;
-
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.Begin;
+import org.dancres.paxos.messages.Operations;
+
+import java.nio.ByteBuffer;
 
 /**
  * @todo Optimise a la LastCodec, we don't need that length integer as we can deduce it from the size of the buffer

@@ -1,7 +1,5 @@
 package org.dancres.paxos.messages;
 
-import java.net.InetSocketAddress;
-
 /**
  * Emitted by AL when it's looking for some paxos instances. Emitted on the initiation of recovery.
  * Actual range of instances required is _minSeq < i <= _maxSeq, where i is a single instance.

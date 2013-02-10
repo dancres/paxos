@@ -2,7 +2,6 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.LogStorage;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

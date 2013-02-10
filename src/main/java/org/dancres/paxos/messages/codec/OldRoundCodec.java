@@ -1,9 +1,9 @@
 package org.dancres.paxos.messages.codec;
 
-import java.nio.ByteBuffer;
-
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.OldRound;
+import org.dancres.paxos.messages.Operations;
+
+import java.nio.ByteBuffer;
 
 public class OldRoundCodec implements Codec {
     public ByteBuffer encode(Object anObject) {

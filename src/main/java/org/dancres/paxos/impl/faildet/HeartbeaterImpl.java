@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Heartbeater;
+import org.dancres.paxos.impl.Transport;
 
 /**
  * Broadcasts <code>Heartbeat</code> messages at an appropriate rate for <code>FailureDetectorImpl</code>'s in

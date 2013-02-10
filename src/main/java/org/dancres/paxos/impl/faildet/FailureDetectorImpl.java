@@ -1,11 +1,7 @@
 package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.impl.Heartbeater;
-import org.dancres.paxos.impl.Membership;
-import org.dancres.paxos.impl.MembershipListener;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
-import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -13,11 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.CopyOnWriteArraySet;
-
-import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**

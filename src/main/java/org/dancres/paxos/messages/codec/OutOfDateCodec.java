@@ -1,7 +1,7 @@
 package org.dancres.paxos.messages.codec;
 
-import org.dancres.paxos.messages.OutOfDate;
 import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.OutOfDate;
 
 import java.nio.ByteBuffer;
 

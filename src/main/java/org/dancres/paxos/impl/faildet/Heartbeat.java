@@ -3,8 +3,6 @@ package org.dancres.paxos.impl.faildet;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
-import java.net.InetSocketAddress;
-
 /**
  * Message produced by <code>Heartbeater</code> for consumption and processing by <code>FailureDetectorImpl</code>
  *

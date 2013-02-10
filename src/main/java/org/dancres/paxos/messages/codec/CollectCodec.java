@@ -1,9 +1,9 @@
 package org.dancres.paxos.messages.codec;
 
-import java.nio.ByteBuffer;
-
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Operations;
+
+import java.nio.ByteBuffer;
 
 public class CollectCodec implements Codec {
     public ByteBuffer encode(Object anObject) {

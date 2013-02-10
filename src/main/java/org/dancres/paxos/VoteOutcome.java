@@ -2,9 +2,6 @@ package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
 
-import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.messages.PaxosMessage;
-
 /**
  * Status indication returned from the state machine for each vote requested
  */

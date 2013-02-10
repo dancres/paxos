@@ -1,7 +1,5 @@
 package org.dancres.paxos.messages;
 
-import java.net.InetSocketAddress;
-
 import org.dancres.paxos.Proposal;
 
 public class Envelope implements PaxosMessage {

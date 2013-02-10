@@ -1,12 +1,7 @@
 package org.dancres.paxos;
 
-import org.dancres.paxos.impl.Membership;
-import org.dancres.paxos.impl.MembershipListener;
-import org.dancres.paxos.messages.PaxosMessage;
-
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Base interface for failure detector implementations.  For more on failure detectors read: Unreliable Failure Detectors for

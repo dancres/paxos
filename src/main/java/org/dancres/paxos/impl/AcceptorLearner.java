@@ -1,10 +1,19 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.CheckpointHandle;
+import org.dancres.paxos.LogStorage;
+import org.dancres.paxos.Proposal;
+import org.dancres.paxos.VoteOutcome;
+import org.dancres.paxos.messages.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.Map;
+import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -13,14 +22,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.LogStorage;
-import org.dancres.paxos.Proposal;
-import org.dancres.paxos.VoteOutcome;
-import org.dancres.paxos.messages.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implements the Acceptor/Learner state machine. Note that the instance running

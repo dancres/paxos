@@ -3,20 +3,16 @@ package org.dancres.paxos.impl;
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.VoteOutcome;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Collect;
-import org.dancres.paxos.messages.Begin;
-import org.dancres.paxos.messages.Need;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Common {
