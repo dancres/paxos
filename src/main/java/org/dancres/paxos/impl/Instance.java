@@ -1,5 +1,8 @@
 package org.dancres.paxos.impl;
 
+/**
+ * Provides access to pertinent information relating to a single instance of Paxos.
+ */
 public interface Instance {
     /**
      * Instance reaches COLLECT after SUBMITTED unless we're applying multi-paxos when it will reach BEGIN instead.
