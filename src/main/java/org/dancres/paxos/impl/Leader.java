@@ -265,10 +265,13 @@ class Leader implements MembershipListener, Instance {
                  * consolidated value.
                  */
                 if ((myLast != null) && (! ((Last) myLast.getMessage()).getConsolidatedValue().equals(_prop))) {
-                    _common.signal(new VoteOutcome(VoteOutcome.Reason.OTHER_VALUE,
-                            _seqNum, _rndNumber, _prop, myLast.getSource()));
+                    VoteOutcome myOutcome = new VoteOutcome(VoteOutcome.Reason.OTHER_VALUE,
+                            _seqNum, _rndNumber, _prop, myLast.getSource());
+                    _common.signal(myOutcome);
 
                     _prop = ((Last) myLast.getMessage()).getConsolidatedValue();
+
+                    _submitter.complete(myOutcome);
                 }
 
                 emit(new Begin(_seqNum, _rndNumber, _prop));
@@ -317,6 +320,8 @@ class Leader implements MembershipListener, Instance {
                 myOldRound.getLastRound(), _prop, myCompetingNodeId);
 
         process();
+
+        _submitter.complete(_outcome);
     }
 
     private void successful(int aReason) {
@@ -325,6 +330,8 @@ class Leader implements MembershipListener, Instance {
                 _common.getTransport().getLocalAddress());
 
         process();
+
+        _submitter.complete(_outcome);
     }
 
     private void error(int aReason) {
@@ -338,6 +345,8 @@ class Leader implements MembershipListener, Instance {
         _logger.info(stateToString() + " : " + _outcome);
 
         process();
+
+        _submitter.complete(_outcome);
     }
 
     private void emit(PaxosMessage aMessage) {
@@ -416,6 +425,9 @@ class Leader implements MembershipListener, Instance {
         synchronized (this) {
             if (_currentState != State.INITIAL)
                 throw new IllegalStateException("Submit already done, create another leader");
+
+            if (aSubmitter == null)
+                throw new IllegalArgumentException("Submitter cannot be null");
 
             _logger.info(stateToString());
 
