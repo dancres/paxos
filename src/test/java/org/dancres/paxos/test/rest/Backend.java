@@ -252,11 +252,11 @@ public class Backend {
     }
     
     class ListenerImpl implements Paxos.Listener {
-        public void done(VoteOutcome anEvent) {
+        public void done(StateEvent anEvent) {
             Proposal myCommittedProp = anEvent.getValues();
 
             switch (anEvent.getResult()) {
-                case VoteOutcome.Reason.DECISION: {
+                case StateEvent.Reason.DECISION: {
                     _keyValues.put(new String(myCommittedProp.get("KEY")),
                             new String(myCommittedProp.get("VALUE")));
 
@@ -270,7 +270,7 @@ public class Backend {
                     break;
                 }
 
-                case VoteOutcome.Reason.OUT_OF_DATE : {
+                case StateEvent.Reason.OUT_OF_DATE : {
                     if (_outOfDate.compareAndSet(false, true)) {
                         try {
                             new Recovery(
@@ -284,7 +284,7 @@ public class Backend {
                     break;
                 }
                 
-                case VoteOutcome.Reason.UP_TO_DATE : {
+                case StateEvent.Reason.UP_TO_DATE : {
                     _outOfDate.compareAndSet(true, false);
                     
                     break;

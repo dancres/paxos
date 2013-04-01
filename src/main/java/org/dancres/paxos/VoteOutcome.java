@@ -4,9 +4,6 @@ import java.net.InetSocketAddress;
 
 /**
  * Status indication returned from the state machine for each vote requested
- *
- * @todo Leader cannot generate OUT_OF_DATE or UP_TO_DATE to a Completion and ideally we should make that clear
- * in the API via something other than documentation.
  */
 public class VoteOutcome {
 	public static final class Reason {
@@ -34,23 +31,13 @@ public class VoteOutcome {
 		public static final int BAD_MEMBERSHIP = 3;
 
         /**
-         * The AcceptorLearner in this process has become too out of date for recovery.
-         */
-        public static final int OUT_OF_DATE = 4;
-
-        /**
-         * The AcceptorLearner in this process has been updated and is now recovered.
-         */
-        public static final int UP_TO_DATE = 5;
-
-        /**
          * The Leader in this process has received a counter-proposal for the current paxos instance.
          * The sequence number and round associated with the instance are present in the outcome.
          */
-        public static final int OTHER_VALUE = 6;
+        public static final int OTHER_VALUE = 4;
         
         private static final String[] _names = {"Decision", "Other Leader", "Vote Timeout", "Bad Membership",
-        	"Out of Date", "Up to Date", "Other Value"};
+        	"Other Value"};
         
         public static String nameFor(int aCode) {
         	if (aCode < 0 || aCode > _names.length - 1)

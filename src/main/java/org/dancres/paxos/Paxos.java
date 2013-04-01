@@ -15,7 +15,7 @@ package org.dancres.paxos;
  * acceptable. If the state is timestamped in some fashion, once can use those timestamps to ensure that updates
  * based on the state are applied to the latest version (by checking its timestamp) or rejected.</p>
  *
- * <p>A server using this library needs to handle <code>VoteOutcome.Reason.OUT_OF_DATE</code> and
+ * <p>A server using this library needs to handle <code>StateEvent.Reason.OUT_OF_DATE</code> and
  * <code>VoteOutcome.Reason.OTHER_LEADER</code>. In both cases it typically passes a message to it's client to request
  * a switch of leader. One means of doing this would be as follows:</p>
  *
@@ -66,12 +66,12 @@ package org.dancres.paxos;
  *     recent than the checkpoint to.</li>
  * </ol>
  *
- * @see VoteOutcome
+ * @see StateEvent
  * @see CheckpointHandle
  */
 public interface Paxos {
     public interface Listener {
-        public void done(VoteOutcome anEvent);
+        public void done(StateEvent anEvent);
     }
 
     public class InactiveException extends Exception {
@@ -85,7 +85,7 @@ public interface Paxos {
      * @throws InactiveException if the Paxos instance is currently out of date and in need of a new checkpoint or
      * shutting down. Note that technically it would be an error to incur this exception. This is the library user
      * should either have requested the shutdown and thus avoid making this request or received an out of date
-     * <code>VoteOutcome</code> and be in the process of obtaining a new checkpoint.
+     * <code>StateEvent</code> and be in the process of obtaining a new checkpoint.
      */
     public void submit(Proposal aValue, Completion aCompletion) throws InactiveException;
     public void add(Listener aListener);

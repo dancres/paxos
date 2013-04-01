@@ -2,7 +2,7 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Paxos;
-import org.dancres.paxos.VoteOutcome;
+import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
@@ -203,7 +203,7 @@ public class Common {
         }
     }
 
-    void signal(VoteOutcome aStatus) {
+    void signal(StateEvent aStatus) {
         List<Paxos.Listener> myListeners;
 
         synchronized(_listeners) {

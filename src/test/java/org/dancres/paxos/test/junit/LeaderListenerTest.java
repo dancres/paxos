@@ -2,10 +2,7 @@ package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.VoteOutcome;
-import org.dancres.paxos.Proposal;
-import org.dancres.paxos.Paxos;
+import org.dancres.paxos.*;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ClientDispatcher;
@@ -94,7 +91,7 @@ public class LeaderListenerTest {
             }
         }
 
-        public void done(VoteOutcome anEvent) {
+        public void done(StateEvent anEvent) {
             synchronized(this) {
                 ++_readyCount;
             }

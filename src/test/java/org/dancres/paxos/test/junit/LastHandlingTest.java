@@ -3,6 +3,7 @@ package org.dancres.paxos.test.junit;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.Proposal;
@@ -67,7 +68,7 @@ public class LastHandlingTest {
             }
         }
 
-        public void done(VoteOutcome anEvent) {
+        public void done(StateEvent anEvent) {
             synchronized(this) {
                 ++_readyCount;
             }
@@ -107,13 +108,14 @@ public class LastHandlingTest {
 
         /*
          * Leader will have another value so will tell us the original proposal has been replaced by the last.
-         * It will then push through what was the last, leading to an additional update on the listener
+         * It will then push through what was the last, leading to an update on the listener. Client code would
+         * have to re-submit the request for it's value but we're not doing that in this case...
          */
         Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.OTHER_VALUE);
 
         Thread.sleep(5000);
         
-        Assert.assertTrue("Listener count should be 2 but is: " + myListener.getCount(), myListener.testCount(2));
+        Assert.assertTrue("Listener count should be 1 but is: " + myListener.getCount(), myListener.testCount(1));
     }
 
     private static class LastDispatcher extends ServerDispatcher {

@@ -1,9 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.Completion;
-import org.dancres.paxos.VoteOutcome;
-import org.dancres.paxos.Proposal;
-import org.dancres.paxos.Paxos;
+import org.dancres.paxos.*;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
@@ -194,8 +191,8 @@ public class ALOutOfDateTest {
             return _receivedOOD;
         }
 
-        public void done(VoteOutcome anEvent) {
-            if (anEvent.getResult() == VoteOutcome.Reason.OUT_OF_DATE) {
+        public void done(StateEvent anEvent) {
+            if (anEvent.getResult() == StateEvent.Reason.OUT_OF_DATE) {
                 System.err.println("OOD Received from AL");
                 _receivedOOD = true;
             }

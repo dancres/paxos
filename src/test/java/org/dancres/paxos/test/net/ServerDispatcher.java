@@ -11,9 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * <p></p>Handles interactions between server and client. Assumes client is using a <code>ClientDispatcher</code>.
@@ -45,7 +42,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
     private ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta) {
         _core = new Core(anFD, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, new Paxos.Listener() {
             @Override
-            public void done(VoteOutcome anEvent) {
+            public void done(StateEvent anEvent) {
                 // Nothing to do
             }
         });

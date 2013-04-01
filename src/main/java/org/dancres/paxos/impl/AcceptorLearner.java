@@ -1,9 +1,6 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.LogStorage;
-import org.dancres.paxos.Proposal;
-import org.dancres.paxos.VoteOutcome;
+import org.dancres.paxos.*;
 import org.dancres.paxos.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -417,7 +414,7 @@ public class AcceptorLearner {
              * live packet processing.
              */
             _common.leaderAction();
-            _common.signal(new VoteOutcome(VoteOutcome.Reason.UP_TO_DATE,
+            _common.signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
                     myHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
                         Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
@@ -494,7 +491,7 @@ public class AcceptorLearner {
 
                         // Signal with node that pronounced us out of date - likely user code will get ckpt from there.
                         //
-                        _common.signal(new VoteOutcome(VoteOutcome.Reason.OUT_OF_DATE, mySeqNum,
+                        _common.signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
                                 _common.getLeaderRndNum(),
                                 new Proposal(), aPacket.getSource()));
                         return;
@@ -859,7 +856,7 @@ public class AcceptorLearner {
                         } else {
                             _logger.info("AL:Learnt value: " + mySeqNum + ", " + _localAddress);
 
-                            _common.signal(new VoteOutcome(VoteOutcome.Reason.DECISION, mySeqNum,
+                            _common.signal(new StateEvent(StateEvent.Reason.DECISION, mySeqNum,
                                     _common.getLeaderRndNum(),
                                     myBegin.getConsolidatedValue(), aPacket.getSource()));
                         }

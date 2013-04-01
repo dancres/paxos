@@ -196,8 +196,6 @@ class Leader implements MembershipListener, Instance {
 
                 cancelInteraction();
 
-                _common.signal(_outcome);
-
                 _factory.dispose(this);
                 
                 return;
@@ -267,8 +265,6 @@ class Leader implements MembershipListener, Instance {
                 if ((myLast != null) && (! ((Last) myLast.getMessage()).getConsolidatedValue().equals(_prop))) {
                     VoteOutcome myOutcome = new VoteOutcome(VoteOutcome.Reason.OTHER_VALUE,
                             _seqNum, _rndNumber, _prop, myLast.getSource());
-                    _common.signal(myOutcome);
-
                     _prop = ((Last) myLast.getMessage()).getConsolidatedValue();
 
                     _submitter.complete(myOutcome);

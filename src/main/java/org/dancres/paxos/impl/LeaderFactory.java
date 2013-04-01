@@ -1,9 +1,6 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.Completion;
-import org.dancres.paxos.Paxos;
-import org.dancres.paxos.Proposal;
-import org.dancres.paxos.VoteOutcome;
+import org.dancres.paxos.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,8 +32,8 @@ public class LeaderFactory {
         _common = aCommon;
 
         _common.add(new Paxos.Listener() {
-            public void done(VoteOutcome anEvent) {
-                if (anEvent.getResult() == VoteOutcome.Reason.OUT_OF_DATE) {
+            public void done(StateEvent anEvent) {
+                if (anEvent.getResult() == StateEvent.Reason.OUT_OF_DATE) {
                     synchronized (this) {
                         killHeartbeats();
                     }

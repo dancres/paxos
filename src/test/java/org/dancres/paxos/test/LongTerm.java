@@ -295,9 +295,9 @@ public class LongTerm {
                 return _outOfDate.get();
             }
 
-            public void done(VoteOutcome anEvent) {
+            public void done(StateEvent anEvent) {
                 switch (anEvent.getResult()) {
-                    case VoteOutcome.Reason.OUT_OF_DATE : {
+                    case StateEvent.Reason.OUT_OF_DATE : {
                         // Seek an instant resolution and if it fails, flag it for later recovery
                         //
                         if (! _env.resolve(this))
@@ -306,7 +306,7 @@ public class LongTerm {
                         break;
                     }
 
-                    case VoteOutcome.Reason.UP_TO_DATE : {
+                    case StateEvent.Reason.UP_TO_DATE : {
                         _outOfDate.set(false);
 
                         break;
