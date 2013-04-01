@@ -61,12 +61,10 @@ public class Backend {
     private HowlLogger _txnLogger;
     private CheckpointStorage _storage;
 
-    private final AtomicLong _handbackSequence = new AtomicLong(0);
     private final AtomicLong _opCounter = new AtomicLong(0);
     private final AtomicBoolean _checkpointActive = new AtomicBoolean(false);
     private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
     private final InetSocketAddress _serverAddr;
-    private final ConcurrentHashMap<String, Result> _requestMap = new ConcurrentHashMap<String, Result>();
 
     private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<String, String>();
 
@@ -180,18 +178,18 @@ public class Backend {
                     return "";
                 }
                     
-                String myHandback = _serverAddr.toString() + ";" + Long.toString(_handbackSequence.getAndIncrement());
-                Result myResult = new Result();
-
-                _requestMap.put(myHandback, myResult);
+                final Result myResult = new Result();
 
                 Proposal myProp = new Proposal();
-                myProp.put(HANDBACK_KEY, myHandback.getBytes());
                 myProp.put("KEY", request.params(":key").getBytes());
                 myProp.put("VALUE", request.body().getBytes());
 
                 try {
-                    _paxos.submit(myProp);
+                    _paxos.submit(myProp, new Completion() {
+                        public void complete(VoteOutcome anOutcome) {
+                            myResult.deliver(anOutcome);
+                        }
+                    });
 
                     VoteOutcome myOutcome = myResult.await();
 
@@ -207,12 +205,6 @@ public class Backend {
                             
                             response.header("Location",
                                     toHttp(_paxos.getDetector().getMemberMap().get(myOutcome.getLeader()).getData()));
-
-                            return "";
-                        }
-
-                        case VoteOutcome.Reason.OUT_OF_DATE : {
-                            response.status(503);
 
                             return "";
                         }
@@ -261,14 +253,6 @@ public class Backend {
     
     class ListenerImpl implements Paxos.Listener {
         public void done(VoteOutcome anEvent) {
-            // If we're not the originating node for the post, because we're not leader,
-            // we won't have an address stored up
-            //
-            Result myResult =
-                    (anEvent.getValues().get(HANDBACK_KEY) != null) ?
-                            _requestMap.remove(new String(anEvent.getValues().get(HANDBACK_KEY))) :
-                            null;
-
             Proposal myCommittedProp = anEvent.getValues();
 
             switch (anEvent.getResult()) {
@@ -312,9 +296,6 @@ public class Backend {
                     break;
                 }
             }
-
-            if (myResult != null)
-                myResult.deliver(anEvent);
         }
     }
 
