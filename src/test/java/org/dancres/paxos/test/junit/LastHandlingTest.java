@@ -65,7 +65,7 @@ public class LastHandlingTest {
             }
         }
 
-        public void done(StateEvent anEvent) {
+        public void transition(StateEvent anEvent) {
             synchronized(this) {
                 ++_readyCount;
             }

@@ -190,7 +190,7 @@ public class ALOutOfDateTest {
             return _receivedOOD;
         }
 
-        public void done(StateEvent anEvent) {
+        public void transition(StateEvent anEvent) {
             if (anEvent.getResult() == StateEvent.Reason.OUT_OF_DATE) {
                 System.err.println("OOD Received from AL");
                 _receivedOOD = true;

@@ -199,6 +199,6 @@ public class Common {
 
     void signal(StateEvent aStatus) {
         for (Listener myTarget : _listeners)
-            myTarget.done(aStatus);
+            myTarget.transition(aStatus);
     }
 }

@@ -41,8 +41,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
     private ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta) {
         _core = new Core(anFD, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, new Listener() {
-            @Override
-            public void done(StateEvent anEvent) {
+            public void transition(StateEvent anEvent) {
                 // Nothing to do
             }
         });

@@ -32,7 +32,7 @@ public class LeaderFactory {
         _common = aCommon;
 
         _common.add(new Listener() {
-            public void done(StateEvent anEvent) {
+            public void transition(StateEvent anEvent) {
                 if (anEvent.getResult() == StateEvent.Reason.OUT_OF_DATE) {
                     synchronized (this) {
                         killHeartbeats();

@@ -252,11 +252,11 @@ public class Backend {
     }
     
     class ListenerImpl implements Listener {
-        public void done(StateEvent anEvent) {
+        public void transition(StateEvent anEvent) {
             Proposal myCommittedProp = anEvent.getValues();
 
             switch (anEvent.getResult()) {
-                case StateEvent.Reason.DECISION: {
+                case DECISION: {
                     _keyValues.put(new String(myCommittedProp.get("KEY")),
                             new String(myCommittedProp.get("VALUE")));
 
@@ -270,7 +270,7 @@ public class Backend {
                     break;
                 }
 
-                case StateEvent.Reason.OUT_OF_DATE : {
+                case OUT_OF_DATE : {
                     if (_outOfDate.compareAndSet(false, true)) {
                         try {
                             new Recovery(
@@ -284,7 +284,7 @@ public class Backend {
                     break;
                 }
                 
-                case StateEvent.Reason.UP_TO_DATE : {
+                case UP_TO_DATE : {
                     _outOfDate.compareAndSet(true, false);
                     
                     break;

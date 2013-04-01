@@ -3,39 +3,30 @@ package org.dancres.paxos;
 import java.net.InetSocketAddress;
 
 public class StateEvent {
-    public static final class Reason {
+    public enum Reason {
         /**
          * Paxos has agreed a value for the specified instance
          */
-        public static final int DECISION = 0;
+        DECISION,
 
         /**
          * The AcceptorLearner in this process has become too out of date for recovery.
          */
-        public static final int OUT_OF_DATE = 1;
+        OUT_OF_DATE,
 
         /**
          * The AcceptorLearner in this process has been updated and is now recovered.
          */
-        public static final int UP_TO_DATE = 2;
+        UP_TO_DATE
+    };
 
-        private static final String[] _names = {"Decision", "Out of Date", "Up to Date"};
-
-        public static String nameFor(int aCode) {
-            if (aCode < 0 || aCode > _names.length - 1)
-                throw new IllegalArgumentException("Code not known:" + aCode);
-
-            return _names[aCode];
-        }
-    }
-
-    private final int _result;
+    private final Reason _result;
     private final long _seqNum;
     private final long _rndNumber;
     private final Proposal _consolidatedValue;
     private final InetSocketAddress _leader;
 
-    public StateEvent(int aResult, long aSeqNum, long aRndNumber, Proposal aValue,
+    public StateEvent(Reason aResult, long aSeqNum, long aRndNumber, Proposal aValue,
                        InetSocketAddress aLeader) {
         assert(aValue != null);
 
@@ -53,7 +44,7 @@ public class StateEvent {
     /**
      * @return the completion code for a requested vote, one of {@link Reason}
      */
-    public int getResult() {
+    public Reason getResult() {
         return _result;
     }
 
@@ -76,6 +67,6 @@ public class StateEvent {
     }
 
     public String toString() {
-        return "VoteOutcome: " + Reason.nameFor(_result) + ", " + Long.toHexString(_seqNum) + ", " + _leader;
+        return "VoteOutcome: " + _result.name() + ", " + Long.toHexString(_seqNum) + ", " + _leader;
     }
 }

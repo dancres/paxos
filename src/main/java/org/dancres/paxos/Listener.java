@@ -1,5 +1,5 @@
 package org.dancres.paxos;
 
 public interface Listener {
-    public void done(StateEvent anEvent);
+    public void transition(StateEvent anEvent);
 }

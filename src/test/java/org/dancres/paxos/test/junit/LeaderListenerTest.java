@@ -91,7 +91,7 @@ public class LeaderListenerTest {
             }
         }
 
-        public void done(StateEvent anEvent) {
+        public void transition(StateEvent anEvent) {
             synchronized(this) {
                 ++_readyCount;
             }
