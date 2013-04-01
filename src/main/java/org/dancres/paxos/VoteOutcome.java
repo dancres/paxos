@@ -4,6 +4,9 @@ import java.net.InetSocketAddress;
 
 /**
  * Status indication returned from the state machine for each vote requested
+ *
+ * @todo Leader cannot generate OUT_OF_DATE or UP_TO_DATE to a Completion and ideally we should make that clear
+ * in the API via something other than documentation.
  */
 public class VoteOutcome {
 	public static final class Reason {
