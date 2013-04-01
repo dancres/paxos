@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Completion;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.messages.*;
@@ -37,6 +38,7 @@ class Leader implements MembershipListener, Instance {
     private long _tries = 0;
 
     private Proposal _prop;
+    private Completion _submitter;
 
     /**
      * This alarm is used to limit the amount of time the leader will wait for responses from all apparently live
@@ -410,13 +412,14 @@ class Leader implements MembershipListener, Instance {
      *
      * @param aValue is the value to attempt to agree upon
      */
-    public void submit(Proposal aValue) {
+    public void submit(Proposal aValue, Completion aSubmitter) {
         synchronized (this) {
             if (_currentState != State.INITIAL)
                 throw new IllegalStateException("Submit already done, create another leader");
 
             _logger.info(stateToString());
 
+            _submitter = aSubmitter;
             _prop = aValue;
 
             _currentState = State.SUBMITTED;

@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Completion;
 import org.dancres.paxos.Paxos;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
@@ -113,7 +114,12 @@ public class LeaderFactory {
                         public void run() {
                             _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
 
-                            newLeaderImpl().submit(HEARTBEAT);
+                            newLeaderImpl().submit(HEARTBEAT, new Completion() {
+                                @Override
+                                public void complete(VoteOutcome anOutcome) {
+                                    // Do nothing
+                                }
+                            });
                         }
                     };
 
