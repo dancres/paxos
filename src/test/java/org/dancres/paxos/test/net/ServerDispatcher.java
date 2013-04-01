@@ -22,16 +22,13 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p>Metadata passed to the <code>ServerDispatcher</code> constructors will be advertised via Heartbeats.</p>
  */
-public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
+public class ServerDispatcher implements Transport.Dispatcher {
 	private static final String HANDBACK_KEY = "org.dancres.paxos.handback";
 	
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     protected Core _core;
     protected Transport _tp;
-
-    private AtomicLong _handbackGenerator = new AtomicLong(0);
-	private Map<String, InetSocketAddress> _requestMap = new ConcurrentHashMap<String, InetSocketAddress>();
 
     public ServerDispatcher(MessageBasedFailureDetector anFD, byte[] aMeta) {
         this(anFD, new MemoryLogStorage(), aMeta);
@@ -46,7 +43,12 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
     }
 
     private ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta) {
-        _core = new Core(anFD, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, this);
+        _core = new Core(anFD, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, new Paxos.Listener() {
+            @Override
+            public void done(VoteOutcome anEvent) {
+                // Nothing to do
+            }
+        });
     }
 
 	public boolean messageReceived(Packet aPacket) {
@@ -55,15 +57,14 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 		try {
 			switch (myMessage.getClassification()) {
 				case PaxosMessage.CLIENT : {
-                    String myHandback = Long.toString(_handbackGenerator.getAndIncrement());
-                    _requestMap.put(myHandback, aPacket.getSource());
+                    final InetSocketAddress mySource = aPacket.getSource();
 
                     Envelope myEnvelope = (Envelope) myMessage;
                     Proposal myProposal = myEnvelope.getValue();
-                    myProposal.put(HANDBACK_KEY, myHandback.getBytes());
+
                     _core.submit(myProposal, new Completion() {
                         public void complete(VoteOutcome anOutcome) {
-                            // Do nothing
+                            _tp.send(new Event(anOutcome), mySource);
                         }
                     });
 
@@ -92,20 +93,6 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
 	}
 	
     public void terminate() {
-    }
-
-    public void done(VoteOutcome anOutcome) {
-        // If we're not the originating node for the post, because we're not leader, we won't have an address stored up
-        //
-        InetSocketAddress myAddr =
-                (anOutcome.getValues().get(HANDBACK_KEY) != null) ?
-                		_requestMap.remove(new String(anOutcome.getValues().get(HANDBACK_KEY))) :
-                        null;
-
-        if (myAddr == null)
-            return;
-
-		_tp.send(new Event(anOutcome), myAddr);
     }
 
     public void add(Paxos.Listener aListener) {
