@@ -40,7 +40,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
     }
 
     private ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta) {
-        _core = new Core(anFD, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, new Paxos.Listener() {
+        _core = new Core(anFD, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, new Listener() {
             @Override
             public void done(StateEvent anEvent) {
                 // Nothing to do
@@ -92,7 +92,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
     public void terminate() {
     }
 
-    public void add(Paxos.Listener aListener) {
+    public void add(Listener aListener) {
     	_core.add(aListener);
     }
     

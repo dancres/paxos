@@ -9,7 +9,6 @@ import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.OutOfDate;
-import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -146,7 +145,7 @@ public class ALOutOfDateTest {
                 public void complete(VoteOutcome anOutcome) {
                 }
             });
-        } catch (Paxos.InactiveException anIE) {
+        } catch (InactiveException anIE) {
             isInactive = true;
         }
 
@@ -184,7 +183,7 @@ public class ALOutOfDateTest {
         myTest.stop();
     }
 
-    static class Listener implements Paxos.Listener {
+    static class Listener implements org.dancres.paxos.Listener {
         private volatile boolean _receivedOOD = false;
 
         public boolean didOOD() {

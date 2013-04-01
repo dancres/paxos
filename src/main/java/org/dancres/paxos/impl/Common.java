@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.Paxos;
+import org.dancres.paxos.Listener;
 import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -23,7 +23,7 @@ public class Common {
     private final AtomicReference<Transport.Packet> _lastCollect =
             new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
     private long _lastLeaderActionTime = 0;
-    private final List<Paxos.Listener> _listeners = new ArrayList<Paxos.Listener>();
+    private final List<Listener> _listeners = new ArrayList<Listener>();
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
     private final Timer _watchdog = new Timer("Paxos timers");
     private final AtomicReference<Constants.FSMStates> _fsmState =
@@ -191,26 +191,26 @@ public class Common {
         return _leaderUtils.precedes(aBegin, _lastCollect.get());
     }
 
-    void add(Paxos.Listener aListener) {
+    void add(Listener aListener) {
         synchronized(_listeners) {
             _listeners.add(aListener);
         }
     }
 
-    void remove(Paxos.Listener aListener) {
+    void remove(Listener aListener) {
         synchronized(_listeners) {
             _listeners.remove(aListener);
         }
     }
 
     void signal(StateEvent aStatus) {
-        List<Paxos.Listener> myListeners;
+        List<Listener> myListeners;
 
         synchronized(_listeners) {
-            myListeners = new ArrayList<Paxos.Listener>(_listeners);
+            myListeners = new ArrayList<Listener>(_listeners);
         }
 
-        for (Paxos.Listener myTarget : myListeners)
+        for (Listener myTarget : myListeners)
             myTarget.done(aStatus);
     }
 }

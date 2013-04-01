@@ -31,7 +31,7 @@ public class LeaderFactory {
     LeaderFactory(Common aCommon) {
         _common = aCommon;
 
-        _common.add(new Paxos.Listener() {
+        _common.add(new Listener() {
             public void done(StateEvent anEvent) {
                 if (anEvent.getResult() == StateEvent.Reason.OUT_OF_DATE) {
                     synchronized (this) {
@@ -43,7 +43,7 @@ public class LeaderFactory {
     }
 
     /**
-     * @throws org.dancres.paxos.Paxos.InactiveException if the Paxos process is currently out of date or shutting down
+     * @throws org.dancres.paxos.InactiveException if the Paxos process is currently out of date or shutting down
      *
      * We stop allowing leaders in this process so as to avoid breaching the constraint where we can be sure we've
      * recorded an outcome at least locally.
@@ -53,7 +53,7 @@ public class LeaderFactory {
      *
      * @return a leader for a new sequence
      */
-    Leader newLeader() throws Paxos.InactiveException {
+    Leader newLeader() throws InactiveException {
         synchronized (this) {
             while (isActive()) {
                 try { 
@@ -65,7 +65,7 @@ public class LeaderFactory {
 
             if ((_common.testState(Constants.FSMStates.SHUTDOWN)) ||
                     (_common.testState(Constants.FSMStates.OUT_OF_DATE)))
-                throw new Paxos.InactiveException();
+                throw new InactiveException();
 
             return newLeaderImpl();
         }

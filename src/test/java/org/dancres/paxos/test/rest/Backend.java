@@ -251,7 +251,7 @@ public class Backend {
         return Utils.unmarshallInetSocketAddress(aMarshalledAddress);
     }
     
-    class ListenerImpl implements Paxos.Listener {
+    class ListenerImpl implements Listener {
         public void done(StateEvent anEvent) {
             Proposal myCommittedProp = anEvent.getValues();
 

@@ -70,12 +70,6 @@ package org.dancres.paxos;
  * @see CheckpointHandle
  */
 public interface Paxos {
-    public interface Listener {
-        public void done(StateEvent anEvent);
-    }
-
-    public class InactiveException extends Exception {
-    }
 
     public void close();
     public CheckpointHandle newCheckpoint();

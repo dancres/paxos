@@ -187,7 +187,7 @@ public class LongTerm {
             return myTp;
         }
 
-        static class TestTransport implements OrderedMemoryNetwork.OrderedMemoryTransport, NodeAdmin, Paxos.Listener {
+        static class TestTransport implements OrderedMemoryNetwork.OrderedMemoryTransport, NodeAdmin, Listener {
             private OrderedMemoryTransportImpl _transport;
             private ServerDispatcher _dispatcher;
             private AtomicBoolean _outOfDate = new AtomicBoolean(false);

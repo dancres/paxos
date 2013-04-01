@@ -30,7 +30,7 @@ public class Core implements Transport.Dispatcher, Paxos {
      * initialisation time.
      */
     public Core(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta, CheckpointHandle aHandle,
-                Paxos.Listener aListener) {
+                Listener aListener) {
         _meta = aMeta;
         _log = aLogger;        
         _common = new Common(anFD);
@@ -91,7 +91,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         return _common;
     }
 
-    public void add(Paxos.Listener aListener) {
+    public void add(Listener aListener) {
     	_common.add(aListener);
     }
     
@@ -140,9 +140,9 @@ public class Core implements Transport.Dispatcher, Paxos {
      * </ol>
      *
      * @param aVal
-     * @throws Paxos.InactiveException
+     * @throws org.dancres.paxos.InactiveException
      */
-    public void submit(Proposal aVal, Completion aCompletion) throws Paxos.InactiveException {
+    public void submit(Proposal aVal, Completion aCompletion) throws InactiveException {
         _ld.newLeader().submit(aVal, aCompletion);
     }
 }

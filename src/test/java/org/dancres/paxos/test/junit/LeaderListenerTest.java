@@ -76,7 +76,7 @@ public class LeaderListenerTest {
         Assert.assertTrue("Listener count should be 5 but is: " + myListener.getCount(), myListener.testCount(5));
     }
 
-    private class ListenerImpl implements Paxos.Listener {
+    private class ListenerImpl implements Listener {
         private int _readyCount = 0;
 
         int getCount() {
