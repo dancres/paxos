@@ -10,9 +10,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Common {
@@ -23,7 +23,7 @@ public class Common {
     private final AtomicReference<Transport.Packet> _lastCollect =
             new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
     private long _lastLeaderActionTime = 0;
-    private final List<Listener> _listeners = new ArrayList<Listener>();
+    private final List<Listener> _listeners = new CopyOnWriteArrayList<Listener>();
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
     private final Timer _watchdog = new Timer("Paxos timers");
     private final AtomicReference<Constants.FSMStates> _fsmState =
@@ -197,20 +197,8 @@ public class Common {
         }
     }
 
-    void remove(Listener aListener) {
-        synchronized(_listeners) {
-            _listeners.remove(aListener);
-        }
-    }
-
     void signal(StateEvent aStatus) {
-        List<Listener> myListeners;
-
-        synchronized(_listeners) {
-            myListeners = new ArrayList<Listener>(_listeners);
-        }
-
-        for (Listener myTarget : myListeners)
+        for (Listener myTarget : _listeners)
             myTarget.done(aStatus);
     }
 }
