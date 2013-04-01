@@ -13,7 +13,7 @@ public class PaxosFactory {
         Core myCore = new Core(new FailureDetectorImpl(5000), new MemoryLogStorage(), aMetaData, aHandle, aListener);
         new TransportImpl().add(myCore);
 
-        return myCore;
+        return new PaxosWrapper(myCore);
     }
 
     public static Paxos init(Paxos.Listener aListener, CheckpointHandle aHandle, byte[] aMetaData,
@@ -21,6 +21,42 @@ public class PaxosFactory {
         Core myCore = new Core(new FailureDetectorImpl(5000), aLogger, aMetaData, aHandle, aListener);
         new TransportImpl().add(myCore);
 
-        return myCore;
+        return new PaxosWrapper(myCore);
+    }
+
+    private static class PaxosWrapper implements Paxos {
+        private final Core _core;
+
+        PaxosWrapper(Core aCore) {
+            _core = aCore;
+        }
+
+        public void close() {
+            _core.close();
+        }
+
+        public CheckpointHandle newCheckpoint() {
+            return _core.newCheckpoint();
+        }
+
+        public void submit(Proposal aValue) throws InactiveException {
+            _core.submit(aValue, new Completion() {
+                public void complete(VoteOutcome anOutcome) {
+                    // Do nothing for now
+                }
+            });
+        }
+
+        public void add(Listener aListener) {
+            _core.add(aListener);
+        }
+
+        public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
+            return _core.bringUpToDate(aHandle);
+        }
+
+        public FailureDetector getDetector() {
+            return _core.getDetector();
+        }
     }
 }

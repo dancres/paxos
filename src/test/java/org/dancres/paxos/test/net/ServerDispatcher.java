@@ -61,7 +61,11 @@ public class ServerDispatcher implements Transport.Dispatcher, Paxos.Listener {
                     Envelope myEnvelope = (Envelope) myMessage;
                     Proposal myProposal = myEnvelope.getValue();
                     myProposal.put(HANDBACK_KEY, myHandback.getBytes());
-                    _core.submit(myProposal);
+                    _core.submit(myProposal, new Completion() {
+                        public void complete(VoteOutcome anOutcome) {
+                            // Do nothing
+                        }
+                    });
 
                     return true;
 				}

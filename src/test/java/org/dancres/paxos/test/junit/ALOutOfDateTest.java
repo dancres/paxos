@@ -1,5 +1,6 @@
 package org.dancres.paxos.test.junit;
 
+import org.dancres.paxos.Completion;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.Paxos;
@@ -144,7 +145,10 @@ public class ALOutOfDateTest {
         boolean isInactive = false;
         
         try {
-            _node3.getCore().submit(myProp);            
+            _node3.getCore().submit(myProp, new Completion() {
+                public void complete(VoteOutcome anOutcome) {
+                }
+            });
         } catch (Paxos.InactiveException anIE) {
             isInactive = true;
         }

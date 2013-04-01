@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
  * failure detection and paxos rounds. In essence, this is the plumbing that glues the state machines and
  * other bits together.
  */
-public class Core implements Transport.Dispatcher, Paxos {
+public class Core implements Transport.Dispatcher {
     private static final Logger _logger = LoggerFactory.getLogger(Core.class);
 
     private final byte[] _meta;
@@ -142,13 +142,8 @@ public class Core implements Transport.Dispatcher, Paxos {
      * @param aVal
      * @throws Paxos.InactiveException
      */
-    public void submit(Proposal aVal) throws Paxos.InactiveException {
-        _ld.newLeader().submit(aVal, new Completion() {
-            @Override
-            public void complete(VoteOutcome anOutcome) {
-                // Do nothing
-            }
-        });
+    public void submit(Proposal aVal, Completion aCompletion) throws Paxos.InactiveException {
+        _ld.newLeader().submit(aVal, aCompletion);
     }
 }
 
