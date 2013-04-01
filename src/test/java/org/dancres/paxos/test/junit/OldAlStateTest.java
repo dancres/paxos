@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.CheckpointHandle;
+import org.dancres.paxos.Listener;
+import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.storage.HowlLogger;
@@ -92,7 +94,12 @@ public class OldAlStateTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()));
+		AcceptorLearner myAl =
+                new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()), new Listener() {
+                    public void transition(StateEvent anEvent) {
+                    }
+                });
+
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
 		
 		long myRndNum = 1;

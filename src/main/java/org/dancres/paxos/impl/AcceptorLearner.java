@@ -9,10 +9,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -48,11 +50,11 @@ public class AcceptorLearner {
     private final AtomicReference<TimerTask> _recoveryAlarm = new AtomicReference<TimerTask>(null);
     private final AtomicReference<Need> _recoveryWindow = new AtomicReference<Need>(null);
 
+    private final List<Listener> _listeners = new CopyOnWriteArrayList<Listener>();
 	private final BlockingQueue<Transport.Packet> _packetBuffer = new LinkedBlockingQueue<Transport.Packet>();
 
 	private final LogStorage _storage;
     private final Common _common;
-	private final InetSocketAddress _localAddress;
 
     /**
      * Begins contain the values being proposed. These values must be remembered from round to round of an instance
@@ -127,7 +129,8 @@ public class AcceptorLearner {
         private final transient AtomicReference<AcceptorLearner> _al = new AtomicReference<AcceptorLearner>(null);
         private transient Transport.PacketPickler _pr;
 
-        ALCheckpointHandle(Watermark aLowWatermark, Transport.Packet aCollect, AcceptorLearner anAl, Transport.PacketPickler aPickler) {
+        ALCheckpointHandle(Watermark aLowWatermark, Transport.Packet aCollect, AcceptorLearner anAl,
+                           Transport.PacketPickler aPickler) {
             _lowWatermark = aLowWatermark;
             _lastCollect = aCollect;
             _al.set(anAl);
@@ -206,13 +209,10 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-    public AcceptorLearner(LogStorage aStore, Common aCommon) {
+    public AcceptorLearner(LogStorage aStore, Common aCommon, Listener anInitialListener) {
         _storage = aStore;
-        _localAddress = aCommon.getTransport().getLocalAddress();
         _common = aCommon;
-        _lastCheckpoint.set(
-                new ALCheckpointHandle(Watermark.INITIAL, _common.getLastCollect(),
-                        null, _common.getTransport().getPickler()));
+        _listeners.add(anInitialListener);
     }
 
     private boolean guard() {
@@ -249,6 +249,10 @@ public class AcceptorLearner {
      * @throws Exception
      */
     public void open(CheckpointHandle aHandle) throws Exception {
+        _lastCheckpoint.set(
+                new ALCheckpointHandle(Watermark.INITIAL, _common.getLastCollect(),
+                        null, _common.getTransport().getPickler()));
+
         _storage.open();
 
         try {
@@ -414,7 +418,7 @@ public class AcceptorLearner {
              * live packet processing.
              */
             _common.leaderAction();
-            _common.signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
+            signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
                     myHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
                         Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
@@ -491,7 +495,7 @@ public class AcceptorLearner {
 
                         // Signal with node that pronounced us out of date - likely user code will get ckpt from there.
                         //
-                        _common.signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
+                        signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
                                 _common.getLeaderRndNum(),
                                 new Proposal(), aPacket.getSource()));
                         return;
@@ -500,7 +504,8 @@ public class AcceptorLearner {
             }
 
             boolean myRecoveryInProgress = _common.testState(Constants.FSMStates.RECOVERING);
-            Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(), _localAddress);
+            Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(),
+                    _common.getTransport().getLocalAddress());
             int mySeqNumPosition = (myRecoveryInProgress) ?
                     _recoveryWindow.get().relativeToWindow(mySeqNum) : Integer.MIN_VALUE;
             Sender mySender = (myRecoveryInProgress) ? new RecoverySender() : new LiveSender();
@@ -549,7 +554,7 @@ public class AcceptorLearner {
                      * window. As the recovery watchdog measures progress through the recovery window, a partial
                      * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
                      */
-                    mySender.send(myWindow, _common.getFD().getRandomMember(_localAddress));
+                    mySender.send(myWindow, _common.getFD().getRandomMember(_common.getTransport().getLocalAddress()));
 
                     // Startup recovery watchdog
                     //
@@ -605,7 +610,8 @@ public class AcceptorLearner {
                                     // Maybe excessive gaps in buffer, catch it, exit early, recovery will trigger again
                                     //
                                     if (_common.getRecoveryTrigger().shouldRecover(
-                                            myReplayPacket.getMessage().getSeqNum(), _localAddress) != null)
+                                            myReplayPacket.getMessage().getSeqNum(),
+                                           _common.getTransport().getLocalAddress()) != null)
                                         break;
 
                                     process(myReplayPacket, myWriter, mySender);
@@ -652,11 +658,11 @@ public class AcceptorLearner {
              * future check otherwise fail.
              */
             if (! _past.equals(_common.getRecoveryTrigger().getLowWatermark())) {
-                _logger.debug("Recovery is progressing, " + _localAddress);
+                _logger.debug("Recovery is progressing, " + _common.getTransport().getLocalAddress());
 
                 reschedule();
             } else {
-                _logger.warn("Recovery is NOT progressing - terminate, " + _localAddress);
+                _logger.warn("Recovery is NOT progressing - terminate, " + _common.getTransport().getLocalAddress());
 
                 terminateRecovery();
                 _common.testAndSetState(Constants.FSMStates.RECOVERING, Constants.FSMStates.ACTIVE);
@@ -668,7 +674,7 @@ public class AcceptorLearner {
     // when the alarm has expired (thus does not need cancelling) when it is called from the alarm itself.
     //
     private void reschedule() {
-        _logger.debug("Rescheduling, " + _localAddress);
+        _logger.debug("Rescheduling, " + _common.getTransport().getLocalAddress());
 
         TimerTask myAlarm = new Watchdog();
 
@@ -696,7 +702,7 @@ public class AcceptorLearner {
     // thus there's no need to cancel the alarm.
     //
     private void terminateRecovery() {
-        _logger.debug("Recovery terminate, " + _localAddress);
+        _logger.debug("Recovery terminate, " + _common.getTransport().getLocalAddress());
 
         /*
          * This will cause the AL to re-enter recovery when another packet is received and thus a new
@@ -707,7 +713,7 @@ public class AcceptorLearner {
     }
 
     private void completedRecovery() {
-        _logger.info("Recovery complete, " + _localAddress);
+        _logger.info("Recovery complete, " + _common.getTransport().getLocalAddress());
 
         TimerTask myAlarm = _recoveryAlarm.getAndSet(null);
         if (myAlarm != null) {
@@ -729,7 +735,7 @@ public class AcceptorLearner {
 		InetSocketAddress myNodeId = aPacket.getSource();
 		long mySeqNum = myMessage.getSeqNum();
 
-		_logger.info("AL: got " + myNodeId + " " + myMessage + ", " + _localAddress);
+		_logger.info("AL: got " + myNodeId + " " + myMessage + ", " + _common.getTransport().getLocalAddress());
 
 		switch (myMessage.getType()) {
             case Operations.NEED : {
@@ -745,7 +751,7 @@ public class AcceptorLearner {
                     _common.getTransport().send(new OutOfDate(), aPacket.getSource());
 
                 } else if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
-                    _logger.debug("Running streamer: " + _localAddress);
+                    _logger.debug("Running streamer: " + _common.getTransport().getLocalAddress());
 
 
                     _common.getTransport().connectTo(aPacket.getSource(),
@@ -766,7 +772,7 @@ public class AcceptorLearner {
 					_ignoredCollects.incrementAndGet();
 
 					_logger.warn("AL:Not accepting: " + myCollect + ", "
-							+ getIgnoredCollectsCount() + ", " + _localAddress);
+							+ getIgnoredCollectsCount() + ", " + _common.getTransport().getLocalAddress());
 					return;
 				}
 
@@ -819,7 +825,7 @@ public class AcceptorLearner {
 					 * our values, it hasn't seen our last and we're likely out of sync with the majority
 					 */
 					_logger.warn("AL:Missed collect, going silent: " + mySeqNum
-							+ " [ " + myBegin.getRndNumber() + " ], " + _localAddress);
+							+ " [ " + myBegin.getRndNumber() + " ], " + _common.getTransport().getLocalAddress());
 				}
 				
 				break;
@@ -831,7 +837,8 @@ public class AcceptorLearner {
                 _common.leaderAction();
 
 				if (mySeqNum <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
-					_logger.debug("AL:Discarded known value: " + mySeqNum + ", " + _localAddress);
+					_logger.debug("AL:Discarded known value: " + mySeqNum + ", " +
+                            _common.getTransport().getLocalAddress());
 				} else {
                     Begin myBegin = expungeBegin(mySeqNum);
 
@@ -839,7 +846,7 @@ public class AcceptorLearner {
                         // We never saw the appropriate begin
                         //
                         _logger.debug("AL: Discarding success: " + myBegin + ", " + myLearned +
-                                ", " + _localAddress);
+                                ", " + _common.getTransport().getLocalAddress());
                     } else {
                         // Record the success even if it's the heartbeat so there are no gaps in the Paxos sequence
                         //
@@ -852,11 +859,12 @@ public class AcceptorLearner {
 
                             _logger.debug("AL: discarded heartbeat: "
                                     + System.currentTimeMillis() + ", "
-                                    + getHeartbeatCount() + ", " + _localAddress);
+                                    + getHeartbeatCount() + ", " + _common.getTransport().getLocalAddress());
                         } else {
-                            _logger.info("AL:Learnt value: " + mySeqNum + ", " + _localAddress);
+                            _logger.info("AL:Learnt value: " + mySeqNum + ", " +
+                                    _common.getTransport().getLocalAddress());
 
-                            _common.signal(new StateEvent(StateEvent.Reason.DECISION, mySeqNum,
+                            signal(new StateEvent(StateEvent.Reason.DECISION, mySeqNum,
                                     _common.getLeaderRndNum(),
                                     myBegin.getConsolidatedValue(), aPacket.getSource()));
                         }
@@ -867,7 +875,7 @@ public class AcceptorLearner {
 			}
 
 			default:
-				throw new RuntimeException("Unexpected message" + ", " + _localAddress);
+				throw new RuntimeException("Unexpected message" + ", " + _common.getTransport().getLocalAddress());
 		}
 	}
 
@@ -886,8 +894,8 @@ public class AcceptorLearner {
 			} else 
 				myState = new StateFinder(aSeqNum, myLow.getLogOffset()).getState();
 		} catch (Exception anE) {
-			_logger.error("Failed to replay log" + ", " + _localAddress, anE);
-			throw new RuntimeException("Failed to replay log" + ", " + _localAddress, anE);
+			_logger.error("Failed to replay log" + ", " + _common.getTransport().getLocalAddress(), anE);
+			throw new RuntimeException("Failed to replay log" + ", " + _common.getTransport().getLocalAddress(), anE);
 		}
 		
 		if (myState != null) {
@@ -957,7 +965,8 @@ public class AcceptorLearner {
             try {
                 return _storage.put(_common.getTransport().getPickler().pickle(aPacket), aForceRequired);
             } catch (Exception anE) {
-                _logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " + _localAddress, anE);
+                _logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " +
+                        _common.getTransport().getLocalAddress(), anE);
                 throw new RuntimeException(anE);
             }            
         }
@@ -1008,10 +1017,10 @@ public class AcceptorLearner {
 
         public void run() {
             if (guard()) {
-                _logger.warn("Aborting RemoteStreamer, " + _localAddress);
+                _logger.warn("Aborting RemoteStreamer, " + _common.getTransport().getLocalAddress());
                 return;
             } else {
-                _logger.info("RemoteStreamer starting, " + _localAddress);
+                _logger.info("RemoteStreamer starting, " + _common.getTransport().getLocalAddress());
             }
 
             try {
@@ -1029,5 +1038,16 @@ public class AcceptorLearner {
             _logger.debug("Streaming: " + aPacket.getMessage());
             _stream.sendRaw(aPacket);
         }
+    }
+
+    void add(Listener aListener) {
+        synchronized(_listeners) {
+            _listeners.add(aListener);
+        }
+    }
+
+    private void signal(StateEvent aStatus) {
+        for (Listener myTarget : _listeners)
+            myTarget.transition(aStatus);
     }
 }

@@ -28,10 +28,10 @@ public class LeaderFactory {
      */
     private TimerTask _heartbeatAlarm;
 
-    LeaderFactory(Common aCommon) {
+    LeaderFactory(Common aCommon, AcceptorLearner anAL) {
         _common = aCommon;
 
-        _common.add(new Listener() {
+        anAL.add(new Listener() {
             public void transition(StateEvent anEvent) {
                 if (anEvent.getResult() == StateEvent.Reason.OUT_OF_DATE) {
                     synchronized (this) {

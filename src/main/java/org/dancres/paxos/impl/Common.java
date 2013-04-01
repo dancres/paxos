@@ -1,8 +1,6 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.Listener;
-import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
@@ -10,9 +8,8 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.List;
+
 import java.util.Timer;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Common {
@@ -23,7 +20,6 @@ public class Common {
     private final AtomicReference<Transport.Packet> _lastCollect =
             new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
     private long _lastLeaderActionTime = 0;
-    private final List<Listener> _listeners = new CopyOnWriteArrayList<Listener>();
     private final RecoveryTrigger _trigger = new RecoveryTrigger();
     private final Timer _watchdog = new Timer("Paxos timers");
     private final AtomicReference<Constants.FSMStates> _fsmState =
@@ -58,8 +54,8 @@ public class Common {
         _fd = anFD;
     }
 
-    public Common(MessageBasedFailureDetector anFD) {
-        _fd = anFD;
+    Common(MessageBasedFailureDetector anFD) {
+        this(null, anFD);
     }
     
     void setTransport(Transport aTransport) {
@@ -189,16 +185,5 @@ public class Common {
 
     boolean precedes(Transport.Packet aBegin) {
         return _leaderUtils.precedes(aBegin, _lastCollect.get());
-    }
-
-    void add(Listener aListener) {
-        synchronized(_listeners) {
-            _listeners.add(aListener);
-        }
-    }
-
-    void signal(StateEvent aStatus) {
-        for (Listener myTarget : _listeners)
-            myTarget.transition(aStatus);
     }
 }

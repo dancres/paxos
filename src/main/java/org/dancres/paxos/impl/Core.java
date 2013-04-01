@@ -34,7 +34,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         _meta = aMeta;
         _log = aLogger;        
         _common = new Common(anFD);
-        _common.add(aListener);
+        _al = new AcceptorLearner(_log, _common, aListener);
         _handle = aHandle;
     }
 
@@ -65,9 +65,8 @@ public class Core implements Transport.Dispatcher, Paxos {
         else
             _hb = _common.getPrivateFD().newHeartbeater(aTransport, _meta);
 
-        _al = new AcceptorLearner(_log, _common);
         _al.open(_handle);
-        _ld = new LeaderFactory(_common);
+        _ld = new LeaderFactory(_common, _al);
         _hb.start();
     }
 
@@ -92,7 +91,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public void add(Listener aListener) {
-    	_common.add(aListener);
+    	_al.add(aListener);
     }
     
     public boolean messageReceived(Packet aPacket) {
