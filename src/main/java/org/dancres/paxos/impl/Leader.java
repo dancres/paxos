@@ -125,7 +125,9 @@ class Leader implements MembershipListener, Instance {
     private void reportOutcome() {
         /*
          * First outcome is always the one we report to the submitter even if there are others (available via
-         * getOutcomes()).
+         * getOutcomes()). Multiple outcomes occur when we detect a previously proposed value and must drive it
+         * to completion. The originally submitted value will need re-submitting. Hence submitter is told
+         * OTHER_VALUE whilst AL listeners will see DECISION containing the previously proposed value.
          */
         _submitter.complete(_outcomes.getFirst());
     }
@@ -207,6 +209,8 @@ class Leader implements MembershipListener, Instance {
                 cancelInteraction();
 
                 _factory.dispose(this);
+
+                reportOutcome();
                 
                 return;
             }
@@ -217,6 +221,8 @@ class Leader implements MembershipListener, Instance {
                 cleanUp();
 
                 _factory.dispose(this);
+
+                reportOutcome();
 
                 return;
             }
@@ -275,9 +281,9 @@ class Leader implements MembershipListener, Instance {
                 if ((myLast != null) && (! ((Last) myLast.getMessage()).getConsolidatedValue().equals(_prop))) {
                     VoteOutcome myOutcome = new VoteOutcome(VoteOutcome.Reason.OTHER_VALUE,
                             _seqNum, _rndNumber, _prop, myLast.getSource());
-                    _prop = ((Last) myLast.getMessage()).getConsolidatedValue();
+                    _outcomes.add(myOutcome);
 
-                    _submitter.complete(myOutcome);
+                    _prop = ((Last) myLast.getMessage()).getConsolidatedValue();
                 }
 
                 emit(new Begin(_seqNum, _rndNumber, _prop));
@@ -326,8 +332,6 @@ class Leader implements MembershipListener, Instance {
                 myOldRound.getLastRound(), _prop, myCompetingNodeId));
 
         process();
-
-        reportOutcome();
     }
 
     private void successful(int aReason) {
@@ -336,8 +340,6 @@ class Leader implements MembershipListener, Instance {
                 _common.getTransport().getLocalAddress()));
 
         process();
-
-        reportOutcome();
     }
 
     private void error(int aReason) {
@@ -351,8 +353,6 @@ class Leader implements MembershipListener, Instance {
         _logger.info(stateToString() + " : " + _outcomes);
 
         process();
-
-        reportOutcome();
     }
 
     private void emit(PaxosMessage aMessage) {
