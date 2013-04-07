@@ -56,7 +56,7 @@ class Leader implements MembershipListener, Instance {
     /**
      * In cases of ABORT, indicates the reason
      */
-    private final Deque<VoteOutcome> _outcome = new LinkedBlockingDeque<VoteOutcome>();
+    private final Deque<VoteOutcome> _outcomes = new LinkedBlockingDeque<VoteOutcome>();
 
     private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
@@ -78,14 +78,14 @@ class Leader implements MembershipListener, Instance {
     }
 
     Deque<VoteOutcome> getOutcomes() {
-        return new LinkedList<VoteOutcome>(_outcome);
+        return new LinkedList<VoteOutcome>(_outcomes);
     }
 
     void shutdown() {
     	synchronized(this) {
             if ((! isDone()) && (_currentState != State.SHUTDOWN)) {
     		    _currentState = State.SHUTDOWN;
-                _outcome.clear();
+                _outcomes.clear();
                 process();
             }
     	}
@@ -122,6 +122,14 @@ class Leader implements MembershipListener, Instance {
          _membership.dispose();       
     }
 
+    private void reportOutcome() {
+        /*
+         * First outcome is always the one we report to the submitter even if there are others (available via
+         * getOutcomes()).
+         */
+        _submitter.complete(_outcomes.getFirst());
+    }
+
     /**
      * Get the next leader in the chain. Will block until the current leader has reached a stable outcome.
      */
@@ -143,20 +151,20 @@ class Leader implements MembershipListener, Instance {
             //
             State myState = State.COLLECT;
 
-            switch(_outcome.getLast().getResult()) {
+            switch(_outcomes.getLast().getResult()) {
                 case VoteOutcome.Reason.DECISION : {
 
                     // Likely we can apply multi-paxos
                     //
                     myState = State.BEGIN;
-                    mySeqNum = _outcome.getLast().getSeqNum() + 1;
-                    myRndNum = _outcome.getLast().getRndNumber();
+                    mySeqNum = _outcomes.getLast().getSeqNum() + 1;
+                    myRndNum = _outcomes.getLast().getRndNumber();
                     break;
                 }
 
                 case VoteOutcome.Reason.OTHER_LEADER : {
-                    mySeqNum = _outcome.getLast().getSeqNum() + 1;
-                    myRndNum = _outcome.getLast().getRndNumber() + 1;
+                    mySeqNum = _outcomes.getLast().getSeqNum() + 1;
+                    myRndNum = _outcomes.getLast().getRndNumber() + 1;
                     break;
                 }
 
@@ -192,7 +200,7 @@ class Leader implements MembershipListener, Instance {
             }
 
             case ABORT : {
-                _logger.info(stateToString() + " : " + _outcome);
+                _logger.info(stateToString() + " : " + _outcomes);
 
                 cleanUp();
 
@@ -204,7 +212,7 @@ class Leader implements MembershipListener, Instance {
             }
 
             case EXIT : {
-            	_logger.info(stateToString() + " : " + _outcome);
+            	_logger.info(stateToString() + " : " + _outcomes);
 
                 cleanUp();
 
@@ -314,22 +322,22 @@ class Leader implements MembershipListener, Instance {
                 Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
         _currentState = State.ABORT;
-        _outcome.add(new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
+        _outcomes.add(new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
                 myOldRound.getLastRound(), _prop, myCompetingNodeId));
 
         process();
 
-        _submitter.complete(_outcome.getLast());
+        reportOutcome();
     }
 
     private void successful(int aReason) {
         _currentState = State.EXIT;
-        _outcome.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
+        _outcomes.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
                 _common.getTransport().getLocalAddress()));
 
         process();
 
-        _submitter.complete(_outcome.getLast());
+        reportOutcome();
     }
 
     private void error(int aReason) {
@@ -338,13 +346,13 @@ class Leader implements MembershipListener, Instance {
     
     private void error(int aReason, InetSocketAddress aLeader) {
         _currentState = State.ABORT;
-        _outcome.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader));
+        _outcomes.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader));
         
-        _logger.info(stateToString() + " : " + _outcome);
+        _logger.info(stateToString() + " : " + _outcomes);
 
         process();
 
-        _submitter.complete(_outcome.getLast());
+        reportOutcome();
     }
 
     private void emit(PaxosMessage aMessage) {
