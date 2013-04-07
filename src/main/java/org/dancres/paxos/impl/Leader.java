@@ -125,6 +125,9 @@ class Leader implements MembershipListener, Instance {
          _membership.dispose();       
     }
 
+    /**
+     * Get the next leader in the chain. Will block until the current leader has reached a stable outcome.
+     */
     Leader nextLeader() {
         synchronized(this) {
             while (! isDone()) {
