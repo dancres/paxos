@@ -879,10 +879,6 @@ public class AcceptorLearner {
 		}
 	}
 
-    /**
-     * @todo BUG: If the leader is out of date, it couldn't currently recover from the OLD_ROUND message because
-     * it doesn't contain an up-to-date sequence number.
-     */
 	private PaxosMessage constructLast(long aSeqNum) {
 		Watermark myLow = _common.getRecoveryTrigger().getLowWatermark();
 		
@@ -912,7 +908,7 @@ public class AcceptorLearner {
              * sequence number to completion, we must tell it.
              */
             if (aSeqNum <= myLow.getSeqNum())
-                return new OldRound(aSeqNum, _common.getLeaderAddress(),
+                return new OldRound(myLow.getSeqNum(), _common.getLeaderAddress(),
                         _common.getLeaderRndNum());
             else
                 return new Last(aSeqNum, myLow.getSeqNum(),

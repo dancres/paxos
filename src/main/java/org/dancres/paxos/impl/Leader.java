@@ -156,7 +156,10 @@ class Leader implements MembershipListener, Instance {
 
                 /*
                  * Other leader, in which case we use the values returned from the objecting AL as the basis
-                 * of our next try.
+                 * of our next try. We can receive OTHER_LEADER to indicate an active leader conflict or that
+                 * we're too out of date (our sequence number is <= AL.low_watermark). In the case of the latter
+                 * the OLD_ROUND contains the low watermark sequence number and last successful round. We therefore
+                 * need to propose at +1 on both sequence number and round if we are to stand a chance of succeeding.
                  */
                 case VoteOutcome.Reason.OTHER_LEADER : {
                     return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
