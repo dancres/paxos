@@ -76,8 +76,12 @@ public class LeaderFactory {
     private Leader newLeaderImpl() {
         if (_currentLeader == null)
             _currentLeader = new Leader(_common, this);
-        else
-            _currentLeader = _currentLeader.nextLeader();
+        else {
+            CompletionImpl<Leader> myResult = new CompletionImpl<Leader>();
+
+            _currentLeader.nextLeader(myResult);
+            _currentLeader = myResult.await();
+        }
 
         return _currentLeader;
     }

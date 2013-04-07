@@ -37,7 +37,8 @@ class Leader implements MembershipListener, Instance {
     private long _tries = 0;
 
     private Proposal _prop;
-    private Completion _submitter;
+    private Completion<VoteOutcome> _submitter;
+    private Completion<Leader> _leaderReceiver;
 
     /**
      * This alarm is used to limit the amount of time the leader will wait for responses from all apparently live
@@ -130,29 +131,26 @@ class Leader implements MembershipListener, Instance {
          * OTHER_VALUE whilst AL listeners will see DECISION containing the previously proposed value.
          */
         _submitter.complete(_outcomes.getFirst());
+        followUp();
     }
 
-    /**
-     * Get the next leader in the chain. Will block until the current leader has reached a stable outcome.
-     */
-    Leader nextLeader() {
-        synchronized(this) {
-            while (! isDone()) {
-                try {
-                    wait();
-                } catch (InterruptedException anIE) {                
-                }
-            }
+    private void followUp() {
+        if ((! isDone()) || (_leaderReceiver == null))
+            return;
+        else
+            _leaderReceiver.complete(constructFollowing());
+    }
 
-            switch(_outcomes.getLast().getResult()) {
+    private Leader constructFollowing() {
+        switch(_outcomes.getLast().getResult()) {
 
                 /*
                  * We can apply multi-paxos. Next sequence number and round number needn't change.
                  */
-                case VoteOutcome.Reason.DECISION : {
-                    return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
-                            _outcomes.getLast().getRndNumber(), State.BEGIN);
-                }
+            case VoteOutcome.Reason.DECISION : {
+                return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
+                        _outcomes.getLast().getRndNumber(), State.BEGIN);
+            }
 
                 /*
                  * Other leader, in which case we use the values returned from the objecting AL as the basis
@@ -161,23 +159,36 @@ class Leader implements MembershipListener, Instance {
                  * the OLD_ROUND contains the low watermark sequence number and last successful round. We therefore
                  * need to propose at +1 on both sequence number and round if we are to stand a chance of succeeding.
                  */
-                case VoteOutcome.Reason.OTHER_LEADER : {
-                    return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
-                            _outcomes.getLast().getRndNumber() + 1, State.BEGIN);
-                }
+            case VoteOutcome.Reason.OTHER_LEADER : {
+                return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
+                        _outcomes.getLast().getRndNumber() + 1, State.BEGIN);
+            }
 
                 /*
                  * Haven't made any progress, try the same sequence and round again.
                  */
-                case VoteOutcome.Reason.BAD_MEMBERSHIP :
-                case VoteOutcome.Reason.VOTE_TIMEOUT : {
-                    return new Leader(_common, _factory,
-                            _outcomes.getLast().getSeqNum(), _outcomes.getLast().getRndNumber(), State.COLLECT);
-                }
-
-                default :
-                    throw new IllegalStateException("Unrecognised outcome");
+            case VoteOutcome.Reason.BAD_MEMBERSHIP :
+            case VoteOutcome.Reason.VOTE_TIMEOUT : {
+                return new Leader(_common, _factory,
+                        _outcomes.getLast().getSeqNum(), _outcomes.getLast().getRndNumber(), State.COLLECT);
             }
+
+            default :
+                throw new IllegalStateException("Unrecognised outcome");
+        }
+    }
+
+    /**
+     * Get the next leader in the chain. Non-blocking, completion is called at the point a leader can be constructed
+     */
+    void nextLeader(Completion<Leader> aCompletion) {
+        synchronized(this) {
+            if (_leaderReceiver != null)
+                throw new IllegalStateException("Completion for leader already present");
+
+            _leaderReceiver = aCompletion;
+
+            followUp();
         }
     }
 
