@@ -34,29 +34,6 @@ public class Backend {
     
     private static final Logger _logger = LoggerFactory.getLogger(Backend.class);
 
-    private static class Result implements Completion<VoteOutcome> {
-        private VoteOutcome _outcome;
-    
-        public void complete(VoteOutcome anOutcome) {
-            synchronized (this) {
-                _outcome = anOutcome;
-                notify();
-            }
-        }
-        
-        VoteOutcome await() {
-            synchronized (this) {
-                while (_outcome == null) {
-                    try {
-                        wait();
-                    } catch (InterruptedException anIE) {}
-                }
-
-                return _outcome;
-            }
-        }
-    }
-    
     private Paxos _paxos;
     private HowlLogger _txnLogger;
     private CheckpointStorage _storage;
@@ -178,7 +155,7 @@ public class Backend {
                     return "";
                 }
                     
-                final Result myResult = new Result();
+                final CompletionImpl<VoteOutcome> myResult = new CompletionImpl<VoteOutcome>();
 
                 Proposal myProp = new Proposal();
                 myProp.put("KEY", request.params(":key").getBytes());
