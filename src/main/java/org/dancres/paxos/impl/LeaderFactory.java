@@ -90,8 +90,7 @@ public class LeaderFactory {
      */
     void dispose(Leader aLeader) {
         synchronized(this) {
-            switch (_currentLeader.getOutcome().getResult()) {
-                case VoteOutcome.Reason.OTHER_VALUE :
+            switch (_currentLeader.getOutcomes().getLast().getResult()) {
                 case VoteOutcome.Reason.DECISION : {
                     // Still leader so heartbeat
                     //

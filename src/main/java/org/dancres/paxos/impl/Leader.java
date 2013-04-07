@@ -8,9 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TimerTask;
+import java.util.*;
 
 /**
  * Implements the leader state machine for a specific instance of Paxos. Leader is fail fast in that the first time
@@ -57,7 +55,7 @@ class Leader implements MembershipListener, Instance {
     /**
      * In cases of ABORT, indicates the reason
      */
-    private VoteOutcome _outcome;
+    private final Deque<VoteOutcome> _outcome = new LinkedList<VoteOutcome>();
 
     private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
@@ -78,9 +76,9 @@ class Leader implements MembershipListener, Instance {
         _startState = aStartState;
     }
 
-    VoteOutcome getOutcome() {
+    Deque<VoteOutcome> getOutcomes() {
         synchronized(this) {
-            return _outcome;
+            return new LinkedList<VoteOutcome>(_outcome);
         }
     }
 
@@ -88,7 +86,7 @@ class Leader implements MembershipListener, Instance {
     	synchronized(this) {
             if ((! isDone()) && (_currentState != State.SHUTDOWN)) {
     		    _currentState = State.SHUTDOWN;
-                _outcome = null;
+                _outcome.clear();
                 process();
             }
     	}
@@ -146,23 +144,25 @@ class Leader implements MembershipListener, Instance {
             //
             State myState = State.COLLECT;
 
-            switch(_outcome.getResult()) {
-                case VoteOutcome.Reason.DECISION :
-                case VoteOutcome.Reason.OTHER_VALUE : {
+            switch(_outcome.getLast().getResult()) {
+                case VoteOutcome.Reason.DECISION : {
 
                     // Likely we can apply multi-paxos
                     //
                     myState = State.BEGIN;
-                    mySeqNum = _outcome.getSeqNum() + 1;
-                    myRndNum = _outcome.getRndNumber();
+                    mySeqNum = _outcome.getLast().getSeqNum() + 1;
+                    myRndNum = _outcome.getLast().getRndNumber();
                     break;
                 }
 
                 case VoteOutcome.Reason.OTHER_LEADER : {
-                    mySeqNum = _outcome.getSeqNum() + 1;
-                    myRndNum = _outcome.getRndNumber() + 1;
+                    mySeqNum = _outcome.getLast().getSeqNum() + 1;
+                    myRndNum = _outcome.getLast().getRndNumber() + 1;
                     break;
                 }
+
+                default :
+                    throw new IllegalStateException("Got an outcome I don't understand");
             }
 
             return new Leader(_common, _factory, mySeqNum, myRndNum, myState);
@@ -315,22 +315,22 @@ class Leader implements MembershipListener, Instance {
                 Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
         _currentState = State.ABORT;
-        _outcome = new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
-                myOldRound.getLastRound(), _prop, myCompetingNodeId);
+        _outcome.add(new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
+                myOldRound.getLastRound(), _prop, myCompetingNodeId));
 
         process();
 
-        _submitter.complete(_outcome);
+        _submitter.complete(_outcome.getLast());
     }
 
     private void successful(int aReason) {
         _currentState = State.EXIT;
-        _outcome = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
-                _common.getTransport().getLocalAddress());
+        _outcome.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
+                _common.getTransport().getLocalAddress()));
 
         process();
 
-        _submitter.complete(_outcome);
+        _submitter.complete(_outcome.getLast());
     }
 
     private void error(int aReason) {
@@ -339,13 +339,13 @@ class Leader implements MembershipListener, Instance {
     
     private void error(int aReason, InetSocketAddress aLeader) {
         _currentState = State.ABORT;
-        _outcome = new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader);
+        _outcome.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader));
         
         _logger.info(stateToString() + " : " + _outcome);
 
         process();
 
-        _submitter.complete(_outcome);
+        _submitter.complete(_outcome.getLast());
     }
 
     private void emit(PaxosMessage aMessage) {
