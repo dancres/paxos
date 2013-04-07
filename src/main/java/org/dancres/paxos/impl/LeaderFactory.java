@@ -54,18 +54,12 @@ public class LeaderFactory {
      * @return a leader for a new sequence
      */
     Leader newLeader() throws InactiveException {
-        synchronized (this) {
-            while (isActive()) {
-                try { 
-                    wait();
-                } catch (InterruptedException anIE) {}
-            }
+        if ((_common.testState(Constants.FSMStates.SHUTDOWN)) ||
+                (_common.testState(Constants.FSMStates.OUT_OF_DATE)))
+            throw new InactiveException();
 
+        synchronized(this) {
             killHeartbeats();
-
-            if ((_common.testState(Constants.FSMStates.SHUTDOWN)) ||
-                    (_common.testState(Constants.FSMStates.OUT_OF_DATE)))
-                throw new InactiveException();
 
             return newLeaderImpl();
         }
@@ -77,10 +71,6 @@ public class LeaderFactory {
             _heartbeatAlarm = null;
             _common.getWatchdog().purge();
         }
-    }
-
-    private boolean isActive() {
-        return ((_currentLeader != null) && (! _currentLeader.isDone()));
     }
 
     private Leader newLeaderImpl() {
@@ -99,9 +89,7 @@ public class LeaderFactory {
      * @param aLeader
      */
     void dispose(Leader aLeader) {
-        // If there are no leaders and the last one exited cleanly, do heartbeats
-        //
-        synchronized (this) {
+        synchronized(this) {
             switch (_currentLeader.getOutcome().getResult()) {
                 case VoteOutcome.Reason.OTHER_VALUE :
                 case VoteOutcome.Reason.DECISION : {
@@ -140,7 +128,7 @@ public class LeaderFactory {
     }
 
     public void shutdown() {
-        synchronized (this) {
+        synchronized(this) {
             killHeartbeats();
 
             if (_currentLeader != null)
