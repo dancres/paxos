@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * Implements the leader state machine for a specific instance of Paxos. Leader is fail fast in that the first time
@@ -55,7 +56,7 @@ class Leader implements MembershipListener, Instance {
     /**
      * In cases of ABORT, indicates the reason
      */
-    private final Deque<VoteOutcome> _outcome = new LinkedList<VoteOutcome>();
+    private final Deque<VoteOutcome> _outcome = new LinkedBlockingDeque<VoteOutcome>();
 
     private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
@@ -77,9 +78,7 @@ class Leader implements MembershipListener, Instance {
     }
 
     Deque<VoteOutcome> getOutcomes() {
-        synchronized(this) {
-            return new LinkedList<VoteOutcome>(_outcome);
-        }
+        return new LinkedList<VoteOutcome>(_outcome);
     }
 
     void shutdown() {
