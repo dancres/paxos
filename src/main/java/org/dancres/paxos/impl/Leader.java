@@ -144,37 +144,37 @@ class Leader implements MembershipListener, Instance {
                 }
             }
 
-            // If we have nothing else meaningful we start with what the AL knows so far...
-            //
-            long mySeqNum = _common.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1;
-            long myRndNum = _common.getLeaderRndNum() + 1;
-
-            // Default start state, only changes if we're applying multi-paxos
-            //
-            State myState = State.COLLECT;
-
             switch(_outcomes.getLast().getResult()) {
-                case VoteOutcome.Reason.DECISION : {
 
-                    // Likely we can apply multi-paxos
-                    //
-                    myState = State.BEGIN;
-                    mySeqNum = _outcomes.getLast().getSeqNum() + 1;
-                    myRndNum = _outcomes.getLast().getRndNumber();
-                    break;
+                /*
+                 * We can apply multi-paxos. Next sequence number and round number needn't change.
+                 */
+                case VoteOutcome.Reason.DECISION : {
+                    return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
+                            _outcomes.getLast().getRndNumber(), State.BEGIN);
                 }
 
+                /*
+                 * Other leader, in which case we use the values returned from the objecting AL as the basis
+                 * of our next try.
+                 */
                 case VoteOutcome.Reason.OTHER_LEADER : {
-                    mySeqNum = _outcomes.getLast().getSeqNum() + 1;
-                    myRndNum = _outcomes.getLast().getRndNumber() + 1;
-                    break;
+                    return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
+                            _outcomes.getLast().getRndNumber() + 1, State.BEGIN);
+                }
+
+                /*
+                 * Haven't made any progress, try the same sequence and round again.
+                 */
+                case VoteOutcome.Reason.BAD_MEMBERSHIP :
+                case VoteOutcome.Reason.VOTE_TIMEOUT : {
+                    return new Leader(_common, _factory,
+                            _outcomes.getLast().getSeqNum(), _outcomes.getLast().getRndNumber(), State.COLLECT);
                 }
 
                 default :
-                    throw new IllegalStateException("Got an outcome I don't understand");
+                    throw new IllegalStateException("Unrecognised outcome");
             }
-
-            return new Leader(_common, _factory, mySeqNum, myRndNum, myState);
         }
     }
 

@@ -5,10 +5,6 @@ import org.dancres.paxos.impl.LeaderSelection;
 
 import java.net.InetSocketAddress;
 
-/**
- * OldRound always indicates a leader is not in charge regardless of sequence number, thus it needn't be attached to a
- * specific sequence number and thus OldRound can contain most recent successful sequence number not the original
- */
 public class OldRound implements PaxosMessage, LeaderSelection {
     private final long _seqNum;
     private final long _lastRound;
@@ -27,7 +23,10 @@ public class OldRound implements PaxosMessage, LeaderSelection {
     public short getClassification() {
     	return ACCEPTOR_LEARNER;
     }
-    
+
+    /**
+     * Sequence number is always the last one completed (the AL low watermark).
+     */
     public long getSeqNum() {
         return _seqNum;
     }
@@ -40,6 +39,10 @@ public class OldRound implements PaxosMessage, LeaderSelection {
         return _lastRound;
     }
 
+    /**
+     * OldRound always indicates a leader is not in charge regardless of sequence number, thus it needn't be attached to a
+     * specific sequence number and thus OldRound can contain most recent successful sequence number not the original
+     */
     public boolean routeable(Instance anInstance) {
         return ((_lastRound >= anInstance.getRound()) &&
                 ((anInstance.getState().equals(Instance.State.BEGIN)) ||
