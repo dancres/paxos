@@ -428,9 +428,14 @@ class Leader implements MembershipListener, Instance {
     /**
      * Request a vote on a value.
      *
+     * Completion is for cleanup steps only. DO NOT ATTEMPT TO INITIATE FURTHER ROUNDS FROM WITHIN THIS CALLBACK AS
+     * THEY WILL LIKELY DEADLOCK
+     *
+     * @todo Remove the deadlocks (see method comment)
+     *
      * @param aValue is the value to attempt to agree upon
      */
-    public void submit(Proposal aValue, Completion aSubmitter) {
+    public void submit(Proposal aValue, Completion<VoteOutcome> aSubmitter) {
         synchronized (this) {
             if (_currentState != State.INITIAL)
                 throw new IllegalStateException("Submit already done, create another leader");

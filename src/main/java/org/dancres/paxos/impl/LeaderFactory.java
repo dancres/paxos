@@ -98,8 +98,7 @@ public class LeaderFactory {
                         public void run() {
                             _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
 
-                            newLeaderImpl().submit(HEARTBEAT, new Completion() {
-                                @Override
+                            newLeaderImpl().submit(HEARTBEAT, new Completion<VoteOutcome>() {
                                 public void complete(VoteOutcome anOutcome) {
                                     // Do nothing
                                 }

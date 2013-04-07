@@ -1,13 +1,8 @@
 package org.dancres.paxos;
 
-public interface Completion {
+public interface Completion<T> {
     /**
-     * FOR COMPLETION STEPS ONLY, DO NOT ATTEMPT TO INITIATE FURTHER ROUNDS FROM WITHIN THIS CALL AS THEY WILL
-     * LIKELY DEADLOCK
-     *
-     * @todo Remove the deadlocks (see method comment)
-     *
-     * @param anOutcome
+     * @param aValue for the completion
      */
-    public void complete(VoteOutcome anOutcome);
+    public void complete(T aValue);
 }

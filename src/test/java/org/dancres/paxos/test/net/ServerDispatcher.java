@@ -58,7 +58,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
                     Envelope myEnvelope = (Envelope) myMessage;
                     Proposal myProposal = myEnvelope.getValue();
 
-                    _core.submit(myProposal, new Completion() {
+                    _core.submit(myProposal, new Completion<VoteOutcome>() {
                         public void complete(VoteOutcome anOutcome) {
                             _tp.send(new Event(anOutcome), mySource);
                         }

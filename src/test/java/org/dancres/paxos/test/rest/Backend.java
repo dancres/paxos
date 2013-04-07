@@ -34,10 +34,10 @@ public class Backend {
     
     private static final Logger _logger = LoggerFactory.getLogger(Backend.class);
 
-    private static class Result {
+    private static class Result implements Completion<VoteOutcome> {
         private VoteOutcome _outcome;
     
-        void deliver(VoteOutcome anOutcome) {
+        public void complete(VoteOutcome anOutcome) {
             synchronized (this) {
                 _outcome = anOutcome;
                 notify();
@@ -185,11 +185,7 @@ public class Backend {
                 myProp.put("VALUE", request.body().getBytes());
 
                 try {
-                    _paxos.submit(myProp, new Completion() {
-                        public void complete(VoteOutcome anOutcome) {
-                            myResult.deliver(anOutcome);
-                        }
-                    });
+                    _paxos.submit(myProp, myResult);
 
                     VoteOutcome myOutcome = myResult.await();
 
