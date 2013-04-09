@@ -5,6 +5,14 @@ import org.dancres.paxos.impl.LeaderSelection;
 
 import java.net.InetSocketAddress;
 
+/**
+ * Used to report that a leader is out of date as compared to the rest of the cluster. This happens when another
+ * leader has been active, whether or not it managed to complete an instance. It can also happen when an AL identifies
+ * that the Leader is attempting to drive an outcome for a sequence number prior to the most recent checkpoint.
+ *
+ * In either case, the leader is expected to base it's next attempt to drive the cluster on the returned information
+ * (sequence and round numbers).
+ */
 public class OldRound implements PaxosMessage, LeaderSelection {
     private final long _seqNum;
     private final long _lastRound;

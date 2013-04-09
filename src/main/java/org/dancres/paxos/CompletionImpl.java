@@ -1,5 +1,10 @@
 package org.dancres.paxos;
 
+/**
+ * Concrete generic implementation of a completion that allows a caller to block pending the callback.
+ *
+ * @param <T>
+ */
 public class CompletionImpl<T> implements Completion<T> {
     private T _result;
 

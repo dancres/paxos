@@ -2,20 +2,25 @@ package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
 
+/**
+ * State updates for the persistent log.
+ */
 public class StateEvent {
     public enum Reason {
         /**
-         * Paxos has agreed a value for the specified instance
+         * Paxos has agreed a value for the specified instance. The reported value should be applied to the
+         * system state (after which an optional checkpoint could be requested).
          */
         DECISION,
 
         /**
-         * The AcceptorLearner in this process has become too out of date for recovery.
+         * This process is now lagging too far behind the others in the paxos cluster and must be brought back into
+         * alignment via a suitable checkpoint.
          */
         OUT_OF_DATE,
 
         /**
-         * The AcceptorLearner in this process has been updated and is now recovered.
+         * This process is no longer lagging behind the paxos cluster and will report decisions accordingly.
          */
         UP_TO_DATE
     };
