@@ -55,7 +55,7 @@ public class ClientDispatcher implements Transport.Dispatcher {
 		}
 	}
 	
-	public void setTransport(Transport aTransport) {
+	public void init(Transport aTransport) {
 		_transport = aTransport;
 	}
 	

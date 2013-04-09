@@ -9,6 +9,7 @@ import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.storage.MemoryLogStorage;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -23,7 +24,7 @@ import org.junit.Test;
 
 public class LastHandlingTest {
     private ServerDispatcher _node1;
-    private LastDispatcher _node2;
+    private ServerDispatcher _node2;
 
     private TransportImpl _tport1;
     private TransportImpl _tport2;
@@ -37,12 +38,24 @@ public class LastHandlingTest {
     
     @Before public void init() throws Exception {
         _node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
-        _node2 = new LastDispatcher(5000);
+
+        Core myCore = new Core(new FailureDetectorImpl(5000), new MemoryLogStorage(), null,
+                CheckpointHandle.NO_CHECKPOINT, new Listener() {
+            public void transition(StateEvent anEvent) {
+            }
+        });
+
+        LastListenerImpl myListener = new LastListenerImpl(myCore);
+
+        _node2 = new ServerDispatcher(myCore, myListener);
 
         _tport1 = new TransportImpl();
-        _tport1.add(_node1);
+        _tport1.routeTo(_node1);
+        _node1.init(_tport1);
+
         _tport2 = new TransportImpl();
-        _tport2.add(_node2);
+        _tport2.routeTo(_node2);
+        _node2.init(_tport2);
     }
 
     @After public void stop() throws Exception {
@@ -79,7 +92,8 @@ public class LastHandlingTest {
 
         ClientDispatcher myClient = new ClientDispatcher();
     	TransportImpl myTransport = new TransportImpl();
-        myTransport.add(myClient);
+        myTransport.routeTo(myClient);
+        myClient.init(myTransport);
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
@@ -115,94 +129,80 @@ public class LastHandlingTest {
         Assert.assertTrue("Listener count should be 1 but is: " + myListener.getCount(), myListener.testCount(1));
     }
 
-    private static class LastDispatcher extends ServerDispatcher {
-        public LastDispatcher(long anUnresponsivenessThreshold) {
-            super(new FailureDetectorImpl(anUnresponsivenessThreshold));
+    class LastListenerImpl implements Transport.Dispatcher {
+        private Core _core;
+
+        LastListenerImpl(Core aCore) {
+            _core = aCore;
         }
 
-        /*
-         * Override original setTransport which sets Core as a direct listener
-         */
-        public void setTransport(Transport aTransport) throws Exception {
-            _tp = aTransport;
-            _tp.add(new LastListenerImpl(_core));
+        public void init(Transport aTransport) throws Exception {
+            _core.init(new LastTrapper(aTransport));
         }
 
-        class LastListenerImpl implements Transport.Dispatcher {
-            private Core _core;
+        public boolean messageReceived(Packet aPacket) {
+            return _core.messageReceived(aPacket);
+        }
 
-            LastListenerImpl(Core aCore) {
-                _core = aCore;
+        public void terminate() {
+        }
+
+        class LastTrapper implements Transport {
+            private boolean _seenLast = false;
+
+            private Transport _tp;
+
+            LastTrapper(Transport aTransport) {
+                _tp = aTransport;
             }
 
-            public void setTransport(Transport aTransport) throws Exception {
-                _core.setTransport(new LastTrapper(aTransport));
+            public Transport.PacketPickler getPickler() {
+                return _tp.getPickler();
             }
 
-            public boolean messageReceived(Packet aPacket) {
-                return _core.messageReceived(aPacket);
+            public void routeTo(Dispatcher aDispatcher) throws Exception {
+                _tp.routeTo(aDispatcher);
+            }
+
+            public InetSocketAddress getLocalAddress() {
+                return _tp.getLocalAddress();
+            }
+
+            public InetSocketAddress getBroadcastAddress() {
+                return _tp.getBroadcastAddress();
+            }
+
+            /*
+             * The repsonding AL will be starting from zero state and thus would normally generate a
+             * "permissive" LAST that permits the leader (also at zero state) to make a new proposal
+             * immediately. We want the leader to have to clear out a previous proposal prior to that. So
+             * we replace the "permissive" last, introducing a valid LAST that should cause the leader to
+             * deliver up the included value and then re-propose(non-Javadoc) the original value above.
+             */
+            public void send(PaxosMessage aMessage, InetSocketAddress anAddr) {
+                if (_seenLast)
+                    _tp.send(aMessage, anAddr);
+                else {
+                    if (aMessage.getType() == Operations.LAST) {
+                        ByteBuffer myBuffer = ByteBuffer.allocate(4);
+                        myBuffer.putInt(66);
+
+                        Last myOrig = (Last) aMessage;
+
+                        _seenLast = true;
+                        _tp.send(new Last(myOrig.getSeqNum(), myOrig.getLowWatermark(), myOrig.getRndNumber() + 1,
+                                new Proposal("data", myBuffer.array())), anAddr);
+                    } else {
+                        _tp.send(aMessage, anAddr);
+                    }
+                }
+            }
+
+            public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler) {
+                _tp.connectTo(anAddr, aHandler);
             }
 
             public void terminate() {
-            }
-            
-            class LastTrapper implements Transport {
-            	private boolean _seenLast = false;
-            	
-            	private Transport _tp;
-            	
-            	LastTrapper(Transport aTransport) {
-            		_tp = aTransport;
-            	}
-            	
-                public Transport.PacketPickler getPickler() {
-                    return _tp.getPickler();
-                }
-
-                public void add(Dispatcher aDispatcher) throws Exception {
-                	_tp.add(aDispatcher);
-                }
-
-            	public InetSocketAddress getLocalAddress() {
-            		return _tp.getLocalAddress();
-            	}
-
-                public InetSocketAddress getBroadcastAddress() {
-                	return _tp.getBroadcastAddress();
-                }
-
-                /*
-                 * The repsonding AL will be starting from zero state and thus would normally generate a
-                 * "permissive" LAST that permits the leader (also at zero state) to make a new proposal 
-                 * immediately. We want the leader to have to clear out a previous proposal prior to that. So
-                 * we replace the "permissive" last, introducing a valid LAST that should cause the leader to
-                 * deliver up the included value and then re-propose(non-Javadoc) the original value above.
-                 */                
-                public void send(PaxosMessage aMessage, InetSocketAddress anAddr) {
-                	if (_seenLast)
-                		_tp.send(aMessage, anAddr);
-                	else {
-                		if (aMessage.getType() == Operations.LAST) {
-                	        ByteBuffer myBuffer = ByteBuffer.allocate(4);
-                	        myBuffer.putInt(66);
-                			
-                			Last myOrig = (Last) aMessage;
-                			
-                			_seenLast = true;
-                			_tp.send(new Last(myOrig.getSeqNum(), myOrig.getLowWatermark(), myOrig.getRndNumber() + 1,
-                					new Proposal("data", myBuffer.array())), anAddr);
-                		} else {
-                    		_tp.send(aMessage, anAddr);                			
-                		}
-                	}
-                }
-
-                public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler) {
-                	_tp.connectTo(anAddr, aHandler);
-                }
-                
-                public void terminate() {
-                }
             }
         }
     }

@@ -27,7 +27,7 @@ public class ALCheckpointTest {
     private class TransportImpl implements Transport {
         private Transport.PacketPickler _pickler = new StandalonePickler();
 
-        public void add(Dispatcher aDispatcher) {
+        public void routeTo(Dispatcher aDispatcher) {
         }
 
         public Transport.PacketPickler getPickler() {

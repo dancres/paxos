@@ -31,9 +31,6 @@ public class ALStartupTest {
 
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
-        public void add(Dispatcher aDispatcher) {
-        }
-
 		public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
 			synchronized(_messages) {
 				_messages.add(aMessage);
@@ -43,8 +40,11 @@ public class ALStartupTest {
         public Transport.PacketPickler getPickler() {
             return _pickler;
         }
-		
-		PaxosMessage getNextMsg() {
+
+        public void routeTo(Dispatcher aDispatcher) throws Exception {
+        }
+
+        PaxosMessage getNextMsg() {
 			synchronized(_messages) {
 				return _messages.remove(0);
 			}

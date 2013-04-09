@@ -48,7 +48,7 @@ public class ALRecoveryTransitionTest {
             _broadcastId = aBroadcastId;
 		}
 
-        public void add(Dispatcher aDispatcher) {
+        public void routeTo(Dispatcher aDispatcher) {
         }
 
 		public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {

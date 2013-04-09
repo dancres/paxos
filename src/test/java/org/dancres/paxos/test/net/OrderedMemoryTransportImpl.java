@@ -38,12 +38,11 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 			throw new IllegalStateException("Transport is stopped");
 	}
 	
-    public void add(Dispatcher aDispatcher) throws Exception {
+    public void routeTo(Dispatcher aDispatcher) throws Exception {
     	guard();
     	
         synchronized(this) {
             _dispatcher.add(aDispatcher);
-            aDispatcher.setTransport(this);
         }
     }
 

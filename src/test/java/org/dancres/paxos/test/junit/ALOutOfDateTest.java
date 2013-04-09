@@ -43,9 +43,12 @@ public class ALOutOfDateTest {
         _node1 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node1Log));
         _node2 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node2Log));
         _tport1 = new OODTransportImpl();
-        _tport1.add(_node1);
+        _tport1.routeTo(_node1);
+        _node1.init(_tport1);
+
         _tport2 = new OODTransportImpl();
-        _tport2.add(_node2);
+        _tport2.routeTo(_node2);
+        _node2.init(_tport2);
     }
 
     @After
@@ -73,7 +76,8 @@ public class ALOutOfDateTest {
     public void post() throws Exception {
         ClientDispatcher myClient = new ClientDispatcher();
         TransportImpl myTransport = new TransportImpl();
-        myTransport.add(myClient);
+        myTransport.routeTo(myClient);
+        myClient.init(myTransport);
 
         ensureFD(_node1.getCommon().getPrivateFD());
         ensureFD(_node2.getCommon().getPrivateFD());
@@ -108,7 +112,8 @@ public class ALOutOfDateTest {
 
         _node3 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node3Log));
         _tport3 = new TransportImpl();
-        _tport3.add(_node3);
+        _tport3.routeTo(_node3);
+        _node3.init(_tport3);
         _node3.add(myListener);
 
         ensureFD(_node3.getCommon().getPrivateFD());

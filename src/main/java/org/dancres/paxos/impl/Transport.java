@@ -22,7 +22,7 @@ public interface Transport {
 
     public PacketPickler getPickler();
 
-    public void add(Dispatcher aDispatcher) throws Exception;
+    public void routeTo(Dispatcher aDispatcher) throws Exception;
 
 	public InetSocketAddress getLocalAddress();
 
@@ -48,15 +48,20 @@ public interface Transport {
 
     public void terminate();
 
-    public interface Dispatcher {
-        public void setTransport(Transport aTransport) throws Exception;
+    public interface Lifecycle {
+        /**
+         * @param aTransport
+         * @throws Exception
+         */
+        public void init(Transport aTransport) throws Exception;
+        public void terminate() throws Exception;
+    }
 
+    public interface Dispatcher extends Lifecycle {
         /**
          * @return <code>true</code> to indicate that this packet has been processed and should not be given to
          * other handlers.
          */
         public boolean messageReceived(Packet aPacket);
-
-        public void terminate() throws Exception;
     }
 }

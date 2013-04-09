@@ -26,6 +26,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
     protected Core _core;
     protected Transport _tp;
+    protected Transport.Dispatcher _dispatcher;
 
     public ServerDispatcher(MessageBasedFailureDetector anFD, byte[] aMeta) {
         this(anFD, new MemoryLogStorage(), aMeta);
@@ -37,6 +38,11 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
     public ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger) {
         this(anFD, aLogger, null);
+    }
+
+    public ServerDispatcher(Core aCore, Transport.Dispatcher aDispatcher) {
+        _core = aCore;
+        _dispatcher = aDispatcher;
     }
 
     private ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta) {
@@ -79,9 +85,16 @@ public class ServerDispatcher implements Transport.Dispatcher {
     }
 
 
-	public void setTransport(Transport aTransport) throws Exception {
+	public void init(Transport aTransport) throws Exception {
 		_tp = aTransport;
-        _tp.add(_core);
+
+        if (_dispatcher == null) {
+            _tp.routeTo(_core);
+            _core.init(_tp);
+        } else {
+            _tp.routeTo(_dispatcher);
+            _dispatcher.init(_tp);
+        }
 	}
 	
 	public Transport getTransport() {

@@ -19,7 +19,8 @@ public class NoMajorityTest {
     @Before public void init() throws Exception {
         _node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
         _tport1 = new TransportImpl();
-        _tport1.add(_node1);
+        _tport1.routeTo(_node1);
+        _node1.init(_tport1);
     }
 
     @After public void stop() throws Exception {
@@ -29,7 +30,8 @@ public class NoMajorityTest {
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
     	TransportImpl myTransport = new TransportImpl();
-        myTransport.add(myClient);
+        myTransport.routeTo(myClient);
+        myClient.init(myTransport);
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);

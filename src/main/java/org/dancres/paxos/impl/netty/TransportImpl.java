@@ -184,12 +184,11 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 			throw new IllegalStateException("Transport is stopped");
 	}
 	
-    public void add(Dispatcher aDispatcher) throws Exception {
+    public void routeTo(Dispatcher aDispatcher) throws Exception {
     	guard();
     	
         synchronized(this) {
             _dispatcher.add(aDispatcher);
-            aDispatcher.setTransport(this);
         }
     }
 
@@ -414,10 +413,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	
 	public static void main(String[] anArgs) throws Exception {
 		Transport _tport1 = new TransportImpl();
-        _tport1.add(new DispatcherImpl());
+        _tport1.routeTo(new DispatcherImpl());
 
 		Transport _tport2 = new TransportImpl();
-        _tport2.add(new DispatcherImpl());
+        _tport2.routeTo(new DispatcherImpl());
 		
 		_tport1.send(new Accept(1, 2), _tport1.getBroadcastAddress());
 		_tport1.send(new Accept(2, 3), _tport2.getLocalAddress());
@@ -434,7 +433,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
             return true;
 		}
 
-		public void setTransport(Transport aTransport) {
+		public void init(Transport aTransport) {
 			System.err.println("Dispatcher " + this + " got transport: " + aTransport);
 		}
 

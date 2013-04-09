@@ -43,6 +43,8 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public void terminate() {
+        _logger.info("Core terminating");
+
         _hb.halt();
 
         try {
@@ -57,7 +59,9 @@ public class Core implements Transport.Dispatcher, Paxos {
         _al.close();
     }
 
-    public void setTransport(Transport aTransport) throws Exception {
+    public void init(Transport aTransport) throws Exception {
+        _logger.info("Core initialised");
+
         _common.setTransport(aTransport);
 
         if (_meta == null)

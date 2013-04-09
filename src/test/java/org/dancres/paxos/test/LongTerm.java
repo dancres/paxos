@@ -213,7 +213,8 @@ public class LongTerm {
                 _dispatcher.add(this);
 
                 try {
-                    _transport.add(_dispatcher);
+                    _transport.routeTo(_dispatcher);
+                    _dispatcher.init(_transport);
                 } catch (Exception anE) {
                     throw new RuntimeException("Failed to add a dispatcher", anE);
                 }
@@ -238,8 +239,8 @@ public class LongTerm {
              * to allow appropriate implementation of restore
              *
              */
-            public void add(Dispatcher aDispatcher) throws Exception {
-                _transport.add(aDispatcher);
+            public void routeTo(Dispatcher aDispatcher) throws Exception {
+                _transport.routeTo(aDispatcher);
             }
 
             public InetSocketAddress getLocalAddress() {
@@ -364,7 +365,8 @@ public class LongTerm {
     private void run() throws Exception {
         ClientDispatcher myClient = new ClientDispatcher();
         Transport myTransport = _env._factory.newTransport(null);
-        myTransport.add(myClient);
+        myTransport.routeTo(myClient);
+        myClient.init(myTransport);
 
         long opsSinceCkpt = 0;
 
