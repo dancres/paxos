@@ -20,8 +20,6 @@ import java.net.InetSocketAddress;
  * <p>Metadata passed to the <code>ServerDispatcher</code> constructors will be advertised via Heartbeats.</p>
  */
 public class ServerDispatcher implements Transport.Dispatcher {
-	private static final String HANDBACK_KEY = "org.dancres.paxos.handback";
-	
     private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     protected Core _core;
