@@ -22,6 +22,12 @@ public interface Transport {
 
     public PacketPickler getPickler();
 
+    /**
+     * Requests the transport route packets to a dispatcher.
+     *
+     * @param aDispatcher
+     * @throws Exception
+     */
     public void routeTo(Dispatcher aDispatcher) throws Exception;
 
 	public InetSocketAddress getLocalAddress();
@@ -29,11 +35,19 @@ public interface Transport {
     public InetSocketAddress getBroadcastAddress();
 	
     /**
+     * One shot, unreliable send
+     *
      * @param aMessage is the message to send
      * @param anAddr is the address of the target for the message which might be <code>Address.BROADCAST</code>.
      */
     public void send(PaxosMessage aMessage, InetSocketAddress anAddr);
 
+    /**
+     * Create a streaming connection to a target address
+     *
+     * @param anAddr
+     * @param aHandler
+     */
     public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler);
 
     public interface Stream {
@@ -60,7 +74,7 @@ public interface Transport {
     public interface Dispatcher extends Lifecycle {
         /**
          * @return <code>true</code> to indicate that this packet has been processed and should not be given to
-         * other handlers.
+         * other Dispatchers.
          */
         public boolean messageReceived(Packet aPacket);
     }
