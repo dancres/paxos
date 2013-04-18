@@ -149,15 +149,13 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		_mcastFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
 
 		_mcast = _mcastFactory.newChannel(newPipeline());
-		ChannelFuture myFuture = _mcast.bind(myMcastTarget);
-		myFuture.await();
-		_mcast.joinGroup(_mcastAddr.getAddress());
+		_mcast.bind(myMcastTarget).await();
+		_mcast.joinGroup(_mcastAddr.getAddress()).await();
 		_channels.add(_mcast);
 		
 		_unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));		
 		_unicast = _unicastFactory.newChannel(newPipeline());
-		myFuture = _unicast.bind(new InetSocketAddress(Utils.getWorkableInterface(), 0));
-		myFuture.await();
+		_unicast.bind(new InetSocketAddress(Utils.getWorkableInterface(), 0)).await();
 		_channels.add(_unicast);
 		
 		_unicastAddr = _unicast.getLocalAddress();
@@ -167,7 +165,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		_serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(new Factory()), 
 				Executors.newCachedThreadPool());
         ServerSocketChannel myStreamChannel = _serverStreamFactory.newChannel(newPipeline());
-		myStreamChannel.bind(_unicast.getLocalAddress());
+		myStreamChannel.bind(_unicast.getLocalAddress()).await();
 		myStreamChannel.getConfig().setPipelineFactory(Channels.pipelineFactory(newPipeline()));
 		_channels.add(myStreamChannel);
 		
