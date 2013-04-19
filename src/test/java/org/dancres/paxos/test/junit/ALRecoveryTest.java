@@ -143,8 +143,8 @@ public class ALRecoveryTest {
         
         // _node3 should now have same low watermark as the other nodes
         //
-        Assert.assertTrue(_node2.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum() ==
-        	_node3.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_node2.getCommon().getLowWatermark().getSeqNum() ==
+        	_node3.getCommon().getLowWatermark().getSeqNum());
         
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is

@@ -139,8 +139,8 @@ public class ALNonRecoveryTest {
 
         // As recovery won't have been done the low watermarks should be different
         //
-        Assert.assertTrue(_node2.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum() !=
-        	_node3.getCommon().getRecoveryTrigger().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_node2.getCommon().getLowWatermark().getSeqNum() !=
+        	_node3.getCommon().getLowWatermark().getSeqNum());
 
         Assert.assertFalse(_node3.getCommon().testState(Constants.FSMStates.RECOVERING));
 

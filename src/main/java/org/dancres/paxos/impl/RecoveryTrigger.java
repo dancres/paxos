@@ -16,7 +16,7 @@ import java.util.TreeSet;
  *
  * Gap is measured between low watermark and the lowest above that mark completed recently.
  */
-public class RecoveryTrigger {
+class RecoveryTrigger {
     private static final long MAX_INFLIGHT = 1;
 
     /**
@@ -29,7 +29,7 @@ public class RecoveryTrigger {
 
     private final SortedSet<AcceptorLearner.Watermark> _completed = new TreeSet<AcceptorLearner.Watermark>();
 
-    public AcceptorLearner.Watermark getLowWatermark() {
+    AcceptorLearner.Watermark getLowWatermark() {
         synchronized(this) {
             return _lowSeqNumWatermark;
         }

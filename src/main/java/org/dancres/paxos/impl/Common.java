@@ -70,8 +70,12 @@ public class Common {
         return _transport;
     }
 
-    public RecoveryTrigger getRecoveryTrigger() {
+    RecoveryTrigger getRecoveryTrigger() {
         return _trigger;
+    }
+
+    public AcceptorLearner.Watermark getLowWatermark() {
+        return _trigger.getLowWatermark();
     }
 
     public FailureDetector getFD() {

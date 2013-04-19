@@ -75,7 +75,7 @@ public class IgnoreCollectsTest {
         AcceptorLearner myAl = _node2.getAcceptorLearner();
         Common myCommon = _node2.getCommon();
 
-        Collect myCollect = new Collect(myCommon.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1,
+        Collect myCollect = new Collect(myCommon.getLowWatermark().getSeqNum() + 1,
         		myCommon.getLeaderRndNum());
 
         myClient.send(myCollect, _tport2.getLocalAddress());
