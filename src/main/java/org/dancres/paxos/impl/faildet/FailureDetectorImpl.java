@@ -33,14 +33,14 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
     private final Map<InetSocketAddress, MetaDataImpl> _lastHeartbeats = new HashMap<InetSocketAddress, MetaDataImpl>();
     private final ExecutorService _executor = Executors.newFixedThreadPool(1);
     private final Thread _scanner;
-    private final CopyOnWriteArraySet<MembershipImpl> _listeners;
+    private final CopyOnWriteArraySet<MembershipImpl> _activeMemberships;
     private final long _maximumPeriodOfUnresponsiveness;
     private final AtomicBoolean _stopping = new AtomicBoolean(false);
     private final int _majority;
 
-    class MetaDataImpl implements FailureDetector.MetaData {
-        public long _timestamp;
-        public final byte[] _metaData;
+    private class MetaDataImpl implements FailureDetector.MetaData {
+        long _timestamp;
+        final byte[] _metaData;
 
         MetaDataImpl(long aTimestamp, byte[] aMeta) {
             _timestamp = aTimestamp;
@@ -56,7 +56,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
         }
     }
 
-    private final Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
+    private static final Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
 
     /**
      * @param aMajority is the number of members in the cluster that must provide confirmation for an instance to
@@ -68,7 +68,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
         _scanner = new Thread(this);
         _scanner.setDaemon(true);
         _scanner.start();
-        _listeners = new CopyOnWriteArraySet<MembershipImpl>();
+        _activeMemberships = new CopyOnWriteArraySet<MembershipImpl>();
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
     }
 
@@ -98,16 +98,12 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
         return new HeartbeaterImpl(aTransport, aMetaData, (_maximumPeriodOfUnresponsiveness / 3) - 100);
     }   
      
-    private boolean isStopping() {
-        return _stopping.get();
-    }
-    
     public void run() {
         // We want to review at a frequency of 1/5th of the responsiveness cycle
         //
         long mySleepCycle = _maximumPeriodOfUnresponsiveness / 5;
 
-        while(! isStopping()) {
+        while(! _stopping.get()) {
             try {
                 Thread.sleep(mySleepCycle);
             } catch (InterruptedException e) {
@@ -155,11 +151,11 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
                     myLast._timestamp = System.currentTimeMillis();
             }
 
-            if ((myLast == null) && (! isStopping()))
+            if ((myLast == null) && (! _stopping.get()))
                 _executor.submit(
                         new Runnable() {
                             public void run() {
-                                for (MembershipImpl myListener : _listeners)
+                                for (MembershipImpl myListener : _activeMemberships)
                                     myListener.alive(myNodeId);
                             }
                         });
@@ -198,7 +194,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
 
     public Membership getMembers(MembershipListener aListener) {
         MembershipImpl myMembership = new MembershipImpl(aListener);
-        _listeners.add(myMembership);
+        _activeMemberships.add(myMembership);
 
         Set myActives = new HashSet();
 
@@ -226,7 +222,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
     }
 
     private void sendDead(InetSocketAddress aProcess) {
-        for (MembershipImpl myListener : _listeners)
+        for (MembershipImpl myListener : _activeMemberships)
             myListener.dead(aProcess);
     }
 
@@ -341,7 +337,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
         public void dispose() {
             _logger.debug("Membership disposed");
 
-            _listeners.remove(this);
+            _activeMemberships.remove(this);
 
             synchronized(this) {
                 _disposed = true;
