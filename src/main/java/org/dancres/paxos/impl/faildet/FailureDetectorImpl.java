@@ -212,7 +212,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
         private int _expectedResponses;
         private int _receivedResponses;
 
-        private boolean _disposed = false;
+        private final AtomicBoolean _disposed = new AtomicBoolean(false);
 
         MembershipImpl(MembershipListener aListener) {
             _listener = aListener;
@@ -292,19 +292,14 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
         }
 
         public int getSize() {
-            synchronized(this) {
-                return _initialMemberAddresses.size();
-            }
+            return _initialMemberAddresses.size();
         }
 
         public void dispose() {
             _logger.debug("Membership disposed");
 
             _activeMemberships.remove(this);
-
-            synchronized(this) {
-                _disposed = true;
-            }
+            _disposed.set(true);
         }
 
         private boolean interactionComplete() {
@@ -326,10 +321,8 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
         }
 
         protected void finalize() throws Throwable {
-            synchronized(this) {
-                if (_disposed)
-                    return;
-            }
+            if (_disposed.get())
+                return;
 
             System.err.println("Membership was not disposed");
             System.err.flush();
