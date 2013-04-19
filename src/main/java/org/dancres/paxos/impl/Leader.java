@@ -92,10 +92,6 @@ class Leader implements MembershipListener, Instance {
     	}
     }
 
-    private long calculateInteractionTimeout() {
-        return GRACE_PERIOD;
-    }
-
     public long getRound() {
         return _rndNumber;
     }
@@ -110,7 +106,7 @@ class Leader implements MembershipListener, Instance {
         }
     }
 
-    boolean isDone() {
+    private boolean isDone() {
         synchronized(this) {
             return ((_currentState.equals(State.EXIT)) || (_currentState.equals(State.ABORT)));
         }
@@ -218,9 +214,9 @@ class Leader implements MembershipListener, Instance {
             case ABORT : {
                 _logger.info(stateToString() + " : " + _outcomes);
 
-                cleanUp();
-
                 cancelInteraction();
+
+                cleanUp();
 
                 _factory.dispose(this);
 
@@ -326,10 +322,6 @@ class Leader implements MembershipListener, Instance {
         }
     }
 
-    private boolean canRetry() {
-        return _currentState.equals(State.SUCCESS);
-    }
-
     /**
      * @param aMessage is an OldRound message received from some other node
      */
@@ -388,7 +380,7 @@ class Leader implements MembershipListener, Instance {
             }
         };
 
-        _common.getWatchdog().schedule(_interactionAlarm, calculateInteractionTimeout());
+        _common.getWatchdog().schedule(_interactionAlarm, GRACE_PERIOD);
 
         return _membership.startInteraction();
     }
@@ -422,7 +414,7 @@ class Leader implements MembershipListener, Instance {
         _logger.info(stateToString() + " : Watchdog requested abort: ");
 
         synchronized(this) {
-            if (canRetry()) {
+            if (_currentState.equals(State.SUCCESS)) {
                 ++_tries;
 
                 if (_tries < MAX_TRIES) {
@@ -465,10 +457,6 @@ class Leader implements MembershipListener, Instance {
         }
     }
 
-    private boolean isFail(PaxosMessage aMessage) {
-        return (aMessage instanceof OldRound);
-    }
-    
     /**
      * Used to process all core paxos protocol messages.
      *
@@ -497,10 +485,7 @@ class Leader implements MembershipListener, Instance {
 
             if (myMessage instanceof LeaderSelection) {
                 if (((LeaderSelection) myMessage).routeable(this)) {
-                    if (isFail(myMessage)) {
-
-                        // Can only be an oldRound right now...
-                        //
+                    if (myMessage instanceof OldRound) {
                         oldRound(myMessage);
                     } else {
                         _messages.add(aPacket);
@@ -515,11 +500,7 @@ class Leader implements MembershipListener, Instance {
     }
 
     String stateToString() {
-        State myState;
-
-        synchronized(this) {
-            myState = _currentState;
-        }
+        State myState = getState();
 
         return _common.getTransport().getLocalAddress() +
                 ": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " : " + myState +
@@ -527,14 +508,6 @@ class Leader implements MembershipListener, Instance {
     }
 
     public String toString() {
-        State myState;
-
-        synchronized(this) {
-            myState = _currentState;
-        }
-
-    	return "Leader: " + _common.getTransport().getLocalAddress() +
-    		": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " in state: " + myState +
-                " tries: " + _tries + "/" + MAX_TRIES;
+    	return "Leader: " + stateToString();
     }
 }
