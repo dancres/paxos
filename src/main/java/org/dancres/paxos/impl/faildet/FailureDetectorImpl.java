@@ -10,9 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -30,7 +28,8 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
     private static final int DEFAULT_MAJORITY = 2;
 
     private final Random _random = new Random();
-    private final Map<InetSocketAddress, MetaDataImpl> _lastHeartbeats = new HashMap<InetSocketAddress, MetaDataImpl>();
+    private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats =
+            new ConcurrentHashMap<InetSocketAddress, MetaDataImpl>();
     private final ExecutorService _executor = Executors.newFixedThreadPool(1);
     private final Timer _tasks = new Timer();
     private final CopyOnWriteArraySet<MembershipImpl> _activeMemberships;
@@ -39,7 +38,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
     private final int _majority;
 
     private class MetaDataImpl implements FailureDetector.MetaData {
-        long _timestamp;
+        final long _timestamp;
         final byte[] _metaData;
 
         MetaDataImpl(long aTimestamp, byte[] aMeta) {
@@ -93,20 +92,18 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
 
     private class ScanImpl extends TimerTask {
         public void run() {
-            synchronized(this) {
-                Iterator<InetSocketAddress> myProcesses = _lastHeartbeats.keySet().iterator();
-                long myMinTime = System.currentTimeMillis() - _maximumPeriodOfUnresponsiveness;
+            Iterator<InetSocketAddress> myProcesses = _lastHeartbeats.keySet().iterator();
+            long myMinTime = System.currentTimeMillis() - _maximumPeriodOfUnresponsiveness;
 
-                while (myProcesses.hasNext()) {
-                    InetSocketAddress myAddress = myProcesses.next();
-                    long myTimeout = _lastHeartbeats.get(myAddress)._timestamp;
+            while (myProcesses.hasNext()) {
+                InetSocketAddress myAddress = myProcesses.next();
+                long myTimeout = _lastHeartbeats.get(myAddress)._timestamp;
 
-                    // No heartbeat since myMinTime means we assume dead
-                    //
-                    if (myTimeout < myMinTime) {
-                        myProcesses.remove();
-                        sendDead(myAddress);
-                    }
+                // No heartbeat since myMinTime means we assume dead
+                //
+                if (myTimeout < myMinTime) {
+                    myProcesses.remove();
+                    sendDead(myAddress);
                 }
             }
         }
@@ -123,15 +120,19 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
 
             final Heartbeat myHeartbeat = (Heartbeat) myMessage;
             final InetSocketAddress myNodeId = aPacket.getSource();
-            
-            synchronized (this) {
+
+            for (;;) {
                 myLast = _lastHeartbeats.get(myNodeId);
 
                 if (myLast == null) {
-                    _lastHeartbeats.put(myNodeId,
-                            new MetaDataImpl(System.currentTimeMillis(), myHeartbeat.getMetaData()));
-                } else
-                    myLast._timestamp = System.currentTimeMillis();
+                    if (_lastHeartbeats.putIfAbsent(myNodeId,
+                            new MetaDataImpl(System.currentTimeMillis(), myHeartbeat.getMetaData())) == null)
+                        break;
+                } else {
+                    if (_lastHeartbeats.replace(myNodeId, myLast, new MetaDataImpl(System.currentTimeMillis(),
+                            myHeartbeat.getMetaData())))
+                    break;
+                }
             }
 
             if ((myLast == null) && (! _stopping.get()))
@@ -152,9 +153,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
      * @return true if at this point, available membership would allow for a majority
      */
     public boolean couldComplete() {
-        synchronized(this) {
-            return isMajority(_lastHeartbeats.size());
-        }
+        return isMajority(_lastHeartbeats.size());
     }
 
     private boolean isMajority(int aSize) {
@@ -166,39 +165,20 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
     }
 
     public Map<InetSocketAddress, MetaData> getMemberMap() {
-        Map myActives;
-
-        synchronized (this) {
-            myActives = new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats);
-        }
-
-        return myActives;
+        return new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats);
     }
 
     public Membership getMembers(MembershipListener aListener) {
         MembershipImpl myMembership = new MembershipImpl(aListener);
         _activeMemberships.add(myMembership);
 
-        Set myActives = new HashSet();
+        myMembership.populate(new HashSet(_lastHeartbeats.keySet()));
 
-        synchronized(this) {
-            _logger.debug("Snapping failure detector members");
-
-            myActives.addAll(_lastHeartbeats.keySet());
-
-            _logger.debug("Snapping failure detector members - done");
-        }
-        
-        myMembership.populate(myActives);
         return myMembership;
     }
 
     public InetSocketAddress getRandomMember(InetSocketAddress aLocalAddress) {
-        LinkedList<InetSocketAddress> myMembers = new LinkedList<InetSocketAddress>();
-
-        synchronized(this) {
-            myMembers.addAll(_lastHeartbeats.keySet());
-        }
+        LinkedList<InetSocketAddress> myMembers = new LinkedList<InetSocketAddress>(_lastHeartbeats.keySet());
 
         myMembers.remove(aLocalAddress);
         return myMembers.get(_random.nextInt(myMembers.size()));
