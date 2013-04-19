@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * @todo Handle all possible outcomes from a vote
  */
 public class Backend {
-    private static final String HANDBACK_KEY = "org.dancres.paxos.test.backend.handback";
     private static final long CHECKPOINT_EVERY = 5;
     
     private static final Logger _logger = LoggerFactory.getLogger(Backend.class);
@@ -42,16 +41,18 @@ public class Backend {
     private final AtomicBoolean _checkpointActive = new AtomicBoolean(false);
     private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
     private final InetSocketAddress _serverAddr;
+    private final int _clusterSize;
 
     private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<String, String>();
 
 
     public static void main(String[] anArgs) throws Exception {
-        new Backend(Integer.valueOf(anArgs[0]).intValue()).start(anArgs[1]);
+        new Backend(Integer.valueOf(anArgs[0]).intValue(), Integer.valueOf(anArgs[1]).intValue()).start(anArgs[2]);
     }
 
-    private Backend(int aPort) {
+    private Backend(int aPort, int aClusterSize) {
         _serverAddr = new InetSocketAddress(Utils.getWorkableInterface(), aPort);
+        _clusterSize = aClusterSize;
     }
     
     private void start(String aCheckpointDir) throws Exception {
@@ -213,7 +214,8 @@ public class Backend {
             myOIS.close();
         }
         
-        _paxos = PaxosFactory.init(new ListenerImpl(), myHandle, Utils.marshall(_serverAddr), _txnLogger);
+        _paxos = PaxosFactory.init(_clusterSize, new ListenerImpl(), myHandle,
+                Utils.marshall(_serverAddr), _txnLogger);
     }
 
     String toHttp(byte[] aMarshalledAddress) throws Exception {

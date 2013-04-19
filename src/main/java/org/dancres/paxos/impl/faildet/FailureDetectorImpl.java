@@ -23,9 +23,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class FailureDetectorImpl implements MessageBasedFailureDetector {
     /**
-     * @todo Fix up this majority to be more dynamic
+     * @todo Fix up this cluster size to be more dynamic
      */
-    private static final int DEFAULT_MAJORITY = 2;
+    private static final int DEFAULT_CLUSTER_SIZE = 3;
 
     private final Random _random = new Random();
     private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats =
@@ -58,15 +58,21 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
     private static final Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
 
     /**
-     * @param aMajority is the number of members in the cluster that must provide confirmation for an instance to
-     *                  succeed.
+     * @param aClusterSize is the number of members in the cluster
      * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
      */
-    public FailureDetectorImpl(int aMajority, long anUnresponsivenessThreshold) {
-        _majority = aMajority;
+    public FailureDetectorImpl(int aClusterSize, long anUnresponsivenessThreshold) {
+        _majority = calculateMajority(aClusterSize);
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
         _activeMemberships = new CopyOnWriteArraySet<MembershipImpl>();
         _tasks.schedule(new ScanImpl(), 0, (_maximumPeriodOfUnresponsiveness / 5));
+    }
+
+    private int calculateMajority(int aClusterSize) {
+        if ((aClusterSize % 2) != 1)
+            throw new IllegalArgumentException("Cluster size must be an odd number");
+
+        return (aClusterSize / 2) + 1;
     }
 
     /**
@@ -75,7 +81,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
      * @param anUnresponsivenessThreshold
      */
     public FailureDetectorImpl(long anUnresponsivenessThreshold) {
-        this(DEFAULT_MAJORITY, anUnresponsivenessThreshold);
+        this(DEFAULT_CLUSTER_SIZE, anUnresponsivenessThreshold);
     }
 
     public void stop() {
