@@ -6,12 +6,11 @@ import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.storage.MemoryLogStorage;
 
-/**
- * @author dan
- */
 public class PaxosFactory {
-    public static Paxos init(Listener aListener, CheckpointHandle aHandle, byte[] aMetaData) throws Exception {
-        Core myCore = new Core(new FailureDetectorImpl(5000), new MemoryLogStorage(), aMetaData, aHandle, aListener);
+    public static Paxos init(int aClusterSize,
+                             Listener aListener, CheckpointHandle aHandle, byte[] aMetaData) throws Exception {
+        Core myCore = new Core(new FailureDetectorImpl(aClusterSize, 5000),
+                new MemoryLogStorage(), aMetaData, aHandle, aListener);
         Transport myTransport = new TransportImpl();
         myTransport.routeTo(myCore);
         myCore.init(myTransport);
@@ -19,9 +18,9 @@ public class PaxosFactory {
         return myCore;
     }
 
-    public static Paxos init(Listener aListener, CheckpointHandle aHandle, byte[] aMetaData,
+    public static Paxos init(int aClusterSize, Listener aListener, CheckpointHandle aHandle, byte[] aMetaData,
                              LogStorage aLogger) throws Exception {
-        Core myCore = new Core(new FailureDetectorImpl(5000), aLogger, aMetaData, aHandle, aListener);
+        Core myCore = new Core(new FailureDetectorImpl(aClusterSize, 5000), aLogger, aMetaData, aHandle, aListener);
         Transport myTransport = new TransportImpl();
         myTransport.routeTo(myCore);
         myCore.init(myTransport);
