@@ -27,8 +27,8 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -66,21 +66,24 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 	private static final int BROADCAST_PORT = 41952;
 
-	private final InetSocketAddress _mcastAddr;
-	private final DatagramChannelFactory _mcastFactory;
-	private final DatagramChannel _mcast;
-	private final DatagramChannelFactory _unicastFactory;
-	private final DatagramChannel _unicast;
-	private final NioServerSocketChannelFactory _serverStreamFactory;
-	private final NioClientSocketChannelFactory _clientStreamFactory;
-	private final Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
-	private final InetSocketAddress _unicastAddr;
+    private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
+	private final InetSocketAddress _mcastAddr;
+
+    private final NioServerSocketChannelFactory _serverStreamFactory;
+    private final NioClientSocketChannelFactory _clientStreamFactory;
+	private final DatagramChannelFactory _mcastFactory;
+    private final DatagramChannelFactory _unicastFactory;
+
+	private final DatagramChannel _mcast;
+	private final DatagramChannel _unicast;
+
+    private final ChannelGroup _channels = new DefaultChannelGroup();
+
+    private final Set<Dispatcher> _dispatchers = new CopyOnWriteArraySet<Dispatcher>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
     private final PacketPickler _pickler = new PicklerImpl();
 	
-    private final ChannelGroup _channels = new DefaultChannelGroup();
-    
     private class Factory implements ThreadFactory {
 		public Thread newThread(Runnable aRunnable) {
 			Thread myThread = new Thread(aRunnable);
@@ -184,24 +187,20 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	
     public void routeTo(Dispatcher aDispatcher) throws Exception {
     	guard();
-    	
-        synchronized(this) {
-            _dispatcher.add(aDispatcher);
-        }
+
+        _dispatchers.add(aDispatcher);
     }
 
     public void terminate() {
 		_isStopping.set(true);
 		
 		try {
-            synchronized(this) {
-                for (Dispatcher d: _dispatcher)
-                    try {
-                        d.terminate();
-                    } catch (Exception anE) {
-                        _logger.warn("Dispatcher didn't terminate cleanly", anE);
-                    }
-            }
+            for (Dispatcher d: _dispatchers)
+                try {
+                    d.terminate();
+                } catch (Exception anE) {
+                    _logger.warn("Dispatcher didn't terminate cleanly", anE);
+                }
 
 			_channels.close().await();
 			
@@ -264,12 +263,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		if (_isStopping.get())
 			return;
 
-    	synchronized(this) {
-            for(Dispatcher d : _dispatcher) {
-                if (d.messageReceived((Packet) anEvent.getMessage()))
-                    break;
-            }
-    	}
+        for(Dispatcher d : _dispatchers) {
+            if (d.messageReceived((Packet) anEvent.getMessage()))
+                break;
+        }
     }
 
     public void exceptionCaught(ChannelHandlerContext aContext, ExceptionEvent anEvent) {
