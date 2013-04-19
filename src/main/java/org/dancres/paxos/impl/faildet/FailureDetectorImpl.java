@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * to determine liveness.  The Heartbeater would then be modified to generate a message only if there had been an absence of
  * other messages sent by a node for a suitable period of time.
  */
-public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnable {
+public class FailureDetectorImpl implements MessageBasedFailureDetector {
     /**
      * @todo Fix up this majority to be more dynamic
      */
@@ -32,7 +32,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
     private final Random _random = new Random();
     private final Map<InetSocketAddress, MetaDataImpl> _lastHeartbeats = new HashMap<InetSocketAddress, MetaDataImpl>();
     private final ExecutorService _executor = Executors.newFixedThreadPool(1);
-    private final Thread _scanner;
+    private final Timer _tasks = new Timer();
     private final CopyOnWriteArraySet<MembershipImpl> _activeMemberships;
     private final long _maximumPeriodOfUnresponsiveness;
     private final AtomicBoolean _stopping = new AtomicBoolean(false);
@@ -65,11 +65,9 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
      */
     public FailureDetectorImpl(int aMajority, long anUnresponsivenessThreshold) {
         _majority = aMajority;
-        _scanner = new Thread(this);
-        _scanner.setDaemon(true);
-        _scanner.start();
-        _activeMemberships = new CopyOnWriteArraySet<MembershipImpl>();
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
+        _activeMemberships = new CopyOnWriteArraySet<MembershipImpl>();
+        _tasks.schedule(new ScanImpl(), 0, (_maximumPeriodOfUnresponsiveness / 5));
     }
 
     /**
@@ -83,12 +81,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
 
     public void stop() {
         _stopping.set(true);
-
-    	try {
-    		_scanner.join();
-    	} catch (InterruptedException anIE) {    		
-    	}
-    	
+        _tasks.cancel();
     	_executor.shutdownNow();
     }
     
@@ -97,19 +90,9 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector, Runnabl
         //
         return new HeartbeaterImpl(aTransport, aMetaData, (_maximumPeriodOfUnresponsiveness / 3) - 100);
     }   
-     
-    public void run() {
-        // We want to review at a frequency of 1/5th of the responsiveness cycle
-        //
-        long mySleepCycle = _maximumPeriodOfUnresponsiveness / 5;
 
-        while(! _stopping.get()) {
-            try {
-                Thread.sleep(mySleepCycle);
-            } catch (InterruptedException e) {
-                continue;
-            }
-
+    private class ScanImpl extends TimerTask {
+        public void run() {
             synchronized(this) {
                 Iterator<InetSocketAddress> myProcesses = _lastHeartbeats.keySet().iterator();
                 long myMinTime = System.currentTimeMillis() - _maximumPeriodOfUnresponsiveness;
