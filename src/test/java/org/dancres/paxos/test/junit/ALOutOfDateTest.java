@@ -60,18 +60,6 @@ public class ALOutOfDateTest {
             _tport3.terminate();
     }
 
-    private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
-        int myChances = 0;
-
-        while (!anFD.couldComplete()) {
-            ++myChances;
-            if (myChances == 4)
-                Assert.assertTrue("Membership not achieved", false);
-
-            Thread.sleep(5000);
-        }
-    }
-
     @Test
     public void post() throws Exception {
         ClientDispatcher myClient = new ClientDispatcher();
@@ -79,8 +67,8 @@ public class ALOutOfDateTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        ensureFD(_node1.getCommon().getPrivateFD());
-        ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
 
         System.err.println("Run some instances");
 
@@ -116,7 +104,7 @@ public class ALOutOfDateTest {
         _node3.init(_tport3);
         _node3.add(myListener);
 
-        ensureFD(_node3.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node3.getCommon().getPrivateFD());
 
         System.err.println("Run another instance - trigger");
 

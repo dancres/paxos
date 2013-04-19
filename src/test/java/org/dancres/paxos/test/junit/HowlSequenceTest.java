@@ -50,27 +50,14 @@ public class HowlSequenceTest {
     	_tport2.terminate();
     }
 
-    private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
-        int myChances = 0;
-
-        while (!anFD.couldComplete()) {
-            ++myChances;
-            if (myChances == 4)
-                Assert.assertTrue("Membership not achieved", false);
-
-            Thread.sleep(5000);
-        }
-    }
-
-
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
     	TransportImpl myTransport = new TransportImpl();
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        ensureFD(_node1.getCommon().getPrivateFD());
-        ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
 
         for (int i = 0; i < 5; i++) {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);

@@ -42,19 +42,6 @@ public class LeaderConflictTest {
         _tport2.terminate();
     }
 
-    private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
-        int myChances = 0;
-
-        while (!anFD.couldComplete()) {
-            ++myChances;
-            if (myChances == 4)
-                Assert.assertTrue("Membership not achieved", false);
-
-            Thread.sleep(5000);
-        }
-    }
-
-
     @Test public void post() throws Exception {
         ClientDispatcher myClient1 = new ClientDispatcher();
         TransportImpl myTransport1 = new TransportImpl();
@@ -66,8 +53,8 @@ public class LeaderConflictTest {
         myTransport2.routeTo(myClient2);
         myClient2.init(myTransport2);
 
-        ensureFD(_node1.getCommon().getPrivateFD());
-        ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
 
         ByteBuffer myBuffer1 = ByteBuffer.allocate(4);
         ByteBuffer myBuffer2 = ByteBuffer.allocate(4);

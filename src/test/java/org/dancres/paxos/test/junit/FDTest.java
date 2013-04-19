@@ -39,21 +39,9 @@ public class FDTest implements MembershipListener {
     	_tport2.terminate();
     }
 
-    private void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
-        int myChances = 0;
-
-        while (!anFD.couldComplete()) {
-            ++myChances;
-            if (myChances == 4)
-                Assert.assertTrue("Membership not achieved", false);
-
-            Thread.sleep(5000);
-        }
-    }
-
     @Test public void post() throws Exception {
-        ensureFD(_node1.getCommon().getPrivateFD());
-        ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
 
         Assert.assertTrue(_node1.getCommon().getFD().getMemberMap().size() == 2);
         Assert.assertTrue(_node2.getCommon().getFD().getMemberMap().size() == 2);
