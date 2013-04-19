@@ -15,12 +15,12 @@ public class Core implements Transport.Dispatcher, Paxos {
     private static final Logger _logger = LoggerFactory.getLogger(Core.class);
 
     private final byte[] _meta;
-    private AcceptorLearner _al;
-    private LeaderFactory _ld;
-    private Heartbeater _hb;
+    private final AcceptorLearner _al;
+    private final LeaderFactory _ld;
     private final LogStorage _log;
     private final Common _common;
     private final CheckpointHandle _handle;
+    private Heartbeater _hb;
 
     /**
      * @param aLogger is the storage implementation to use for recording paxos transitions.
@@ -35,6 +35,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         _log = aLogger;        
         _common = new Common(anFD);
         _al = new AcceptorLearner(_log, _common, aListener);
+        _ld = new LeaderFactory(_common, _al);
         _handle = aHandle;
     }
 
@@ -70,7 +71,6 @@ public class Core implements Transport.Dispatcher, Paxos {
             _hb = _common.getPrivateFD().newHeartbeater(aTransport, _meta);
 
         _al.open(_handle);
-        _ld = new LeaderFactory(_common, _al);
         _hb.start();
     }
 
