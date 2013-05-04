@@ -29,6 +29,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -83,6 +84,13 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     private final Set<Dispatcher> _dispatchers = new CopyOnWriteArraySet<Dispatcher>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
     private final PacketPickler _pickler = new PicklerImpl();
+
+    /**
+     * Netty doesn't seem to like re-entrant behaviours so we need a thread pool
+     *
+     * @todo Ought to be able to run this multi-threaded but AL is not ready for that yet
+     */
+    private final ExecutorService _packetDispatcher = Executors.newSingleThreadExecutor();
 	
     private class Factory implements ThreadFactory {
 		public Thread newThread(Runnable aRunnable) {
@@ -193,7 +201,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
     public void terminate() {
 		_isStopping.set(true);
-		
+		_packetDispatcher.shutdown();
+
 		try {
             for (Dispatcher d: _dispatchers)
                 try {
@@ -259,14 +268,18 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		_channels.add(e.getChannel());
 	}
 	
-    public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {
+    public void messageReceived(ChannelHandlerContext aContext, final MessageEvent anEvent) {
 		if (_isStopping.get())
 			return;
 
-        for(Dispatcher d : _dispatchers) {
-            if (d.messageReceived((Packet) anEvent.getMessage()))
-                break;
-        }
+        _packetDispatcher.execute(new Runnable() {
+            public void run() {
+                for(Dispatcher d : _dispatchers) {
+                    if (d.messageReceived((Packet) anEvent.getMessage()))
+                        break;
+                }
+            }
+        });
     }
 
     public void exceptionCaught(ChannelHandlerContext aContext, ExceptionEvent anEvent) {
