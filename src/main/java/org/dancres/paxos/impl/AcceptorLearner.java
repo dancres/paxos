@@ -927,7 +927,7 @@ public class AcceptorLearner {
             if (_common.testState(Constants.FSMStates.SHUTDOWN))
                 return;
 
-            _logger.debug("AL sending: " + aMessage);
+            _logger.info("AL sending: " + aMessage);
             _common.getTransport().send(aMessage, aNodeId);
         }        
     }
