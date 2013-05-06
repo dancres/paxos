@@ -76,12 +76,10 @@ class RecoveryTrigger {
     }
 
     long install(AcceptorLearner.Watermark aLow) {
-        if (!aLow.equals(AcceptorLearner.Watermark.INITIAL)) {
+        synchronized(this) {
             _lowSeqNumWatermark = aLow;
+
             return _lowSeqNumWatermark.getSeqNum();
         }
-
-        return -1;
-
     }
 }
