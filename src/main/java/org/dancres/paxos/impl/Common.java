@@ -20,10 +20,11 @@ public class Common {
     private final AtomicReference<Transport.Packet> _lastCollect =
             new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
     private long _lastLeaderActionTime = 0;
-    private final RecoveryTrigger _trigger = new RecoveryTrigger();
     private final Timer _watchdog = new Timer("Paxos timers");
     private final AtomicReference<Constants.FSMStates> _fsmState =
             new AtomicReference<Constants.FSMStates>(Constants.FSMStates.INITIAL);
+    private final AtomicReference<AcceptorLearner.Watermark> _lowWatermark =
+            new AtomicReference<AcceptorLearner.Watermark>(AcceptorLearner.Watermark.INITIAL);
     private final LeaderUtils _leaderUtils = new LeaderUtils();
 
     private class FakePacket implements Transport.Packet {
@@ -70,12 +71,14 @@ public class Common {
         return _transport;
     }
 
-    RecoveryTrigger getRecoveryTrigger() {
-        return _trigger;
+    public long install(AcceptorLearner.Watermark aWatermark) {
+        _lowWatermark.set(aWatermark);
+
+        return aWatermark.getSeqNum();
     }
 
     public AcceptorLearner.Watermark getLowWatermark() {
-        return _trigger.getLowWatermark();
+        return _lowWatermark.get();
     }
 
     public FailureDetector getFD() {

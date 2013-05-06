@@ -55,6 +55,7 @@ public class AcceptorLearner {
 
 	private final LogStorage _storage;
     private final Common _common;
+    private final PacketSorter _sorter = new PacketSorter();
 
     /**
      * Begins contain the values being proposed. These values must be remembered from round to round of an instance
@@ -307,7 +308,7 @@ public class AcceptorLearner {
             _recoveryWindow.set(null);
 
             _common.clearLeadership();
-            _common.getRecoveryTrigger().reset();
+            _common.install(Watermark.INITIAL);
 
             _packetBuffer.clear();
             _cachedBegins.clear();
@@ -333,7 +334,7 @@ public class AcceptorLearner {
         // Low watermark will always lag collect so no need for atomicity here
         //
         try {
-            return new ALCheckpointHandle(_common.getRecoveryTrigger().getLowWatermark(),
+            return new ALCheckpointHandle(_common.getLowWatermark(),
                     _common.getLastCollect(), this, _common.getTransport().getPickler());
         } finally {
             unguard();
@@ -372,7 +373,7 @@ public class AcceptorLearner {
 
         _logger.info("Checkpoint installed: " + aHandle.getLastCollect() + " @ " + aHandle.getLowWatermark());
 
-        return _common.getRecoveryTrigger().install(aHandle.getLowWatermark());
+        return _common.install(aHandle.getLowWatermark());
     }
 
     /**
@@ -477,7 +478,6 @@ public class AcceptorLearner {
 
             PaxosMessage myMessage = aPacket.getMessage();
             long mySeqNum = myMessage.getSeqNum();
-            Writer myWriter = new LiveWriter();
 
             if (_common.testState(Constants.FSMStates.RECOVERING)) {
                 switch (myMessage.getType()) {
@@ -503,134 +503,57 @@ public class AcceptorLearner {
                 }
             }
 
-            boolean myRecoveryInProgress = _common.testState(Constants.FSMStates.RECOVERING);
-            Need myWindow = _common.getRecoveryTrigger().shouldRecover(myMessage.getSeqNum(),
-                    _common.getTransport().getLocalAddress());
-            int mySeqNumPosition = (myRecoveryInProgress) ?
-                    _recoveryWindow.get().relativeToWindow(mySeqNum) : Integer.MIN_VALUE;
-            Sender mySender = (myRecoveryInProgress) ? new RecoverySender() : new LiveSender();
-            boolean myMisfire = false;
+            final Writer myWriter = new LiveWriter();
+            int myProcessed;
 
-            // Are we transitioning into recovery?
-            //
-            if ((! myRecoveryInProgress) && (myWindow != null)) {
-                /*
-                 * Ideally we catch up to the end of a complete instance but we don't have to. The AL state machine
-                 * will simply discard some packets and then trigger another recovery.
-                 *
-                 * It's possible that, for example, we miss a collect but catch a begin and a success. In such a
-                 * case we'd drop the messages and then issue another recovery. In the case of the multi-paxos
-                 * optimisation a similar thing would happen should a new leader have just taken over. Otherwise,
-                 * we'll likely recover the collect from another AL and thus apply all the packets since successfully.
-                 */
-                boolean madeRecoveryTransition = false;
+            _sorter.add(aPacket);
 
-                synchronized(_packetBuffer) {
-                    madeRecoveryTransition =
-                            _common.testAndSetState(Constants.FSMStates.ACTIVE, Constants.FSMStates.RECOVERING);
+            do {
+                myProcessed =
+                        _sorter.process(_common.getLowWatermark().getSeqNum(), new PacketSorter.PacketProcessor() {
+                            public void consume(Transport.Packet aPacket) {
+                                boolean myRecoveryInProgress = _common.testState(Constants.FSMStates.RECOVERING);
+                                Sender mySender = (myRecoveryInProgress) ? new RecoverySender() : new LiveSender();
 
-                    if (madeRecoveryTransition) {
-                        // We've made the recovery transition time to dispatch our atomic duties
-                        //
-                        _packetBuffer.clear();
+                                process(aPacket, myWriter, mySender);
 
-                        try {
-                            _packetBuffer.put(aPacket);
-                        } catch (InterruptedException anIE) {
-                            _logger.error("Couldn't queue to PacketBuffer", anIE);
-                            throw new RuntimeException("Serious recovery failure", anIE);
-                        }
+                                if (myRecoveryInProgress) {
+                                    if ((_common.getLowWatermark().getSeqNum() == _recoveryWindow.get().getMaxSeq()) &&
+                                            (_common.testAndSetState(Constants.FSMStates.RECOVERING,
+                                                    Constants.FSMStates.ACTIVE))) {
+                                        completedRecovery();
+                                    }
+                                }
+                            }
 
-                        _recoveryWindow.set(myWindow);
-                    }
-                }
+                            public boolean recover(Need aNeed) {
+                                boolean myResult = _common.testAndSetState(Constants.FSMStates.ACTIVE,
+                                        Constants.FSMStates.RECOVERING);
 
-                // Non-atomic duties
-                //
-                if (madeRecoveryTransition) {
-                    /*
-                     * Ask a node to bring us up to speed. Note that this node mightn't have all the records we need.
-                     * If that's the case, it won't stream at all or will only stream some part of our recovery
-                     * window. As the recovery watchdog measures progress through the recovery window, a partial
-                     * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to speed.
-                     */
-                    mySender.send(myWindow, _common.getFD().getRandomMember(_common.getTransport().getLocalAddress()));
+                                if (myResult) {
+                                    _recoveryWindow.set(aNeed);
 
-                    // Startup recovery watchdog
-                    //
-                    reschedule();
-                } else {
-                    // We got a misfire - someone else made the transition, our duties just change, try again
-                    //
-                    myMisfire = true;
-                }
-            }
+                        /*
+                         * Ask a node to bring us up to speed. Note that this node mightn't have all the records we
+                         * need.
+                         *
+                         * If that's the case, it won't stream at all or will only stream some part of our recovery
+                         * window. As the recovery watchdog measures progress through the recovery window, a partial
+                         * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to
+                         * speed.
+                         */
+                                    new LiveSender().send(aNeed,
+                                            _common.getFD().getRandomMember(_common.getTransport().getLocalAddress()));
 
-            /*
-             * If the packet is for a sequence number above an active recovery window, save it for later
-             */
-            if ((myRecoveryInProgress) && (mySeqNumPosition == 1)) {
-                synchronized(_packetBuffer) {
-                    if (_common.testState(Constants.FSMStates.RECOVERING)) {
-                        try {
-                            _packetBuffer.put(aPacket);
-                        } catch (InterruptedException anIE) {
-                            _logger.error("Couldn't queue to PacketBuffer", anIE);
-                            throw new RuntimeException("Serious recovery failure", anIE);
-                        }
-                    } else {
-                        // We got a misfire - someone else transitioned us out of recovery, our duties change, try again
-                        //
-                        myMisfire = true;
-                    }
-                }
-            }
-
-            /*
-             * If the packet is for a sequence number within an active recovery window or we're healthy,
-             * process it.
-             */
-            if (((myRecoveryInProgress) && (mySeqNumPosition == 0)) ||
-                    ((! myRecoveryInProgress) && (myWindow == null))) {
-                process(aPacket, myWriter, mySender);
-
-                if (myRecoveryInProgress) {
-                    /*
-                     *  If the low watermark is now at the top of the recovery window, we're ready to resume once we've
-                     *  streamed through the packet buffer
-                     */
-                    if (_common.getRecoveryTrigger().getLowWatermark().getSeqNum() ==
-                            _recoveryWindow.get().getMaxSeq()) {
-                        synchronized(_packetBuffer) {
-                            if (_common.testState(Constants.FSMStates.RECOVERING)) {
-                                // We'll be making the recovery transition
-                                //
-                                for (Transport.Packet myReplayPacket : _packetBuffer) {
-
-                                    // Maybe excessive gaps in buffer, catch it, exit early, recovery will trigger again
+                                    // Startup recovery watchdog
                                     //
-                                    if (_common.getRecoveryTrigger().shouldRecover(
-                                            myReplayPacket.getMessage().getSeqNum(),
-                                           _common.getTransport().getLocalAddress()) != null)
-                                        break;
-
-                                    process(myReplayPacket, myWriter, mySender);
+                                    reschedule();
                                 }
 
-                                completedRecovery();
-                                _common.testAndSetState(Constants.FSMStates.RECOVERING, Constants.FSMStates.ACTIVE);
-                            } else {
-                                // Mis-fire, someone else has made the transition, our duties change, try again
-                                //
-                                myMisfire = true;
+                                return myResult;
                             }
-                        }
-                    }
-                }
-            }
-
-            if (myMisfire)
-                messageReceived(aPacket);
+                        });
+            } while (myProcessed != 0);
 
         } finally {
             unguard();
@@ -644,7 +567,7 @@ public class AcceptorLearner {
      ******************************************************************************************** */
 
     private class Watchdog extends TimerTask {
-        private final Watermark _past = _common.getRecoveryTrigger().getLowWatermark();
+        private final Watermark _past = _common.getLowWatermark();
 
         public void run() {
             if (! _common.testState(Constants.FSMStates.RECOVERING)) {
@@ -657,7 +580,7 @@ public class AcceptorLearner {
              * If the watermark has advanced since we were started, recovery made some progress so we'll schedule a
              * future check otherwise fail.
              */
-            if (! _past.equals(_common.getRecoveryTrigger().getLowWatermark())) {
+            if (! _past.equals(_common.getLowWatermark())) {
                 _logger.debug("Recovery is progressing, " + _common.getTransport().getLocalAddress());
 
                 reschedule();
@@ -750,7 +673,7 @@ public class AcceptorLearner {
                 if (myNeed.getMinSeq() < _lastCheckpoint.get().getLowWatermark().getSeqNum()) {
                     _common.getTransport().send(new OutOfDate(), aPacket.getSource());
 
-                } else if (myNeed.getMaxSeq() <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
+                } else if (myNeed.getMaxSeq() <= _common.getLowWatermark().getSeqNum()) {
                     _logger.debug("Running streamer: " + _common.getTransport().getLocalAddress());
 
 
@@ -794,7 +717,7 @@ public class AcceptorLearner {
 				} else {
 					// Another collect has already arrived with a higher priority, tell the proposer it has competition
 					//
-                    aSender.send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+                    aSender.send(new OldRound(_common.getLowWatermark().getSeqNum(),
                             _common.getLeaderAddress(), _common.getLeaderRndNum()), myNodeId);
 				}
 				
@@ -817,7 +740,7 @@ public class AcceptorLearner {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
-					aSender.send(new OldRound(_common.getRecoveryTrigger().getLowWatermark().getSeqNum(),
+					aSender.send(new OldRound(_common.getLowWatermark().getSeqNum(),
                             _common.getLeaderAddress(), _common.getLeaderRndNum()), myNodeId);
 				} else {
 					/*
@@ -836,7 +759,7 @@ public class AcceptorLearner {
 
                 _common.leaderAction();
 
-				if (mySeqNum <= _common.getRecoveryTrigger().getLowWatermark().getSeqNum()) {
+				if (mySeqNum <= _common.getLowWatermark().getSeqNum()) {
 					_logger.debug("AL:Discarded known value: " + mySeqNum + ", " +
                             _common.getTransport().getLocalAddress());
 				} else {
@@ -852,7 +775,7 @@ public class AcceptorLearner {
                         //
                         long myLogOffset = aWriter.write(aPacket, true);
 
-                        _common.getRecoveryTrigger().completed(new Watermark(mySeqNum, myLogOffset));
+                        _common.install(new Watermark(mySeqNum, myLogOffset));
 
                         if (myBegin.getConsolidatedValue().equals(LeaderFactory.HEARTBEAT)) {
                             _receivedHeartbeats.incrementAndGet();
@@ -880,7 +803,7 @@ public class AcceptorLearner {
 	}
 
 	private PaxosMessage constructLast(long aSeqNum) {
-		Watermark myLow = _common.getRecoveryTrigger().getLowWatermark();
+		Watermark myLow = _common.getLowWatermark();
 		
 		/*
 		 * If the sequence number is less than the current low watermark, we've got to check through the log file for
