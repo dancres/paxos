@@ -65,7 +65,7 @@ class Leader implements MembershipListener, Instance {
         _common = aCommon;
         _factory = aFactory;
         _startState = State.COLLECT;
-        _seqNum = _common.getRecoveryTrigger().getLowWatermark().getSeqNum() + 1;
+        _seqNum = _common.getLowWatermark().getSeqNum() + 1;
         _rndNumber = _common.getLeaderRndNum() + 1;        
     }
 
