@@ -15,7 +15,8 @@ public class PacketSorterTest {
         Tester myTester = new Tester(false);
 
         for (long mySeq = 0; mySeq < 5; mySeq++) {
-            mySorter.process(new FakePacket(new Collect(mySeq, 1)), mySeq - 1, myTester);
+            mySorter.add(new FakePacket(new Collect(mySeq, 1)));
+            mySorter.process(mySeq - 1, myTester);
         }
 
         Assert.assertEquals(5, myTester._consumed);
@@ -28,7 +29,8 @@ public class PacketSorterTest {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(true);
 
-        mySorter.process(new FakePacket(new Collect(5, 1)), 0, myTester);
+        mySorter.add(new FakePacket(new Collect(5, 1)));
+        mySorter.process(0, myTester);
 
         Assert.assertEquals(0, myTester._consumed);
         Assert.assertEquals(true, myTester._recoveryRequested);
@@ -40,12 +42,47 @@ public class PacketSorterTest {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(false);
 
-        mySorter.process(new FakePacket(new Collect(4, 1)), 0, myTester);
-        mySorter.process(new FakePacket(new Collect(5, 1)), 0, myTester);
+        mySorter.add(new FakePacket(new Collect(4, 1)));
+        mySorter.process(0, myTester);
+        mySorter.add(new FakePacket(new Collect(5, 1)));
+        mySorter.process(0, myTester);
 
         Assert.assertEquals(0, myTester._consumed);
         Assert.assertEquals(true, myTester._recoveryRequested);
         Assert.assertEquals(2, mySorter.numPackets());
+    }
+
+    @Test
+    public void checkRecoveryConsume() {
+        PacketSorter mySorter = new PacketSorter();
+        Tester myTester = new Tester(true);
+
+        // Recovery triggered immediately
+        //
+        mySorter.add(new FakePacket(new Collect(4, 1)));
+        mySorter.process(-1, myTester);
+
+        // Simulate arrival of missing packets from elsewhere
+        //
+        mySorter.add(new FakePacket(new Collect(0, 1)));
+        mySorter.process(-1, myTester);
+
+        mySorter.add(new FakePacket(new Collect(1, 1)));
+        mySorter.process(0, myTester);
+
+        mySorter.add(new FakePacket(new Collect(2, 1)));
+        mySorter.process(1, myTester);
+
+        mySorter.add(new FakePacket(new Collect(3, 1)));
+        mySorter.process(2, myTester);
+
+        // Now catch up the original packet that "triggered" recovery
+        //
+        mySorter.process(3, myTester);
+
+        Assert.assertEquals(5, myTester._consumed);
+        Assert.assertEquals(true, myTester._recoveryRequested);
+        Assert.assertEquals(0, mySorter.numPackets());
     }
 
     class Tester implements PacketSorter.PacketProcessor {

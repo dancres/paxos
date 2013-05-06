@@ -18,15 +18,19 @@ public class PacketSorter {
         return myTotal;
     }
 
+    public void add(Transport.Packet aPacket) {
+        _packets = insert(aPacket, _packets);
+    }
+
     /**
-     * @param aPacket the packet we're adding to the sorter
      * @param aLowWatermark the current low watermark - sorter will use this to identify packets that potentially
      *                      could be consumed.
      * @param aProcessor the processor that will be used to process any packets identified as acceptable or perform
      *                   recovery. Recovery should do an atomic test and set to see if it wins the recovery race
      *                   and act accordingly.
+     * @return the number of packets processed
      */
-    public void process(Transport.Packet aPacket, long aLowWatermark, PacketProcessor aProcessor) {
+    public int process(long aLowWatermark, PacketProcessor aProcessor) {
         /*
          * Atomically remove the appropriate packets from the sorter under a lock
          *
@@ -37,28 +41,40 @@ public class PacketSorter {
         List<Transport.Packet> myConsumables = new LinkedList<Transport.Packet>();
 
         synchronized(this) {
-            _packets = insert(aPacket, _packets);
+            Iterator<Map.Entry<Long, List<Transport.Packet>>> mySeqsAndPkts = _packets.entrySet().iterator();
 
-            for (Long myS : _packets.keySet()) {
-                if (myS <= (aLowWatermark + 1)) {
-                    myConsumables.addAll(_packets.remove(myS));
+            while(mySeqsAndPkts.hasNext()) {
+                Map.Entry<Long, List<Transport.Packet>> mySeqAndPkt = mySeqsAndPkts.next();
+
+                if (mySeqAndPkt.getKey() <= (aLowWatermark + 1)) {
+                    myConsumables.addAll(_packets.get(mySeqAndPkt.getKey()));
+                    mySeqsAndPkts.remove();
                 }
             }
         }
 
-        if (myConsumables.size() == 0) {
+        if ((myConsumables.size() == 0) && (_packets.size() != 0)) {
             // Do we need to trigger recovery?
             //
             SortedSet<Long> myAllSeqs = new TreeSet<Long>(_packets.keySet());
+            Long myLastSeq = myAllSeqs.last();
 
-            if (myAllSeqs.last() > (aLowWatermark + MAX_INFLIGHT))
+            if (myLastSeq > (aLowWatermark + MAX_INFLIGHT))
                 if (aProcessor.recover(new Need(aLowWatermark, myAllSeqs.last() - 1))) {
-                    _packets.clear();
-                    insert(aPacket, _packets);
+                    synchronized(this) {
+                        List<Transport.Packet> myLastPackets = _packets.get(myLastSeq);
+
+                        _packets.clear();
+                        _packets.put(myLastSeq, myLastPackets);
+                    }
                 }
+
+            return 0;
         } else {
             for (Transport.Packet p : myConsumables)
                 aProcessor.consume(p);
+
+            return myConsumables.size();
         }
     }
 
