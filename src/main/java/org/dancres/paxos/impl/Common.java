@@ -174,7 +174,8 @@ public class Common {
 
                 return true;
             } else
-                _logger.debug("Check leader expiry: " + (myCurrentTime > _lastLeaderActionTime
+                _logger.debug("Check leader expiry: " + myCurrentTime + ", " + _lastLeaderActionTime + ", " +
+                        Constants.getLeaderLeaseDuration() + ", " + (myCurrentTime > _lastLeaderActionTime
                         + Constants.getLeaderLeaseDuration()));
 
             return (myCurrentTime > _lastLeaderActionTime
