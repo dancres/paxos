@@ -21,6 +21,7 @@ public class LeaderFactory {
     
     private final Common _common;
     private Leader _currentLeader;
+    private boolean _disableHeartbeats;
 
     /**
      * This alarm is used to ensure the leader sends regular heartbeats in the face of inactivity so as to extend
@@ -28,8 +29,9 @@ public class LeaderFactory {
      */
     private TimerTask _heartbeatAlarm;
 
-    LeaderFactory(Common aCommon, AcceptorLearner anAL) {
+    LeaderFactory(Common aCommon, AcceptorLearner anAL, boolean isDisableHeartbeats) {
         _common = aCommon;
+        _disableHeartbeats = isDisableHeartbeats;
 
         anAL.add(new Listener() {
             public void transition(StateEvent anEvent) {
@@ -96,21 +98,23 @@ public class LeaderFactory {
         synchronized(this) {
             switch (_currentLeader.getOutcomes().getLast().getResult()) {
                 case VoteOutcome.Reason.DECISION : {
-                    // Still leader so heartbeat
-                    //
-                    _heartbeatAlarm = new TimerTask() {
-                        public void run() {
-                            _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
+                    if (! _disableHeartbeats) {
+                        // Still leader so heartbeat
+                        //
+                        _heartbeatAlarm = new TimerTask() {
+                            public void run() {
+                                _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
 
-                            newLeaderImpl().submit(HEARTBEAT, new Completion<VoteOutcome>() {
-                                public void complete(VoteOutcome anOutcome) {
-                                    // Do nothing
-                                }
-                            });
-                        }
-                    };
+                                newLeaderImpl().submit(HEARTBEAT, new Completion<VoteOutcome>() {
+                                    public void complete(VoteOutcome anOutcome) {
+                                        // Do nothing
+                                    }
+                                });
+                            }
+                        };
 
-                    _common.getWatchdog().schedule(_heartbeatAlarm, calculateLeaderRefresh());
+                        _common.getWatchdog().schedule(_heartbeatAlarm, calculateLeaderRefresh());
+                    }
                 }
 
                 default : {

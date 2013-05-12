@@ -31,11 +31,16 @@ public class Core implements Transport.Dispatcher, Paxos {
      */
     public Core(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta, CheckpointHandle aHandle,
                 Listener aListener) {
+        this(anFD, aLogger, aMeta, aHandle, aListener, false);
+    }
+
+    public Core(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta, CheckpointHandle aHandle,
+                Listener aListener, boolean isDisableLeaderHeartbeats) {
         _meta = aMeta;
-        _log = aLogger;        
+        _log = aLogger;
         _common = new Common(anFD);
         _al = new AcceptorLearner(_log, _common, aListener);
-        _ld = new LeaderFactory(_common, _al);
+        _ld = new LeaderFactory(_common, _al, isDisableLeaderHeartbeats);
         _handle = aHandle;
     }
 
