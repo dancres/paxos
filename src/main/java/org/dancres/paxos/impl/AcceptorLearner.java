@@ -534,15 +534,37 @@ public class AcceptorLearner {
                                 if (myResult) {
                                     _recoveryWindow.set(aNeed);
 
-                        /*
-                         * Ask a node to bring us up to speed. Note that this node mightn't have all the records we
-                         * need.
-                         *
-                         * If that's the case, it won't stream at all or will only stream some part of our recovery
-                         * window. As the recovery watchdog measures progress through the recovery window, a partial
-                         * recovery or no recovery will be noticed and we'll ask a new random node to bring us up to
-                         * speed.
-                         */
+                                    /*
+                                     * If we've just started up, neither the AL or Leader will have correct state.
+                                     * Should our local leader be selected to lead it will almost certainly receive
+                                     * OLD_ROUND from other nodes to bring it back into sync with sequence numbers.
+                                     * However the local AL will accept the COLLECT which can then interfere with
+                                     * recovery (which would be triggered by the local leader now it's in sync or
+                                     * some other leader).
+                                     *
+                                     * To avoid such a situation, we dump a COLLECT that lies within the recovery window
+                                     * which for this particular case would be COLLECT at seqnum = 0 with a window of
+                                     * -1 to triggering packet seqnum - 1.
+                                     */
+                                    _logger.info("Transition to recovery: " + _common.getLowWatermark().getSeqNum() +
+                                        ", " + _common.getTransport().getLocalAddress());
+
+                                    if (_common.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
+                                        _logger.warn("Current collect could interfere with recovery window - binning " +
+                                            _common.getLastCollect().getMessage() + ", " + aNeed);
+
+                                        _common.clearLeadership();
+                                    }
+
+                                    /*
+                                     * Ask a node to bring us up to speed. Note that this node mightn't have all the
+                                     * records we need.
+                                     *
+                                     * If that's the case, it won't stream at all or will only stream some part of our
+                                     * recovery window. As the recovery watchdog measures progress through the recovery
+                                     * window, a partial recovery or no recovery will be noticed and we'll ask a new
+                                     * random node to bring us up to speed.
+                                     */
                                     new LiveSender().send(aNeed,
                                             _common.getFD().getRandomMember(_common.getTransport().getLocalAddress()));
 
