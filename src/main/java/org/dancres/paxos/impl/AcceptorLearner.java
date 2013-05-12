@@ -658,7 +658,8 @@ public class AcceptorLearner {
 		InetSocketAddress myNodeId = aPacket.getSource();
 		long mySeqNum = myMessage.getSeqNum();
 
-		_logger.info("AL: got " + myNodeId + " " + myMessage + ", " + _common.getTransport().getLocalAddress());
+		_logger.info("AL: got " + myNodeId + " " + myMessage + ", " + _common.getTransport().getLocalAddress() + ", " +
+            _common.getLowWatermark().getSeqNum());
 
 		switch (myMessage.getType()) {
             case Operations.NEED : {
@@ -702,6 +703,8 @@ public class AcceptorLearner {
 				// If the collect supercedes our previous collect save it, return last proposal etc
 				//
 				if (_common.supercedes(aPacket)) {
+                    _logger.debug("Accepting collect: " + myCollect + ", " + _common.getTransport().getLocalAddress());
+
 					aWriter.write(aPacket, true);
                     
                     aSender.send(constructLast(mySeqNum), myNodeId);
@@ -715,6 +718,9 @@ public class AcceptorLearner {
                     aSender.send(constructLast(mySeqNum), myNodeId);
 
 				} else {
+                    _logger.warn("Rejecting collect: " + myCollect + " against " +
+                            _common.getLastCollect().getMessage() + ", " + _common.getTransport().getLocalAddress());
+
 					// Another collect has already arrived with a higher priority, tell the proposer it has competition
 					//
                     aSender.send(new OldRound(_common.getLowWatermark().getSeqNum(),
