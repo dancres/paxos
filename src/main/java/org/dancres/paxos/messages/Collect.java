@@ -31,7 +31,7 @@ public class Collect implements PaxosMessage {
 
     public String toString() {
         return "Collect: " + Long.toHexString(_seqNum) + " [ " +
-                Long.toHexString(_rndNumber);
+                Long.toHexString(_rndNumber) + " ] ";
     }
 
     public boolean isInitial() {
