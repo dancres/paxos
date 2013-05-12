@@ -116,6 +116,12 @@ public class Common {
         }
     }
 
+    void resetLeaderAction() {
+        synchronized(this) {
+            _lastLeaderActionTime = 0;
+        }
+    }
+
     void setState(Constants.FSMStates aState) {
         _fsmState.getAndSet(aState);
     }

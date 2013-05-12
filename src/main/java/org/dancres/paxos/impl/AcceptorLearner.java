@@ -521,6 +521,7 @@ public class AcceptorLearner {
                                     if ((_common.getLowWatermark().getSeqNum() == _recoveryWindow.get().getMaxSeq()) &&
                                             (_common.testAndSetState(Constants.FSMStates.RECOVERING,
                                                     Constants.FSMStates.ACTIVE))) {
+                                        _common.resetLeaderAction();
                                         completedRecovery();
                                     }
                                 }
