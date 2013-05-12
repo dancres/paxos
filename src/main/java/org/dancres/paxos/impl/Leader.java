@@ -157,7 +157,7 @@ class Leader implements MembershipListener, Instance {
                  */
             case VoteOutcome.Reason.OTHER_LEADER : {
                 return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
-                        _outcomes.getLast().getRndNumber() + 1, State.BEGIN);
+                        _outcomes.getLast().getRndNumber() + 1, State.COLLECT);
             }
 
                 /*
