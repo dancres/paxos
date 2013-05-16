@@ -93,6 +93,12 @@ public class PacketSorter {
         return aPackets;
     }
 
+    public void clear() {
+        synchronized(this) {
+            _packets.clear();
+        }
+    }
+
     public interface PacketProcessor {
         void consume(Transport.Packet aPacket);
 
