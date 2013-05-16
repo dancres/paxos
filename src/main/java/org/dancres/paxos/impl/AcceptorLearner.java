@@ -51,7 +51,6 @@ public class AcceptorLearner {
     private final AtomicReference<Need> _recoveryWindow = new AtomicReference<Need>(null);
 
     private final List<Listener> _listeners = new CopyOnWriteArrayList<Listener>();
-	private final BlockingQueue<Transport.Packet> _packetBuffer = new LinkedBlockingQueue<Transport.Packet>();
 
 	private final LogStorage _storage;
     private final Common _common;
@@ -288,9 +287,7 @@ public class AcceptorLearner {
             /*
              * Allow for the fact we might be actively processing packets. Mark ourselves shutdown and drain...
              */
-            synchronized(_packetBuffer) {
-        	    _common.setState(Constants.FSMStates.SHUTDOWN);
-            }
+            _common.setState(Constants.FSMStates.SHUTDOWN);
 
             _guardLock.lock();
 
@@ -310,7 +307,7 @@ public class AcceptorLearner {
             _common.clearLeadership();
             _common.install(Watermark.INITIAL);
 
-            _packetBuffer.clear();
+            _sorter.clear();
             _cachedBegins.clear();
 
             _storage.close();
@@ -425,7 +422,6 @@ public class AcceptorLearner {
                         Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
 
             _recoveryWindow.set(null);
-            _packetBuffer.clear();
             _cachedBegins.clear();
 
             return true;
