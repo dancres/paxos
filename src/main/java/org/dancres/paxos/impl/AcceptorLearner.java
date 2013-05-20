@@ -829,15 +829,13 @@ public class AcceptorLearner {
 
 	private PaxosMessage constructLast(long aSeqNum) {
 		Watermark myLow = _common.getLowWatermark();
-		
-		/*
-		 * If the sequence number is less than the current low watermark, we've got to check through the log file for
-		 * the value otherwise if it's present, it will be since the low watermark offset.
-		 */
+
 		Begin myState;
 		
 		try {
-			if ((myLow.equals(Watermark.INITIAL)) || (aSeqNum <= myLow.getSeqNum())) {
+            // If we know nothing, we must start from beginning of log otherwise we start from the low watermark.
+            //
+			if (myLow.equals(Watermark.INITIAL)) {
 				myState = new StateFinder(aSeqNum, 0).getState();
 			} else 
 				myState = new StateFinder(aSeqNum, myLow.getLogOffset()).getState();
@@ -850,18 +848,16 @@ public class AcceptorLearner {
             return new Last(aSeqNum, myLow.getSeqNum(), myState.getRndNumber(), myState.getConsolidatedValue());
 		} else {
             /*
-             * If we've got here, we've not found the sequence number in our log. If the sequence number is less
-             * than or equal our low watermark then we've checkpointed and gc'd the information into a snapshot. This
-             * means the leader is running sufficiently far behind that it mightn't be able to drive the current
-             * sequence number to completion, we must tell it.
+             * No state found. If we've gc'd and checkpointed, we can't provide an answer. In such a case,
+             * the leader is out of date and we tell them. Otherwise, we're clean and give the leader a green light.
              */
             if (aSeqNum <= myLow.getSeqNum())
                 return new OldRound(myLow.getSeqNum(), _common.getLeaderAddress(),
                         _common.getLeaderRndNum());
             else
                 return new Last(aSeqNum, myLow.getSeqNum(),
-                    Long.MIN_VALUE, Proposal.NO_VALUE);            
-		}
+                        Long.MIN_VALUE, Proposal.NO_VALUE);
+        }
 	}
 
     interface Sender {

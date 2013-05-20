@@ -269,7 +269,7 @@ class Leader implements MembershipListener, Instance {
 
             case BEGIN : {
                 Transport.Packet myLast = null;
-                
+
                 for(Transport.Packet p : _messages) {                    
                     Last myNewLast = (Last) p.getMessage();
 
@@ -466,6 +466,9 @@ class Leader implements MembershipListener, Instance {
      * essence if we've progressed through enough phases to get a majority commit we can go ahead and set the value as
      * any future leader wading in will pick up our value. NOTE: This optimisation requires the membership impl to
      * understand the concept of minimum acceptable majority.
+     *
+     * @todo Update OldRound handling - if we track all OldRounds and pick the highest by round and sequence number
+     * we can potentially accelerate recovery and reduce client disruption
      */
     public void messageReceived(Transport.Packet aPacket) {
         PaxosMessage myMessage = aPacket.getMessage();
