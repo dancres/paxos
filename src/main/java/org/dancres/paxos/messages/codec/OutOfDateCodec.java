@@ -5,16 +5,11 @@ import org.dancres.paxos.messages.OutOfDate;
 
 import java.nio.ByteBuffer;
 
-/**
- * @todo Sort out the phoney length on this message.
- */
 public class OutOfDateCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
-        OutOfDate myNeed = (OutOfDate) anObject;
-
         ByteBuffer myBuffer;
 
-        myBuffer = ByteBuffer.allocate(4 + 8 + 8);
+        myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(Operations.OUTOFDATE);
 
         myBuffer.flip();
@@ -22,7 +17,6 @@ public class OutOfDateCodec implements Codec {
     }
 
     public Object decode(ByteBuffer aBuffer) {
-        // Discard type
         aBuffer.getInt();
 
         return new OutOfDate();
