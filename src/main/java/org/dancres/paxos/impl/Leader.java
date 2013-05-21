@@ -62,11 +62,8 @@ class Leader implements MembershipListener, Instance {
     private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
     Leader(Common aCommon, LeaderFactory aFactory) {
-        _common = aCommon;
-        _factory = aFactory;
-        _startState = State.COLLECT;
-        _seqNum = _common.getLowWatermark().getSeqNum() + 1;
-        _rndNumber = _common.getLeaderRndNum() + 1;        
+        this(aCommon, aFactory, aCommon.getLowWatermark().getSeqNum() + 1,
+                aCommon.getLeaderRndNum() + 1, State.COLLECT);
     }
 
     private Leader(Common aCommon, LeaderFactory aFactory,
