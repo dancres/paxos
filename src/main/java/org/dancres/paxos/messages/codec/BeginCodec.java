@@ -6,9 +6,6 @@ import org.dancres.paxos.messages.Operations;
 
 import java.nio.ByteBuffer;
 
-/**
- * @todo Optimise a la LastCodec, we don't need that length integer as we can deduce it from the size of the buffer
- */
 class BeginCodec implements Codec {
     public ByteBuffer encode(Object anObject) {
         Begin myBegin = (Begin) anObject;
