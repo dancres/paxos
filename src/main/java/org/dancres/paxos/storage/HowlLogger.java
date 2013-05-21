@@ -12,7 +12,7 @@ public class HowlLogger implements LogStorage {
 	private static final int DEFAULT_RECORD_SIZE = 512;
 	
 	private Logger _logger;
-	private String _dir;
+	private final String _dir;
 	
 	public HowlLogger(String aDirectory) {
 		_dir = aDirectory;
@@ -50,7 +50,7 @@ public class HowlLogger implements LogStorage {
 	}
 	
 	private static class ListenerAdapter implements ReplayListener {
-		private RecordListener _listener;
+		private final RecordListener _listener;
 		
 		ListenerAdapter(RecordListener aListener) {
 			_listener = aListener;

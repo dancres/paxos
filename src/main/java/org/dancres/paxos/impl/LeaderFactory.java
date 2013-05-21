@@ -13,7 +13,7 @@ import java.util.TimerTask;
  *
  * @see Leader
  */
-public class LeaderFactory {
+class LeaderFactory {
     private static final Logger _logger = LoggerFactory.getLogger(LeaderFactory.class);
 
     public static final Proposal HEARTBEAT = new Proposal("heartbeat",
@@ -21,7 +21,7 @@ public class LeaderFactory {
     
     private final Common _common;
     private Leader _currentLeader;
-    private boolean _disableHeartbeats;
+    private final boolean _disableHeartbeats;
 
     /**
      * This alarm is used to ensure the leader sends regular heartbeats in the face of inactivity so as to extend

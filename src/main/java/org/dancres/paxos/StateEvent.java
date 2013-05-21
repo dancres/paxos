@@ -23,7 +23,7 @@ public class StateEvent {
          * This process is no longer lagging behind the paxos cluster and will report decisions accordingly.
          */
         UP_TO_DATE
-    };
+    }
 
     private final Reason _result;
     private final long _seqNum;

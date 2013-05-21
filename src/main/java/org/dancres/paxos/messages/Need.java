@@ -23,15 +23,6 @@ public class Need implements PaxosMessage {
 		return -1;
 	}
 
-    public int relativeToWindow(long aSeqNum) {
-        if (aSeqNum <= _minSeq)
-            return -1;
-        else if (aSeqNum > _maxSeq)
-            return 1;
-        else
-            return 0;
-    }
-
 	public int getType() {
 		return Operations.NEED;
 	}

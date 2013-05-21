@@ -5,7 +5,7 @@ public abstract class Constants {
 	
     public static final long NO_ROUND = -1;
     public static final long UNKNOWN_SEQ = -1;
-    public static volatile long _leaderLease = DEFAULT_LEADER_LEASE;
+    private static volatile long _leaderLease = DEFAULT_LEADER_LEASE;
 
     public enum FSMStates {INITIAL, ACTIVE, RECOVERING, OUT_OF_DATE, SHUTDOWN}
 

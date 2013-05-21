@@ -20,11 +20,11 @@ import java.net.InetSocketAddress;
  * <p>Metadata passed to the <code>ServerDispatcher</code> constructors will be advertised via Heartbeats.</p>
  */
 public class ServerDispatcher implements Transport.Dispatcher {
-    private static Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
+    private static final Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
-    protected Core _core;
-    protected Transport _tp;
-    protected Transport.Dispatcher _dispatcher;
+    private final Core _core;
+    private Transport _tp;
+    private Transport.Dispatcher _dispatcher;
 
     public ServerDispatcher(MessageBasedFailureDetector anFD, byte[] aMeta) {
         this(anFD, new MemoryLogStorage(), aMeta, false);

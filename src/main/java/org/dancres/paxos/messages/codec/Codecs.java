@@ -58,9 +58,9 @@ public class Codecs {
 
     public static InetSocketAddress expand(long anAddr) {
         byte[] myAddrBytes = new byte[4];
-        int myPort = (int) anAddr & 0xFFFFFFFF;
+        int myPort = (int) anAddr;
 
-        long myAddr = (anAddr >> 32) & 0xFFFFFFFF;
+        long myAddr = (anAddr >> 32);
 
         for (int i = 3; i > -1; i--) {
             myAddrBytes[i] = (byte) (myAddr & 0xFF);

@@ -65,7 +65,7 @@ public class NullFailureDetector implements MessageBasedFailureDetector {
         public boolean startInteraction() {
 			return true;
 		}			
-	};
+	}
 
 	public boolean couldComplete() {
 		return true;
