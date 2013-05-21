@@ -142,14 +142,14 @@ class LeaderFactory {
         }
     }
 
-    void messageReceived(Transport.Packet aPacket) {
+    void processMessage(Transport.Packet aPacket) {
         _logger.debug("Got packet for leaders: " + aPacket.getSource() + "->" + aPacket.getMessage());
         
         synchronized(this) {
             _logger.debug("Routing packet to leader " + _currentLeader);
 
             if (_currentLeader != null)
-                _currentLeader.messageReceived(aPacket);
+                _currentLeader.processMessage(aPacket);
         }
     }
 }

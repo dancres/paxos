@@ -470,7 +470,7 @@ class Leader implements MembershipListener, Instance {
      * @todo Update OldRound handling - if we track all OldRounds and pick the highest by round and sequence number
      * we can potentially accelerate recovery and reduce client disruption
      */
-    public void messageReceived(Transport.Packet aPacket) {
+    public void processMessage(Transport.Packet aPacket) {
         PaxosMessage myMessage = aPacket.getMessage();
 
         assert (myMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";

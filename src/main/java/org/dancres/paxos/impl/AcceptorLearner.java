@@ -459,7 +459,7 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-	public void messageReceived(Transport.Packet aPacket) {
+	public void processMessage(Transport.Packet aPacket) {
         // Silently drop packets once we're shutdown - this is internal implementation so don't throw public exceptions
         //
         if (guard())

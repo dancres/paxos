@@ -112,7 +112,7 @@ public class CheckpointHandleTest {
         
         // First collect, Al has no state so this is accepted and will be held in packet buffer
         //
-        myAl.messageReceived(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum)));
+        myAl.processMessage(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum)));
 
         PaxosMessage myResponse = myTransport.getNextMsg();
         Assert.assertTrue(myResponse.getType() == Operations.LAST);
@@ -124,7 +124,7 @@ public class CheckpointHandleTest {
         myValue.put("data", myData);
         myValue.put("handback", HANDBACK);
 
-        myAl.messageReceived(new FakePacket(_nodeId,
+        myAl.processMessage(new FakePacket(_nodeId,
                 new Begin(mySeqNum, myRndNum, myValue)));
 
         myResponse = myTransport.getNextMsg();
@@ -132,7 +132,7 @@ public class CheckpointHandleTest {
 
         // Commit this instance
         //
-        myAl.messageReceived(new FakePacket(_nodeId, new Learned(mySeqNum, myRndNum)));
+        myAl.processMessage(new FakePacket(_nodeId, new Learned(mySeqNum, myRndNum)));
 
         CheckpointHandle mySecondHandle = myAl.newCheckpoint();
         
@@ -140,7 +140,7 @@ public class CheckpointHandleTest {
 
         // Execute and commit another instance
         //
-        myAl.messageReceived(new FakePacket(_nodeId,
+        myAl.processMessage(new FakePacket(_nodeId,
                 new Begin(mySeqNum + 1, myRndNum, myValue)));
 
         myResponse = myTransport.getNextMsg();
@@ -148,7 +148,7 @@ public class CheckpointHandleTest {
 
         // Commit this instance
         //
-        myAl.messageReceived(new FakePacket(_nodeId, new Learned(mySeqNum + 1, myRndNum)));
+        myAl.processMessage(new FakePacket(_nodeId, new Learned(mySeqNum + 1, myRndNum)));
 
         CheckpointHandle myThirdHandle = myAl.newCheckpoint();
 
