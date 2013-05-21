@@ -113,10 +113,10 @@ class Leader implements MembershipListener, Instance {
     }
 
     private void cleanUp() {
-     _messages.clear();
+        _messages.clear();
 
-     if (_membership != null)
-         _membership.dispose();       
+        if (_membership != null)
+            _membership.dispose();
     }
 
     private void reportOutcome() {
