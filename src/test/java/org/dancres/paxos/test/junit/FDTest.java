@@ -1,8 +1,7 @@
 package org.dancres.paxos.test.junit;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.impl.MembershipListener;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
+import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;

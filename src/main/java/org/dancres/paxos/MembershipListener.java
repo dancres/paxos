@@ -1,4 +1,4 @@
-package org.dancres.paxos.impl;
+package org.dancres.paxos;
 
 /**
  * Registered with a <code>FailureDetector</code> instance to track critical membership lifecycle events.

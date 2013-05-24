@@ -1,8 +1,6 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.Completion;
-import org.dancres.paxos.Proposal;
-import org.dancres.paxos.VoteOutcome;
+import org.dancres.paxos.*;
 import org.dancres.paxos.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
