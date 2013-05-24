@@ -23,6 +23,7 @@ class Leader implements MembershipListener, Instance {
     
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
 
+    private static final List<Transport.Packet> NO_MESSAGES = Collections.emptyList();
     private static final long GRACE_PERIOD = 1000;
 
     private static final long MAX_TRIES = 3;
@@ -82,7 +83,8 @@ class Leader implements MembershipListener, Instance {
             if ((! isDone()) && (_currentState != State.SHUTDOWN)) {
     		    _currentState = State.SHUTDOWN;
                 _outcomes.clear();
-                process();
+
+                process(NO_MESSAGES);
             }
     	}
     }
@@ -108,8 +110,6 @@ class Leader implements MembershipListener, Instance {
     }
 
     private void cleanUp() {
-        _messages.clear();
-
         if (_membership != null)
             _membership.dispose();
     }
@@ -191,7 +191,7 @@ class Leader implements MembershipListener, Instance {
      * @todo Shutdown needs sorting in the context of chained leaders (which can't happen whilst nextLeader
      * is a blocking implementation).
      */
-    private void process() {
+    private void process(List<Transport.Packet> aMessages) {
         switch (_currentState) {
             case SHUTDOWN : {
                 _logger.info(stateToString());
@@ -240,7 +240,7 @@ class Leader implements MembershipListener, Instance {
                         _membership.getSize() + ")");
 
                 _currentState = _startState;
-                process();
+                process(NO_MESSAGES);
 
                 break;
             }
@@ -265,7 +265,7 @@ class Leader implements MembershipListener, Instance {
             case BEGIN : {
                 Transport.Packet myLast = null;
 
-                for(Transport.Packet p : _messages) {                    
+                for(Transport.Packet p : aMessages) {
                     Last myNewLast = (Last) p.getMessage();
 
                     if (! myNewLast.getConsolidatedValue().equals(Proposal.NO_VALUE)) {
@@ -298,7 +298,7 @@ class Leader implements MembershipListener, Instance {
             }
 
             case SUCCESS : {
-                if (_messages.size() >= _common.getPrivateFD().getMajority()) {
+                if (aMessages.size() >= _common.getPrivateFD().getMajority()) {
                     // Send success
                     //
                     emit(new Learned(_seqNum, _rndNumber));
@@ -332,7 +332,7 @@ class Leader implements MembershipListener, Instance {
         _outcomes.add(new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
                 myOldRound.getLastRound(), _prop, myCompetingNodeId));
 
-        process();
+        process(NO_MESSAGES);
     }
 
     private void successful(int aReason) {
@@ -340,7 +340,7 @@ class Leader implements MembershipListener, Instance {
         _outcomes.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
                 _common.getTransport().getLocalAddress()));
 
-        process();
+        process(NO_MESSAGES);
     }
 
     private void error(int aReason) {
@@ -353,12 +353,10 @@ class Leader implements MembershipListener, Instance {
         
         _logger.info(stateToString() + " : " + _outcomes);
 
-        process();
+        process(NO_MESSAGES);
     }
 
     private void emit(PaxosMessage aMessage) {
-        _messages.clear();
-
         if (startInteraction()) {
             _logger.info(stateToString() + " : " + aMessage);
 
@@ -393,7 +391,8 @@ class Leader implements MembershipListener, Instance {
             cancelInteraction();
 
             _tries = 0;
-            process();
+            process(_messages);
+            _messages.clear();
         }
     }
 
@@ -414,7 +413,8 @@ class Leader implements MembershipListener, Instance {
 
                 if (_tries < MAX_TRIES) {
                 	cancelInteraction();
-                    process();
+                    process(_messages);
+                    _messages.clear();
                     return;
                 }
             }
@@ -448,7 +448,7 @@ class Leader implements MembershipListener, Instance {
 
             _currentState = State.SUBMITTED;
 
-            process();
+            process(NO_MESSAGES);
         }
     }
 
