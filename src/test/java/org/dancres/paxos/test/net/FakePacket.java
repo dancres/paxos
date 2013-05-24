@@ -1,7 +1,7 @@
 package org.dancres.paxos.test.net;
 
 import java.net.InetSocketAddress;
-import java.net.InetAddress;
+import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.impl.Transport;
 
@@ -13,9 +13,9 @@ public class FakePacket implements Transport.Packet {
         _message = aMessage;
 
         try {
-            _address = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
+            _address = new InetSocketAddress(Utils.getWorkableInterface(), 12345);
         } catch (Exception anE) {
-            throw new RuntimeException("No localhost address, doomed");
+            throw new RuntimeException("No localhost address, doomed", anE);
         }
     }
 

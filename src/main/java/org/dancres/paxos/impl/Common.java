@@ -1,6 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
@@ -35,8 +36,9 @@ public class Common {
             _message = aMessage;
 
             try {
-                _address = new InetSocketAddress(InetAddress.getLocalHost(), 12345);
+                _address = new InetSocketAddress(Utils.getWorkableInterface(), 12345);
             } catch (Exception anE) {
+                _logger.error("Problems getting a useful address for FakePacket", anE);
                 throw new RuntimeException("No localhost address, doomed");
             }
         }
