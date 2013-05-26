@@ -8,13 +8,14 @@ import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Heartbeater;
 
 import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 public class NullFailureDetector implements MessageBasedFailureDetector {
 
-	public Membership getMembers(MembershipListener aListener) {
-		return new MembershipImpl(aListener);
+	public Membership getMembers() {
+		return new MembershipImpl();
 	}
 
     public Map<InetSocketAddress, MetaData> getMemberMap() {
@@ -37,34 +38,23 @@ public class NullFailureDetector implements MessageBasedFailureDetector {
     }
 
     class MembershipImpl implements Membership {
-		private MembershipListener _listener;
 		private int _responseCount = 2;
 		
-		MembershipImpl(MembershipListener aListener) {
-			_listener = aListener;
+		MembershipImpl() {
 		}
 		
-		public void dispose() {
-		}
-
 		public int getSize() {
 			return 2;
 		}
 
-		public boolean receivedResponse(InetSocketAddress aInetSocketAddress) {
-			synchronized(this) {
-				--_responseCount;
-				if (_responseCount == 0)
-					_listener.allReceived();
-			}
-			
-			return true;
-		}
+        public boolean couldComplete() {
+            return true;
+        }
 
-        public boolean startInteraction() {
-			return true;
-		}			
-	}
+        public boolean isMajority(Collection<InetSocketAddress> aListOfAddresses) {
+            return (aListOfAddresses.size() >= _responseCount);
+        }
+    }
 
 	public boolean couldComplete() {
 		return true;

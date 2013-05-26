@@ -19,7 +19,7 @@ import java.util.concurrent.LinkedBlockingDeque;
  *
  * @author dan
  */
-class Leader implements MembershipListener, Instance {
+class Leader implements Instance {
     
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
 
@@ -109,11 +109,6 @@ class Leader implements MembershipListener, Instance {
         }
     }
 
-    private void cleanUp() {
-        if (_membership != null)
-            _membership.dispose();
-    }
-
     private void reportOutcome() {
         /*
          * First outcome is always the one we report to the submitter even if there are others (available via
@@ -196,8 +191,6 @@ class Leader implements MembershipListener, Instance {
             case SHUTDOWN : {
                 _logger.info(stateToString());
                 
-                cleanUp();
-
                 if (_interactionAlarm != null)
                     cancelInteraction();
 
@@ -209,9 +202,8 @@ class Leader implements MembershipListener, Instance {
             case ABORT : {
                 _logger.info(stateToString() + " : " + _outcomes);
 
-                cancelInteraction();
-
-                cleanUp();
+                if (_interactionAlarm != null)
+                    cancelInteraction();
 
                 _factory.dispose(this);
 
@@ -223,8 +215,6 @@ class Leader implements MembershipListener, Instance {
             case EXIT : {
             	_logger.info(stateToString() + " : " + _outcomes);
 
-                cleanUp();
-
                 _factory.dispose(this);
 
                 reportOutcome();
@@ -233,8 +223,12 @@ class Leader implements MembershipListener, Instance {
             }
 
             case SUBMITTED : {
-                _currentState = _startState;
-                process(NO_MESSAGES);
+                if (! _membership.couldComplete()) {
+                    error(VoteOutcome.Reason.BAD_MEMBERSHIP);
+                } else {
+                    _currentState = _startState;
+                    process(NO_MESSAGES);
+                }
 
                 break;
             }
@@ -351,14 +345,14 @@ class Leader implements MembershipListener, Instance {
     }
 
     private void emit(PaxosMessage aMessage) {
-        if (startInteraction()) {
-            _logger.info(stateToString() + " : " + aMessage);
+        startInteraction();
 
-            _common.getTransport().send(aMessage, _common.getTransport().getBroadcastAddress());
-        }
+        _logger.info(stateToString() + " : " + aMessage);
+
+        _common.getTransport().send(aMessage, _common.getTransport().getBroadcastAddress());
     }
 
-    private boolean startInteraction() {
+    private void startInteraction() {
         assert _interactionAlarm == null;
 
         _interactionAlarm = new TimerTask() {
@@ -368,26 +362,6 @@ class Leader implements MembershipListener, Instance {
         };
 
         _common.getWatchdog().schedule(_interactionAlarm, GRACE_PERIOD);
-
-        return _membership.startInteraction();
-    }
-
-    public void abort() {
-        _logger.info(stateToString() + " : Membership requested abort");
-
-        synchronized(this) {
-            error(VoteOutcome.Reason.BAD_MEMBERSHIP);
-        }
-    }
-
-    public void allReceived() {
-        synchronized(this) {
-            cancelInteraction();
-
-            _tries = 0;
-            process(_messages);
-            _messages.clear();
-        }
     }
 
     private void cancelInteraction() {
@@ -443,7 +417,7 @@ class Leader implements MembershipListener, Instance {
             _tries = 0;
             _currentState = State.SUBMITTED;
 
-            _membership = _common.getPrivateFD().getMembers(this);
+            _membership = _common.getPrivateFD().getMembers();
 
             _logger.debug(stateToString() + " : got membership: (" +
                     _membership.getSize() + ")");
@@ -487,8 +461,21 @@ class Leader implements MembershipListener, Instance {
                         oldRound(myMessage);
                     } else {
                         _messages.add(aPacket);
-                        _membership.receivedResponse(aPacket.getSource());
+
+                        List<InetSocketAddress> myRespondingAddresses = new LinkedList<InetSocketAddress>();
+
+                        for (Transport.Packet myPacket : _messages)
+                            myRespondingAddresses.add(myPacket.getSource());
+
+                        if (_membership.isMajority(myRespondingAddresses)) {
+                            cancelInteraction();
+
+                            _tries = 0;
+                            process(_messages);
+                            _messages.clear();
+                        }
                     }
+
                     return;
                 }
             }

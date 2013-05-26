@@ -32,9 +32,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
     private final Random _random = new Random();
     private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats =
             new ConcurrentHashMap<InetSocketAddress, MetaDataImpl>();
-    private final ExecutorService _executor = Executors.newFixedThreadPool(1);
     private final Timer _tasks = new Timer();
-    private final CopyOnWriteArraySet<MembershipImpl> _activeMemberships;
     private final long _maximumPeriodOfUnresponsiveness;
     private final AtomicBoolean _stopping = new AtomicBoolean(false);
     private final int _majority;
@@ -66,7 +64,6 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
     public FailureDetectorImpl(int aClusterSize, long anUnresponsivenessThreshold) {
         _majority = calculateMajority(aClusterSize);
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
-        _activeMemberships = new CopyOnWriteArraySet<MembershipImpl>();
         _tasks.schedule(new ScanImpl(), 0, (_maximumPeriodOfUnresponsiveness / 5));
     }
 
@@ -89,7 +86,6 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
     public void stop() {
         _stopping.set(true);
         _tasks.cancel();
-    	_executor.shutdownNow();
     }
     
     public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
@@ -111,7 +107,6 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
                 //
                 if (myTimeout < myMinTime) {
                     myProcesses.remove();
-                    sendDead(myAddress);
                 }
             }
         }
@@ -142,15 +137,6 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
                     break;
                 }
             }
-
-            if ((myLast == null) && (! _stopping.get()))
-                _executor.submit(
-                        new Runnable() {
-                            public void run() {
-                                for (MembershipImpl myListener : _activeMemberships)
-                                    myListener.alive(myNodeId);
-                            }
-                        });
         }
     }
 
@@ -176,13 +162,8 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
         return new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats);
     }
 
-    public Membership getMembers(MembershipListener aListener) {
-        MembershipImpl myMembership = new MembershipImpl(aListener);
-        _activeMemberships.add(myMembership);
-
-        myMembership.populate(new HashSet(_lastHeartbeats.keySet()));
-
-        return myMembership;
+    public Membership getMembers() {
+        return new MembershipImpl(new HashSet(_lastHeartbeats.keySet()));
     }
 
     public InetSocketAddress getRandomMember(InetSocketAddress aLocalAddress) {
@@ -190,11 +171,6 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
 
         myMembers.remove(aLocalAddress);
         return myMembers.get(_random.nextInt(myMembers.size()));
-    }
-
-    private void sendDead(InetSocketAddress aProcess) {
-        for (MembershipImpl myListener : _activeMemberships)
-            myListener.dead(aProcess);
     }
 
     /**
@@ -207,133 +183,23 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
         /**
          * Tracks the membership that forms the base for each round
          */
-        private final Set<InetSocketAddress> _initialMemberAddresses = new HashSet<InetSocketAddress>();
+        private final Set<InetSocketAddress> _initialMemberAddresses;
 
-        /**
-         * Tracks the members that have yet to respond in a round
-         */
-        private Set<InetSocketAddress> _outstandingMemberAddresses;
-
-        private boolean _populated = false;
-        private final MembershipListener _listener;
-
-        private int _expectedResponses;
-        private int _receivedResponses;
-
-        private final AtomicBoolean _disposed = new AtomicBoolean(false);
-
-        MembershipImpl(MembershipListener aListener) {
-            _listener = aListener;
-        }
-
-        public boolean startInteraction() {
-            synchronized(this) {
-                if (!abort()) {
-                    _receivedResponses = 0;
-                    _expectedResponses = _initialMemberAddresses.size();
-                    _outstandingMemberAddresses = new HashSet(_initialMemberAddresses);
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        }
-
-        public boolean receivedResponse(InetSocketAddress anAddress) {
-            synchronized(this) {
-                if (_outstandingMemberAddresses.remove(anAddress)) {
-                    ++_receivedResponses;
-                    interactionComplete();
-                    return true;
-                } else {
-                    _logger.warn("Not an expected response: " + anAddress);
-                    return false;
-                }
-            }
-        }
-
-        public void alive(InetSocketAddress aProcess) {
-            // Not interested in new arrivals
-        }
-
-        public void dead(InetSocketAddress aProcess) {
-            _logger.warn("Death detected: " + aProcess);
-
-            synchronized(this) {
-                // Delay messages until we've got a member set
-                while (! _populated) {
-                    try {
-                        wait();
-                    } catch (InterruptedException anIE) {
-                    }
-                }
-
-                _outstandingMemberAddresses.remove(aProcess);
-                _initialMemberAddresses.remove(aProcess);
-
-                // startInteraction will reset this so if we get a dead before then, it should be recorded
-                //
-                --_expectedResponses;
-
-                if (abort())
-                    return;
-
-                interactionComplete();
-            }
-        }
-
-        void populate(Set<InetSocketAddress> anActiveAddresses) {
-            _logger.debug("Populating membership");
-
-            synchronized(this) {
-                _logger.debug("Populating membership - got lock");
-
-                _initialMemberAddresses.addAll(anActiveAddresses);
-
-                _logger.debug("Populating membership - addresses added");
-
-                _populated = true;
-
-                // Now we have a member set, accept updates
-                notifyAll();
-            }
+        MembershipImpl(Set<InetSocketAddress> anInitialAddresses) {
+            _initialMemberAddresses = anInitialAddresses;
         }
 
         public int getSize() {
             return _initialMemberAddresses.size();
         }
 
-        public void dispose() {
-            _logger.debug("Membership disposed");
-
-            _activeMemberships.remove(this);
-            _disposed.set(true);
+        public boolean couldComplete() {
+            return (_initialMemberAddresses.size() >= _majority);
         }
 
-        private boolean interactionComplete() {
-            if ((_receivedResponses == _expectedResponses) || (_receivedResponses >= getMajority())) {
-                _listener.allReceived();
-                return true;
-            }
-
-            return false;
+        public boolean isMajority(Collection<InetSocketAddress> aListOfAddresses) {
+            return ((_initialMemberAddresses.containsAll(aListOfAddresses)) &&
+                    aListOfAddresses.size() >= _majority);
         }
-
-        private boolean abort() {
-            if (_initialMemberAddresses.size() < getMajority()) {
-                _listener.abort();
-                return true;
-            }
-
-            return false;
-        }
-
-        protected void finalize() throws Throwable {
-            if (_disposed.get())
-                return;
-
-            System.err.println("Membership was not disposed");
-            System.err.flush();
-        }
-    }    
+    }
 }
