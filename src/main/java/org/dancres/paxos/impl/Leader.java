@@ -462,7 +462,7 @@ class Leader implements Instance {
                     } else {
                         _messages.add(aPacket);
 
-                        List<InetSocketAddress> myRespondingAddresses = new LinkedList<InetSocketAddress>();
+                        Set<InetSocketAddress> myRespondingAddresses = new HashSet<InetSocketAddress>();
 
                         for (Transport.Packet myPacket : _messages)
                             myRespondingAddresses.add(myPacket.getSource());
