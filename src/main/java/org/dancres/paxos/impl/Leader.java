@@ -233,11 +233,6 @@ class Leader implements MembershipListener, Instance {
             }
 
             case SUBMITTED : {
-                _membership = _common.getPrivateFD().getMembers(this);
-
-                _logger.debug(stateToString() + " : got membership: (" +
-                        _membership.getSize() + ")");
-
                 _currentState = _startState;
                 process(NO_MESSAGES);
 
@@ -447,6 +442,11 @@ class Leader implements MembershipListener, Instance {
 
             _tries = 0;
             _currentState = State.SUBMITTED;
+
+            _membership = _common.getPrivateFD().getMembers(this);
+
+            _logger.debug(stateToString() + " : got membership: (" +
+                    _membership.getSize() + ")");
 
             process(NO_MESSAGES);
         }
