@@ -11,7 +11,7 @@ public class StateEvent {
          * Paxos has agreed a value for the specified instance. The reported value should be applied to the
          * system state (after which an optional checkpoint could be requested).
          */
-        DECISION,
+        VALUE,
 
         /**
          * This process is now lagging too far behind the others in the paxos cluster and must be brought back into

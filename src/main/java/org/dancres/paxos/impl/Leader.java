@@ -114,7 +114,7 @@ class Leader implements Instance {
          * First outcome is always the one we report to the submitter even if there are others (available via
          * getOutcomes()). Multiple outcomes occur when we detect a previously proposed value and must drive it
          * to completion. The originally submitted value will need re-submitting. Hence submitter is told
-         * OTHER_VALUE whilst AL listeners will see DECISION containing the previously proposed value.
+         * OTHER_VALUE whilst AL listeners will see VALUE containing the previously proposed value.
          */
         _submitter.complete(_outcomes.getFirst());
         followUp();
@@ -133,7 +133,7 @@ class Leader implements Instance {
                 /*
                  * We can apply multi-paxos. Next sequence number and round number needn't change.
                  */
-            case VoteOutcome.Reason.DECISION : {
+            case VoteOutcome.Reason.VALUE: {
                 return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
                         _outcomes.getLast().getRndNumber(), State.BEGIN);
             }
@@ -291,7 +291,7 @@ class Leader implements Instance {
                     //
                     emit(new Learned(_seqNum, _rndNumber));
                     cancelInteraction();
-                    successful(VoteOutcome.Reason.DECISION);
+                    successful(VoteOutcome.Reason.VALUE);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //

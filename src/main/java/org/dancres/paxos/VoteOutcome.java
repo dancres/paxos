@@ -10,7 +10,7 @@ public class VoteOutcome {
         /**
          * Paxos has agreed a value for the specified instance
          */
-		public static final int DECISION = 0;
+		public static final int VALUE = 0;
 
         /**
          * The process attempting to lead an instance has found another leader active and given-up. Round and instance
@@ -36,7 +36,7 @@ public class VoteOutcome {
          */
         public static final int OTHER_VALUE = 4;
         
-        private static final String[] _names = {"Decision", "Other Leader", "Vote Timeout", "Bad Membership",
+        private static final String[] _names = {"Value", "Other Leader", "Vote Timeout", "Bad Membership",
         	"Other Value"};
         
         public static String nameFor(int aCode) {

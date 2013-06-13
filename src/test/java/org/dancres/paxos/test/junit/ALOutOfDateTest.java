@@ -3,7 +3,6 @@ package org.dancres.paxos.test.junit;
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -85,7 +84,7 @@ public class ALOutOfDateTest {
 
             Assert.assertFalse((myEv == null));
 
-            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
+            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VALUE);
 
             Assert.assertTrue(myEv.getSeqNum() == i);
         }

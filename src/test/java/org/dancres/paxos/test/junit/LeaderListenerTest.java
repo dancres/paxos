@@ -67,7 +67,7 @@ public class LeaderListenerTest {
 
             Assert.assertFalse((myEv == null));
 
-            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
+            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VALUE);
             Assert.assertTrue(myEv.getSeqNum() == i);
         }
 

@@ -86,7 +86,7 @@ public class OutOfDateLeaderTest {
 
             Assert.assertFalse((myEv == null));
 
-            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
+            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VALUE);
 
             Assert.assertTrue(myEv.getSeqNum() == i);
         }
@@ -141,7 +141,7 @@ public class OutOfDateLeaderTest {
          * response. When it doesn't get it, there will be a timeout announced by watchdog causing a fail and in turn
          * user code would normally retry.
          */
-        Assert.assertTrue((VoteOutcome.Reason.DECISION == myMsg.getResult()) ||
+        Assert.assertTrue((VoteOutcome.Reason.VALUE == myMsg.getResult()) ||
                 (VoteOutcome.Reason.VOTE_TIMEOUT == myMsg.getResult()));
 
         System.err.println("Wait for settle");

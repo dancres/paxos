@@ -2,7 +2,6 @@ package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.AcceptorLearner;
@@ -69,7 +68,7 @@ public class IgnoreCollectsTest {
 
         Assert.assertFalse((myEv == null));
 
-        Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
+        Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VALUE);
 
         // Now we have an active leader, make sure acceptor learners ignore contenders
         AcceptorLearner myAl = _node2.getAcceptorLearner();

@@ -12,10 +12,8 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
@@ -812,7 +810,7 @@ public class AcceptorLearner {
                             _logger.info("AL:Learnt value: " + mySeqNum + ", " +
                                     _common.getTransport().getLocalAddress());
 
-                            signal(new StateEvent(StateEvent.Reason.DECISION, mySeqNum,
+                            signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
                                     _common.getLeaderRndNum(),
                                     myBegin.getConsolidatedValue(), aPacket.getSource()));
                         }

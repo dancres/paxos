@@ -1,9 +1,7 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
@@ -76,7 +74,7 @@ public class LeaderConflictTest {
         myTransport2.terminate();
 
         Assert.assertTrue(
-        		(myMsg1.getResult() == VoteOutcome.Reason.OTHER_LEADER && myMsg2.getResult() == VoteOutcome.Reason.DECISION) ||
-        		(myMsg1.getResult() == VoteOutcome.Reason.DECISION && myMsg2.getResult() == VoteOutcome.Reason.OTHER_LEADER));        
+        		(myMsg1.getResult() == VoteOutcome.Reason.OTHER_LEADER && myMsg2.getResult() == VoteOutcome.Reason.VALUE) ||
+        		(myMsg1.getResult() == VoteOutcome.Reason.VALUE && myMsg2.getResult() == VoteOutcome.Reason.OTHER_LEADER));
     }
 }

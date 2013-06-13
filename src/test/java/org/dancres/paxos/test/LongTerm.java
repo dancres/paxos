@@ -393,7 +393,7 @@ public class LongTerm {
 
             if (myEv.getResult() == VoteOutcome.Reason.OTHER_LEADER) {
                 _env.updateLeader(myEv.getLeader());
-            } else if (myEv.getResult() == VoteOutcome.Reason.DECISION) {
+            } else if (myEv.getResult() == VoteOutcome.Reason.VALUE) {
                 if (opsSinceCkpt >= _env._ckptCycle) {
                     _env.checkpoint();
 

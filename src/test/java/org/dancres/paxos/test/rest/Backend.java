@@ -168,7 +168,7 @@ public class Backend {
                     VoteOutcome myOutcome = myResult.await();
 
                     switch (myOutcome.getResult()) {
-                        case VoteOutcome.Reason.DECISION : {
+                        case VoteOutcome.Reason.VALUE: {
                             response.status(200);
                             
                             return request.body();
@@ -231,7 +231,7 @@ public class Backend {
             Proposal myCommittedProp = anEvent.getValues();
 
             switch (anEvent.getResult()) {
-                case DECISION: {
+                case VALUE: {
                     _keyValues.put(new String(myCommittedProp.get("KEY")),
                             new String(myCommittedProp.get("VALUE")));
 

@@ -97,7 +97,7 @@ class LeaderFactory {
     void dispose(Leader aLeader) {
         synchronized(this) {
             switch (_currentLeader.getOutcomes().getLast().getResult()) {
-                case VoteOutcome.Reason.DECISION : {
+                case VoteOutcome.Reason.VALUE: {
                     if (! _disableHeartbeats) {
                         // Still leader so heartbeat
                         //

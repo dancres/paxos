@@ -2,7 +2,6 @@ package org.dancres.paxos.test.junit;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
@@ -68,7 +67,7 @@ public class SuccessfulSequenceTest {
 
             Assert.assertFalse((myEv == null));
 
-            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.DECISION);
+            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VALUE);
             Assert.assertTrue(myEv.getSeqNum() == i);
         }
         
