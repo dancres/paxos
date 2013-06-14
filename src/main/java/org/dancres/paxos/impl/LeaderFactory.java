@@ -13,13 +13,14 @@ import java.util.TimerTask;
  *
  * @see Leader
  */
-class LeaderFactory {
+class LeaderFactory implements InstanceStateFactory.Listener {
     private static final Logger _logger = LoggerFactory.getLogger(LeaderFactory.class);
 
     public static final Proposal HEARTBEAT = new Proposal("heartbeat",
             "org.dancres.paxos.Heartbeat".getBytes());
     
     private final Common _common;
+    private InstanceStateFactory _stateFactory;
     private Leader _currentLeader;
     private final boolean _disableHeartbeats;
 
@@ -29,19 +30,9 @@ class LeaderFactory {
      */
     private TimerTask _heartbeatAlarm;
 
-    LeaderFactory(Common aCommon, AcceptorLearner anAL, boolean isDisableHeartbeats) {
+    LeaderFactory(Common aCommon, boolean isDisableHeartbeats) {
         _common = aCommon;
         _disableHeartbeats = isDisableHeartbeats;
-
-        anAL.add(new Listener() {
-            public void transition(StateEvent anEvent) {
-                if (anEvent.getResult() == StateEvent.Reason.OUT_OF_DATE) {
-                    synchronized (this) {
-                        killHeartbeats();
-                    }
-                }
-            }
-        });
     }
 
     /**
@@ -77,8 +68,13 @@ class LeaderFactory {
 
     private Leader newLeaderImpl() {
         if (_currentLeader == null) {
-            _currentLeader = new Leader(_common, this,
-                    new InstanceStateFactory(_common.getLowWatermark().getSeqNum(), _common.getLeaderRndNum()));
+            _stateFactory = new InstanceStateFactory(_common.getLowWatermark().getSeqNum(), _common.getLeaderRndNum());
+
+            if (! _disableHeartbeats)
+                _stateFactory.add(this);
+
+            _currentLeader = new Leader(_common, _stateFactory);
+
         } else {
             CompletionImpl<Leader> myResult = new CompletionImpl<Leader>();
 
@@ -89,43 +85,31 @@ class LeaderFactory {
         return _currentLeader;
     }
 
+    public void inFlight() {
+        killHeartbeats();
+    }
+
     /**
      *
      * @todo Increment round number via heartbeats every so often to avoid jittering collects
-     *
-     * @param aLeader
      */
-    void dispose(Leader aLeader) {
-        synchronized(this) {
-            switch (_currentLeader.getOutcomes().getLast().getResult()) {
-                case VoteOutcome.Reason.VALUE: {
-                    if (! _disableHeartbeats) {
-                        // Still leader so heartbeat
-                        //
-                        _heartbeatAlarm = new TimerTask() {
-                            public void run() {
-                                _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
+    public void allConcluded() {
+        if (_stateFactory.amLeader()) {
+            // Still leader so heartbeat
+            //
+            _heartbeatAlarm = new TimerTask() {
+                public void run() {
+                    _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
 
-                                newLeaderImpl().submit(HEARTBEAT, new Completion<VoteOutcome>() {
-                                    public void complete(VoteOutcome anOutcome) {
-                                        // Do nothing
-                                    }
-                                });
-                            }
-                        };
-
-                        _common.getWatchdog().schedule(_heartbeatAlarm, calculateLeaderRefresh());
-                    }
+                    newLeaderImpl().submit(HEARTBEAT, new Completion<VoteOutcome>() {
+                        public void complete(VoteOutcome anOutcome) {
+                            // Do nothing
+                        }
+                    });
                 }
+            };
 
-                default : {
-                    // Not leader, nothing to do
-                    //
-                    break;
-                }
-            }
-            
-            notify();
+            _common.getWatchdog().schedule(_heartbeatAlarm, calculateLeaderRefresh());
         }
     }
 

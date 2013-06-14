@@ -40,7 +40,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         _log = aLogger;
         _common = new Common(anFD);
         _al = new AcceptorLearner(_log, _common, aListener);
-        _ld = new LeaderFactory(_common, _al, isDisableLeaderHeartbeats);
+        _ld = new LeaderFactory(_common, isDisableLeaderHeartbeats);
         _handle = aHandle;
     }
 

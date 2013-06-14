@@ -27,6 +27,12 @@ public class InstanceStateFactory {
         _amLeader = false;
     }
 
+    public boolean amLeader() {
+        synchronized (_inflight) {
+            return _amLeader;
+        }
+    }
+
     public void add(Listener aListener) {
         _listeners.add(aListener);
     }

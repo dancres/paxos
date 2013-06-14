@@ -29,7 +29,6 @@ class Leader implements Instance {
     private static final long MAX_TRIES = 3;
 
     private final Common _common;
-    private final LeaderFactory _factory;
     private final InstanceStateFactory _stateFactory;
 
     private final long _seqNum;
@@ -61,9 +60,8 @@ class Leader implements Instance {
 
     private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
-    Leader(Common aCommon, LeaderFactory aFactory, InstanceStateFactory aStateFactory) {
+    Leader(Common aCommon, InstanceStateFactory aStateFactory) {
         _common = aCommon;
-        _factory = aFactory;
         _stateFactory = aStateFactory;
 
         Instance myInstance = aStateFactory.nextInstance(0);
@@ -109,7 +107,6 @@ class Leader implements Instance {
     }
 
     private void reportOutcome() {
-        _factory.dispose(this);
         _stateFactory.conclusion(this, _outcomes.getLast());
 
         /*
@@ -130,7 +127,7 @@ class Leader implements Instance {
     }
 
     private Leader constructFollowing() {
-        return new Leader(_common, _factory, _stateFactory);
+        return new Leader(_common, _stateFactory);
     }
 
     /**
