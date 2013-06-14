@@ -17,7 +17,6 @@ public class Core implements Transport.Dispatcher, Paxos {
     private final byte[] _meta;
     private final AcceptorLearner _al;
     private final LeaderFactory _ld;
-    private final LogStorage _log;
     private final Common _common;
     private final CheckpointHandle _handle;
     private Heartbeater _hb;
@@ -37,9 +36,8 @@ public class Core implements Transport.Dispatcher, Paxos {
     public Core(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta, CheckpointHandle aHandle,
                 Listener aListener, boolean isDisableLeaderHeartbeats) {
         _meta = aMeta;
-        _log = aLogger;
         _common = new Common(anFD);
-        _al = new AcceptorLearner(_log, _common, aListener);
+        _al = new AcceptorLearner(aLogger, _common, aListener);
         _ld = new LeaderFactory(_common, isDisableLeaderHeartbeats);
         _handle = aHandle;
     }

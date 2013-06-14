@@ -207,9 +207,8 @@ public class Backend {
             ObjectInputStream myOIS = new ObjectInputStream(myStream);
 
             myHandle = (CheckpointHandle) myOIS.readObject();
-            ConcurrentHashMap<String, String> myState = (ConcurrentHashMap<String, String>) myOIS.readObject();
             
-            _keyValues = myState;
+            _keyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
             
             myOIS.close();
         }

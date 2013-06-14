@@ -444,11 +444,11 @@ public class AcceptorLearner {
 	}
 
     private void cacheBegin(Begin aBegin) {
-        _cachedBegins.put(new Long(aBegin.getSeqNum()), aBegin);
+        _cachedBegins.put(aBegin.getSeqNum(), aBegin);
     }
 
     private Begin expungeBegin(long aSeqNum) {
-        return _cachedBegins.remove(new Long(aSeqNum));
+        return _cachedBegins.remove(aSeqNum);
     }
 
     /* ********************************************************************************************
