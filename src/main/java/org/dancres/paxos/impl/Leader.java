@@ -71,10 +71,6 @@ class Leader implements Instance {
         _startState = myInstance.getState();
     }
 
-    Deque<VoteOutcome> getOutcomes() {
-        return new LinkedList<VoteOutcome>(_outcomes);
-    }
-
     void shutdown() {
     	synchronized(this) {
             if ((! isDone()) && (_currentState != State.SHUTDOWN)) {
