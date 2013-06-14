@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import java.nio.ByteBuffer;
 
@@ -11,15 +11,11 @@ import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.MemoryLogStorage;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
-import org.dancres.paxos.messages.Begin;
-import org.dancres.paxos.messages.OldRound;
-import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.Envelope;
+import org.dancres.paxos.messages.*;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.*;
 
-public class SuperiorLeaderAtBeginTest {
+public class SuperiorLeaderTest {
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
@@ -62,8 +58,8 @@ public class SuperiorLeaderAtBeginTest {
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
 
-        Proposal myProposal = new Proposal("data", myBuffer.array());        
-        MessageBasedFailureDetector myFd = _node1.getCommon().getPrivateFD();
+        Proposal myProposal = new Proposal("data", myBuffer.array());
+        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
 
         int myChances = 0;
 
@@ -92,25 +88,25 @@ public class SuperiorLeaderAtBeginTest {
             _core = aCore;
         }
 
+        public void terminate() {
+        }
+
         public void init(Transport aTransport) throws Exception {
             _tp = aTransport;
             _core.init(aTransport);
         }
 
-        public void terminate() {
-            _core.terminate();
-        }
-
         public boolean messageReceived(Packet aPacket) {
             PaxosMessage myMessage = aPacket.getMessage();
+
             switch (myMessage.getClassification()) {
                 case PaxosMessage.LEADER : {
-                    if (myMessage.getType() == Operations.BEGIN) {
-                        Begin myBegin = (Begin) myMessage;
+                    if (myMessage.getType() == Operations.COLLECT) {
+                        Collect myCollect = (Collect) myMessage;
 
                         _tp.send(
-                                new OldRound(myBegin.getSeqNum(), _tp.getLocalAddress(),
-                                        myBegin.getRndNumber() + 1), aPacket.getSource());
+                                new OldRound(myCollect.getSeqNum(), _tp.getLocalAddress(),
+                                        myCollect.getRndNumber() + 1), aPacket.getSource());
 
                         return true;
                     } else

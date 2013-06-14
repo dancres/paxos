@@ -100,10 +100,6 @@ public class ServerDispatcher implements Transport.Dispatcher {
         }
 	}
 	
-	public Transport getTransport() {
-		return _tp;
-	}
-	
     public void terminate() {
     }
 
@@ -111,10 +107,6 @@ public class ServerDispatcher implements Transport.Dispatcher {
     	_core.add(aListener);
     }
     
-    public Common getCommon() {
-        return _core.getCommon();
-    }
-
     public AcceptorLearner getAcceptorLearner() {
 		return _core.getAcceptorLearner();
 	}

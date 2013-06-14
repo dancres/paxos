@@ -63,8 +63,8 @@ public class ALRecoveryTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
 
         System.err.println("Run some instances");
 
@@ -98,7 +98,7 @@ public class ALRecoveryTest {
         _node3.init(_tport3);
         _node3.getAcceptorLearner().setRecoveryGracePeriod(1000);
 
-        FDUtil.ensureFD(_node3.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node3.getCore().getCommon().getPrivateFD());
 
         System.err.println("Run another instance - trigger");
         
@@ -130,8 +130,8 @@ public class ALRecoveryTest {
         
         // _node3 should now have same low watermark as the other nodes
         //
-        Assert.assertTrue(_node2.getCommon().getLowWatermark().getSeqNum() ==
-        	_node3.getCommon().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_node2.getCore().getCommon().getLowWatermark().getSeqNum() ==
+        	_node3.getCore().getCommon().getLowWatermark().getSeqNum());
         
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is

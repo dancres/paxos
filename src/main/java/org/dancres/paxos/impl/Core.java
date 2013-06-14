@@ -93,7 +93,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         return _al;
     }
 
-    public Common getCommon() {
+    Common getCommon() {
         return _common;
     }
 

@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import java.nio.ByteBuffer;
 
@@ -12,14 +12,16 @@ import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.*;
 
-public class SimpleSuccessTest {
+public class SuccessfulSequenceTest {
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
     private TransportImpl _tport1;
     private TransportImpl _tport2;
-    
+
     @Before public void init() throws Exception {
+        Runtime.getRuntime().runFinalizersOnExit(true);
+
     	_node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
     	_node2 = new ServerDispatcher(new FailureDetectorImpl(5000));
         _tport1 = new TransportImpl();
@@ -42,39 +44,42 @@ public class SimpleSuccessTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        ByteBuffer myBuffer = ByteBuffer.allocate(4);
-        myBuffer.putInt(55);
-        
-        Proposal myProposal = new Proposal("data", myBuffer.array());
-        MessageBasedFailureDetector myFd = _node1.getCommon().getPrivateFD();
+        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
 
         int myChances = 0;
 
         while (!myFd.couldComplete()) {
             ++myChances;
-            System.err.println("FD says no");
-            
             if (myChances == 4)
                 Assert.assertTrue("Membership not achieved", false);
 
             Thread.sleep(5000);
         }
 
-        myClient.send(new Envelope(myProposal), _tport1.getLocalAddress());
+        for (int i = 0; i < 5; i++) {
+            ByteBuffer myBuffer = ByteBuffer.allocate(4);
+            myBuffer.putInt(i);
+            Proposal myProposal = new Proposal("data", myBuffer.array());
 
-        VoteOutcome myEv = myClient.getNext(10000);
+            myClient.send(new Envelope(myProposal), _tport1.getLocalAddress());
 
-        Assert.assertFalse((myEv == null));
+            VoteOutcome myEv = myClient.getNext(10000);
 
-        Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VALUE);
+            Assert.assertFalse((myEv == null));
+
+            Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VALUE);
+            Assert.assertTrue(myEv.getSeqNum() == i);
+        }
+        
+        /*
+         *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is
+         *  because there are two nodes at play. Leader achieves success and posts this to both AL's, the first
+         *  receives it and announces it to the test code which then completes and shuts things down before the
+         *  second AL has finished processing the same success, by which time the log has been shut in that AL causing
+         *  the assertion. 
+         */
+        Thread.sleep(5000);
         
         myTransport.terminate();
-    }
-    
-    public static void main(String[] anArgs) throws Exception {
-    	SimpleSuccessTest myTest = new SimpleSuccessTest();
-    	myTest.init();
-    	myTest.post();
-    	myTest.stop();
     }
 }

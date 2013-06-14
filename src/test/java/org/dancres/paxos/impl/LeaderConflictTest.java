@@ -1,8 +1,9 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -51,8 +52,8 @@ public class LeaderConflictTest {
         myTransport2.routeTo(myClient2);
         myClient2.init(myTransport2);
 
-        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
 
         ByteBuffer myBuffer1 = ByteBuffer.allocate(4);
         ByteBuffer myBuffer2 = ByteBuffer.allocate(4);

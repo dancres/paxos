@@ -1,8 +1,9 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.After;
@@ -39,13 +40,13 @@ public class FDTest implements MembershipListener {
     }
 
     @Test public void post() throws Exception {
-        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
 
-        Assert.assertTrue(_node1.getCommon().getFD().getMemberMap().size() == 2);
-        Assert.assertTrue(_node2.getCommon().getFD().getMemberMap().size() == 2);
+        Assert.assertTrue(_node1.getCore().getCommon().getFD().getMemberMap().size() == 2);
+        Assert.assertTrue(_node2.getCore().getCommon().getFD().getMemberMap().size() == 2);
 
-        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _node1.getCommon().getFD().getMemberMap();
+        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _node1.getCore().getCommon().getFD().getMemberMap();
         Iterator<Map.Entry<InetSocketAddress, FailureDetector.MetaData>> myMemberIt = myMembers.entrySet().iterator();
 
         while(myMemberIt.hasNext()) {

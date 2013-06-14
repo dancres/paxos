@@ -4,21 +4,21 @@ import java.nio.ByteBuffer;
 
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.*;
 
-public class HeartbeatTest {
-    private TransportImpl _tport1;
-    private TransportImpl _tport2;
-
+public class SimpleSuccessTest {
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
+    private TransportImpl _tport1;
+    private TransportImpl _tport2;
+    
     @Before public void init() throws Exception {
     	_node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
     	_node2 = new ServerDispatcher(new FailureDetectorImpl(5000));
@@ -35,7 +35,7 @@ public class HeartbeatTest {
     	_tport1.terminate();
     	_tport2.terminate();
     }
-        
+    
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
     	TransportImpl myTransport = new TransportImpl();
@@ -44,37 +44,37 @@ public class HeartbeatTest {
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4);
         myBuffer.putInt(55);
+        
+        Proposal myProposal = new Proposal("data", myBuffer.array());
+        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
 
-        Proposal myProp = new Proposal("data", myBuffer.array());
+        int myChances = 0;
 
-        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
+        while (!myFd.couldComplete()) {
+            ++myChances;
+            System.err.println("FD says no");
+            
+            if (myChances == 4)
+                Assert.assertTrue("Membership not achieved", false);
 
-        myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
+            Thread.sleep(5000);
+        }
+
+        myClient.send(new Envelope(myProposal), _tport1.getLocalAddress());
 
         VoteOutcome myEv = myClient.getNext(10000);
 
-        Assert.assertFalse(myEv == null);
+        Assert.assertFalse((myEv == null));
 
         Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VALUE);
-
-        // Now we have an active leader, make sure acceptor learners see heartbeats
-        //
-        AcceptorLearner myAl = _node2.getAcceptorLearner();
-
-        Thread.sleep(5000 + Constants.getLeaderLeaseDuration());
-
-        Assert.assertTrue(myAl.getHeartbeatCount() == 1);
+        
+        myTransport.terminate();
     }
     
     public static void main(String[] anArgs) throws Exception {
-		HeartbeatTest myTest = new HeartbeatTest();
-
-		try {
-    		myTest.init();
-    		myTest.post();
-    	} finally {
-    		myTest.stop();
-    	}
+    	SimpleSuccessTest myTest = new SimpleSuccessTest();
+    	myTest.init();
+    	myTest.post();
+    	myTest.stop();
     }
 }

@@ -45,7 +45,7 @@ public class IgnoreCollectsTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        MessageBasedFailureDetector myFd = _node1.getCommon().getPrivateFD();
+        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
 
         int myChances = 0;
 
@@ -72,7 +72,7 @@ public class IgnoreCollectsTest {
 
         // Now we have an active leader, make sure acceptor learners ignore contenders
         AcceptorLearner myAl = _node2.getAcceptorLearner();
-        Common myCommon = _node2.getCommon();
+        Common myCommon = _node2.getCore().getCommon();
 
         Collect myCollect = new Collect(myCommon.getLowWatermark().getSeqNum() + 1,
         		myCommon.getLeaderRndNum());

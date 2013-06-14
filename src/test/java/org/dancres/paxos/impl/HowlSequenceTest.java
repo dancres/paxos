@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -7,6 +7,7 @@ import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
+import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -55,8 +56,8 @@ public class HowlSequenceTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
 
         for (int i = 0; i < 5; i++) {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);

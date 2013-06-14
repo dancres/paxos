@@ -2,10 +2,8 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.impl.Constants;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
-import org.dancres.paxos.test.junit.ALOutOfDateTest;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
@@ -69,8 +67,8 @@ public class ALNonRecoveryTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
 
         System.err.println("Run some instances");
 
@@ -106,7 +104,7 @@ public class ALNonRecoveryTest {
 
         _node3.getAcceptorLearner().setRecoveryGracePeriod(5000);
 
-        FDUtil.ensureFD(_node3.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node3.getCore().getCommon().getPrivateFD());
 
         System.err.println("Run another instance - trigger");
 
@@ -128,10 +126,10 @@ public class ALNonRecoveryTest {
 
         // As recovery won't have been done the low watermarks should be different
         //
-        Assert.assertTrue(_node2.getCommon().getLowWatermark().getSeqNum() !=
-        	_node3.getCommon().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_node2.getCore().getCommon().getLowWatermark().getSeqNum() !=
+        	_node3.getCore().getCommon().getLowWatermark().getSeqNum());
 
-        Assert.assertFalse(_node3.getCommon().testState(Constants.FSMStates.RECOVERING));
+        Assert.assertFalse(_node3.getCore().getCommon().testState(Constants.FSMStates.RECOVERING));
 
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is

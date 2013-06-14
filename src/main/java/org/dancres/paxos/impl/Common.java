@@ -13,7 +13,7 @@ import java.net.InetSocketAddress;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class Common {
+class Common {
     private static final Logger _logger = LoggerFactory.getLogger(Common.class);
 
     private Transport _transport;
@@ -52,7 +52,7 @@ public class Common {
         }
     }
 
-    public Common(Transport aTransport, MessageBasedFailureDetector anFD) {
+    Common(Transport aTransport, MessageBasedFailureDetector anFD) {
         _transport = aTransport;
         _fd = anFD;
     }
@@ -73,21 +73,21 @@ public class Common {
         return _transport;
     }
 
-    public long install(AcceptorLearner.Watermark aWatermark) {
+    long install(AcceptorLearner.Watermark aWatermark) {
         _lowWatermark.set(aWatermark);
 
         return aWatermark.getSeqNum();
     }
 
-    public AcceptorLearner.Watermark getLowWatermark() {
+    AcceptorLearner.Watermark getLowWatermark() {
         return _lowWatermark.get();
     }
 
-    public FailureDetector getFD() {
+    FailureDetector getFD() {
         return _fd;
     }
 
-    public MessageBasedFailureDetector getPrivateFD() {
+    MessageBasedFailureDetector getPrivateFD() {
         return _fd;
     }
 

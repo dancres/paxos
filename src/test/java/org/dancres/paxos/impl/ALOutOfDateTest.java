@@ -1,8 +1,9 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
+import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -66,8 +67,8 @@ public class ALOutOfDateTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        FDUtil.ensureFD(_node1.getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
 
         System.err.println("Run some instances");
 
@@ -103,7 +104,7 @@ public class ALOutOfDateTest {
         _node3.init(_tport3);
         _node3.add(myListener);
 
-        FDUtil.ensureFD(_node3.getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node3.getCore().getCommon().getPrivateFD());
 
         System.err.println("Run another instance - trigger");
 

@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -99,7 +99,7 @@ public class LastHandlingTest {
         myBuffer.putInt(55);
 
         Proposal myProposal = new Proposal("data", myBuffer.array());        
-        MessageBasedFailureDetector myFd = _node1.getCommon().getPrivateFD();
+        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
 
         int myChances = 0;
 

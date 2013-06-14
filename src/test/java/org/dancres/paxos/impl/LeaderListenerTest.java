@@ -1,9 +1,8 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.VoteOutcome;
-import org.dancres.paxos.Proposal;
+import org.dancres.paxos.*;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ClientDispatcher;
@@ -12,7 +11,7 @@ import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.junit.*;
 
-public class SuccessfulSequenceTest {
+public class LeaderListenerTest {
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
@@ -20,10 +19,8 @@ public class SuccessfulSequenceTest {
     private TransportImpl _tport2;
 
     @Before public void init() throws Exception {
-        Runtime.getRuntime().runFinalizersOnExit(true);
-
-    	_node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
-    	_node2 = new ServerDispatcher(new FailureDetectorImpl(5000));
+        _node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
+        _node2 = new ServerDispatcher(new FailureDetectorImpl(5000));
         _tport1 = new TransportImpl();
         _tport1.routeTo(_node1);
         _node1.init(_tport1);
@@ -44,7 +41,10 @@ public class SuccessfulSequenceTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        MessageBasedFailureDetector myFd = _node1.getCommon().getPrivateFD();
+        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
+        ListenerImpl myListener = new ListenerImpl();
+        
+        _node2.add(myListener);
 
         int myChances = 0;
 
@@ -60,7 +60,7 @@ public class SuccessfulSequenceTest {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);
             myBuffer.putInt(i);
             Proposal myProposal = new Proposal("data", myBuffer.array());
-
+            
             myClient.send(new Envelope(myProposal), _tport1.getLocalAddress());
 
             VoteOutcome myEv = myClient.getNext(10000);
@@ -70,16 +70,35 @@ public class SuccessfulSequenceTest {
             Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.VALUE);
             Assert.assertTrue(myEv.getSeqNum() == i);
         }
-        
+
         /*
-         *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is
-         *  because there are two nodes at play. Leader achieves success and posts this to both AL's, the first
-         *  receives it and announces it to the test code which then completes and shuts things down before the
-         *  second AL has finished processing the same success, by which time the log has been shut in that AL causing
-         *  the assertion. 
+         * Packets are delivered in one or more separate threads and can actually arrive (due to scheduling vagaries and multiple processors) before the
+         * listener get's a signal which can mean our count can be inaccurate.  We must wait just a small amount of settling time.
          */
-        Thread.sleep(5000);
+        Thread.sleep(2000);
         
-        myTransport.terminate();
+        Assert.assertTrue("Listener count should be 5 but is: " + myListener.getCount(), myListener.testCount(5));
+    }
+
+    private class ListenerImpl implements Listener {
+        private int _readyCount = 0;
+
+        int getCount() {
+            synchronized(this) {
+                return _readyCount;
+            }
+        }
+        
+        boolean testCount(int aCount) {
+            synchronized(this) {
+                return _readyCount == aCount;
+            }
+        }
+
+        public void transition(StateEvent anEvent) {
+            synchronized(this) {
+                ++_readyCount;
+            }
+        }
     }
 }
