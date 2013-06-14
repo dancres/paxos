@@ -110,6 +110,8 @@ class Leader implements Instance {
     }
 
     private void reportOutcome() {
+        _factory.dispose(this);
+
         /*
          * First outcome is always the one we report to the submitter even if there are others (available via
          * getOutcomes()). Multiple outcomes occur when we detect a previously proposed value and must drive it
@@ -205,8 +207,6 @@ class Leader implements Instance {
                 if (_interactionAlarm != null)
                     cancelInteraction();
 
-                _factory.dispose(this);
-
                 reportOutcome();
                 
                 return;
@@ -214,8 +214,6 @@ class Leader implements Instance {
 
             case EXIT : {
             	_logger.info(stateToString() + " : " + _outcomes);
-
-                _factory.dispose(this);
 
                 reportOutcome();
 
