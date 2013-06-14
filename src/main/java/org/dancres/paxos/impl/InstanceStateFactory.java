@@ -3,8 +3,15 @@ package org.dancres.paxos.impl;
 import org.dancres.paxos.VoteOutcome;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class InstanceStateFactory {
+
+    public interface Listener {
+        public void inFlight();
+        public void allConcluded();
+    }
+
     public static final int MAX_INFLIGHT = 5;
 
     private long _nextRnd;
@@ -12,11 +19,20 @@ public class InstanceStateFactory {
     private boolean _amLeader;
     private final SortedSet<Long> _recycling = new TreeSet<Long>();
     private final Set<Long> _inflight = new HashSet<Long>();
+    private final Set<Listener> _listeners = new CopyOnWriteArraySet<Listener>();
 
     public InstanceStateFactory(long aCurrentSeq, long aCurrentRnd) {
         _nextSeq = aCurrentSeq;
         _nextRnd = aCurrentRnd + 1;
         _amLeader = false;
+    }
+
+    public void add(Listener aListener) {
+        _listeners.add(aListener);
+    }
+
+    public void remove(Listener aListener) {
+        _listeners.remove(aListener);
     }
 
     private static class NextInstance implements Instance {
@@ -84,6 +100,10 @@ public class InstanceStateFactory {
                     break;
                 }
             }
+
+            if (_inflight.size() == 0)
+                for (Listener anL : _listeners)
+                    anL.allConcluded();
         }
     }
 
@@ -105,6 +125,9 @@ public class InstanceStateFactory {
 
                 }
 
+                for (Listener anL: _listeners)
+                    anL.inFlight();
+
                 return new NextInstance((_amLeader) ? Leader.State.BEGIN : Leader.State.COLLECT,
                         chooseNext(), _nextRnd);
             } else {
@@ -120,6 +143,10 @@ public class InstanceStateFactory {
                     }
 
                 }
+
+                if (_inflight.size() == 1)
+                    for (Listener anL: _listeners)
+                        anL.inFlight();
 
                 return new NextInstance((_amLeader) ? Leader.State.BEGIN : Leader.State.COLLECT,
                         chooseNext(), _nextRnd);

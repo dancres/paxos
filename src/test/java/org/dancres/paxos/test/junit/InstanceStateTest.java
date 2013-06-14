@@ -10,8 +10,62 @@ import org.junit.Test;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class InstanceStateTest {
+    private class Listener implements InstanceStateFactory.Listener {
+        private AtomicInteger _inflightCount = new AtomicInteger();
+        private AtomicInteger _allConcludedCount = new AtomicInteger();
+
+        public void inFlight() {
+            int myCurrent = _inflightCount.incrementAndGet();
+
+            Assert.assertTrue(myCurrent > _allConcludedCount.get());
+        }
+
+        public void allConcluded() {
+            int myCurrent = _allConcludedCount.incrementAndGet();
+
+            Assert.assertTrue(myCurrent == _inflightCount.get());
+        }
+
+        int getInFlight() {
+            return _inflightCount.get();
+        }
+
+        int getAllConcluded() {
+            return _allConcludedCount.get();
+        }
+    }
+
+    @Test
+    public void listener() {
+        InstanceStateFactory myFactory = new InstanceStateFactory(-1, 0);
+        Listener myListener = new Listener();
+
+        myFactory.add(myListener);
+
+        Instance myInstance = myFactory.nextInstance(1);
+
+        myFactory.conclusion(myInstance,
+                new VoteOutcome(VoteOutcome.Reason.VALUE, myInstance.getSeqNum(), myInstance.getRound(),
+                        Proposal.NO_VALUE, null));
+
+        List<Instance> myInstances = new LinkedList<Instance>();
+
+        for (int i = 0; i < (InstanceStateFactory.MAX_INFLIGHT - 1); i++) {
+            myInstances.add(myFactory.nextInstance(1));
+        }
+
+        for (Instance myI : myInstances)
+            myFactory.conclusion(myI,
+                    new VoteOutcome(VoteOutcome.Reason.VALUE, myI.getSeqNum(), myI.getRound(),
+                            Proposal.NO_VALUE, null));
+
+        Assert.assertEquals(2, myListener.getInFlight());
+        Assert.assertEquals(2, myListener.getAllConcluded());
+    }
+
     @Test
     public void oneLeader() {
         InstanceStateFactory myFactory = new InstanceStateFactory(-1, 0);
