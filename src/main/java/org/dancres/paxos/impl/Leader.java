@@ -363,7 +363,7 @@ class Leader implements Instance {
      *
      * @param aValue is the value to attempt to agree upon
      */
-    public void submit(Proposal aValue, Completion<VoteOutcome> aSubmitter) {
+    void submit(Proposal aValue, Completion<VoteOutcome> aSubmitter) {
         synchronized (this) {
             if (_currentState != State.INITIAL)
                 throw new IllegalStateException("Submit already done, create another leader");
@@ -401,7 +401,7 @@ class Leader implements Instance {
      * @todo Update OldRound handling - if we track all OldRounds and pick the highest by round and sequence number
      * we can potentially accelerate recovery and reduce client disruption
      */
-    public void processMessage(Transport.Packet aPacket) {
+    void processMessage(Transport.Packet aPacket) {
         PaxosMessage myMessage = aPacket.getMessage();
 
         assert (myMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";

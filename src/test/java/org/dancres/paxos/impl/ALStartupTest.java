@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -8,9 +8,6 @@ import java.util.List;
 import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.Listener;
 import org.dancres.paxos.StateEvent;
-import org.dancres.paxos.impl.AcceptorLearner;
-import org.dancres.paxos.impl.*;
-import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;

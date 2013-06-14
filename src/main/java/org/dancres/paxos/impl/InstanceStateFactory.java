@@ -5,7 +5,7 @@ import org.dancres.paxos.VoteOutcome;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-public class InstanceStateFactory {
+class InstanceStateFactory {
 
     public interface Listener {
         public void inFlight();
@@ -21,23 +21,23 @@ public class InstanceStateFactory {
     private final Set<Long> _inflight = new HashSet<Long>();
     private final Set<Listener> _listeners = new CopyOnWriteArraySet<Listener>();
 
-    public InstanceStateFactory(long aCurrentSeq, long aCurrentRnd) {
+    InstanceStateFactory(long aCurrentSeq, long aCurrentRnd) {
         _nextSeq = aCurrentSeq;
         _nextRnd = aCurrentRnd + 1;
         _amLeader = false;
     }
 
-    public boolean amLeader() {
+    boolean amLeader() {
         synchronized (_inflight) {
             return _amLeader;
         }
     }
 
-    public void add(Listener aListener) {
+    void add(Listener aListener) {
         _listeners.add(aListener);
     }
 
-    public void remove(Listener aListener) {
+    void remove(Listener aListener) {
         _listeners.remove(aListener);
     }
 
@@ -65,7 +65,7 @@ public class InstanceStateFactory {
         }
     }
 
-    public void conclusion(Instance anInstance, VoteOutcome anOutcome) {
+    void conclusion(Instance anInstance, VoteOutcome anOutcome) {
         synchronized (_inflight) {
             // Is this instance invalidated due to other happenings?
             //
@@ -113,7 +113,7 @@ public class InstanceStateFactory {
         }
     }
 
-    public Instance nextInstance(long aPause) {
+    Instance nextInstance(long aPause) {
         long myExpiry = (aPause == 0) ? Long.MAX_VALUE : System.currentTimeMillis() + aPause;
 
         synchronized (_inflight) {

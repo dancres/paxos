@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;

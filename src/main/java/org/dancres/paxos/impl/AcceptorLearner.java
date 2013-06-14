@@ -207,7 +207,7 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-    public AcceptorLearner(LogStorage aStore, Common aCommon, Listener anInitialListener) {
+    AcceptorLearner(LogStorage aStore, Common aCommon, Listener anInitialListener) {
         _storage = aStore;
         _common = aCommon;
         _listeners.add(anInitialListener);
@@ -378,7 +378,7 @@ public class AcceptorLearner {
      * @param aHandle obtained from the remote checkpoint.
      * @throws Exception
      */
-    public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
+    boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
@@ -435,11 +435,11 @@ public class AcceptorLearner {
      * 
      ******************************************************************************************** */
 
-	public long getHeartbeatCount() {
+	long getHeartbeatCount() {
 		return _receivedHeartbeats.longValue();
 	}
 
-	public long getIgnoredCollectsCount() {
+	long getIgnoredCollectsCount() {
 		return _ignoredCollects.longValue();
 	}
 
@@ -457,7 +457,7 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-	public void processMessage(Transport.Packet aPacket) {
+	void processMessage(Transport.Packet aPacket) {
         // Silently drop packets once we're shutdown - this is internal implementation so don't throw public exceptions
         //
         if (guard())
@@ -623,7 +623,7 @@ public class AcceptorLearner {
         }
     }
 
-    public void setRecoveryGracePeriod(long aPeriod) {
+    void setRecoveryGracePeriod(long aPeriod) {
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 

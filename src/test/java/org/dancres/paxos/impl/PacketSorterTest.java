@@ -1,4 +1,4 @@
-package org.dancres.paxos.test.junit;
+package org.dancres.paxos.impl;
 
 import junit.framework.Assert;
 import org.dancres.paxos.impl.PacketSorter;

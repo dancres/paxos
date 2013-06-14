@@ -4,12 +4,12 @@ import org.dancres.paxos.messages.Need;
 
 import java.util.*;
 
-public class PacketSorter {
+class PacketSorter {
     private static final long MAX_INFLIGHT = 1;
 
     private SortedMap<Long, List<Transport.Packet>> _packets = new TreeMap<Long, List<Transport.Packet>>();
 
-    public int numPackets() {
+    int numPackets() {
         int myTotal = 0;
 
         for (Long myS : _packets.keySet())
@@ -18,7 +18,7 @@ public class PacketSorter {
         return myTotal;
     }
 
-    public void add(Transport.Packet aPacket) {
+    void add(Transport.Packet aPacket) {
         _packets = insert(aPacket, _packets);
     }
 
@@ -30,7 +30,7 @@ public class PacketSorter {
      *                   and act accordingly.
      * @return the number of packets processed
      */
-    public int process(long aLowWatermark, PacketProcessor aProcessor) {
+    int process(long aLowWatermark, PacketProcessor aProcessor) {
         /*
          * Atomically remove the appropriate packets from the sorter under a lock
          *
@@ -93,13 +93,13 @@ public class PacketSorter {
         return aPackets;
     }
 
-    public void clear() {
+    void clear() {
         synchronized(this) {
             _packets.clear();
         }
     }
 
-    public interface PacketProcessor {
+    interface PacketProcessor {
         void consume(Transport.Packet aPacket);
 
         /**
