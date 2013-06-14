@@ -30,6 +30,7 @@ class Leader implements Instance {
 
     private final Common _common;
     private final LeaderFactory _factory;
+    private final InstanceStateFactory _stateFactory;
 
     private final long _seqNum;
     private final long _rndNumber;
@@ -60,18 +61,16 @@ class Leader implements Instance {
 
     private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
-    Leader(Common aCommon, LeaderFactory aFactory) {
-        this(aCommon, aFactory, aCommon.getLowWatermark().getSeqNum() + 1,
-                aCommon.getLeaderRndNum() + 1, State.COLLECT);
-    }
-
-    private Leader(Common aCommon, LeaderFactory aFactory,
-                  long aNextSeq, long aRndNumber, State aStartState) {
+    Leader(Common aCommon, LeaderFactory aFactory, InstanceStateFactory aStateFactory) {
         _common = aCommon;
         _factory = aFactory;
-        _seqNum = aNextSeq;
-        _rndNumber = aRndNumber;
-        _startState = aStartState;
+        _stateFactory = aStateFactory;
+
+        Instance myInstance = aStateFactory.nextInstance(0);
+
+        _seqNum = myInstance.getSeqNum();
+        _rndNumber = myInstance.getRound();
+        _startState = myInstance.getState();
     }
 
     Deque<VoteOutcome> getOutcomes() {
@@ -111,6 +110,7 @@ class Leader implements Instance {
 
     private void reportOutcome() {
         _factory.dispose(this);
+        _stateFactory.conclusion(this, _outcomes.getLast());
 
         /*
          * First outcome is always the one we report to the submitter even if there are others (available via
@@ -130,40 +130,7 @@ class Leader implements Instance {
     }
 
     private Leader constructFollowing() {
-        switch(_outcomes.getLast().getResult()) {
-
-                /*
-                 * We can apply multi-paxos. Next sequence number and round number needn't change.
-                 */
-            case VoteOutcome.Reason.VALUE: {
-                return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
-                        _outcomes.getLast().getRndNumber(), State.BEGIN);
-            }
-
-                /*
-                 * Other leader, in which case we use the values returned from the objecting AL as the basis
-                 * of our next try. We can receive OTHER_LEADER to indicate an active leader conflict or that
-                 * we're too out of date (our sequence number is <= AL.low_watermark).
-                 * As the OLD_ROUND contains the low watermark sequence number and last successful round we propose
-                 * at +1 on both sequence number and round so we stand a chance of succeeding.
-                 */
-            case VoteOutcome.Reason.OTHER_LEADER : {
-                return new Leader(_common, _factory, _outcomes.getLast().getSeqNum() + 1,
-                        _outcomes.getLast().getRndNumber() + 1, State.COLLECT);
-            }
-
-                /*
-                 * Haven't made any progress, try the same sequence and round again.
-                 */
-            case VoteOutcome.Reason.BAD_MEMBERSHIP :
-            case VoteOutcome.Reason.VOTE_TIMEOUT : {
-                return new Leader(_common, _factory,
-                        _outcomes.getLast().getSeqNum(), _outcomes.getLast().getRndNumber(), State.COLLECT);
-            }
-
-            default :
-                throw new IllegalStateException("Unrecognised outcome");
-        }
+        return new Leader(_common, _factory, _stateFactory);
     }
 
     /**

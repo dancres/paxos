@@ -76,9 +76,10 @@ class LeaderFactory {
     }
 
     private Leader newLeaderImpl() {
-        if (_currentLeader == null)
-            _currentLeader = new Leader(_common, this);
-        else {
+        if (_currentLeader == null) {
+            _currentLeader = new Leader(_common, this,
+                    new InstanceStateFactory(_common.getLowWatermark().getSeqNum(), _common.getLeaderRndNum()));
+        } else {
             CompletionImpl<Leader> myResult = new CompletionImpl<Leader>();
 
             _currentLeader.nextLeader(myResult);
