@@ -109,7 +109,7 @@ class Common {
         _lastCollect.set(aCollect);
     }
     
-    public Transport.Packet getLastCollect() {
+    Transport.Packet getLastCollect() {
         return _lastCollect.get();
     }
     
@@ -129,11 +129,11 @@ class Common {
         return _fsmState.compareAndSet(anExpected, aNewState);
     }
 
-    public boolean testState(Constants.FSMStates aState) {
+    boolean testState(Constants.FSMStates aState) {
         return _fsmState.get().equals(aState);
     }
 
-    public long getLeaderRndNum() {
+    long getLeaderRndNum() {
         return ((Collect) _lastCollect.get().getMessage()).getRndNumber();
     }
 
