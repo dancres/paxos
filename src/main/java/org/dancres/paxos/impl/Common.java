@@ -11,6 +11,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 import java.util.Timer;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 class Common {
@@ -20,7 +21,7 @@ class Common {
     private final MessageBasedFailureDetector _fd;
     private final AtomicReference<Transport.Packet> _lastCollect =
             new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
-    private long _lastLeaderActionTime = 0;
+    private AtomicLong _lastLeaderActionTime = new AtomicLong(0);
     private final Timer _watchdog = new Timer("Paxos timers");
     private final AtomicReference<Constants.FSMStates> _fsmState =
             new AtomicReference<Constants.FSMStates>(Constants.FSMStates.INITIAL);
@@ -98,7 +99,7 @@ class Common {
     
     void clearLeadership() {
         _lastCollect.set(new FakePacket(Collect.INITIAL));
-        _lastLeaderActionTime = 0;        
+        resetLeaderAction();
     }
     
     void setLastCollect(Transport.Packet aCollect) {
@@ -113,15 +114,11 @@ class Common {
     }
     
     void leaderAction() {
-        synchronized(this) {
-            _lastLeaderActionTime = System.currentTimeMillis();
-        }
+        _lastLeaderActionTime.set(System.currentTimeMillis());
     }
 
     void resetLeaderAction() {
-        synchronized(this) {
-            _lastLeaderActionTime = 0;
-        }
+        _lastLeaderActionTime.set(0);
     }
 
     void setState(Constants.FSMStates aState) {
@@ -182,11 +179,11 @@ class Common {
 
                 return true;
             } else
-                _logger.debug("Check leader expiry: " + myCurrentTime + ", " + _lastLeaderActionTime + ", " +
-                        Constants.getLeaderLeaseDuration() + ", " + (myCurrentTime > _lastLeaderActionTime
+                _logger.debug("Check leader expiry: " + myCurrentTime + ", " + _lastLeaderActionTime.get() + ", " +
+                        Constants.getLeaderLeaseDuration() + ", " + (myCurrentTime > _lastLeaderActionTime.get()
                         + Constants.getLeaderLeaseDuration()));
 
-            return (myCurrentTime > _lastLeaderActionTime
+            return (myCurrentTime > _lastLeaderActionTime.get()
                     + Constants.getLeaderLeaseDuration());
         }
     }
