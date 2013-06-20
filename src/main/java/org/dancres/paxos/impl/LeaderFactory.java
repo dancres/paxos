@@ -13,14 +13,14 @@ import java.util.TimerTask;
  *
  * @see Leader
  */
-class LeaderFactory implements InstanceStateFactory.Listener {
+class LeaderFactory implements ProposalAllocator.Listener {
     private static final Logger _logger = LoggerFactory.getLogger(LeaderFactory.class);
 
     public static final Proposal HEARTBEAT = new Proposal("heartbeat",
             "org.dancres.paxos.Heartbeat".getBytes());
     
     private final Common _common;
-    private InstanceStateFactory _stateFactory;
+    private ProposalAllocator _stateFactory;
     private Leader _currentLeader;
     private final boolean _disableHeartbeats;
 
@@ -68,7 +68,7 @@ class LeaderFactory implements InstanceStateFactory.Listener {
 
     private Leader newLeaderImpl() {
         if (_currentLeader == null) {
-            _stateFactory = new InstanceStateFactory(_common.getLowWatermark().getSeqNum(), _common.getLeaderRndNum());
+            _stateFactory = new ProposalAllocator(_common.getLowWatermark().getSeqNum(), _common.getLeaderRndNum());
 
             if (! _disableHeartbeats)
                 _stateFactory.add(this);

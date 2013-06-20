@@ -3,8 +3,6 @@ package org.dancres.paxos.impl;
 import junit.framework.Assert;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
-import org.dancres.paxos.impl.Instance;
-import org.dancres.paxos.impl.InstanceStateFactory;
 
 import org.junit.Test;
 
@@ -12,8 +10,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class InstanceStateTest {
-    private class Listener implements InstanceStateFactory.Listener {
+public class ProposalAllocatorTest {
+    private class Listener implements ProposalAllocator.Listener {
         private AtomicInteger _inflightCount = new AtomicInteger();
         private AtomicInteger _allConcludedCount = new AtomicInteger();
 
@@ -40,7 +38,7 @@ public class InstanceStateTest {
 
     @Test
     public void listener() {
-        InstanceStateFactory myFactory = new InstanceStateFactory(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
         Listener myListener = new Listener();
 
         myFactory.add(myListener);
@@ -53,7 +51,7 @@ public class InstanceStateTest {
 
         List<Instance> myInstances = new LinkedList<Instance>();
 
-        for (int i = 0; i < (InstanceStateFactory.MAX_INFLIGHT - 1); i++) {
+        for (int i = 0; i < (ProposalAllocator.MAX_INFLIGHT - 1); i++) {
             myInstances.add(myFactory.nextInstance(1));
         }
 
@@ -68,7 +66,7 @@ public class InstanceStateTest {
 
     @Test
     public void oneLeader() {
-        InstanceStateFactory myFactory = new InstanceStateFactory(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
 
         // Not yet a leader, so max of one in-flight instance applies (or should)
         Instance myFirstInstance = myFactory.nextInstance(1);
@@ -83,16 +81,16 @@ public class InstanceStateTest {
 
         int myCount = 0;
 
-        while ((myFactory.nextInstance(1) != null) && (myCount <= InstanceStateFactory.MAX_INFLIGHT))
+        while ((myFactory.nextInstance(1) != null) && (myCount <= ProposalAllocator.MAX_INFLIGHT))
             myCount++;
 
         Assert.assertNull(myFactory.nextInstance(1));
-        Assert.assertEquals(InstanceStateFactory.MAX_INFLIGHT, myCount);
+        Assert.assertEquals(ProposalAllocator.MAX_INFLIGHT, myCount);
     }
 
     @Test
     public void correctSequence() {
-        InstanceStateFactory myFactory = new InstanceStateFactory(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
 
         for (int i = 0; i < 10; i++) {
             Instance myInstance = myFactory.nextInstance(1);
@@ -117,7 +115,7 @@ public class InstanceStateTest {
 
     @Test
     public void reuseSequenceOnFail() {
-        InstanceStateFactory myFactory = new InstanceStateFactory(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
         Instance myInstance = myFactory.nextInstance(1);
 
         Assert.assertNotNull(myInstance);
@@ -146,9 +144,9 @@ public class InstanceStateTest {
     public void reuseSomeOnOtherLeader() {
         // This test can't run if inflight is too small
         //
-        Assert.assertTrue(InstanceStateFactory.MAX_INFLIGHT >= 3);
+        Assert.assertTrue(ProposalAllocator.MAX_INFLIGHT >= 3);
 
-        InstanceStateFactory myFactory = new InstanceStateFactory(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
         Instance myInstance = myFactory.nextInstance(1);
 
         Assert.assertNotNull(myInstance);
@@ -160,7 +158,7 @@ public class InstanceStateTest {
 
         List<Instance> myInstances = new LinkedList<Instance>();
 
-        for (int i = 0; i < (InstanceStateFactory.MAX_INFLIGHT - 1); i++) {
+        for (int i = 0; i < (ProposalAllocator.MAX_INFLIGHT - 1); i++) {
             myInstances.add(myFactory.nextInstance(1));
         }
 

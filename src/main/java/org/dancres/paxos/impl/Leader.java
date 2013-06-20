@@ -29,7 +29,7 @@ class Leader implements Instance {
     private static final long MAX_TRIES = 3;
 
     private final Common _common;
-    private final InstanceStateFactory _stateFactory;
+    private final ProposalAllocator _stateFactory;
 
     private final long _seqNum;
     private final long _rndNumber;
@@ -60,7 +60,7 @@ class Leader implements Instance {
 
     private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
-    Leader(Common aCommon, InstanceStateFactory aStateFactory) {
+    Leader(Common aCommon, ProposalAllocator aStateFactory) {
         _common = aCommon;
         _stateFactory = aStateFactory;
 

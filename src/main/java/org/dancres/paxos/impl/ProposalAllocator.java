@@ -5,7 +5,7 @@ import org.dancres.paxos.VoteOutcome;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-class InstanceStateFactory {
+class ProposalAllocator {
 
     public interface Listener {
         public void inFlight();
@@ -21,7 +21,7 @@ class InstanceStateFactory {
     private final Set<Long> _inflight = new HashSet<Long>();
     private final Set<Listener> _listeners = new CopyOnWriteArraySet<Listener>();
 
-    InstanceStateFactory(long aCurrentSeq, long aCurrentRnd) {
+    ProposalAllocator(long aCurrentSeq, long aCurrentRnd) {
         _nextSeq = aCurrentSeq;
         _nextRnd = aCurrentRnd + 1;
         _amLeader = false;
