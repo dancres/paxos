@@ -51,7 +51,7 @@ class Leader implements Instance {
     private Membership _membership;
 
     private final State _startState;
-    private State _currentState = State.INITIAL;
+    private StateMachine _stateMachine = new StateMachine();
 
     /**
      * In cases of ABORT, indicates the reason
@@ -59,6 +59,46 @@ class Leader implements Instance {
     private final Deque<VoteOutcome> _outcomes = new LinkedBlockingDeque<VoteOutcome>();
 
     private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
+
+    private static class StateMachine {
+        private static final Map<State, Set<State>> _acceptableTransitions;
+
+        static {
+            Map<State, Set<State>> myAccTrans = new HashMap<State, Set<State>>();
+
+            myAccTrans.put(State.INITIAL, new HashSet<State>(Arrays.asList(State.SUBMITTED, State.SHUTDOWN)));
+            myAccTrans.put(State.SUBMITTED, new HashSet<State>(Arrays.asList(State.BEGIN, State.COLLECT, State.ABORT)));
+            myAccTrans.put(State.COLLECT, new HashSet<State>(Arrays.asList(State.BEGIN)));
+            myAccTrans.put(State.BEGIN, new HashSet<State>(Arrays.asList(State.SUCCESS, State.ABORT)));
+            myAccTrans.put(State.SUCCESS, new HashSet<State>(Arrays.asList(State.ABORT, State.EXIT)));
+            myAccTrans.put(State.EXIT, new HashSet<State>(Arrays.asList(State.SHUTDOWN)));
+            myAccTrans.put(State.ABORT, new HashSet<State>(Arrays.asList(State.SHUTDOWN)));
+            myAccTrans.put(State.SHUTDOWN, new HashSet<State>(Arrays.asList(State.ABORT)));
+
+            _acceptableTransitions = Collections.unmodifiableMap(myAccTrans);
+        }
+
+        private State _currentState = State.INITIAL;
+
+        void transition(State aNewState) {
+            if (_acceptableTransitions.get(_currentState).contains(aNewState)) {
+                Leader._logger.info(_currentState + " -> " + aNewState);
+
+                _currentState = aNewState;
+            } else {
+                throw new Error("Illegal state transition " +
+                        _currentState + ", " + aNewState + " -> " + _acceptableTransitions.get(_currentState));
+            }
+        }
+
+        State getCurrentState() {
+            return _currentState;
+        }
+
+        boolean isDone() {
+            return ((_currentState.equals(State.EXIT)) || (_currentState.equals(State.ABORT)));
+        }
+    }
 
     Leader(Common aCommon, ProposalAllocator aStateFactory) {
         _common = aCommon;
@@ -73,8 +113,8 @@ class Leader implements Instance {
 
     void shutdown() {
     	synchronized(this) {
-            if ((! isDone()) && (_currentState != State.SHUTDOWN)) {
-    		    _currentState = State.SHUTDOWN;
+            if ((! _stateMachine.isDone()) && (_stateMachine.getCurrentState() != State.SHUTDOWN)) {
+    		    _stateMachine.transition(State.SHUTDOWN);
                 _outcomes.clear();
 
                 process(NO_MESSAGES);
@@ -92,13 +132,7 @@ class Leader implements Instance {
 
     public State getState() {
         synchronized(this) {
-            return _currentState;
-        }
-    }
-
-    private boolean isDone() {
-        synchronized(this) {
-            return ((_currentState.equals(State.EXIT)) || (_currentState.equals(State.ABORT)));
+            return _stateMachine.getCurrentState();
         }
     }
 
@@ -116,7 +150,7 @@ class Leader implements Instance {
     }
 
     private void followUp() {
-        if ((! isDone()) || (_leaderReceiver == null))
+        if ((! _stateMachine.isDone()) || (_leaderReceiver == null))
             return;
         else
             _leaderReceiver.complete(constructFollowing());
@@ -149,20 +183,20 @@ class Leader implements Instance {
      * is a blocking implementation).
      */
     private void process(List<Transport.Packet> aMessages) {
-        switch (_currentState) {
+        switch (_stateMachine.getCurrentState()) {
             case SHUTDOWN : {
-                _logger.info(stateToString());
+                _logger.info(toString());
                 
                 if (_interactionAlarm != null)
                     cancelInteraction();
 
-                _currentState = State.ABORT;
+                _stateMachine.transition(State.ABORT);
 
                 return;
             }
 
             case ABORT : {
-                _logger.info(stateToString() + " : " + _outcomes);
+                _logger.info(toString() + " : " + _outcomes);
 
                 if (_interactionAlarm != null)
                     cancelInteraction();
@@ -173,7 +207,7 @@ class Leader implements Instance {
             }
 
             case EXIT : {
-            	_logger.info(stateToString() + " : " + _outcomes);
+            	_logger.info(toString() + " : " + _outcomes);
 
                 reportOutcome();
 
@@ -184,7 +218,7 @@ class Leader implements Instance {
                 if (! _membership.couldComplete()) {
                     error(VoteOutcome.Reason.BAD_MEMBERSHIP);
                 } else {
-                    _currentState = _startState;
+                    _stateMachine.transition(_startState);
                     process(NO_MESSAGES);
                 }
 
@@ -203,7 +237,7 @@ class Leader implements Instance {
              */
             case COLLECT : {
                 emit(new Collect(_seqNum, _rndNumber));
-                _currentState = State.BEGIN;
+                _stateMachine.transition(State.BEGIN);
 
             	break;
             }
@@ -238,7 +272,7 @@ class Leader implements Instance {
                 }
 
                 emit(new Begin(_seqNum, _rndNumber, _prop));
-                _currentState = State.SUCCESS;
+                _stateMachine.transition(State.SUCCESS);
 
                 break;
             }
@@ -259,7 +293,7 @@ class Leader implements Instance {
                 break;
             }
 
-            default : throw new Error("Invalid state: " + _currentState);
+            default : throw new Error("Invalid state: " + _stateMachine.getCurrentState());
         }
     }
 
@@ -271,10 +305,10 @@ class Leader implements Instance {
 
         InetSocketAddress myCompetingNodeId = myOldRound.getLeaderNodeId();
 
-        _logger.info(stateToString() + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
+        _logger.info(toString() + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
                 Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
-        _currentState = State.ABORT;
+        _stateMachine.transition(State.ABORT);
         _outcomes.add(new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
                 myOldRound.getLastRound(), _prop, myCompetingNodeId));
 
@@ -282,7 +316,7 @@ class Leader implements Instance {
     }
 
     private void successful(int aReason) {
-        _currentState = State.EXIT;
+        _stateMachine.transition(State.EXIT);
         _outcomes.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
                 _common.getTransport().getLocalAddress()));
 
@@ -294,10 +328,10 @@ class Leader implements Instance {
     }
     
     private void error(int aReason, InetSocketAddress aLeader) {
-        _currentState = State.ABORT;
+        _stateMachine.transition(State.ABORT);
         _outcomes.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader));
         
-        _logger.info(stateToString() + " : " + _outcomes);
+        _logger.info(toString() + " : " + _outcomes);
 
         process(NO_MESSAGES);
     }
@@ -305,7 +339,7 @@ class Leader implements Instance {
     private void emit(PaxosMessage aMessage) {
         startInteraction();
 
-        _logger.info(stateToString() + " : " + aMessage);
+        _logger.info(toString() + " : " + aMessage);
 
         _common.getTransport().send(aMessage, _common.getTransport().getBroadcastAddress());
     }
@@ -331,10 +365,10 @@ class Leader implements Instance {
     }
 
     private void expired() {
-        _logger.info(stateToString() + " : Watchdog requested abort: ");
+        _logger.info(toString() + " : Watchdog requested abort: ");
 
         synchronized(this) {
-            if (_currentState.equals(State.SUCCESS)) {
+            if (_stateMachine.getCurrentState().equals(State.SUCCESS)) {
                 ++_tries;
 
                 if (_tries < MAX_TRIES) {
@@ -360,24 +394,27 @@ class Leader implements Instance {
      * @param aValue is the value to attempt to agree upon
      */
     void submit(Proposal aValue, Completion<VoteOutcome> aSubmitter) {
+        _logger.info(_common.getTransport().getLocalAddress() +
+                ": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")");
+
         synchronized (this) {
-            if (_currentState != State.INITIAL)
+            if (_stateMachine.getCurrentState() != State.INITIAL)
                 throw new IllegalStateException("Submit already done, create another leader");
 
             if (aSubmitter == null)
                 throw new IllegalArgumentException("Submitter cannot be null");
 
-            _logger.info(stateToString());
+            _logger.info(toString());
 
             _submitter = aSubmitter;
             _prop = aValue;
 
             _tries = 0;
-            _currentState = State.SUBMITTED;
+            _stateMachine.transition(State.SUBMITTED);
 
             _membership = _common.getPrivateFD().getMembers();
 
-            _logger.debug(stateToString() + " : got membership: (" +
+            _logger.debug(toString() + " : got membership: (" +
                     _membership.getSize() + ")");
 
             process(NO_MESSAGES);
@@ -403,7 +440,7 @@ class Leader implements Instance {
         assert (myMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";
 
         synchronized (this) {
-            switch (_currentState) {
+            switch (_stateMachine.getCurrentState()) {
                 case ABORT :
                 case EXIT :
                 case SHUTDOWN : {
@@ -411,7 +448,7 @@ class Leader implements Instance {
                 }
             }
 
-            _logger.info(stateToString() + " : " + myMessage);
+            _logger.info(toString() + " : " + myMessage);
 
             if (myMessage instanceof LeaderSelection) {
                 if (((LeaderSelection) myMessage).routeable(this)) {
@@ -438,19 +475,13 @@ class Leader implements Instance {
                 }
             }
 
-            _logger.warn(stateToString() + ": Unexpected message received: " + myMessage);
+            _logger.warn(toString() + ": Unexpected message received: " + myMessage);
         }
     }
 
-    String stateToString() {
-        State myState = getState();
-
-        return _common.getTransport().getLocalAddress() +
-                ": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")" + " : " + myState +
-                " tries: " + _tries + "/" + MAX_TRIES;
-    }
-
     public String toString() {
-    	return "Leader: " + stateToString();
+    	return _common.getTransport().getLocalAddress() +
+                ": (" + Long.toHexString(_rndNumber) + ")" +
+                " tries: " + _tries + "/" + MAX_TRIES;
     }
 }
