@@ -363,21 +363,35 @@ class Leader implements Instance {
     }
 
     private void expired() {
-        _logger.info(toString() + " : Watchdog requested abort: ");
-
         synchronized(this) {
-            if (_stateMachine.getCurrentState().equals(State.SUCCESS)) {
-                ++_tries;
+            _logger.info(toString() + " : Watchdog requested abort: ");
 
-                if (_tries < MAX_TRIES) {
-                	cancelInteraction();
-                    process(_messages);
-                    _messages.clear();
-                    return;
+            switch (_stateMachine.getCurrentState()) {
+                case SUCCESS : {
+                    ++_tries;
+
+                    if (_tries < MAX_TRIES) {
+                        cancelInteraction();
+                        process(_messages);
+                        _messages.clear();
+                    } else {
+                        error(VoteOutcome.Reason.VOTE_TIMEOUT);
+                    }
+
+                    break;
+                }
+
+                case EXIT :
+                case ABORT :
+                case SHUTDOWN : {
+                    break;
+                }
+
+                default : {
+                    error(VoteOutcome.Reason.VOTE_TIMEOUT);
+                    break;
                 }
             }
-
-            error(VoteOutcome.Reason.VOTE_TIMEOUT);
         }
     }
 
