@@ -10,6 +10,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <logTests>true</logTests>
   </properties>
   
   <repositories>
@@ -147,7 +148,7 @@
                 <configuration>
                     <forkCount>1</forkCount>
                     <reuseForks>false</reuseForks>
-                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <redirectTestOutputToFile>${logTests}</redirectTestOutputToFile>
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
