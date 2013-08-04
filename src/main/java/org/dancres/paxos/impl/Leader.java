@@ -73,7 +73,7 @@ class Leader implements Instance {
             myAccTrans.put(State.SUCCESS, new HashSet<State>(Arrays.asList(State.ABORT, State.EXIT)));
             myAccTrans.put(State.EXIT, new HashSet<State>(Arrays.asList(State.SHUTDOWN)));
             myAccTrans.put(State.ABORT, new HashSet<State>(Arrays.asList(State.SHUTDOWN)));
-            myAccTrans.put(State.SHUTDOWN, new HashSet<State>(Arrays.asList(State.ABORT)));
+            myAccTrans.put(State.SHUTDOWN, new HashSet<State>());
 
             _acceptableTransitions = Collections.unmodifiableMap(myAccTrans);
         }
@@ -189,8 +189,6 @@ class Leader implements Instance {
                 
                 if (_interactionAlarm != null)
                     cancelInteraction();
-
-                _stateMachine.transition(State.ABORT);
 
                 return;
             }
