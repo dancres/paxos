@@ -84,6 +84,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     private final Set<Dispatcher> _dispatchers = new CopyOnWriteArraySet<Dispatcher>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
     private final PacketPickler _pickler = new PicklerImpl();
+    private final PipelineFactory _pipelineFactory;
 
     /**
      * Netty doesn't seem to like re-entrant behaviours so we need a thread pool
@@ -128,60 +129,65 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         }
     }
 
-    static class PacketImpl implements Packet {
-    	private final PaxosMessage _msg;
-    	private final InetSocketAddress _source;
-    	
-    	PacketImpl(PaxosMessage aMsg, InetSocketAddress aSource) {
-    		_msg = aMsg;
-    		_source = aSource;
-    	}
-    	
-		public InetSocketAddress getSource() {
-    		return _source;
-		}
-
-		public PaxosMessage getMessage() {
-			return _msg;
-		}		
-    }
-    
     static {
     	System.runFinalizersOnExit(true);
     }
-    
-	public TransportImpl() throws Exception {
+
+    private class DefaultPipelineFactory implements PipelineFactory {
+        public ChannelPipeline newPipeline(PacketPickler aPickler) {
+            ChannelPipeline myPipeline = Channels.pipeline();
+            myPipeline.addLast("framer", new Framer());
+            myPipeline.addLast("unframer", new UnFramer());
+            myPipeline.addLast("encoder", new Encoder(_pickler));
+            myPipeline.addLast("decoder", new Decoder(_pickler));
+            myPipeline.addLast("transport", TransportImpl.this);
+
+            return myPipeline;
+        }
+    }
+
+    public TransportImpl(PipelineFactory aFactory) throws Exception {
+        if (aFactory == null)
+            _pipelineFactory = new DefaultPipelineFactory();
+        else
+            _pipelineFactory = aFactory;
+
         _mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
         _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
 
-		InetSocketAddress myMcastTarget = new InetSocketAddress((InetAddress) null,
-				BROADCAST_PORT);
+        InetSocketAddress myMcastTarget = new InetSocketAddress((InetAddress) null,
+                BROADCAST_PORT);
 
-		_mcastFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
+        _mcastFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
 
-		_mcast = _mcastFactory.newChannel(newPipeline());
-		_mcast.bind(myMcastTarget).await();
-		_mcast.joinGroup(_mcastAddr.getAddress()).await();
-		_channels.add(_mcast);
-		
-		_unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));		
-		_unicast = _unicastFactory.newChannel(newPipeline());
-		_unicast.bind(new InetSocketAddress(Utils.getWorkableInterface(), 0)).await();
-		_channels.add(_unicast);
-		
-		_unicastAddr = _unicast.getLocalAddress();
-		
-		_logger.debug("Transport bound on: " + _unicastAddr);
+        _mcast = _mcastFactory.newChannel(_pipelineFactory.newPipeline(_pickler));
+        _mcast.bind(myMcastTarget).await();
+        _mcast.joinGroup(_mcastAddr.getAddress()).await();
+        _channels.add(_mcast);
 
-		_serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(new Factory()), 
-				Executors.newCachedThreadPool());
-        ServerSocketChannel myStreamChannel = _serverStreamFactory.newChannel(newPipeline());
-		myStreamChannel.bind(_unicast.getLocalAddress()).await();
-		myStreamChannel.getConfig().setPipelineFactory(Channels.pipelineFactory(newPipeline()));
-		_channels.add(myStreamChannel);
-		
-		_clientStreamFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(new Factory()),
-				Executors.newCachedThreadPool());
+        _unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
+        _unicast = _unicastFactory.newChannel(_pipelineFactory.newPipeline(_pickler));
+        _unicast.bind(new InetSocketAddress(Utils.getWorkableInterface(), 0)).await();
+        _channels.add(_unicast);
+
+        _unicastAddr = _unicast.getLocalAddress();
+
+        _logger.debug("Transport bound on: " + _unicastAddr);
+
+        _serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(new Factory()),
+                Executors.newCachedThreadPool());
+        ServerSocketChannel myStreamChannel = _serverStreamFactory.newChannel(_pipelineFactory.newPipeline(_pickler));
+        myStreamChannel.bind(_unicast.getLocalAddress()).await();
+        myStreamChannel.getConfig().setPipelineFactory(
+                Channels.pipelineFactory(_pipelineFactory.newPipeline(_pickler)));
+        _channels.add(myStreamChannel);
+
+        _clientStreamFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(new Factory()),
+                Executors.newCachedThreadPool());
+    }
+
+	public TransportImpl() throws Exception {
+        this(null);
     }
 
     public PacketPickler getPickler() {
@@ -235,17 +241,6 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	protected void finalize() throws Throwable {
 		if (! _isStopping.get())
 			_logger.warn("Failed to close transport before JVM exit");
-	}
-	
-	private ChannelPipeline newPipeline() {
-		ChannelPipeline myPipeline = Channels.pipeline();
-		myPipeline.addLast("framer", new Framer());
-		myPipeline.addLast("unframer", new Unframer());
-		myPipeline.addLast("encoder", new Encoder());
-		myPipeline.addLast("decoder", new Decoder());
-		myPipeline.addLast("transport", this);
-		
-		return myPipeline;
 	}
 	
 	public InetSocketAddress getLocalAddress() {
@@ -334,7 +329,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	public void connectTo(final InetSocketAddress aNodeId, final ConnectionHandler aHandler) {
 		guard();
 		
-		final SocketChannel myChannel = _clientStreamFactory.newChannel(newPipeline());
+		final SocketChannel myChannel = _clientStreamFactory.newChannel(_pipelineFactory.newPipeline(_pickler));
 
         myChannel.connect(aNodeId).addListener(new ChannelFutureListener() {
             public void operationComplete(ChannelFuture aFuture) throws Exception {
@@ -347,76 +342,6 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
                 }
             }
         });
-	}
-	
-	private class Encoder extends OneToOneEncoder {
-		protected Object encode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
-			PacketImpl myPacket = (PacketImpl) anObject;
-			
-			return ByteBuffer.wrap(_pickler.pickle(myPacket));
-		}
-	}
-	
-	private class Decoder extends OneToOneDecoder {
-		protected Object decode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
-			ByteBuffer myBuffer = (ByteBuffer) anObject;
-			return _pickler.unpickle(myBuffer.array());
-		}
-	}
-	
-	private class Framer extends OneToOneEncoder {
-		protected Object encode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
-			ChannelBuffer myBuff = ChannelBuffers.dynamicBuffer();
-			ByteBuffer myMessage = (ByteBuffer) anObject;
-
-			myBuff.writeInt(myMessage.limit());
-			myBuff.writeBytes(myMessage.array());
-
-			return myBuff;
-		}
-	}
-
-	private class Unframer extends FrameDecoder {
-		protected Object decode(ChannelHandlerContext aCtx, Channel aChannel, ChannelBuffer aBuffer) throws Exception {
-			// Make sure if the length field was received.
-			//
-			if (aBuffer.readableBytes() < 4) {
-				return null;
-			}
-
-			/*
-			 * Mark the current buffer position before reading the length field
-			 * because the whole frame might not be in the buffer yet. We will
-			 * reset the buffer position to the marked position if there's not
-			 * enough bytes in the buffer.
-			 */
-			aBuffer.markReaderIndex();
-
-			// Read the length field.
-			//
-			int length = aBuffer.readInt();
-
-			// Make sure if there's enough bytes in the buffer.
-			//
-			if (aBuffer.readableBytes() < length) {
-				/*
-				 * The whole bytes were not received yet - return null. This
-				 * method will be invoked again when more packets are received
-				 * and appended to the buffer.
-				 * 
-				 * Reset to the marked position to read the length field again
-				 * next time.
-				 */
-				aBuffer.resetReaderIndex();
-
-				return null;
-			}
-
-			// There's enough bytes in the buffer. Read it.
-			ChannelBuffer frame = aBuffer.readBytes(length);
-
-			return frame.toByteBuffer();
-		}
 	}
 	
 	public static void main(String[] anArgs) throws Exception {
