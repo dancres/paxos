@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * <p></p>Handles interactions between server and client. Assumes client is using a <code>ClientDispatcher</code>.
@@ -23,6 +24,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
     private static final Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     private final Core _core;
+    private final AtomicBoolean _initd = new AtomicBoolean(false);
     private Transport _tp;
     private Transport.Dispatcher _dispatcher;
 
@@ -57,7 +59,10 @@ public class ServerDispatcher implements Transport.Dispatcher {
     }
 
 	public boolean messageReceived(Packet aPacket) {
-		PaxosMessage myMessage = aPacket.getMessage();
+        if (! _initd.get())
+            return false;
+
+        PaxosMessage myMessage = aPacket.getMessage();
 		
 		try {
 			switch (myMessage.getClassification()) {
@@ -81,7 +86,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
                     return false;
                 }
 			}
-		} catch (Exception anE) {
+		} catch (Throwable anE) {
         	_logger.error("Unexpected exception", anE);
             return false;
         }
@@ -98,6 +103,8 @@ public class ServerDispatcher implements Transport.Dispatcher {
             _tp.routeTo(_dispatcher);
             _dispatcher.init(_tp);
         }
+
+        _initd.set(true);
 	}
 	
     public void terminate() {

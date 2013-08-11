@@ -6,6 +6,8 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * Constitutes the core implementation of paxos. Requires a <code>Transport</code> to use for membership,
  * failure detection and paxos rounds. In essence, this is the plumbing that glues the state machines and
@@ -19,6 +21,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     private final LeaderFactory _ld;
     private final Common _common;
     private final CheckpointHandle _handle;
+    private final AtomicBoolean _initd = new AtomicBoolean(false);
     private Heartbeater _hb;
 
     /**
@@ -75,6 +78,8 @@ public class Core implements Transport.Dispatcher, Paxos {
 
         _al.open(_handle);
         _hb.start();
+
+        _initd.set(true);
     }
 
     public CheckpointHandle newCheckpoint() {
@@ -102,6 +107,9 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
     
     public boolean messageReceived(Packet aPacket) {
+        if (! _initd.get())
+            return false;
+
     	PaxosMessage myMessage = aPacket.getMessage();
     	
         try {
@@ -130,7 +138,7 @@ public class Core implements Transport.Dispatcher, Paxos {
                     return false;
                 }
             }
-        } catch (Exception anE) {
+        } catch (Throwable anE) {
             _logger.error("Unexpected exception", anE);
             return false;
         }
