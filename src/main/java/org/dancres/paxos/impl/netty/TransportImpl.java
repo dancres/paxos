@@ -133,19 +133,6 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     	System.runFinalizersOnExit(true);
     }
 
-    private class DefaultPipelineFactory implements PipelineFactory {
-        public ChannelPipeline newPipeline(PacketPickler aPickler) {
-            ChannelPipeline myPipeline = Channels.pipeline();
-            myPipeline.addLast("framer", new Framer());
-            myPipeline.addLast("unframer", new UnFramer());
-            myPipeline.addLast("encoder", new Encoder(_pickler));
-            myPipeline.addLast("decoder", new Decoder(_pickler));
-            myPipeline.addLast("transport", TransportImpl.this);
-
-            return myPipeline;
-        }
-    }
-
     public TransportImpl(PipelineFactory aFactory) throws Exception {
         if (aFactory == null)
             _pipelineFactory = new DefaultPipelineFactory();
@@ -160,13 +147,13 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
         _mcastFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
 
-        _mcast = _mcastFactory.newChannel(_pipelineFactory.newPipeline(_pickler));
+        _mcast = _mcastFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
         _mcast.bind(myMcastTarget).await();
         _mcast.joinGroup(_mcastAddr.getAddress()).await();
         _channels.add(_mcast);
 
         _unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
-        _unicast = _unicastFactory.newChannel(_pipelineFactory.newPipeline(_pickler));
+        _unicast = _unicastFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
         _unicast.bind(new InetSocketAddress(Utils.getWorkableInterface(), 0)).await();
         _channels.add(_unicast);
 
@@ -176,10 +163,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
         _serverStreamFactory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(new Factory()),
                 Executors.newCachedThreadPool());
-        ServerSocketChannel myStreamChannel = _serverStreamFactory.newChannel(_pipelineFactory.newPipeline(_pickler));
+        ServerSocketChannel myStreamChannel = _serverStreamFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
         myStreamChannel.bind(_unicast.getLocalAddress()).await();
         myStreamChannel.getConfig().setPipelineFactory(
-                Channels.pipelineFactory(_pipelineFactory.newPipeline(_pickler)));
+                Channels.pipelineFactory(_pipelineFactory.newPipeline(_pickler, this)));
         _channels.add(myStreamChannel);
 
         _clientStreamFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(new Factory()),
@@ -329,7 +316,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	public void connectTo(final InetSocketAddress aNodeId, final ConnectionHandler aHandler) {
 		guard();
 		
-		final SocketChannel myChannel = _clientStreamFactory.newChannel(_pipelineFactory.newPipeline(_pickler));
+		final SocketChannel myChannel = _clientStreamFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
 
         myChannel.connect(aNodeId).addListener(new ChannelFutureListener() {
             public void operationComplete(ChannelFuture aFuture) throws Exception {
