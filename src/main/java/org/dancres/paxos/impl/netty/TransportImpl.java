@@ -135,9 +135,9 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
     public TransportImpl(PipelineFactory aFactory) throws Exception {
         if (aFactory == null)
-            _pipelineFactory = new DefaultPipelineFactory();
-        else
-            _pipelineFactory = aFactory;
+            throw new IllegalArgumentException();
+
+        _pipelineFactory = aFactory;
 
         _mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
         _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
@@ -174,7 +174,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     }
 
 	public TransportImpl() throws Exception {
-        this(null);
+        this(new DefaultPipelineFactory());
     }
 
     public PacketPickler getPickler() {
