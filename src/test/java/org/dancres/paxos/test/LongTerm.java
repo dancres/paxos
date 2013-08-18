@@ -1,10 +1,12 @@
 package org.dancres.paxos.test;
 
+import com.lexicalscope.jewel.cli.CliFactory;
+import com.lexicalscope.jewel.cli.Option;
+
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
-import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
@@ -12,8 +14,7 @@ import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
-import com.lexicalscope.jewel.cli.CliFactory;
-import com.lexicalscope.jewel.cli.Option;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +23,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -162,7 +165,7 @@ public class LongTerm {
         }
     }
 
-    private Environment _env;
+    private final Environment _env;
 
     private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
         _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle);
@@ -170,7 +173,7 @@ public class LongTerm {
 
     private static class TransportFactory implements OrderedMemoryNetwork.Factory {
         private int _nextNodeNum = 0;
-        private Environment _environment;
+        private final Environment _environment;
 
         TransportFactory(Environment anEnv) {
             _environment = anEnv;
@@ -179,139 +182,111 @@ public class LongTerm {
         public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
                                                                         InetSocketAddress aBroadcastAddr,
                                                                         OrderedMemoryNetwork aNetwork) {
-            TestTransport myTp = new TestTransport(aLocalAddr, aBroadcastAddr, aNetwork, _nextNodeNum, _environment);
+            NodeAdminImpl myTp = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, _nextNodeNum, _environment);
 
             _environment._nodes.add(myTp);
             _nextNodeNum++;
 
-            return myTp;
+            return myTp.getTransport();
         }
+    }
 
-        static class TestTransport implements OrderedMemoryNetwork.OrderedMemoryTransport, NodeAdmin, Listener {
-            private OrderedMemoryTransportImpl _transport;
-            private ServerDispatcher _dispatcher;
-            private AtomicBoolean _outOfDate = new AtomicBoolean(false);
-            private CheckpointHandling _checkpointer = new CheckpointHandling();
-            private Environment _env;
-            private Random _rng;
+    private static class NodeAdminImpl implements NodeAdmin, Listener {
+        private final OrderedMemoryTransportImpl _transport;
+        private final ServerDispatcher _dispatcher;
+        private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
+        private final CheckpointHandling _checkpointer = new CheckpointHandling();
+        private final Environment _env;
+        private final Random _rng;
 
-            TestTransport(InetSocketAddress aLocalAddr,
+        NodeAdminImpl(InetSocketAddress aLocalAddr,
                       InetSocketAddress aBroadcastAddr,
                       OrderedMemoryNetwork aNetwork,
                       int aNodeNum,
                       Environment anEnv) {
-                _env = anEnv;
-                _rng = new Random(_env._rng.nextLong());
-                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
+            _env = anEnv;
+            _rng = new Random(_env._rng.nextLong());
+            _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
 
-                FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
+            FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
 
-                _dispatcher =
-                        new ServerDispatcher(new FailureDetectorImpl(5, 5000),
-                                new HowlLogger(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
+            _dispatcher =
+                    new ServerDispatcher(new FailureDetectorImpl(5, 5000),
+                            new HowlLogger(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
 
-                _dispatcher.add(this);
+            _dispatcher.add(this);
 
-                try {
-                    _transport.routeTo(_dispatcher);
-                    _dispatcher.init(_transport);
-                } catch (Exception anE) {
-                    throw new RuntimeException("Failed to add a dispatcher", anE);
+            try {
+                _transport.routeTo(_dispatcher);
+                _dispatcher.init(_transport);
+            } catch (Exception anE) {
+                throw new RuntimeException("Failed to add a dispatcher", anE);
+            }
+        }
+
+        /*
+         * Create failure state machine at construction (passing in rng).
+         *
+         * Wedge each of distributed, send and connectTo to hit the state machine.
+         * State machine has listener and if it decides to trigger a failure it invokes
+         * on that listener so that appropriate implementation can be done.
+         *
+         * State machine returns type of fail or proceed to the caller. Caller
+         * can then determine what it should do (might be stop or continue or ...)
+         *
+         * State machine not only considers failures to inject but also sweeps it's current
+         * list of failures and if any have expired, invokes the listener appropriately
+         * to allow appropriate implementation of restore
+         *
+         */
+        public void terminate() {
+            _transport.terminate();
+        }
+
+        public OrderedMemoryNetwork.OrderedMemoryTransport getTransport() {
+            return _transport;
+        }
+
+        public boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt) {
+            boolean myAnswer = _checkpointer.bringUpToDate(aCkpt, _dispatcher);
+
+            if (myAnswer)
+                _outOfDate.set(false);
+
+            return myAnswer;
+        }
+
+        public void checkpoint() throws Exception {
+            _checkpointer.checkpoint(_dispatcher);
+        }
+
+        public CheckpointStorage.ReadCheckpoint getLastCheckpoint() {
+            return _checkpointer.getLastCheckpoint();
+        }
+
+        public long lastCheckpointTime() {
+            return _checkpointer.lastCheckpointTime();
+        }
+
+        public boolean isOutOfDate() {
+            return _outOfDate.get();
+        }
+
+        public void transition(StateEvent anEvent) {
+            switch (anEvent.getResult()) {
+                case OUT_OF_DATE : {
+                    // Seek an instant resolution and if it fails, flag it for later recovery
+                    //
+                    if (! _env.resolve(this))
+                        _outOfDate.set(true);
+
+                    break;
                 }
-            }
 
-            public PacketPickler getPickler() {
-                return _transport.getPickler();
-            }
-
-            /*
-             * Create failure state machine at construction (passing in rng).
-             *
-             * Wedge each of distributed, send and connectTo to hit the state machine.
-             * State machine has listener and if it decides to trigger a failure it invokes
-             * on that listener so that appropriate implementation can be done.
-             *
-             * State machine returns type of fail or proceed to the caller. Caller
-             * can then determine what it should do (might be stop or continue or ...)
-             *
-             * State machine not only considers failures to inject but also sweeps it's current
-             * list of failures and if any have expired, invokes the listener appropriately
-             * to allow appropriate implementation of restore
-             *
-             */
-            public void routeTo(Dispatcher aDispatcher) throws Exception {
-                _transport.routeTo(aDispatcher);
-            }
-
-            public InetSocketAddress getLocalAddress() {
-                return _transport.getLocalAddress();
-            }
-
-            public InetSocketAddress getBroadcastAddress() {
-                return _transport.getBroadcastAddress();
-            }
-
-            public void distribute(Packet aPacket) {
-                _transport.distribute(aPacket);
-            }
-
-            public void send(PaxosMessage aMessage, InetSocketAddress anAddr) {
-                _transport.send(aMessage, anAddr);
-            }
-
-            public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler) {
-                _transport.connectTo(anAddr, aHandler);
-            }
-
-            public void terminate() {
-                _transport.terminate();
-            }
-
-            public Transport getTransport() {
-                return this;
-            }
-
-            public boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt) {
-                boolean myAnswer = _checkpointer.bringUpToDate(aCkpt, _dispatcher);
-
-                if (myAnswer)
+                case UP_TO_DATE : {
                     _outOfDate.set(false);
 
-                return myAnswer;
-            }
-
-            public void checkpoint() throws Exception {
-                _checkpointer.checkpoint(_dispatcher);
-            }
-
-            public CheckpointStorage.ReadCheckpoint getLastCheckpoint() {
-                return _checkpointer.getLastCheckpoint();
-            }
-
-            public long lastCheckpointTime() {
-                return _checkpointer.lastCheckpointTime();
-            }
-
-            public boolean isOutOfDate() {
-                return _outOfDate.get();
-            }
-
-            public void transition(StateEvent anEvent) {
-                switch (anEvent.getResult()) {
-                    case OUT_OF_DATE : {
-                        // Seek an instant resolution and if it fails, flag it for later recovery
-                        //
-                        if (! _env.resolve(this))
-                            _outOfDate.set(true);
-
-                        break;
-                    }
-
-                    case UP_TO_DATE : {
-                        _outOfDate.set(false);
-
-                        break;
-                    }
+                    break;
                 }
             }
         }
