@@ -179,21 +179,22 @@ public class LastHandlingTest {
              * we replace the "permissive" last, introducing a valid LAST that should cause the leader to
              * deliver up the included value and then re-propose(non-Javadoc) the original value above.
              */
-            public void send(PaxosMessage aMessage, InetSocketAddress anAddr) {
+            public void send(Packet aPacket, InetSocketAddress anAddr) {
                 if (_seenLast)
-                    _tp.send(aMessage, anAddr);
+                    _tp.send(aPacket, anAddr);
                 else {
-                    if (aMessage.getType() == Operations.LAST) {
+                    if (aPacket.getMessage().getType() == Operations.LAST) {
                         ByteBuffer myBuffer = ByteBuffer.allocate(4);
                         myBuffer.putInt(66);
 
-                        Last myOrig = (Last) aMessage;
+                        Last myOrig = (Last) aPacket.getMessage();
 
                         _seenLast = true;
-                        _tp.send(new Last(myOrig.getSeqNum(), myOrig.getLowWatermark(), myOrig.getRndNumber() + 1,
-                                new Proposal("data", myBuffer.array())), anAddr);
+                        _tp.send(_tp.getPickler().newPacket(new Last(myOrig.getSeqNum(), myOrig.getLowWatermark(),
+                                myOrig.getRndNumber() + 1,
+                                new Proposal("data", myBuffer.array()))), anAddr);
                     } else {
-                        _tp.send(aMessage, anAddr);
+                        _tp.send(aPacket, anAddr);
                     }
                 }
             }

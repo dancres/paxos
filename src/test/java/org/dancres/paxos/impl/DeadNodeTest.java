@@ -90,9 +90,9 @@ public class DeadNodeTest {
             super();
         }
 
-        public void send(PaxosMessage aMessage, InetSocketAddress anAddress) {
+        public void send(Packet aPacket, InetSocketAddress anAddress) {
             if (canSend())
-                super.send(aMessage, anAddress);
+                super.send(aPacket, anAddress);
         }
 
         private boolean canSend() {

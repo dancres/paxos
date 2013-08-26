@@ -105,8 +105,8 @@ public class SuperiorLeaderTest {
                         Collect myCollect = (Collect) myMessage;
 
                         _tp.send(
-                                new OldRound(myCollect.getSeqNum(), _tp.getLocalAddress(),
-                                        myCollect.getRndNumber() + 1), aPacket.getSource());
+                                _tp.getPickler().newPacket(new OldRound(myCollect.getSeqNum(), _tp.getLocalAddress(),
+                                        myCollect.getRndNumber() + 1)), aPacket.getSource());
 
                         return true;
                     } else

@@ -204,7 +204,7 @@ public class ALOutOfDateTest {
                 return;
             }
 
-            send(new OutOfDate(), myPacket.getSource());
+            send(getPickler().newPacket(new OutOfDate()), myPacket.getSource());
         }
     }
 }

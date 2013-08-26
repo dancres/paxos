@@ -37,7 +37,7 @@ public class CheckpointHandleTest {
     }
 
     private static class TransportImpl implements Transport {
-        private Transport.PacketPickler _pickler = new StandalonePickler();
+        private Transport.PacketPickler _pickler;
 
         private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
         private InetSocketAddress _nodeId;
@@ -46,6 +46,7 @@ public class CheckpointHandleTest {
         TransportImpl(InetSocketAddress aNodeId, InetSocketAddress aBroadcastId) {
             _nodeId = aNodeId;
             _broadcastId = aBroadcastId;
+            _pickler = new StandalonePickler(_nodeId);
         }
 
         public Transport.PacketPickler getPickler() {
@@ -55,9 +56,9 @@ public class CheckpointHandleTest {
         public void routeTo(Dispatcher aDispatcher) {
         }
 
-        public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
+        public void send(Packet aPacket, InetSocketAddress aNodeId) {
             synchronized(_messages) {
-                _messages.add(aMessage);
+                _messages.add(aPacket.getMessage());
                 _messages.notifyAll();
             }
         }

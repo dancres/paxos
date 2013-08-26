@@ -339,7 +339,8 @@ class Leader implements Instance {
 
         _logger.info(toString() + " : " + aMessage);
 
-        _common.getTransport().send(aMessage, _common.getTransport().getBroadcastAddress());
+        _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage),
+                _common.getTransport().getBroadcastAddress());
     }
 
     private void startInteraction() {

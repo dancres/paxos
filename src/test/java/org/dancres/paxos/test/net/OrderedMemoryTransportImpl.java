@@ -17,7 +17,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 	private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
 
 	private final OrderedMemoryNetwork _parent;
-	private final PacketPickler _pickler = new StandalonePickler();
+	private final PacketPickler _pickler;
 	private final Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
 	private final InetSocketAddress _unicastAddr;
@@ -82,6 +82,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         _broadcastAddr = aBroadAddr;
         _parent = aParent;
         _decisions = aDecisions;
+        _pickler = new StandalonePickler(_unicastAddr);
     }
 
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
@@ -114,16 +115,12 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     	return _broadcastAddr;
     }
 	
-    /**
-     * @param aMessage is the message to send
-     * @param anAddr is the address of the target for the message which might be <code>Address.BROADCAST</code>.
-     */
-    public void send(PaxosMessage aMessage, InetSocketAddress anAddr) {
+    public void send(Packet aPacket, InetSocketAddress anAddr) {
 		guard();
 		
 		try {
             if (_decisions.sendUnreliable())
-			    _parent.enqueue(new FakePacket(_unicastAddr, aMessage), anAddr);
+			    _parent.enqueue(aPacket, anAddr);
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
 		}
@@ -151,19 +148,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 			_closed.set(true);
 		}
 		
-		public void send(PaxosMessage aMessage) {
-			if (_closed.get())
-				throw new RuntimeException("Stream is closed");
-
-			try {
-                if (_decisions.sendReliable())
-				    _parent.enqueue(new FakePacket(_unicastAddr, aMessage), _target);
-			} catch (Exception anE) {
-				_logger.error("Couldn't enqueue packet", anE);
-			}
-		}
-
-		public void sendRaw(Packet aPacket) {
+		public void send(Packet aPacket) {
 			if (_closed.get())
 				throw new RuntimeException("Stream is closed");
 

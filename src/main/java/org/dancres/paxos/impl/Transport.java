@@ -16,6 +16,7 @@ public interface Transport {
 	}
 	
     public interface PacketPickler extends java.io.Serializable {
+        public Packet newPacket(PaxosMessage aMessage);
         public byte[] pickle(Packet aPacket);
         public Packet unpickle(byte[] aBytes);
     }
@@ -37,10 +38,10 @@ public interface Transport {
     /**
      * One shot, unreliable send
      *
-     * @param aMessage is the message to send
+     * @param aPacket to send
      * @param anAddr is the address of the target for the message which might be <code>Address.BROADCAST</code>.
      */
-    public void send(PaxosMessage aMessage, InetSocketAddress anAddr);
+    public void send(Packet aPacket, InetSocketAddress anAddr);
 
     /**
      * Create a streaming connection to a target address
@@ -52,8 +53,7 @@ public interface Transport {
 
     public interface Stream {
         public void close();
-        public void send(PaxosMessage aMessage);
-        public void sendRaw(Transport.Packet aPacket);
+        public void send(Packet aPacket);
     }
 
     public interface ConnectionHandler {

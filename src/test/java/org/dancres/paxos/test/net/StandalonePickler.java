@@ -8,6 +8,16 @@ import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.messages.PaxosMessage;
 
 public class StandalonePickler implements Transport.PacketPickler {
+    private InetSocketAddress _source;
+
+    public StandalonePickler(InetSocketAddress aSource) {
+        _source = aSource;
+    }
+
+    public Transport.Packet newPacket(PaxosMessage aMessage) {
+        return new PacketImpl(aMessage, _source);
+    }
+
     public byte[] pickle(Transport.Packet aPacket) {
         byte[] myBytes = Codecs.encode(aPacket.getMessage());
         ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);

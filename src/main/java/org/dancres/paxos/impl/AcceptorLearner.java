@@ -689,7 +689,8 @@ public class AcceptorLearner {
                  * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
                  */
                 if (myNeed.getMinSeq() < _lastCheckpoint.get().getLowWatermark().getSeqNum()) {
-                    _common.getTransport().send(new OutOfDate(), aPacket.getSource());
+                    _common.getTransport().send(_common.getTransport().getPickler().newPacket(new OutOfDate()),
+                            aPacket.getSource());
 
                 } else if (myNeed.getMaxSeq() <= _common.getLowWatermark().getSeqNum()) {
                     _logger.debug("Running streamer: " + _common.getTransport().getLocalAddress());
@@ -870,7 +871,7 @@ public class AcceptorLearner {
                 return;
 
             _logger.info("AL sending: " + aMessage);
-            _common.getTransport().send(aMessage, aNodeId);
+            _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), aNodeId);
         }        
     }
     
@@ -978,7 +979,7 @@ public class AcceptorLearner {
 
         public void process(Transport.Packet aPacket, long aLogOffset) {
             _logger.debug("Streaming: " + aPacket.getMessage());
-            _stream.sendRaw(aPacket);
+            _stream.send(aPacket);
         }
     }
 

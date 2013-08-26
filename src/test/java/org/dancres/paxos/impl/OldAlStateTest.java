@@ -43,16 +43,16 @@ public class OldAlStateTest {
 	
 	private class TransportImpl implements Transport {
         private InetSocketAddress _broadcast = Utils.getTestAddress();
-        private Transport.PacketPickler _pickler = new StandalonePickler();
+        private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
 
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
         public void routeTo(Dispatcher aDispatcher) {
         }
 
-		public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
+		public void send(Packet aPacket, InetSocketAddress aNodeId) {
 			synchronized(_messages) {
-				_messages.add(aMessage);
+				_messages.add(aPacket.getMessage());
 				_messages.notifyAll();
 			}
 		}		

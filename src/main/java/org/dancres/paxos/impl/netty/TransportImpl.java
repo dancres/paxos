@@ -103,6 +103,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     }
     
     private class PicklerImpl implements PacketPickler {
+        public Packet newPacket(PaxosMessage aMessage) {
+            return new PacketImpl(aMessage, getLocalAddress());
+        }
+
         public byte[] pickle(Packet aPacket) {
 			byte[] myBytes = Codecs.encode(aPacket.getMessage());
 			ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);
@@ -269,14 +273,14 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         // anEvent.getChannel().close();
     }		
 	
-	public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
+	public void send(Packet aPacket, InetSocketAddress aNodeId) {
 		guard();
 		
 		try {
 			if (aNodeId.equals(_broadcastAddr))
-				_mcast.write(new PacketImpl(aMessage, getLocalAddress()), _mcastAddr);
+				_mcast.write(aPacket, _mcastAddr);
 			else {
-				_unicast.write(new PacketImpl(aMessage, getLocalAddress()), aNodeId);
+				_unicast.write(aPacket, aNodeId);
 			}
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
@@ -298,14 +302,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 			}
 		}
 		
-		public void send(PaxosMessage aMessage) {
-            try {
-                _channel.write(new PacketImpl(aMessage, getLocalAddress())).await();
-            } catch (InterruptedException anIE) {
-            }
-		}
-
-		public void sendRaw(Packet aPacket) {
+		public void send(Packet aPacket) {
 			try {
 				_channel.write(aPacket).await();
 			} catch (InterruptedException anIE) {				
@@ -338,8 +335,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		Transport _tport2 = new TransportImpl();
         _tport2.routeTo(new DispatcherImpl());
 		
-		_tport1.send(new Accept(1, 2), _tport1.getBroadcastAddress());
-		_tport1.send(new Accept(2, 3), _tport2.getLocalAddress());
+		_tport1.send(_tport1.getPickler().newPacket(new Accept(1, 2)), _tport1.getBroadcastAddress());
+		_tport1.send(_tport1.getPickler().newPacket(new Accept(2, 3)), _tport2.getLocalAddress());
 
 		Thread.sleep(5000);
 		_tport1.terminate();

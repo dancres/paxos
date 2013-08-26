@@ -74,7 +74,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
                     _core.submit(myProposal, new Completion<VoteOutcome>() {
                         public void complete(VoteOutcome anOutcome) {
-                            _tp.send(new Event(anOutcome), mySource);
+                            _tp.send(_tp.getPickler().newPacket(new Event(anOutcome)), mySource);
                         }
                     });
 

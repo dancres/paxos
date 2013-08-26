@@ -33,7 +33,7 @@ public class ClientDispatcher implements Transport.Dispatcher {
 	}
 
 	public void send(PaxosMessage aMessage, InetSocketAddress aTarget) {
-		_transport.send(aMessage, aTarget);
+		_transport.send(_transport.getPickler().newPacket(aMessage), aTarget);
 	}
 	
 	/**

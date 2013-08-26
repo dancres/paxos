@@ -109,8 +109,8 @@ public class SuperiorLeaderAtBeginTest {
                         Begin myBegin = (Begin) myMessage;
 
                         _tp.send(
-                                new OldRound(myBegin.getSeqNum(), _tp.getLocalAddress(),
-                                        myBegin.getRndNumber() + 1), aPacket.getSource());
+                                _tp.getPickler().newPacket(new OldRound(myBegin.getSeqNum(), _tp.getLocalAddress(),
+                                        myBegin.getRndNumber() + 1)), aPacket.getSource());
 
                         return true;
                     } else

@@ -86,9 +86,9 @@ public class PacketDropTest {
         	super();
         }
 
-        public void send(PaxosMessage aMessage, InetSocketAddress anAddress) {
-            if (aMessage.getType() == Operations.HEARTBEAT)
-                super.send(aMessage, anAddress);
+        public void send(Packet aPacket, InetSocketAddress anAddress) {
+            if (aPacket.getMessage().getType() == Operations.HEARTBEAT)
+                super.send(aPacket, anAddress);
         }
     }
 }
