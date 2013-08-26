@@ -57,9 +57,6 @@ public class ALStartupTest {
 
         public void terminate() {
 		}
-
-		public void connectTo(InetSocketAddress aNodeId, ConnectionHandler aHandler) {
-		}
 	}
 		
 	@Before public void init() throws Exception {

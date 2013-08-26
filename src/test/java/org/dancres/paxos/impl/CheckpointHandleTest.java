@@ -87,9 +87,6 @@ public class CheckpointHandleTest {
 
         public void terminate() {
         }
-
-        public void connectTo(InetSocketAddress aNodeId, ConnectionHandler aHandler) {
-        }
     }
 
     @Test

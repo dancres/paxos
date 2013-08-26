@@ -136,38 +136,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
             }
     }
 
-	private class StreamImpl implements Stream {
-		private InetSocketAddress _target;
-		private AtomicBoolean _closed = new AtomicBoolean(false);
-
-		StreamImpl(InetSocketAddress aTarget) {
-			_target = aTarget;
-		}
-		
-		public void close() {
-			_closed.set(true);
-		}
-		
-		public void send(Packet aPacket) {
-			if (_closed.get())
-				throw new RuntimeException("Stream is closed");
-
-			try {
-                if (_decisions.sendReliable())
-                    _parent.enqueue(aPacket, _target);
-			} catch (Exception anE) {
-				_logger.error("Couldn't enqueue packet", anE);
-			}
-		}
-	}
-	
-	public void connectTo(final InetSocketAddress aNodeId, final ConnectionHandler aHandler) {
-		guard();
-
-        if (_decisions.connect())
-            aHandler.connected(new StreamImpl(aNodeId));
-	}
-
     public void terminate() {
         guard();
 

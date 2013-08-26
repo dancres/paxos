@@ -57,9 +57,6 @@ public class ALCheckpointTest {
 
         public void terminate() {
         }
-
-        public void connectTo(InetSocketAddress aNodeId, ConnectionHandler aHandler) {
-        }
     }
 
     @Before

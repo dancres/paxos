@@ -84,9 +84,6 @@ public class OldAlStateTest {
 
 		public void terminate() {
 		}
-
-		public void connectTo(InetSocketAddress aNodeId, ConnectionHandler aHandler) {
-		}
 	}
 	
 	@Test public void test() throws Exception {

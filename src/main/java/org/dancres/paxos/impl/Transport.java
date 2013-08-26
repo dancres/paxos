@@ -43,23 +43,6 @@ public interface Transport {
      */
     public void send(Packet aPacket, InetSocketAddress anAddr);
 
-    /**
-     * Create a streaming connection to a target address
-     *
-     * @param anAddr
-     * @param aHandler
-     */
-    public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler);
-
-    public interface Stream {
-        public void close();
-        public void send(Packet aPacket);
-    }
-
-    public interface ConnectionHandler {
-        public void connected(Stream aStream);
-    }
-
     public void terminate();
 
     public interface Lifecycle {

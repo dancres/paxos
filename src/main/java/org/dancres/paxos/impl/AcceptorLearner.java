@@ -670,7 +670,7 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-	private void process(Transport.Packet aPacket, Writer aWriter, Sender aSender) {
+	private void process(final Transport.Packet aPacket, Writer aWriter, Sender aSender) {
         PaxosMessage myMessage = aPacket.getMessage();
 		InetSocketAddress myNodeId = aPacket.getSource();
 		long mySeqNum = myMessage.getSeqNum();
@@ -695,13 +695,7 @@ public class AcceptorLearner {
                 } else if (myNeed.getMaxSeq() <= _common.getLowWatermark().getSeqNum()) {
                     _logger.debug("Running streamer: " + _common.getTransport().getLocalAddress());
 
-
-                    _common.getTransport().connectTo(aPacket.getSource(),
-                            new Transport.ConnectionHandler() {
-                                public void connected(Transport.Stream aStream) {
-                                    new RemoteStreamer(myNeed, aStream).start();
-                                }
-                            });
+                    new RemoteStreamer(aPacket.getSource(), myNeed).start();
                 }
 
                 break;
@@ -951,11 +945,11 @@ public class AcceptorLearner {
      */
     private class RemoteStreamer extends Thread implements Consumer {
         private final Need _need;
-        private final Transport.Stream _stream;
+        private final InetSocketAddress _target;
 
-        RemoteStreamer(Need aNeed, Transport.Stream aStream) {
+        RemoteStreamer(InetSocketAddress aTarget, Need aNeed) {
             _need = aNeed;
-            _stream = aStream;
+            _target = aTarget;
         }
 
         public void run() {
@@ -972,14 +966,13 @@ public class AcceptorLearner {
             } catch (Exception anE) {
                 _logger.error("Failed to replay log", anE);
             } finally {
-                _stream.close();
                 unguard();
             }
         }
 
         public void process(Transport.Packet aPacket, long aLogOffset) {
             _logger.debug("Streaming: " + aPacket.getMessage());
-            _stream.send(aPacket);
+            _common.getTransport().send(aPacket, _target);
         }
     }
 

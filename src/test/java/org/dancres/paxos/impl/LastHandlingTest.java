@@ -199,10 +199,6 @@ public class LastHandlingTest {
                 }
             }
 
-            public void connectTo(InetSocketAddress anAddr, ConnectionHandler aHandler) {
-                _tp.connectTo(anAddr, aHandler);
-            }
-
             public void terminate() {
             }
         }
