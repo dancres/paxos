@@ -81,7 +81,7 @@ public interface Paxos {
      * should either have requested the shutdown and thus avoid making this request or received an out of date
      * <code>StateEvent</code> and be in the process of obtaining a new checkpoint.
      */
-    public void submit(Proposal aValue, Completion aCompletion) throws InactiveException;
+    public void submit(Proposal aValue, Completion<VoteOutcome> aCompletion) throws InactiveException;
     public void add(Listener aListener);
     public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception;
     public FailureDetector getDetector();

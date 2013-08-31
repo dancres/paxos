@@ -163,7 +163,7 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
     }
 
     public Membership getMembers() {
-        return new MembershipImpl(new HashSet(_lastHeartbeats.keySet()));
+        return new MembershipImpl(new HashSet<InetSocketAddress>(_lastHeartbeats.keySet()));
     }
 
     public InetSocketAddress getRandomMember(InetSocketAddress aLocalAddress) {

@@ -153,7 +153,7 @@ public class Core implements Transport.Dispatcher, Paxos {
      * @param aVal
      * @throws org.dancres.paxos.InactiveException
      */
-    public void submit(Proposal aVal, Completion aCompletion) throws InactiveException {
+    public void submit(Proposal aVal, Completion<VoteOutcome> aCompletion) throws InactiveException {
         _ld.newLeader().submit(aVal, aCompletion);
     }
 }
