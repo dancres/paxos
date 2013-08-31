@@ -11,11 +11,9 @@ import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.DatagramChannel;
 import org.jboss.netty.channel.socket.DatagramChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory;
-import org.jboss.netty.channel.socket.oio.OioDatagramChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Set;
@@ -81,16 +79,16 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
      * @todo Ought to be able to run this multi-threaded but AL is not ready for that yet
      */
     private final ExecutorService _packetDispatcher = Executors.newSingleThreadExecutor();
-	
+
     private class Factory implements ThreadFactory {
 		public Thread newThread(Runnable aRunnable) {
 			Thread myThread = new Thread(aRunnable);
-			
+
 			myThread.setDaemon(true);
-			return myThread;			
+			return myThread;
 		}
     }
-    
+
     private class PicklerImpl implements PacketPickler {
         public Packet newPacket(PaxosMessage aMessage) {
             return new PacketImpl(aMessage, getLocalAddress());
@@ -99,26 +97,26 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         public byte[] pickle(Packet aPacket) {
 			byte[] myBytes = Codecs.encode(aPacket.getMessage());
 			ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);
-			
+
 			myBuffer.putLong(Codecs.flatten(aPacket.getSource()));
 			myBuffer.putInt(myBytes.length);
 			myBuffer.put(myBytes);
 			myBuffer.flip();
-			
+
 			return myBuffer.array();
         }
 
         public Packet unpickle(byte[] aBytes) {
 			ByteBuffer myBuffer = ByteBuffer.wrap(aBytes);
-			
+
 			InetSocketAddress mySource = Codecs.expand(myBuffer.getLong());
 			int myLength = myBuffer.getInt();
 			byte[] myPaxosBytes = new byte[myLength];
 			myBuffer.get(myPaxosBytes);
-			
+
 			PaxosMessage myMessage = Codecs.decode(myPaxosBytes);
-			
-			return new PacketImpl(myMessage, mySource);        	
+
+			return new PacketImpl(myMessage, mySource);
         }
     }
 
@@ -135,19 +133,18 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         _mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
         _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
 
-        InetSocketAddress myMcastTarget = new InetSocketAddress((InetAddress) null,
-                BROADCAST_PORT);
-
-        _mcastFactory = new OioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
-
+        _mcastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
         _mcast = _mcastFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
-        _mcast.bind(myMcastTarget).await();
-        _mcast.joinGroup(_mcastAddr.getAddress()).await();
+
+        _mcast.getConfig().setReuseAddress(true);
+        _mcast.bind(new InetSocketAddress(BROADCAST_PORT)).await();
+        _mcast.joinGroup(_mcastAddr, Utils.getWorkableInterface()).await();
         _channels.add(_mcast);
 
         _unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
         _unicast = _unicastFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
-        _unicast.bind(new InetSocketAddress(Utils.getWorkableInterface(), 0)).await();
+
+        _unicast.bind(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 0)).await();
         _channels.add(_unicast);
 
         _unicastAddr = _unicast.getLocalAddress();
