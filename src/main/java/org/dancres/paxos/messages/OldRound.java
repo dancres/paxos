@@ -4,6 +4,7 @@ import org.dancres.paxos.impl.Instance;
 import org.dancres.paxos.impl.LeaderSelection;
 
 import java.net.InetSocketAddress;
+import java.util.EnumSet;
 
 /**
  * Used to report that a leader is out of date as compared to the rest of the cluster. This happens when another
@@ -28,8 +29,8 @@ public class OldRound implements PaxosMessage, LeaderSelection {
         return Operations.OLDROUND;
     }
 
-    public short getClassification() {
-    	return ACCEPTOR_LEARNER;
+    public EnumSet<Classification> getClassifications() {
+    	return EnumSet.of(Classification.ACCEPTOR_LEARNER);
     }
 
     /**

@@ -3,6 +3,8 @@ package org.dancres.paxos.messages;
 import org.dancres.paxos.impl.Instance;
 import org.dancres.paxos.impl.LeaderSelection;
 
+import java.util.EnumSet;
+
 public class Accept implements PaxosMessage, LeaderSelection {
     private final long _seqNum;
     private final long _rndNumber;
@@ -16,8 +18,8 @@ public class Accept implements PaxosMessage, LeaderSelection {
         return Operations.ACCEPT;
     }
 
-    public short getClassification() {
-    	return ACCEPTOR_LEARNER;
+    public EnumSet<Classification> getClassifications() {
+    	return EnumSet.of(Classification.ACCEPTOR_LEARNER);
     }
     
     public long getRndNumber() {

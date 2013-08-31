@@ -3,6 +3,8 @@ package org.dancres.paxos.impl.faildet;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
+import java.util.EnumSet;
+
 /**
  * Message produced by <code>Heartbeater</code> for consumption and processing by <code>FailureDetectorImpl</code>
  *
@@ -19,8 +21,8 @@ public class Heartbeat implements PaxosMessage {
         return Operations.HEARTBEAT;
     }
 
-    public short getClassification() {
-    	return FAILURE_DETECTOR;
+    public EnumSet<Classification> getClassifications() {
+    	return EnumSet.of(Classification.FAILURE_DETECTOR);
     }
         
     public long getSeqNum() {

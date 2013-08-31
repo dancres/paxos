@@ -450,7 +450,7 @@ class Leader implements Instance {
     void processMessage(Transport.Packet aPacket) {
         PaxosMessage myMessage = aPacket.getMessage();
 
-        assert (myMessage.getClassification() != PaxosMessage.CLIENT): "Got a client message and shouldn't have done";
+        assert (! myMessage.getClassifications().contains(PaxosMessage.Classification.CLIENT)): "Got a client message and shouldn't have done";
 
         synchronized (this) {
             switch (_stateMachine.getCurrentState()) {

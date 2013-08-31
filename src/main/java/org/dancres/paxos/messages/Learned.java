@@ -1,5 +1,7 @@
 package org.dancres.paxos.messages;
 
+import java.util.EnumSet;
+
 public class Learned implements PaxosMessage {
     private final long _seqNum;
     private final long _rndNum;
@@ -13,8 +15,8 @@ public class Learned implements PaxosMessage {
         return Operations.LEARNED;
     }
 
-    public short getClassification() {
-    	return LEADER;
+    public EnumSet<Classification> getClassifications() {
+    	return EnumSet.of(Classification.LEADER);
     }
     
     public long getSeqNum() {

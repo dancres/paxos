@@ -6,6 +6,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.EnumSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -111,33 +112,29 @@ public class Core implements Transport.Dispatcher, Paxos {
             return false;
 
     	PaxosMessage myMessage = aPacket.getMessage();
-    	
+        EnumSet<PaxosMessage.Classification> myClassifications = myMessage.getClassifications();
+        boolean didProcess = false;
+
         try {
-            switch (myMessage.getClassification()) {
-                case PaxosMessage.FAILURE_DETECTOR: {
-                    _common.getPrivateFD().processMessage(aPacket);
 
-                    return true;
-                }
-
-                case PaxosMessage.LEADER:
-                case PaxosMessage.RECOVERY: {
-                    _al.processMessage(aPacket);
-
-                    return true;
-                }
-
-                case PaxosMessage.ACCEPTOR_LEARNER: {
-                    _ld.processMessage(aPacket);
-
-                    return true;
-                }
-
-                default: {
-                    _logger.debug("Unrecognised message:" + aPacket.getSource() + " " + myMessage);
-                    return false;
-                }
+            if (myClassifications.contains(PaxosMessage.Classification.FAILURE_DETECTOR)) {
+                _common.getPrivateFD().processMessage(aPacket);
+                didProcess = true;
             }
+
+            if ((myClassifications.contains(PaxosMessage.Classification.LEADER))
+                    || (myClassifications.contains(PaxosMessage.Classification.RECOVERY))) {
+                _al.processMessage(aPacket);
+                didProcess = true;
+            }
+
+            if ((myClassifications.contains(PaxosMessage.Classification.ACCEPTOR_LEARNER))) {
+                _ld.processMessage(aPacket);
+                didProcess = true;
+            }
+
+            return didProcess;
+
         } catch (Throwable anE) {
             _logger.error("Unexpected exception", anE);
             return false;

@@ -4,6 +4,8 @@ import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.Instance;
 import org.dancres.paxos.impl.LeaderSelection;
 
+import java.util.EnumSet;
+
 public class Last implements PaxosMessage, LeaderSelection {
     private final long _seqNum;
     private final long _low;
@@ -27,8 +29,8 @@ public class Last implements PaxosMessage, LeaderSelection {
         return Operations.LAST;
     }
 
-    public short getClassification() {
-    	return ACCEPTOR_LEARNER;
+    public EnumSet<Classification> getClassifications() {
+    	return EnumSet.of(Classification.ACCEPTOR_LEARNER);
     }
 
     public boolean routeable(Instance anInstance) {

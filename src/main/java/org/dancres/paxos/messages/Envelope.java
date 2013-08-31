@@ -2,6 +2,8 @@ package org.dancres.paxos.messages;
 
 import org.dancres.paxos.Proposal;
 
+import java.util.EnumSet;
+
 public class Envelope implements PaxosMessage {
     private long _seqNum = -1;
     private final Proposal _proposal;
@@ -23,8 +25,8 @@ public class Envelope implements PaxosMessage {
         return Operations.ENVELOPE;
     }
 
-    public short getClassification() {
-    	return CLIENT;
+    public EnumSet<Classification> getClassifications() {
+    	return EnumSet.of(Classification.CLIENT);
     }
      
     public String toString() {

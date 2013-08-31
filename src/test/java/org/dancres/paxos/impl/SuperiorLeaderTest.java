@@ -99,23 +99,19 @@ public class SuperiorLeaderTest {
         public boolean messageReceived(Packet aPacket) {
             PaxosMessage myMessage = aPacket.getMessage();
 
-            switch (myMessage.getClassification()) {
-                case PaxosMessage.LEADER : {
-                    if (myMessage.getType() == Operations.COLLECT) {
-                        Collect myCollect = (Collect) myMessage;
+            if (myMessage.getClassifications().contains(PaxosMessage.Classification.LEADER)) {
+                if (myMessage.getType() == Operations.COLLECT) {
+                    Collect myCollect = (Collect) myMessage;
 
-                        _tp.send(
-                                _tp.getPickler().newPacket(new OldRound(myCollect.getSeqNum(), _tp.getLocalAddress(),
-                                        myCollect.getRndNumber() + 1)), aPacket.getSource());
+                    _tp.send(
+                            _tp.getPickler().newPacket(new OldRound(myCollect.getSeqNum(), _tp.getLocalAddress(),
+                                    myCollect.getRndNumber() + 1)), aPacket.getSource());
 
-                        return true;
-                    } else
-                        return _core.messageReceived(aPacket);
-                }
-
-                default : {
+                    return true;
+                } else
                     return _core.messageReceived(aPacket);
-                }
+            } else {
+                return _core.messageReceived(aPacket);
             }
         }
     }

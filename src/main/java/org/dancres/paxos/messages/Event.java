@@ -2,6 +2,8 @@ package org.dancres.paxos.messages;
 
 import org.dancres.paxos.VoteOutcome;
 
+import java.util.EnumSet;
+
 public class Event implements PaxosMessage {
     private final VoteOutcome _vote;
 
@@ -21,7 +23,7 @@ public class Event implements PaxosMessage {
         return _vote.getSeqNum();
     }
 
-    public short getClassification() {
-        return CLIENT;
+    public EnumSet<Classification> getClassifications() {
+        return EnumSet.of(Classification.CLIENT);
     }
 }

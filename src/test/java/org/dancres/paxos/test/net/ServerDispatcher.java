@@ -65,28 +65,25 @@ public class ServerDispatcher implements Transport.Dispatcher {
         PaxosMessage myMessage = aPacket.getMessage();
 		
 		try {
-			switch (myMessage.getClassification()) {
-				case PaxosMessage.CLIENT : {
-                    final InetSocketAddress mySource = aPacket.getSource();
+            if (myMessage.getClassifications().contains(PaxosMessage.Classification.CLIENT)) {
+                final InetSocketAddress mySource = aPacket.getSource();
 
-                    Envelope myEnvelope = (Envelope) myMessage;
-                    Proposal myProposal = myEnvelope.getValue();
+                Envelope myEnvelope = (Envelope) myMessage;
+                Proposal myProposal = myEnvelope.getValue();
 
-                    _core.submit(myProposal, new Completion<VoteOutcome>() {
-                        public void complete(VoteOutcome anOutcome) {
-                            _tp.send(_tp.getPickler().newPacket(new Event(anOutcome)), mySource);
-                        }
-                    });
+                _core.submit(myProposal, new Completion<VoteOutcome>() {
+                    public void complete(VoteOutcome anOutcome) {
+                        _tp.send(_tp.getPickler().newPacket(new Event(anOutcome)), mySource);
+                    }
+                });
 
-                    return true;
-				}
+                return true;
+            } else {
 
-                default : {
-                    _logger.debug("Unrecognised message:" + myMessage);
-                    return false;
-                }
-			}
-		} catch (Throwable anE) {
+                _logger.debug("Unrecognised message:" + myMessage);
+                return false;
+            }
+        } catch (Throwable anE) {
         	_logger.error("Unexpected exception", anE);
             return false;
         }

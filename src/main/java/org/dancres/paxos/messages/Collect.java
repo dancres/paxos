@@ -2,6 +2,8 @@ package org.dancres.paxos.messages;
 
 import org.dancres.paxos.impl.Constants;
 
+import java.util.EnumSet;
+
 public class Collect implements PaxosMessage {
     private final long _seqNum;
     private final long _rndNumber;
@@ -17,8 +19,8 @@ public class Collect implements PaxosMessage {
         return Operations.COLLECT;
     }
     
-    public short getClassification() {
-    	return LEADER;
+    public EnumSet<Classification> getClassifications() {
+    	return EnumSet.of(Classification.LEADER);
     }
 
     public long getSeqNum() {

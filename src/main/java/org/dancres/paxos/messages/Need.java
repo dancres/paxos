@@ -1,5 +1,7 @@
 package org.dancres.paxos.messages;
 
+import java.util.EnumSet;
+
 /**
  * Emitted by AL when it's looking for some paxos instances. Emitted on the initiation of recovery.
  * Actual range of instances required is _minSeq < i <= _maxSeq, where i is a single instance.
@@ -13,8 +15,8 @@ public class Need implements PaxosMessage {
 		_maxSeq = aMax;
 	}
 	
-	public short getClassification() {
-		return RECOVERY;
+	public EnumSet<Classification> getClassifications() {
+		return EnumSet.of(Classification.RECOVERY);
 	}
 
 	public long getSeqNum() {

@@ -103,23 +103,20 @@ public class SuperiorLeaderAtBeginTest {
 
         public boolean messageReceived(Packet aPacket) {
             PaxosMessage myMessage = aPacket.getMessage();
-            switch (myMessage.getClassification()) {
-                case PaxosMessage.LEADER : {
-                    if (myMessage.getType() == Operations.BEGIN) {
-                        Begin myBegin = (Begin) myMessage;
+            if (myMessage.getClassifications().contains(PaxosMessage.Classification.LEADER)) {
 
-                        _tp.send(
-                                _tp.getPickler().newPacket(new OldRound(myBegin.getSeqNum(), _tp.getLocalAddress(),
-                                        myBegin.getRndNumber() + 1)), aPacket.getSource());
+                if (myMessage.getType() == Operations.BEGIN) {
+                    Begin myBegin = (Begin) myMessage;
 
-                        return true;
-                    } else
-                        return _core.messageReceived(aPacket);
-                }
+                    _tp.send(
+                            _tp.getPickler().newPacket(new OldRound(myBegin.getSeqNum(), _tp.getLocalAddress(),
+                                    myBegin.getRndNumber() + 1)), aPacket.getSource());
 
-                default : {
+                    return true;
+                } else
                     return _core.messageReceived(aPacket);
-                }
+            } else {
+                return _core.messageReceived(aPacket);
             }
         }
     }
