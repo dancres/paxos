@@ -7,7 +7,6 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 import java.util.Timer;
@@ -37,7 +36,7 @@ class Common {
             _message = aMessage;
 
             try {
-                _address = new InetSocketAddress(Utils.getWorkableInterface(), 12345);
+                _address = new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345);
             } catch (Exception anE) {
                 _logger.error("Problems getting a useful address for FakePacket", anE);
                 throw new RuntimeException("No localhost address, doomed");

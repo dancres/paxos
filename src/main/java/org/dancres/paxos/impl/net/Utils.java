@@ -136,8 +136,12 @@ public class Utils {
     public static String getNetworkInterface() {
     	return _workableInterface.getName();
     }
-    
-    public static InetAddress getWorkableInterface() {
+
+    public static NetworkInterface getWorkableInterface() {
+        return _workableInterface;
+    }
+
+    public static InetAddress getWorkableInterfaceAddress() {
         return _workableAddress;
     }
 

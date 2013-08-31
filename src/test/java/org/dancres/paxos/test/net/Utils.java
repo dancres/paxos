@@ -7,6 +7,6 @@ public class Utils {
     private static final AtomicInteger _portAllocator = new AtomicInteger(2048);
 
     public static InetSocketAddress getTestAddress() {
-        return new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getWorkableInterface(), _portAllocator.getAndIncrement());
+        return new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getWorkableInterfaceAddress(), _portAllocator.getAndIncrement());
     }
 }

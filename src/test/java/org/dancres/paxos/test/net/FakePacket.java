@@ -13,7 +13,7 @@ public class FakePacket implements Transport.Packet {
         _message = aMessage;
 
         try {
-            _address = new InetSocketAddress(Utils.getWorkableInterface(), 12345);
+            _address = new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345);
         } catch (Exception anE) {
             throw new RuntimeException("No localhost address, doomed", anE);
         }

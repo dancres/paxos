@@ -51,7 +51,7 @@ public class Backend {
     }
 
     private Backend(int aPort, int aClusterSize) {
-        _serverAddr = new InetSocketAddress(Utils.getWorkableInterface(), aPort);
+        _serverAddr = new InetSocketAddress(Utils.getWorkableInterfaceAddress(), aPort);
         _clusterSize = aClusterSize;
     }
     
