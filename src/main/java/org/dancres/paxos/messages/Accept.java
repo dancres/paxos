@@ -31,7 +31,8 @@ public class Accept implements PaxosMessage, LeaderSelection {
     }
 
     public boolean routeable(Instance anInstance) {
-        return ((_seqNum == anInstance.getSeqNum()) && (anInstance.getState().equals(Instance.State.SUCCESS)));
+        return ((_rndNumber == anInstance.getRound()) && (_seqNum == anInstance.getSeqNum()) &&
+                (anInstance.getState().equals(Instance.State.SUCCESS)));
     }
 
     public int hashCode() {
