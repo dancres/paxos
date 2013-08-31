@@ -122,13 +122,13 @@ public class Core implements Transport.Dispatcher, Paxos {
                 didProcess = true;
             }
 
-            if ((myClassifications.contains(PaxosMessage.Classification.LEADER))
+            if ((myClassifications.contains(PaxosMessage.Classification.ACCEPTOR_LEARNER))
                     || (myClassifications.contains(PaxosMessage.Classification.RECOVERY))) {
                 _al.processMessage(aPacket);
                 didProcess = true;
             }
 
-            if ((myClassifications.contains(PaxosMessage.Classification.ACCEPTOR_LEARNER))) {
+            if ((myClassifications.contains(PaxosMessage.Classification.LEADER))) {
                 _ld.processMessage(aPacket);
                 didProcess = true;
             }

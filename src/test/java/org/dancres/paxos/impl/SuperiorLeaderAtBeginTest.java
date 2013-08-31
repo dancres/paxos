@@ -103,7 +103,7 @@ public class SuperiorLeaderAtBeginTest {
 
         public boolean messageReceived(Packet aPacket) {
             PaxosMessage myMessage = aPacket.getMessage();
-            if (myMessage.getClassifications().contains(PaxosMessage.Classification.LEADER)) {
+            if (myMessage.getClassifications().contains(PaxosMessage.Classification.ACCEPTOR_LEARNER)) {
 
                 if (myMessage.getType() == Operations.BEGIN) {
                     Begin myBegin = (Begin) myMessage;

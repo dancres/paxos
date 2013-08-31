@@ -30,7 +30,7 @@ public class OldRound implements PaxosMessage, LeaderSelection {
     }
 
     public EnumSet<Classification> getClassifications() {
-    	return EnumSet.of(Classification.ACCEPTOR_LEARNER);
+    	return EnumSet.of(Classification.LEADER);
     }
 
     /**

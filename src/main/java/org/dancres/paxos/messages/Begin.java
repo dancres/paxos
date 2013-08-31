@@ -20,7 +20,7 @@ public class Begin implements PaxosMessage {
     }
 
     public EnumSet<Classification> getClassifications() {
-    	return EnumSet.of(Classification.LEADER);
+    	return EnumSet.of(Classification.ACCEPTOR_LEARNER);
     }
         
     public long getSeqNum() {
