@@ -754,7 +754,7 @@ public class AcceptorLearner {
 				//
 				if (_common.originates(aPacket)) {
 					_common.leaderAction();
-                    cacheBegin(myBegin);
+                    _cachedBegins.put(myBegin.getSeqNum(), myBegin);
 
 					aWriter.write(aPacket, true);
 
@@ -836,7 +836,7 @@ public class AcceptorLearner {
 
         _acceptLedgers.remove(myLearned.getSeqNum());
 
-        Begin myBegin = expungeBegin(mySeqNum);
+        Begin myBegin = _cachedBegins.remove(mySeqNum);
 
         // Record the learned value even if it's the heartbeat so there are no gaps in the Paxos sequence
         //
@@ -858,14 +858,6 @@ public class AcceptorLearner {
                     _common.getLeaderRndNum(),
                     myBegin.getConsolidatedValue(), aPacket.getSource()));
         }
-    }
-
-    private void cacheBegin(Begin aBegin) {
-        _cachedBegins.put(aBegin.getSeqNum(), aBegin);
-    }
-
-    private Begin expungeBegin(long aSeqNum) {
-        return _cachedBegins.remove(aSeqNum);
     }
 
     /**
