@@ -886,23 +886,24 @@ public class AcceptorLearner {
         }
     }
 
-    private boolean tallyAccepts(Begin aBegin) {
+    private Transport.Packet tallyAccepts(Begin aBegin) {
         int myAcceptTally = 0;
         List<Accept> myAccepts = _seenAccepts.get(aBegin.getSeqNum());
 
         if (myAccepts == null)
-            return false;
+            return null;
 
         for (Accept myAcc : myAccepts)
             if (myAcc.getRndNumber() == aBegin.getRndNumber())
                 ++myAcceptTally;
 
         if (myAcceptTally >= _common.getFD().getMajority()) {
-            _logger.info("*** Speculative COMMIT possible ***");
+            _logger.debug("*** Speculative COMMIT possible ***");
 
-            return true;
+            return _common.getTransport().getPickler().newPacket(new Learned(aBegin.getSeqNum(),
+                    aBegin.getRndNumber()));
         } else
-            return false;
+            return null;
     }
 
 	private PaxosMessage constructLast(long aSeqNum) {
