@@ -753,7 +753,8 @@ public class AcceptorLearner {
                     
 					aWriter.write(aPacket, true);
 
-					aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()), myNodeId);
+					aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()),
+                            _common.getTransport().getBroadcastAddress());
 				} else if (_common.precedes(aPacket)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
