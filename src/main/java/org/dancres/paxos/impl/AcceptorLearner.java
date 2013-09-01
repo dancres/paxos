@@ -721,7 +721,7 @@ public class AcceptorLearner {
 
 					aWriter.write(aPacket, true);
                     
-                    aSender.send(constructLast(mySeqNum), myNodeId);
+                    aSender.send(constructLast(myCollect), myNodeId);
 
 					/*
 					 * If the collect comes from the current leader (has same rnd
@@ -729,7 +729,7 @@ public class AcceptorLearner {
 					 * save to disk, just respond with last proposal etc
 					 */
 				} else if (_common.sameLeader(aPacket)) {
-                    aSender.send(constructLast(mySeqNum), myNodeId);
+                    aSender.send(constructLast(myCollect), myNodeId);
 
 				} else {
                     _logger.warn("Rejecting collect: " + myCollect + " against " +
@@ -791,7 +791,7 @@ public class AcceptorLearner {
                 if (myAccept.getSeqNum() <= _common.getLowWatermark().getSeqNum())
                     return;
 
-                getAndCreateAcceptLedger(myAccept.getSeqNum()).add(myAccept);
+                getAndCreateAcceptLedger(myAccept).add(myAccept);
 
                 Begin myCachedBegin = _cachedBegins.get(myAccept.getSeqNum());
 
@@ -863,15 +863,16 @@ public class AcceptorLearner {
     /**
      * Utility method to manage the lifecycle of creating an accept ledger.
      *
-     * @param aSeqNum
+     * @param anAccept
      * @return the newly or previously created ledger for the specified sequence number.
      */
-    private List<Accept> getAndCreateAcceptLedger(Long aSeqNum) {
-        List<Accept> myAccepts = _acceptLedgers.get(aSeqNum);
+    private List<Accept> getAndCreateAcceptLedger(Accept anAccept) {
+        Long mySeqNum = anAccept.getSeqNum();
+        List<Accept> myAccepts = _acceptLedgers.get(mySeqNum);
 
         if (myAccepts == null) {
             List<Accept> myInitial = new CopyOnWriteArrayList<>();
-            List<Accept> myResult = _acceptLedgers.put(aSeqNum, myInitial);
+            List<Accept> myResult = _acceptLedgers.put(mySeqNum, myInitial);
 
             myAccepts = ((myResult == null) ? myInitial : myResult);
         }
@@ -926,7 +927,8 @@ public class AcceptorLearner {
             return null;
     }
 
-	private PaxosMessage constructLast(long aSeqNum) {
+	private PaxosMessage constructLast(Collect aCollect) {
+        long mySeqNum = aCollect.getSeqNum();
 		Watermark myLow = _common.getLowWatermark();
 
 		Begin myState;
@@ -935,26 +937,26 @@ public class AcceptorLearner {
             // If we know nothing, we must start from beginning of log otherwise we start from the low watermark.
             //
 			if (myLow.equals(Watermark.INITIAL)) {
-				myState = new StateFinder(aSeqNum, 0).getState();
+				myState = new StateFinder(mySeqNum, 0).getState();
 			} else 
-				myState = new StateFinder(aSeqNum, myLow.getLogOffset()).getState();
+				myState = new StateFinder(mySeqNum, myLow.getLogOffset()).getState();
 		} catch (Exception anE) {
 			_logger.error("Failed to replay log" + ", " + _common.getTransport().getLocalAddress(), anE);
 			throw new RuntimeException("Failed to replay log" + ", " + _common.getTransport().getLocalAddress(), anE);
 		}
 		
 		if (myState != null) {
-            return new Last(aSeqNum, myLow.getSeqNum(), myState.getRndNumber(), myState.getConsolidatedValue());
+            return new Last(mySeqNum, myLow.getSeqNum(), myState.getRndNumber(), myState.getConsolidatedValue());
 		} else {
             /*
              * No state found. If we've gc'd and checkpointed, we can't provide an answer. In such a case,
              * the leader is out of date and we tell them. Otherwise, we're clean and give the leader a green light.
              */
-            if (aSeqNum <= myLow.getSeqNum())
+            if (mySeqNum <= myLow.getSeqNum())
                 return new OldRound(myLow.getSeqNum(), _common.getLeaderAddress(),
                         _common.getLeaderRndNum());
             else
-                return new Last(aSeqNum, myLow.getSeqNum(),
+                return new Last(mySeqNum, myLow.getSeqNum(),
                         Long.MIN_VALUE, Proposal.NO_VALUE);
         }
 	}
