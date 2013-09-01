@@ -58,9 +58,9 @@ public class AcceptorLearner {
     /**
      * Begins contain the values being proposed. These values must be remembered from round to round of an instance
      * until it has been committed. For any instance we believe is unresolved we keep the last value proposed (from
-     * the last acceptable Begin) cached (the begins are also logged to disk) such that when we see Success for an
+     * the last acceptable Begin) cached (the begins are also logged to disk) such that when have "learned" for an
      * instance we remove the value from the cache and send it to any listeners. This saves us having to disk scans
-     * for values and also placing the value in the Success message.
+     * for values and ensures that any value is logged only once (because it doesn't appear in any other messages).
      */
     private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<Long, Begin>();
     private final Map<Long, List<Accept>> _seenAccepts = new ConcurrentHashMap<Long, List<Accept>>();
@@ -433,7 +433,7 @@ public class AcceptorLearner {
 
     /* ********************************************************************************************
      *
-     * Utility methods
+     * Stats methods
      * 
      ******************************************************************************************** */
 
@@ -444,14 +444,6 @@ public class AcceptorLearner {
 	long getIgnoredCollectsCount() {
 		return _ignoredCollects.longValue();
 	}
-
-    private void cacheBegin(Begin aBegin) {
-        _cachedBegins.put(aBegin.getSeqNum(), aBegin);
-    }
-
-    private Begin expungeBegin(long aSeqNum) {
-        return _cachedBegins.remove(aSeqNum);
-    }
 
     /* ********************************************************************************************
      *
@@ -791,18 +783,12 @@ public class AcceptorLearner {
 			}
 
             case Operations.ACCEPT: {
-                /*
-                 * Still to do: Clear the tallied accepts when we commit and in some way log these accepts so we
-                 * catch them on a replay (unless we can manage without them, perhaps by emitting a LEARNED or
-                 * similar).
-                 */
                 Accept myAccept = (Accept) myMessage;
 
                 if (myAccept.getSeqNum() <= _common.getLowWatermark().getSeqNum())
                     return;
 
                 getAndCreateAccepts(myAccept.getSeqNum()).add(myAccept);
-                // aWriter.write(aPacket, true);
 
                 Begin myCachedBegin = _cachedBegins.get(myAccept.getSeqNum());
 
@@ -815,6 +801,13 @@ public class AcceptorLearner {
                 break;
             }
 
+            /*
+             * LEARNED will only be processed on a recovery run. It is generated and logged as the result of tallying
+             * ACCEPTs from all AL's in the cluster and BEGINs from Leaders. It is NEVER, sent across the network
+             * by a leader but MAY be sent from another AL in response to a NEED.
+             *
+             * ACCEPTs themselves are never logged individually or even as a group.
+             */
 			case Operations.LEARNED: {
                 learned(aPacket, aWriter);
 
@@ -826,6 +819,12 @@ public class AcceptorLearner {
 		}
 	}
 
+    /**
+     * Perform all actions associated with the act of learning a value for a sequence number.
+     *
+     * @param aPacket
+     * @param aWriter
+     */
     private void learned(Transport.Packet aPacket, Writer aWriter) {
         Learned myLearned = (Learned) aPacket.getMessage();
         long mySeqNum = myLearned.getSeqNum();
@@ -835,7 +834,7 @@ public class AcceptorLearner {
         _seenAccepts.remove(myLearned.getSeqNum());
 
         if (mySeqNum <= _common.getLowWatermark().getSeqNum()) {
-            _logger.debug("AL:Discarded known value: " + mySeqNum + ", " +
+            _logger.debug("AL:Discarded known learnt value: " + mySeqNum + ", " +
                     _common.getTransport().getLocalAddress());
         } else {
             Begin myBegin = expungeBegin(mySeqNum);
@@ -843,7 +842,7 @@ public class AcceptorLearner {
             if ((myBegin == null) || (myBegin.getRndNumber() != myLearned.getRndNum())) {
                 // We never saw the appropriate begin
                 //
-                _logger.debug("AL: Discarding success: " + myBegin + ", " + myLearned +
+                _logger.debug("AL: Discarding learnt value: " + myBegin + ", " + myLearned +
                         ", " + _common.getTransport().getLocalAddress());
             } else {
                 // Record the success even if it's the heartbeat so there are no gaps in the Paxos sequence
@@ -870,6 +869,20 @@ public class AcceptorLearner {
         }
     }
 
+    private void cacheBegin(Begin aBegin) {
+        _cachedBegins.put(aBegin.getSeqNum(), aBegin);
+    }
+
+    private Begin expungeBegin(long aSeqNum) {
+        return _cachedBegins.remove(aSeqNum);
+    }
+
+    /**
+     * Utility method to manage the lifecycle of an an accept tally.
+     *
+     * @param aSeqNum
+     * @return the newly or previously created tally for the specified sequence number.
+     */
     private List<Accept> getAndCreateAccepts(Long aSeqNum) {
         List<Accept> myAccepts = _seenAccepts.get(aSeqNum);
 
@@ -883,6 +896,12 @@ public class AcceptorLearner {
         return myAccepts;
     }
 
+    /**
+     * Remove any accepts in the tally not appropriate for the pass begin. We must tally only those accepts
+     * that match the round and sequence number of this begin. All others should be flushed.
+     *
+     * @param aBegin
+     */
     private void purgeAccepts(Begin aBegin) {
         List<Accept> myAccepts = _seenAccepts.get(aBegin.getSeqNum());
 
@@ -898,6 +917,12 @@ public class AcceptorLearner {
         }
     }
 
+    /**
+     * Determines whether a sufficient number of accepts can be tallied against the specified begin.
+     *
+     * @param aBegin
+     * @return A Learned packet to be logged if there are sufficient accepts, <code>null</code> otherwise.
+     */
     private Transport.Packet tallyAccepts(Begin aBegin) {
         int myAcceptTally = 0;
         List<Accept> myAccepts = _seenAccepts.get(aBegin.getSeqNum());
