@@ -872,7 +872,7 @@ public class AcceptorLearner {
      * Utility method to manage the lifecycle of creating an accept ledger.
      *
      * @param aSeqNum
-     * @return the newly or previously created tally for the specified sequence number.
+     * @return the newly or previously created ledger for the specified sequence number.
      */
     private List<Accept> getAndCreateAcceptLedger(Long aSeqNum) {
         List<Accept> myAccepts = _acceptLedgers.get(aSeqNum);
@@ -888,7 +888,7 @@ public class AcceptorLearner {
     }
 
     /**
-     * Remove any accepts in the tally not appropriate for the pass begin. We must tally only those accepts
+     * Remove any accepts in the ledger not appropriate for the passed begin. We must tally only those accepts
      * that match the round and sequence number of this begin. All others should be flushed.
      *
      * @param aBegin
