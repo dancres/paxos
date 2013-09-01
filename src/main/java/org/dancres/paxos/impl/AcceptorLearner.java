@@ -63,7 +63,7 @@ public class AcceptorLearner {
      * for values and ensures that any value is logged only once (because it doesn't appear in any other messages).
      */
     private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<Long, Begin>();
-    private final Map<Long, List<Accept>> _seenAccepts = new ConcurrentHashMap<Long, List<Accept>>();
+    private final Map<Long, List<Accept>> _acceptLedgers = new ConcurrentHashMap<Long, List<Accept>>();
 
     private final Lock _guardLock = new ReentrantLock();
     private final Condition _notActive = _guardLock.newCondition();
@@ -523,12 +523,12 @@ public class AcceptorLearner {
                                     _recoveryWindow.set(aNeed);
 
                                     /*
-                                     * Both cachedBegins and seenAccepts run ahead of the low watermark thus if we're
+                                     * Both cachedBegins and acceptLedger run ahead of the low watermark thus if we're
                                      * entering recovery which starts at low watermark + 1, none of these are worth
                                      * keeping because we'll get them back as packets are streamed to us.
                                      */
                                     _cachedBegins.clear();
-                                    _seenAccepts.clear();
+                                    _acceptLedgers.clear();
 
                                     /*
                                      * If we've just started up, neither the AL or Leader will have correct state.
@@ -758,7 +758,7 @@ public class AcceptorLearner {
 					aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()),
                             _common.getTransport().getBroadcastAddress());
 
-                    purgeAccepts(myBegin);
+                    purgeAcceptLedger(myBegin);
 
                     Transport.Packet myLearned = tallyAccepts(myBegin);
                     if (myLearned != null)
@@ -788,7 +788,7 @@ public class AcceptorLearner {
                 if (myAccept.getSeqNum() <= _common.getLowWatermark().getSeqNum())
                     return;
 
-                getAndCreateAccepts(myAccept.getSeqNum()).add(myAccept);
+                getAndCreateAcceptLedger(myAccept.getSeqNum()).add(myAccept);
 
                 Begin myCachedBegin = _cachedBegins.get(myAccept.getSeqNum());
 
@@ -831,7 +831,7 @@ public class AcceptorLearner {
 
         _common.leaderAction();
 
-        _seenAccepts.remove(myLearned.getSeqNum());
+        _acceptLedgers.remove(myLearned.getSeqNum());
 
         if (mySeqNum <= _common.getLowWatermark().getSeqNum()) {
             _logger.debug("AL:Discarded known learnt value: " + mySeqNum + ", " +
@@ -878,17 +878,17 @@ public class AcceptorLearner {
     }
 
     /**
-     * Utility method to manage the lifecycle of an an accept tally.
+     * Utility method to manage the lifecycle of creating an accept ledger.
      *
      * @param aSeqNum
      * @return the newly or previously created tally for the specified sequence number.
      */
-    private List<Accept> getAndCreateAccepts(Long aSeqNum) {
-        List<Accept> myAccepts = _seenAccepts.get(aSeqNum);
+    private List<Accept> getAndCreateAcceptLedger(Long aSeqNum) {
+        List<Accept> myAccepts = _acceptLedgers.get(aSeqNum);
 
         if (myAccepts == null) {
             List<Accept> myInitial = new CopyOnWriteArrayList<>();
-            List<Accept> myResult = _seenAccepts.put(aSeqNum, myInitial);
+            List<Accept> myResult = _acceptLedgers.put(aSeqNum, myInitial);
 
             myAccepts = ((myResult == null) ? myInitial : myResult);
         }
@@ -902,8 +902,8 @@ public class AcceptorLearner {
      *
      * @param aBegin
      */
-    private void purgeAccepts(Begin aBegin) {
-        List<Accept> myAccepts = _seenAccepts.get(aBegin.getSeqNum());
+    private void purgeAcceptLedger(Begin aBegin) {
+        List<Accept> myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
 
         if (myAccepts == null)
             return;
@@ -925,7 +925,7 @@ public class AcceptorLearner {
      */
     private Transport.Packet tallyAccepts(Begin aBegin) {
         int myAcceptTally = 0;
-        List<Accept> myAccepts = _seenAccepts.get(aBegin.getSeqNum());
+        List<Accept> myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
 
         if (myAccepts == null)
             return null;
