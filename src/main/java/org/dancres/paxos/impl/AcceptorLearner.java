@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
@@ -62,6 +63,7 @@ public class AcceptorLearner {
      * for values and also placing the value in the Success message.
      */
     private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<Long, Begin>();
+    private final Map<Long, List<Accept>> _seenAccepts = new ConcurrentHashMap<Long, List<Accept>>();
 
     private final Lock _guardLock = new ReentrantLock();
     private final Condition _notActive = _guardLock.newCondition();
@@ -750,11 +752,15 @@ public class AcceptorLearner {
 				if (_common.originates(aPacket)) {
 					_common.leaderAction();
                     cacheBegin(myBegin);
-                    
+
 					aWriter.write(aPacket, true);
 
 					aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()),
                             _common.getTransport().getBroadcastAddress());
+
+                    purgeAccepts(myBegin);
+                    tallyAccepts(myBegin);
+
 				} else if (_common.precedes(aPacket)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
@@ -772,6 +778,27 @@ public class AcceptorLearner {
 				
 				break;
 			}
+
+            case Operations.ACCEPT: {
+                /*
+                 * Still to do: Clear the tallied accepts when we commit and in some way log these accepts so we
+                 * catch them on a replay (unless we can manage without them, perhaps by emitting a LEARNED or
+                 * similar).
+                 */
+                Accept myAccept = (Accept) myMessage;
+
+                if (myAccept.getSeqNum() <= _common.getLowWatermark().getSeqNum())
+                    return;
+
+                getAndCreateAccepts(myAccept.getSeqNum()).add(myAccept);
+
+                Begin myCachedBegin = _cachedBegins.get(myAccept.getSeqNum());
+
+                if (myCachedBegin != null)
+                    tallyAccepts(myCachedBegin);
+
+                break;
+            }
 
 			case Operations.LEARNED: {
 				Learned myLearned = (Learned) myMessage;
@@ -820,6 +847,53 @@ public class AcceptorLearner {
 				throw new RuntimeException("Unexpected message" + ", " + _common.getTransport().getLocalAddress());
 		}
 	}
+
+    private List<Accept> getAndCreateAccepts(Long aSeqNum) {
+        List<Accept> myAccepts = _seenAccepts.get(aSeqNum);
+
+        if (myAccepts == null) {
+            List<Accept> myInitial = new CopyOnWriteArrayList<>();
+            List<Accept> myResult = _seenAccepts.put(aSeqNum, myInitial);
+
+            myAccepts = ((myResult == null) ? myInitial : myResult);
+        }
+
+        return myAccepts;
+    }
+
+    private void purgeAccepts(Begin aBegin) {
+        List<Accept> myAccepts = _seenAccepts.get(aBegin.getSeqNum());
+
+        if (myAccepts == null)
+            return;
+
+        Iterator<Accept> myAccs = myAccepts.iterator();
+
+        while (myAccs.hasNext()) {
+            Accept myAcc = myAccs.next();
+            if (myAcc.getRndNumber() != aBegin.getRndNumber())
+                myAccs.remove();
+        }
+    }
+
+    private boolean tallyAccepts(Begin aBegin) {
+        int myAcceptTally = 0;
+        List<Accept> myAccepts = _seenAccepts.get(aBegin.getSeqNum());
+
+        if (myAccepts == null)
+            return false;
+
+        for (Accept myAcc : myAccepts)
+            if (myAcc.getRndNumber() == aBegin.getRndNumber())
+                ++myAcceptTally;
+
+        if (myAcceptTally >= _common.getFD().getMajority()) {
+            _logger.info("*** Speculative COMMIT possible ***");
+
+            return true;
+        } else
+            return false;
+    }
 
 	private PaxosMessage constructLast(long aSeqNum) {
 		Watermark myLow = _common.getLowWatermark();
