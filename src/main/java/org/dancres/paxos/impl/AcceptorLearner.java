@@ -531,6 +531,14 @@ public class AcceptorLearner {
                                     _recoveryWindow.set(aNeed);
 
                                     /*
+                                     * Both cachedBegins and seenAccepts run ahead of the low watermark thus if we're
+                                     * entering recovery which starts at low watermark + 1, none of these are worth
+                                     * keeping because we'll get them back as packets are streamed to us.
+                                     */
+                                    _cachedBegins.clear();
+                                    _seenAccepts.clear();
+
+                                    /*
                                      * If we've just started up, neither the AL or Leader will have correct state.
                                      * Should our local leader be selected to lead it will almost certainly receive
                                      * OLD_ROUND from other nodes to bring it back into sync with sequence numbers.
