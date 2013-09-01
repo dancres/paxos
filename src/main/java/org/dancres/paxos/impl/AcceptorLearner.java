@@ -46,10 +46,10 @@ public class AcceptorLearner {
 
     private final AtomicLong _gracePeriod = new AtomicLong(DEFAULT_RECOVERY_GRACE_PERIOD);
 
-    private final AtomicReference<TimerTask> _recoveryAlarm = new AtomicReference<TimerTask>(null);
-    private final AtomicReference<Need> _recoveryWindow = new AtomicReference<Need>(null);
+    private final AtomicReference<TimerTask> _recoveryAlarm = new AtomicReference<>(null);
+    private final AtomicReference<Need> _recoveryWindow = new AtomicReference<>(null);
 
-    private final List<Listener> _listeners = new CopyOnWriteArrayList<Listener>();
+    private final List<Listener> _listeners = new CopyOnWriteArrayList<>();
 
 	private final LogStorage _storage;
     private final Common _common;
@@ -62,8 +62,8 @@ public class AcceptorLearner {
      * instance we remove the value from the cache and send it to any listeners. This saves us having to disk scans
      * for values and ensures that any value is logged only once (because it doesn't appear in any other messages).
      */
-    private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<Long, Begin>();
-    private final Map<Long, List<Accept>> _acceptLedgers = new ConcurrentHashMap<Long, List<Accept>>();
+    private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<>();
+    private final Map<Long, List<Accept>> _acceptLedgers = new ConcurrentHashMap<>();
 
     private final Lock _guardLock = new ReentrantLock();
     private final Condition _notActive = _guardLock.newCondition();
@@ -126,7 +126,7 @@ public class AcceptorLearner {
     static class ALCheckpointHandle extends CheckpointHandle {    	
         private transient Watermark _lowWatermark;
         private transient Transport.Packet _lastCollect;
-        private final transient AtomicReference<AcceptorLearner> _al = new AtomicReference<AcceptorLearner>(null);
+        private final transient AtomicReference<AcceptorLearner> _al = new AtomicReference<>(null);
         private transient Transport.PacketPickler _pr;
 
         ALCheckpointHandle(Watermark aLowWatermark, Transport.Packet aCollect, AcceptorLearner anAl,
@@ -201,7 +201,7 @@ public class AcceptorLearner {
         }
     }
 	
-	private final AtomicReference<ALCheckpointHandle> _lastCheckpoint = new AtomicReference<ALCheckpointHandle>();
+	private final AtomicReference<ALCheckpointHandle> _lastCheckpoint = new AtomicReference<>();
 	
     /* ********************************************************************************************
      *
