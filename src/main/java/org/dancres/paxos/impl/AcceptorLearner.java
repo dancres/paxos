@@ -916,7 +916,8 @@ public class AcceptorLearner {
         private Begin _lastBegin;
 
         StateFinder(long aSeqNum, long aLogOffset) throws Exception {
-            new LogRangeProducer(aSeqNum - 1, aSeqNum, this, _storage, _common.getTransport().getPickler()).produce(aLogOffset);
+            new LogRangeProducer(aSeqNum - 1, aSeqNum, this, _storage,
+                    _common.getTransport().getPickler()).produce(aLogOffset);
         }
 
         Begin getState() {
