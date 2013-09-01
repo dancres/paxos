@@ -805,6 +805,8 @@ public class AcceptorLearner {
 
                 _common.leaderAction();
 
+                _seenAccepts.remove(myLearned.getSeqNum());
+
 				if (mySeqNum <= _common.getLowWatermark().getSeqNum()) {
 					_logger.debug("AL:Discarded known value: " + mySeqNum + ", " +
                             _common.getTransport().getLocalAddress());
