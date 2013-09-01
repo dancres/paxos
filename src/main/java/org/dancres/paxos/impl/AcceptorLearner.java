@@ -747,6 +747,9 @@ public class AcceptorLearner {
 			case Operations.BEGIN: {
 				Begin myBegin = (Begin) myMessage;
 
+                if (mySeqNum <= _common.getLowWatermark().getSeqNum())
+                    return;
+
 				// If the begin matches the last round of a collect we're fine
 				//
 				if (_common.originates(aPacket)) {
