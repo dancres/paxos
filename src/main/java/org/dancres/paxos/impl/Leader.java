@@ -277,10 +277,8 @@ class Leader implements Instance {
 
             case SUCCESS : {
                 if (aMessages.size() >= _common.getPrivateFD().getMajority()) {
-                    // Send success
+                    // AL's monitor each other's accepts so auto-commit for themselves, no need to send a confirmation
                     //
-                    emit(new Learned(_seqNum, _rndNumber));
-                    cancelInteraction();
                     successful(VoteOutcome.Reason.VALUE);
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict

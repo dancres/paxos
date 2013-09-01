@@ -767,7 +767,10 @@ public class AcceptorLearner {
                             _common.getTransport().getBroadcastAddress());
 
                     purgeAccepts(myBegin);
-                    tallyAccepts(myBegin);
+
+                    Transport.Packet myLearned = tallyAccepts(myBegin);
+                    if (myLearned != null)
+                        learned(myLearned, aWriter);
 
 				} else if (_common.precedes(aPacket)) {
 					// New collect was received since the collect for this begin,
@@ -799,56 +802,21 @@ public class AcceptorLearner {
                     return;
 
                 getAndCreateAccepts(myAccept.getSeqNum()).add(myAccept);
+                // aWriter.write(aPacket, true);
 
                 Begin myCachedBegin = _cachedBegins.get(myAccept.getSeqNum());
 
-                if (myCachedBegin != null)
-                    tallyAccepts(myCachedBegin);
+                if (myCachedBegin != null) {
+                    Transport.Packet myLearned = tallyAccepts(myCachedBegin);
+                    if (myLearned != null)
+                        learned(myLearned, aWriter);
+                }
 
                 break;
             }
 
 			case Operations.LEARNED: {
-				Learned myLearned = (Learned) myMessage;
-
-                _common.leaderAction();
-
-                _seenAccepts.remove(myLearned.getSeqNum());
-
-				if (mySeqNum <= _common.getLowWatermark().getSeqNum()) {
-					_logger.debug("AL:Discarded known value: " + mySeqNum + ", " +
-                            _common.getTransport().getLocalAddress());
-				} else {
-                    Begin myBegin = expungeBegin(mySeqNum);
-
-                    if ((myBegin == null) || (myBegin.getRndNumber() != myLearned.getRndNum())) {
-                        // We never saw the appropriate begin
-                        //
-                        _logger.debug("AL: Discarding success: " + myBegin + ", " + myLearned +
-                                ", " + _common.getTransport().getLocalAddress());
-                    } else {
-                        // Record the success even if it's the heartbeat so there are no gaps in the Paxos sequence
-                        //
-                        long myLogOffset = aWriter.write(aPacket, true);
-
-                        _common.install(new Watermark(mySeqNum, myLogOffset));
-
-                        if (myBegin.getConsolidatedValue().equals(LeaderFactory.HEARTBEAT)) {
-                            _receivedHeartbeats.incrementAndGet();
-
-                            _logger.debug("AL: discarded heartbeat: "
-                                    + System.currentTimeMillis() + ", "
-                                    + getHeartbeatCount() + ", " + _common.getTransport().getLocalAddress());
-                        } else {
-                            _logger.info("AL:Learnt value: " + mySeqNum + ", " +
-                                    _common.getTransport().getLocalAddress());
-
-                            signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
-                                    _common.getLeaderRndNum(),
-                                    myBegin.getConsolidatedValue(), aPacket.getSource()));
-                        }
-                    }
-				}
+                learned(aPacket, aWriter);
 
 				break;
 			}
@@ -857,6 +825,50 @@ public class AcceptorLearner {
 				throw new RuntimeException("Unexpected message" + ", " + _common.getTransport().getLocalAddress());
 		}
 	}
+
+    private void learned(Transport.Packet aPacket, Writer aWriter) {
+        Learned myLearned = (Learned) aPacket.getMessage();
+        long mySeqNum = myLearned.getSeqNum();
+
+        _common.leaderAction();
+
+        _seenAccepts.remove(myLearned.getSeqNum());
+
+        if (mySeqNum <= _common.getLowWatermark().getSeqNum()) {
+            _logger.debug("AL:Discarded known value: " + mySeqNum + ", " +
+                    _common.getTransport().getLocalAddress());
+        } else {
+            Begin myBegin = expungeBegin(mySeqNum);
+
+            if ((myBegin == null) || (myBegin.getRndNumber() != myLearned.getRndNum())) {
+                // We never saw the appropriate begin
+                //
+                _logger.debug("AL: Discarding success: " + myBegin + ", " + myLearned +
+                        ", " + _common.getTransport().getLocalAddress());
+            } else {
+                // Record the success even if it's the heartbeat so there are no gaps in the Paxos sequence
+                //
+                long myLogOffset = aWriter.write(aPacket, true);
+
+                _common.install(new Watermark(mySeqNum, myLogOffset));
+
+                if (myBegin.getConsolidatedValue().equals(LeaderFactory.HEARTBEAT)) {
+                    _receivedHeartbeats.incrementAndGet();
+
+                    _logger.debug("AL: discarded heartbeat: "
+                            + System.currentTimeMillis() + ", "
+                            + getHeartbeatCount() + ", " + _common.getTransport().getLocalAddress());
+                } else {
+                    _logger.info("AL:Learnt value: " + mySeqNum + ", " +
+                            _common.getTransport().getLocalAddress());
+
+                    signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
+                            _common.getLeaderRndNum(),
+                            myBegin.getConsolidatedValue(), aPacket.getSource()));
+                }
+            }
+        }
+    }
 
     private List<Accept> getAndCreateAccepts(Long aSeqNum) {
         List<Accept> myAccepts = _seenAccepts.get(aSeqNum);
