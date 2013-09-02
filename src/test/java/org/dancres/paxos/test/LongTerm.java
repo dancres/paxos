@@ -398,9 +398,12 @@ public class LongTerm {
     public static void main(String[] anArgs) throws Exception {
         Args myArgs = CliFactory.parseArguments(Args.class, anArgs);
 
+        LongTerm myLT =
+                new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate(), myArgs.getCkptCycle());
+
         long myStart = System.currentTimeMillis();
 
-        new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate(), myArgs.getCkptCycle()).run();
+        myLT.run();
 
         double myDuration = (System.currentTimeMillis() - myStart) / 1000.0;
 
