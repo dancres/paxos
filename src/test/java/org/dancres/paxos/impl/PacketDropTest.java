@@ -4,12 +4,10 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.VoteOutcome;
@@ -53,7 +51,7 @@ public class PacketDropTest {
         myBuffer.putInt(55);
 
         Proposal myProposal = new Proposal("data", myBuffer.array());
-        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
+        FailureDetector myFd = _node1.getCore().getCommon().getFD();
 
         int myChances = 0;
 

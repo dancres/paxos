@@ -276,7 +276,7 @@ class Leader implements Instance {
             }
 
             case SUCCESS : {
-                if (aMessages.size() >= _common.getPrivateFD().getMajority()) {
+                if (aMessages.size() >= _common.getFD().getMajority()) {
                     // AL's monitor each other's accepts so auto-commit for themselves, no need to send a confirmation
                     //
                     successful(VoteOutcome.Reason.VALUE);
@@ -423,7 +423,7 @@ class Leader implements Instance {
             _tries = 0;
             _stateMachine.transition(State.SUBMITTED);
 
-            _membership = _common.getPrivateFD().getMembers();
+            _membership = _common.getFD().getMembers();
 
             _logger.debug(toString() + " : got membership: (" +
                     _membership.getSize() + ")");

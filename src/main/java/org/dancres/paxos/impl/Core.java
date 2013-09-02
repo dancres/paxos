@@ -73,9 +73,9 @@ public class Core implements Transport.Dispatcher, Paxos {
         _common.setTransport(aTransport);
 
         if (_meta == null)
-            _hb = _common.getPrivateFD().newHeartbeater(aTransport, aTransport.getLocalAddress().toString().getBytes());
+            _hb = _common.getPFD().newHeartbeater(aTransport, aTransport.getLocalAddress().toString().getBytes());
         else
-            _hb = _common.getPrivateFD().newHeartbeater(aTransport, _meta);
+            _hb = _common.getPFD().newHeartbeater(aTransport, _meta);
 
         _al.open(_handle);
         _hb.start();
@@ -118,7 +118,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         try {
 
             if (myClassifications.contains(PaxosMessage.Classification.FAILURE_DETECTOR)) {
-                _common.getPrivateFD().processMessage(aPacket);
+                _common.getPFD().processMessage(aPacket);
                 didProcess = true;
             }
 

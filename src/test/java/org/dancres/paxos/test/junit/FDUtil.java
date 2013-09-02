@@ -1,10 +1,10 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
+import org.dancres.paxos.FailureDetector;
 import org.junit.Assert;
 
 public class FDUtil {
-    public static void ensureFD(MessageBasedFailureDetector anFD) throws Exception {
+    public static void ensureFD(FailureDetector anFD) throws Exception {
         int myChances = 0;
 
         while (!anFD.couldComplete()) {

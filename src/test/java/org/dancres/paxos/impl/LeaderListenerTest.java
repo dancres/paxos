@@ -3,7 +3,6 @@ package org.dancres.paxos.impl;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.*;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
@@ -41,7 +40,7 @@ public class LeaderListenerTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
+        FailureDetector myFd = _node1.getCore().getCommon().getFD();
         ListenerImpl myListener = new ListenerImpl();
         
         _node2.add(myListener);

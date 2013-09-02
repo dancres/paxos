@@ -47,8 +47,8 @@ public class HeartbeatTest {
 
         Proposal myProp = new Proposal("data", myBuffer.array());
 
-        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getFD());
 
         myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 

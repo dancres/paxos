@@ -87,7 +87,7 @@ class Common {
         return _fd;
     }
 
-    MessageBasedFailureDetector getPrivateFD() {
+    MessageBasedFailureDetector getPFD() {
         return _fd;
     }
 

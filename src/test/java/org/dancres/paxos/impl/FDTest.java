@@ -40,8 +40,8 @@ public class FDTest implements MembershipListener {
     }
 
     @Test public void post() throws Exception {
-        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getFD());
 
         Assert.assertTrue(_node1.getCore().getCommon().getFD().getMemberMap().size() == 2);
         Assert.assertTrue(_node2.getCore().getCommon().getFD().getMemberMap().size() == 2);

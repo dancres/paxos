@@ -52,8 +52,8 @@ public class LeaderConflictTest {
         myTransport2.routeTo(myClient2);
         myClient2.init(myTransport2);
 
-        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getFD());
 
         ByteBuffer myBuffer1 = ByteBuffer.allocate(4);
         ByteBuffer myBuffer2 = ByteBuffer.allocate(4);

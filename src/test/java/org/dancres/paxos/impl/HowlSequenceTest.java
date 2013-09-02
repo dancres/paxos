@@ -56,8 +56,8 @@ public class HowlSequenceTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getFD());
 
         for (int i = 0; i < 5; i++) {
             ByteBuffer myBuffer = ByteBuffer.allocate(4);

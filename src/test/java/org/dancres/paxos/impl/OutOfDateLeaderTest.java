@@ -68,8 +68,8 @@ public class OutOfDateLeaderTest {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        FDUtil.ensureFD(_node1.getCore().getCommon().getPrivateFD());
-        FDUtil.ensureFD(_node2.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node1.getCore().getCommon().getFD());
+        FDUtil.ensureFD(_node2.getCore().getCommon().getFD());
 
         System.err.println("Run some instances");
 
@@ -103,7 +103,7 @@ public class OutOfDateLeaderTest {
         _node3.init(_tport3);
         _node3.getAcceptorLearner().setRecoveryGracePeriod(1000);
 
-        FDUtil.ensureFD(_node3.getCore().getCommon().getPrivateFD());
+        FDUtil.ensureFD(_node3.getCore().getCommon().getFD());
 
         System.err.println("Run another instance - trigger");
 

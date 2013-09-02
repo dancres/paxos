@@ -2,9 +2,9 @@ package org.dancres.paxos.impl;
 
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
@@ -46,7 +46,7 @@ public class SimpleSuccessTest {
         myBuffer.putInt(55);
         
         Proposal myProposal = new Proposal("data", myBuffer.array());
-        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
+        FailureDetector myFd = _node1.getCore().getCommon().getFD();
 
         int myChances = 0;
 

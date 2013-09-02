@@ -3,9 +3,6 @@ package org.dancres.paxos.impl;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.*;
-import org.dancres.paxos.impl.Core;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
-import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.MemoryLogStorage;
@@ -63,7 +60,7 @@ public class SuperiorLeaderAtBeginTest {
         myBuffer.putInt(55);
 
         Proposal myProposal = new Proposal("data", myBuffer.array());        
-        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
+        FailureDetector myFd = _node1.getCore().getCommon().getFD();
 
         int myChances = 0;
 

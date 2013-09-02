@@ -4,9 +4,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.*;
-import org.dancres.paxos.impl.Core;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
-import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.MemoryLogStorage;
@@ -16,7 +13,6 @@ import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.messages.Last;
 import org.dancres.paxos.messages.Operations;
-import org.dancres.paxos.messages.PaxosMessage;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -99,7 +95,7 @@ public class LastHandlingTest {
         myBuffer.putInt(55);
 
         Proposal myProposal = new Proposal("data", myBuffer.array());        
-        MessageBasedFailureDetector myFd = _node1.getCore().getCommon().getPrivateFD();
+        FailureDetector myFd = _node1.getCore().getCommon().getFD();
 
         int myChances = 0;
 
