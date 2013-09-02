@@ -28,20 +28,12 @@ public class ServerDispatcher implements Transport.Dispatcher {
     private Transport _tp;
     private Transport.Dispatcher _dispatcher;
 
-    public ServerDispatcher(MessageBasedFailureDetector anFD, byte[] aMeta) {
-        this(anFD, new MemoryLogStorage(), aMeta, false);
+    public ServerDispatcher() {
+        this(new MemoryLogStorage(), false);
     }
 
-    public ServerDispatcher(MessageBasedFailureDetector anFD) {
-    	this(anFD, new MemoryLogStorage());
-    }
-
-    public ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger) {
-        this(anFD, aLogger, null, false);
-    }
-
-    public ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger, boolean isDisableHeartbeats) {
-        this(anFD, aLogger, null, isDisableHeartbeats);
+    public ServerDispatcher(LogStorage aLogger) {
+        this(aLogger, false);
     }
 
     public ServerDispatcher(Core aCore, Transport.Dispatcher aDispatcher) {
@@ -49,9 +41,8 @@ public class ServerDispatcher implements Transport.Dispatcher {
         _dispatcher = aDispatcher;
     }
 
-    private ServerDispatcher(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta,
-                             boolean isDisableHeartbeats) {
-        _core = new Core(anFD, aLogger, aMeta, CheckpointHandle.NO_CHECKPOINT, new Listener() {
+    public ServerDispatcher(LogStorage aLogger, boolean isDisableHeartbeats) {
+        _core = new Core(aLogger, CheckpointHandle.NO_CHECKPOINT, new Listener() {
             public void transition(StateEvent anEvent) {
                 // Nothing to do
             }

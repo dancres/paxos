@@ -20,13 +20,13 @@ public class HeartbeatTest {
     private ServerDispatcher _node2;
 
     @Before public void init() throws Exception {
-    	_node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
-    	_node2 = new ServerDispatcher(new FailureDetectorImpl(5000));
-        _tport1 = new TransportImpl();
+    	_node1 = new ServerDispatcher();
+    	_node2 = new ServerDispatcher();
+        _tport1 = new TransportImpl(new FailureDetectorImpl(5000));
         _tport1.routeTo(_node1);
         _node1.init(_tport1);
 
-        _tport2 = new TransportImpl();
+        _tport2 = new TransportImpl(new FailureDetectorImpl(5000));
         _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }
@@ -38,7 +38,7 @@ public class HeartbeatTest {
         
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
-    	TransportImpl myTransport = new TransportImpl();
+    	TransportImpl myTransport = new TransportImpl(null);
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
@@ -47,8 +47,8 @@ public class HeartbeatTest {
 
         Proposal myProp = new Proposal("data", myBuffer.array());
 
-        FDUtil.ensureFD(_node1.getCore().getCommon().getFD());
-        FDUtil.ensureFD(_node2.getCore().getCommon().getFD());
+        FDUtil.ensureFD(_tport1.getFD());
+        FDUtil.ensureFD(_tport2.getFD());
 
         myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 

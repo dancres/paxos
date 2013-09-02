@@ -40,13 +40,13 @@ public class ALNonRecoveryTest {
         FileSystem.deleteDirectory(new File(_node2Log));
         FileSystem.deleteDirectory(new File(_node3Log));
 
-        _node1 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node1Log));
-        _node2 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node2Log));
-        _tport1 = new DropTransportImpl();
+        _node1 = new ServerDispatcher(new HowlLogger(_node1Log));
+        _node2 = new ServerDispatcher(new HowlLogger(_node2Log));
+        _tport1 = new DropTransportImpl(new FailureDetectorImpl(5000));
         _tport1.routeTo(_node1);
         _node1.init(_tport1);
 
-        _tport2 = new DropTransportImpl();
+        _tport2 = new DropTransportImpl(new FailureDetectorImpl(5000));
         _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }
@@ -63,12 +63,12 @@ public class ALNonRecoveryTest {
     @Test
     public void post() throws Exception {
         ClientDispatcher myClient = new ClientDispatcher();
-        TransportImpl myTransport = new TransportImpl();
+        TransportImpl myTransport = new TransportImpl(null);
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        FDUtil.ensureFD(_node1.getCore().getCommon().getFD());
-        FDUtil.ensureFD(_node2.getCore().getCommon().getFD());
+        FDUtil.ensureFD(_tport1.getFD());
+        FDUtil.ensureFD(_tport2.getFD());
 
         System.err.println("Run some instances");
 
@@ -97,14 +97,14 @@ public class ALNonRecoveryTest {
 
         System.err.println("Start node3");
 
-        _node3 = new ServerDispatcher(new FailureDetectorImpl(5000), new HowlLogger(_node3Log));
-        _tport3 = new TransportImpl();
+        _node3 = new ServerDispatcher(new HowlLogger(_node3Log));
+        _tport3 = new TransportImpl(new FailureDetectorImpl(5000));
         _tport3.routeTo(_node3);
         _node3.init(_tport3);
 
         _node3.getAcceptorLearner().setRecoveryGracePeriod(5000);
 
-        FDUtil.ensureFD(_node3.getCore().getCommon().getFD());
+        FDUtil.ensureFD(_tport3.getFD());
 
         System.err.println("Run another instance - trigger");
 
@@ -154,8 +154,8 @@ public class ALNonRecoveryTest {
     }
 
     static class DropTransportImpl extends TransportImpl {
-        DropTransportImpl() throws Exception {
-            super();
+        DropTransportImpl(MessageBasedFailureDetector anFD) throws Exception {
+            super(anFD);
         }
 
         public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {

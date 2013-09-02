@@ -17,7 +17,6 @@ class Common {
     private static final Logger _logger = LoggerFactory.getLogger(Common.class);
 
     private Transport _transport;
-    private final MessageBasedFailureDetector _fd;
     private final AtomicReference<Transport.Packet> _lastCollect =
             new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
     private AtomicLong _lastLeaderActionTime = new AtomicLong(0);
@@ -52,13 +51,12 @@ class Common {
         }
     }
 
-    Common(Transport aTransport, MessageBasedFailureDetector anFD) {
+    Common(Transport aTransport) {
         _transport = aTransport;
-        _fd = anFD;
     }
 
-    Common(MessageBasedFailureDetector anFD) {
-        this(null, anFD);
+    Common() {
+        this(null);
     }
     
     void setTransport(Transport aTransport) {
@@ -83,16 +81,7 @@ class Common {
         return _lowWatermark.get();
     }
 
-    FailureDetector getFD() {
-        return _fd;
-    }
-
-    MessageBasedFailureDetector getPFD() {
-        return _fd;
-    }
-
     void stop() {
-        _fd.stop();
         _watchdog.cancel();
     }
     

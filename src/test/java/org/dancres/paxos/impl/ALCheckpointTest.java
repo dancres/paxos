@@ -1,6 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.CheckpointHandle;
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Listener;
 import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.storage.HowlLogger;
@@ -25,12 +26,16 @@ public class ALCheckpointTest {
 
     private class TransportImpl implements Transport {
         private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
-
+        private MessageBasedFailureDetector _fd = new NullFailureDetector();
         public void routeTo(Dispatcher aDispatcher) {
         }
 
         public Transport.PacketPickler getPickler() {
             return _pickler;
+        }
+
+        public FailureDetector getFD() {
+            return _fd;
         }
 
         private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
@@ -70,7 +75,7 @@ public class ALCheckpointTest {
         TransportImpl myTransport = new TransportImpl();
 
         AcceptorLearner myAl =
-                new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()), new Listener() {
+                new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
                     public void transition(StateEvent anEvent) {
                     }
                 });
@@ -80,7 +85,7 @@ public class ALCheckpointTest {
         myHandle.saved();
         myAl.close();
 
-        myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()), new Listener() {
+        myAl = new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
             public void transition(StateEvent anEvent) {
             }
         });
@@ -98,7 +103,7 @@ public class ALCheckpointTest {
         ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
         CheckpointHandle myRecoveredHandle = (CheckpointHandle) myOIS.readObject();
 
-        myAl = new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()), new Listener() {
+        myAl = new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
             public void transition(StateEvent anEvent) {
             }
         });

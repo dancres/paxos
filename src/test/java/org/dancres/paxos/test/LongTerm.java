@@ -211,8 +211,7 @@ public class LongTerm {
             FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
 
             _dispatcher =
-                    new ServerDispatcher(new FailureDetectorImpl(5, 5000),
-                            new HowlLogger(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
+                    new ServerDispatcher(new HowlLogger(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
 
             _dispatcher.add(this);
 

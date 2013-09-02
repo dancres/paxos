@@ -23,13 +23,13 @@ public class FDTest implements MembershipListener {
     private TransportImpl _tport2;
 
     @Before public void init() throws Exception {
-    	_node1 = new ServerDispatcher(new FailureDetectorImpl(5000), "node1".getBytes());
-    	_node2 = new ServerDispatcher(new FailureDetectorImpl(5000), "node2".getBytes());
-        _tport1 = new TransportImpl();
+    	_node1 = new ServerDispatcher();
+    	_node2 = new ServerDispatcher();
+        _tport1 = new TransportImpl(new FailureDetectorImpl(5000), "node1".getBytes());
         _tport1.routeTo(_node1);
         _node1.init(_tport1);
 
-        _tport2 = new TransportImpl();
+        _tport2 = new TransportImpl(new FailureDetectorImpl(5000), "node2".getBytes());
         _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }
@@ -40,13 +40,13 @@ public class FDTest implements MembershipListener {
     }
 
     @Test public void post() throws Exception {
-        FDUtil.ensureFD(_node1.getCore().getCommon().getFD());
-        FDUtil.ensureFD(_node2.getCore().getCommon().getFD());
+        FDUtil.ensureFD(_tport1.getFD());
+        FDUtil.ensureFD(_tport2.getFD());
 
-        Assert.assertTrue(_node1.getCore().getCommon().getFD().getMemberMap().size() == 2);
-        Assert.assertTrue(_node2.getCore().getCommon().getFD().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport1.getFD().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport2.getFD().getMemberMap().size() == 2);
 
-        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _node1.getCore().getCommon().getFD().getMemberMap();
+        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _tport1.getFD().getMemberMap();
         Iterator<Map.Entry<InetSocketAddress, FailureDetector.MetaData>> myMemberIt = myMembers.entrySet().iterator();
 
         while(myMemberIt.hasNext()) {

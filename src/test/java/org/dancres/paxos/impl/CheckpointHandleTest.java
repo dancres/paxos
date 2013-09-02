@@ -5,11 +5,8 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.Listener;
-import org.dancres.paxos.StateEvent;
+import org.dancres.paxos.*;
 import org.dancres.paxos.impl.*;
-import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.AcceptorLearner;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.Begin;
@@ -42,6 +39,7 @@ public class CheckpointHandleTest {
         private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
         private InetSocketAddress _nodeId;
         private InetSocketAddress _broadcastId;
+        private MessageBasedFailureDetector _fd = new NullFailureDetector();
 
         TransportImpl(InetSocketAddress aNodeId, InetSocketAddress aBroadcastId) {
             _nodeId = aNodeId;
@@ -51,6 +49,10 @@ public class CheckpointHandleTest {
 
         public Transport.PacketPickler getPickler() {
             return _pickler;
+        }
+
+        public FailureDetector getFD() {
+            return _fd;
         }
 
         public void routeTo(Dispatcher aDispatcher) {
@@ -93,7 +95,7 @@ public class CheckpointHandleTest {
     public void test() throws Exception {
         HowlLogger myLogger = new HowlLogger(DIRECTORY);
         TransportImpl myTransport = new TransportImpl(_nodeId, _broadcastId);
-        Common myCommon = new Common(myTransport, new NullFailureDetector());
+        Common myCommon = new Common(myTransport);
 
         AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon, new Listener() {
             public void transition(StateEvent anEvent) {

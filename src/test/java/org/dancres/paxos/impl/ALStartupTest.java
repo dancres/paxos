@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.CheckpointHandle;
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Listener;
 import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.storage.HowlLogger;
@@ -25,6 +26,7 @@ public class ALStartupTest {
 
 	private class TransportImpl implements Transport {
         private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
+        private MessageBasedFailureDetector _fd = new NullFailureDetector();
 
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
@@ -36,6 +38,10 @@ public class ALStartupTest {
 		
         public Transport.PacketPickler getPickler() {
             return _pickler;
+        }
+
+        public FailureDetector getFD() {
+            return _fd;
         }
 
         public void routeTo(Dispatcher aDispatcher) throws Exception {
@@ -68,7 +74,7 @@ public class ALStartupTest {
 		TransportImpl myTransport = new TransportImpl();
 		
 		AcceptorLearner myAl =
-                new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()), new Listener() {
+                new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
                     public void transition(StateEvent anEvent) {
                     }
                 });

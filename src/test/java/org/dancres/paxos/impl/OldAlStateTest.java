@@ -5,10 +5,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.Listener;
-import org.dancres.paxos.StateEvent;
-import org.dancres.paxos.Proposal;
+import org.dancres.paxos.*;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
@@ -44,10 +41,15 @@ public class OldAlStateTest {
 	private class TransportImpl implements Transport {
         private InetSocketAddress _broadcast = Utils.getTestAddress();
         private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
+        private MessageBasedFailureDetector _fd = new NullFailureDetector();
 
 		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
 
         public void routeTo(Dispatcher aDispatcher) {
+        }
+
+        public FailureDetector getFD() {
+            return _fd;
         }
 
 		public void send(Packet aPacket, InetSocketAddress aNodeId) {
@@ -91,7 +93,7 @@ public class OldAlStateTest {
 		TransportImpl myTransport = new TransportImpl();
 		
 		AcceptorLearner myAl =
-                new AcceptorLearner(myLogger, new Common(myTransport, new NullFailureDetector()), new Listener() {
+                new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
                     public void transition(StateEvent anEvent) {
                     }
                 });

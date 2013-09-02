@@ -17,30 +17,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Core implements Transport.Dispatcher, Paxos {
     private static final Logger _logger = LoggerFactory.getLogger(Core.class);
 
-    private final byte[] _meta;
     private final AcceptorLearner _al;
     private final LeaderFactory _ld;
     private final Common _common;
     private final CheckpointHandle _handle;
     private final AtomicBoolean _initd = new AtomicBoolean(false);
-    private Heartbeater _hb;
 
     /**
      * @param aLogger is the storage implementation to use for recording paxos transitions.
-     * @param aMeta is the data to be advertised by this core to others. Might be used for server discovery in cases
      * where the server/client do not use the "well known" addresses of the core.
      * @param aListener is the handler for paxos outcomes. There can be many of these but there must be at least one at
      * initialisation time.
      */
-    public Core(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta, CheckpointHandle aHandle,
-                Listener aListener) {
-        this(anFD, aLogger, aMeta, aHandle, aListener, false);
+    public Core(LogStorage aLogger, CheckpointHandle aHandle, Listener aListener) {
+        this(aLogger, aHandle, aListener, false);
     }
 
-    public Core(MessageBasedFailureDetector anFD, LogStorage aLogger, byte[] aMeta, CheckpointHandle aHandle,
+    public Core(LogStorage aLogger, CheckpointHandle aHandle,
                 Listener aListener, boolean isDisableLeaderHeartbeats) {
-        _meta = aMeta;
-        _common = new Common(anFD);
+        _common = new Common();
         _al = new AcceptorLearner(aLogger, _common, aListener);
         _ld = new LeaderFactory(_common, isDisableLeaderHeartbeats);
         _handle = aHandle;
@@ -53,13 +48,6 @@ public class Core implements Transport.Dispatcher, Paxos {
     public void terminate() {
         _logger.info("Core terminating");
 
-        _hb.halt();
-
-        try {
-            _hb.join();
-        } catch (InterruptedException anIE) {
-        }
-        
         _common.stop();
 
         _ld.shutdown();
@@ -72,13 +60,7 @@ public class Core implements Transport.Dispatcher, Paxos {
 
         _common.setTransport(aTransport);
 
-        if (_meta == null)
-            _hb = _common.getPFD().newHeartbeater(aTransport, aTransport.getLocalAddress().toString().getBytes());
-        else
-            _hb = _common.getPFD().newHeartbeater(aTransport, _meta);
-
         _al.open(_handle);
-        _hb.start();
 
         _initd.set(true);
     }
@@ -92,7 +74,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public FailureDetector getDetector() {
-        return _common.getFD();
+        return _common.getTransport().getFD();
     }
 
     public AcceptorLearner getAcceptorLearner() {
@@ -116,11 +98,6 @@ public class Core implements Transport.Dispatcher, Paxos {
         boolean didProcess = false;
 
         try {
-
-            if (myClassifications.contains(PaxosMessage.Classification.FAILURE_DETECTOR)) {
-                _common.getPFD().processMessage(aPacket);
-                didProcess = true;
-            }
 
             if ((myClassifications.contains(PaxosMessage.Classification.ACCEPTOR_LEARNER))
                     || (myClassifications.contains(PaxosMessage.Classification.RECOVERY))) {

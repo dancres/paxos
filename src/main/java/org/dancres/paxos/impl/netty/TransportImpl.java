@@ -1,5 +1,8 @@
 package org.dancres.paxos.impl.netty;
 
+import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.Heartbeater;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.Accept;
@@ -56,6 +59,9 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 	private static final int BROADCAST_PORT = 41952;
 
+    private final Heartbeater _hb;
+    private final MessageBasedFailureDetector _fd;
+    private final byte[] _meta;
     private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
 	private final InetSocketAddress _mcastAddr;
@@ -124,11 +130,12 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     	System.runFinalizersOnExit(true);
     }
 
-    public TransportImpl(PipelineFactory aFactory) throws Exception {
+    public TransportImpl(PipelineFactory aFactory, MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
         if (aFactory == null)
             throw new IllegalArgumentException();
 
         _pipelineFactory = aFactory;
+        _fd = anFD;
 
         _mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
         _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
@@ -149,15 +156,34 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
         _unicastAddr = _unicast.getLocalAddress();
 
+        if (aMeta == null)
+            _meta = _unicastAddr.toString().getBytes();
+        else
+            _meta = aMeta;
+
+        if (_fd != null) {
+            _hb = _fd.newHeartbeater(this, _meta);
+            _hb.start();
+        } else
+            _hb = null;
+
         _logger.debug("Transport bound on: " + _unicastAddr);
     }
 
-	public TransportImpl() throws Exception {
-        this(new DefaultPipelineFactory());
+    public TransportImpl(MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
+        this(new DefaultPipelineFactory(), anFD, aMeta);
+    }
+
+	public TransportImpl(MessageBasedFailureDetector anFD) throws Exception {
+        this(new DefaultPipelineFactory(), anFD, null);
     }
 
     public PacketPickler getPickler() {
     	return _pickler;
+    }
+
+    public FailureDetector getFD() {
+        return _fd;
     }
 
 	private void guard() {
@@ -173,6 +199,19 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
     public void terminate() {
 		_isStopping.set(true);
+
+        if (_hb != null) {
+            _hb.halt();
+
+            try {
+                _hb.join();
+            } catch (InterruptedException anIE) {
+            }
+        }
+
+        if (_fd != null)
+            _fd.stop();
+
 		_packetDispatcher.shutdown();
 
 		try {
@@ -227,10 +266,22 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		if (_isStopping.get())
 			return;
 
+        final Packet myPacket = (Packet) anEvent.getMessage();
+
+        if (myPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR)) {
+            try {
+            _fd.processMessage(myPacket);
+            } catch (Throwable aT) {
+                // Nothing to do
+            }
+
+            return;
+        }
+
         _packetDispatcher.execute(new Runnable() {
             public void run() {
-                for(Dispatcher d : _dispatchers) {
-                    if (d.messageReceived((Packet) anEvent.getMessage()))
+                for (Dispatcher d : _dispatchers) {
+                    if (d.messageReceived(myPacket))
                         break;
                 }
             }
@@ -254,36 +305,5 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
 		}
-	}
-
-	public static void main(String[] anArgs) throws Exception {
-		Transport _tport1 = new TransportImpl();
-        _tport1.routeTo(new DispatcherImpl());
-
-		Transport _tport2 = new TransportImpl();
-        _tport2.routeTo(new DispatcherImpl());
-		
-		_tport1.send(_tport1.getPickler().newPacket(new Accept(1, 2)), _tport1.getBroadcastAddress());
-		_tport1.send(_tport1.getPickler().newPacket(new Accept(2, 3)), _tport2.getLocalAddress());
-
-		Thread.sleep(5000);
-		_tport1.terminate();
-		_tport2.terminate();
-	}
-	
-	static class DispatcherImpl implements Dispatcher {
-		public boolean messageReceived(Packet aPacket) {
-			System.err.println("Message received: " + aPacket.getMessage());
-
-            return true;
-		}
-
-		public void init(Transport aTransport) {
-			System.err.println("Dispatcher " + this + " got transport: " + aTransport);
-		}
-
-        public void terminate() {
-            System.err.println("Dispatcher " + this + " got terminate");
-        }
 	}
 }

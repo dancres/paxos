@@ -562,7 +562,8 @@ public class AcceptorLearner {
                                      * random node to bring us up to speed.
                                      */
                                     new LiveSender().send(aNeed,
-                                            _common.getFD().getRandomMember(_common.getTransport().getLocalAddress()));
+                                            _common.getTransport().getFD().getRandomMember(
+                                                    _common.getTransport().getLocalAddress()));
 
                                     // Startup recovery watchdog
                                     //
@@ -918,7 +919,7 @@ public class AcceptorLearner {
             if (myAcc.getRndNumber() == aBegin.getRndNumber())
                 ++myAcceptTally;
 
-        if (myAcceptTally >= _common.getFD().getMajority()) {
+        if (myAcceptTally >= _common.getTransport().getFD().getMajority()) {
             _logger.debug("*** Speculative COMMIT possible ***");
 
             return _common.getTransport().getPickler().newPacket(new Learned(aBegin.getSeqNum(),

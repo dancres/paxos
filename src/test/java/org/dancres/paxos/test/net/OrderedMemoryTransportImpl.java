@@ -1,8 +1,12 @@
 package org.dancres.paxos.test.net;
 
+import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.Heartbeater;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
-import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 
+import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,11 +22,13 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
 	private final OrderedMemoryNetwork _parent;
 	private final PacketPickler _pickler;
+    private final MessageBasedFailureDetector _fd = new FailureDetectorImpl(5, 5000);
 	private final Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
 	private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
     private final RoutingDecisions _decisions;
+    private final Heartbeater _hb;
 
     /**
      * A RoutingDecisions instance determines whether a network action should take place.
@@ -83,6 +89,8 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         _parent = aParent;
         _decisions = aDecisions;
         _pickler = new StandalonePickler(_unicastAddr);
+        _hb = _fd.newHeartbeater(this, _unicastAddr.toString().getBytes());
+        _hb.start();
     }
 
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
@@ -92,6 +100,10 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
     public PacketPickler getPickler() {
     	return _pickler;
+    }
+
+    public FailureDetector getFD() {
+        return _fd;
     }
 
 	private void guard() {
@@ -127,17 +139,37 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public void distribute(Transport.Packet aPacket) {
-        if (_decisions.receive())
+        if (_decisions.receive()) {
+            if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR)) {
+                try {
+                    _fd.processMessage(aPacket);
+                } catch (Throwable aT) {
+                    // Nothing to do
+                }
+
+                return;
+            }
+
             synchronized(this) {
                 for(Dispatcher d : _dispatcher) {
                     if (d.messageReceived(aPacket))
                         break;
                 }
             }
+        }
     }
 
     public void terminate() {
         guard();
+
+        _hb.halt();
+
+        try {
+            _hb.join();
+        } catch (InterruptedException anIE) {
+        }
+
+        _fd.stop();
 
 		_isStopping.set(true);
 

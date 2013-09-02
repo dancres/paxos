@@ -20,9 +20,9 @@ public class SuperiorLeaderTest {
     private TransportImpl _tport2;
 
     @Before public void init() throws Exception {
-        _node1 = new ServerDispatcher(new FailureDetectorImpl(5000));
+        _node1 = new ServerDispatcher();
 
-        Core myCore = new Core(new FailureDetectorImpl(5000), new MemoryLogStorage(), null,
+        Core myCore = new Core(new MemoryLogStorage(),
                 CheckpointHandle.NO_CHECKPOINT, new Listener() {
             public void transition(StateEvent anEvent) {
             }
@@ -32,11 +32,11 @@ public class SuperiorLeaderTest {
 
         _node2 = new ServerDispatcher(myCore, myDispatcher);
 
-        _tport1 = new TransportImpl();
+        _tport1 = new TransportImpl(new FailureDetectorImpl(5000));
         _tport1.routeTo(_node1);
         _node1.init(_tport1);
 
-        _tport2 = new TransportImpl();
+        _tport2 = new TransportImpl(new FailureDetectorImpl(5000));
         _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }
@@ -48,7 +48,7 @@ public class SuperiorLeaderTest {
     
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
-    	TransportImpl myTransport = new TransportImpl();
+    	TransportImpl myTransport = new TransportImpl(null);
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
@@ -56,7 +56,7 @@ public class SuperiorLeaderTest {
         myBuffer.putInt(55);
 
         Proposal myProposal = new Proposal("data", myBuffer.array());
-        FailureDetector myFd = _node1.getCore().getCommon().getFD();
+        FailureDetector myFd = _tport1.getFD();
 
         int myChances = 0;
 

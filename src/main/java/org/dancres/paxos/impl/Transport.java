@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;
@@ -20,6 +21,8 @@ public interface Transport {
         public byte[] pickle(Packet aPacket);
         public Packet unpickle(byte[] aBytes);
     }
+
+    public FailureDetector getFD();
 
     public PacketPickler getPickler();
 
