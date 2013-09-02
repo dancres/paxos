@@ -8,6 +8,7 @@ import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.storage.HowlLogger;
+import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
 import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
@@ -104,6 +105,12 @@ public class LongTerm {
             _currentLeader = _nodes.get(0).getTransport();
         }
 
+        void stabilise() throws Exception {
+            for (NodeAdmin myNA : _nodes) {
+                FDUtil.ensureFD(myNA.getTransport().getFD());
+            }
+        }
+
         void terminate() {
             for (NodeAdmin myNA : _nodes)
                 myNA.terminate();
@@ -169,6 +176,7 @@ public class LongTerm {
 
     private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
         _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle);
+        _env.stabilise();
     }
 
     private static class TransportFactory implements OrderedMemoryNetwork.Factory {
