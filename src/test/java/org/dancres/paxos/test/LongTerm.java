@@ -388,6 +388,8 @@ public class LongTerm {
             _env._opCount++;
         }
 
+        myTransport.terminate();
+
         _env.terminate();
 
         _env._factory.stop();
