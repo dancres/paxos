@@ -5,7 +5,6 @@ import org.dancres.paxos.impl.Heartbeater;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.net.Utils;
-import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.jboss.netty.channel.*;
