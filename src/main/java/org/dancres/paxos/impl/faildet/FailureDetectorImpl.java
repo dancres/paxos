@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * to determine liveness.  The Heartbeater would then be modified to generate a message only if there had been an absence of
  * other messages sent by a node for a suitable period of time.
  */
-public class FailureDetectorImpl implements MessageBasedFailureDetector {
+public class FailureDetectorImpl extends MessageBasedFailureDetector {
     /**
      * @todo Fix up this cluster size to be more dynamic
      */
@@ -112,10 +112,14 @@ public class FailureDetectorImpl implements MessageBasedFailureDetector {
         }
     }
 
+    public boolean accepts(Packet aPacket) {
+        return aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR);
+    }
+
     /**
      * Examine a received {@link PaxosMessage} and update liveness information as appropriate.
      */
-    public void processMessage(Packet aPacket) throws Exception {
+    public void processMessage(Packet aPacket) {
         PaxosMessage myMessage = aPacket.getMessage();
 
         if (myMessage.getType() == Operations.HEARTBEAT) {

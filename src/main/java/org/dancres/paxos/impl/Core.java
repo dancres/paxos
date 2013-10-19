@@ -6,7 +6,9 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -22,6 +24,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     private final Common _common;
     private final CheckpointHandle _handle;
     private final AtomicBoolean _initd = new AtomicBoolean(false);
+    private final List<MessageProcessor> _msgProcs;
 
     /**
      * @param aLogger is the storage implementation to use for recording paxos transitions.
@@ -39,6 +42,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         _al = new AcceptorLearner(aLogger, _common, aListener);
         _ld = new LeaderFactory(_common, isDisableLeaderHeartbeats);
         _handle = aHandle;
+        _msgProcs = Arrays.asList(_al, _ld);
     }
 
     public void close() {
@@ -99,15 +103,11 @@ public class Core implements Transport.Dispatcher, Paxos {
 
         try {
 
-            if ((myClassifications.contains(PaxosMessage.Classification.ACCEPTOR_LEARNER))
-                    || (myClassifications.contains(PaxosMessage.Classification.RECOVERY))) {
-                _al.processMessage(aPacket);
-                didProcess = true;
-            }
-
-            if ((myClassifications.contains(PaxosMessage.Classification.LEADER))) {
-                _ld.processMessage(aPacket);
-                didProcess = true;
+            for (MessageProcessor myMP : _msgProcs) {
+                if (myMP.accepts(aPacket)) {
+                    myMP.processMessage(aPacket);
+                    didProcess = true;
+                }
             }
 
             return didProcess;

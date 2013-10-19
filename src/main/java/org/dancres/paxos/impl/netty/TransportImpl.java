@@ -267,7 +267,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
         final Packet myPacket = (Packet) anEvent.getMessage();
 
-        if (myPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR)) {
+        if ((_fd != null) && (_fd.accepts(myPacket))) {
             try {
             _fd.processMessage(myPacket);
             } catch (Throwable aT) {

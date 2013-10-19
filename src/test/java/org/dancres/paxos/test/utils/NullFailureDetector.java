@@ -6,13 +6,14 @@ import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.Heartbeater;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-public class NullFailureDetector implements MessageBasedFailureDetector {
+public class NullFailureDetector extends MessageBasedFailureDetector {
 
 	public Membership getMembers() {
 		return new MembershipImpl();
@@ -34,7 +35,11 @@ public class NullFailureDetector implements MessageBasedFailureDetector {
 		return null;
 	}
 
-    public void processMessage(Packet aPacket) throws Exception {
+    public boolean accepts(Packet aPacket) {
+        return aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR);
+    }
+
+    public void processMessage(Packet aPacket) {
     }
 
     class MembershipImpl implements Membership {

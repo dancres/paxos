@@ -1,6 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +14,7 @@ import java.util.TimerTask;
  *
  * @see Leader
  */
-class LeaderFactory implements ProposalAllocator.Listener {
+class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     private static final Logger _logger = LoggerFactory.getLogger(LeaderFactory.class);
 
     public static final Proposal HEARTBEAT = new Proposal("heartbeat",
@@ -127,7 +128,11 @@ class LeaderFactory implements ProposalAllocator.Listener {
         }
     }
 
-    void processMessage(Transport.Packet aPacket) {
+    public boolean accepts(Transport.Packet aPacket) {
+        return aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.LEADER);
+    }
+
+    public void processMessage(Transport.Packet aPacket) {
         _logger.debug("Got packet for leaders: " + aPacket.getSource() + "->" + aPacket.getMessage());
         
         synchronized(this) {

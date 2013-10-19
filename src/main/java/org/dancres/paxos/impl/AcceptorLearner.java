@@ -9,10 +9,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,7 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author dan
  */
-public class AcceptorLearner {
+public class AcceptorLearner implements MessageProcessor {
     private static final long DEFAULT_RECOVERY_GRACE_PERIOD = 30 * 1000;
 
 	private static final Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
@@ -451,7 +448,14 @@ public class AcceptorLearner {
      *
      ******************************************************************************************** */
 
-	void processMessage(Transport.Packet aPacket) {
+    public boolean accepts(Transport.Packet aPacket) {
+        EnumSet<PaxosMessage.Classification> myClassifications = aPacket.getMessage().getClassifications();
+
+        return ((myClassifications.contains(PaxosMessage.Classification.ACCEPTOR_LEARNER))
+                || (myClassifications.contains(PaxosMessage.Classification.RECOVERY)));
+    }
+
+    public void processMessage(Transport.Packet aPacket) {
         // Silently drop packets once we're shutdown - this is internal implementation so don't throw public exceptions
         //
         if (guard())

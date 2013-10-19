@@ -5,10 +5,8 @@ import org.dancres.paxos.Membership;
 import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.impl.Transport.Packet;
 
-public interface MessageBasedFailureDetector extends FailureDetector {
-    public void processMessage(Packet aPacket) throws Exception;
+public abstract class MessageBasedFailureDetector implements FailureDetector, MessageProcessor {
+    public abstract Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData);
 
-    public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData);
-
-    public void stop();
+    public abstract void stop();
 }

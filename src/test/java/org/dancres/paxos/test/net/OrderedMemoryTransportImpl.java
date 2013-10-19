@@ -140,7 +140,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
     public void distribute(Transport.Packet aPacket) {
         if (_decisions.receive()) {
-            if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR)) {
+            if ((_fd != null) && (_fd.accepts(aPacket))) {
                 try {
                     _fd.processMessage(aPacket);
                 } catch (Throwable aT) {

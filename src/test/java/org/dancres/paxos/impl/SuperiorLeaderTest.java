@@ -96,7 +96,7 @@ public class SuperiorLeaderTest {
         public boolean messageReceived(Packet aPacket) {
             PaxosMessage myMessage = aPacket.getMessage();
 
-            if (myMessage.getClassifications().contains(PaxosMessage.Classification.ACCEPTOR_LEARNER)) {
+            if (_core.getAcceptorLearner().accepts(aPacket)) {
                 if (myMessage.getType() == Operations.COLLECT) {
                     Collect myCollect = (Collect) myMessage;
 
