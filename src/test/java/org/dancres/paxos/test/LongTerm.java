@@ -75,19 +75,19 @@ public class LongTerm {
         boolean isOutOfDate();
         void terminate();
         boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt);
+        void settle();
     }
 
     private static class Environment {
         final boolean _calibrate;
         final long _maxCycles;
+        final long _settleCycles = 50;
         final long _ckptCycle;
         final Random _rng;
         private final List<NodeAdmin> _nodes = new LinkedList<NodeAdmin>();
 
         Transport _currentLeader;
         final OrderedMemoryNetwork _factory;
-
-        long _opCount = 0;
 
         Environment(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
             _ckptCycle = aCkptCycle;
@@ -123,6 +123,11 @@ public class LongTerm {
             for (NodeAdmin myNA : _nodes) {
                 FDUtil.ensureFD(myNA.getTransport().getFD());
             }
+        }
+
+        void settle() {
+            for (NodeAdmin myNA : _nodes)
+                myNA.settle();
         }
 
         void terminate() {
@@ -199,6 +204,7 @@ public class LongTerm {
         private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
         private final CheckpointHandling _checkpointer = new CheckpointHandling();
         private final Environment _env;
+        private final NetworkDecider _decider;
 
         NodeAdminImpl(InetSocketAddress aLocalAddr,
                       InetSocketAddress aBroadcastAddr,
@@ -206,31 +212,12 @@ public class LongTerm {
                       int aNodeNum,
                       Environment anEnv) {
             _env = anEnv;
+            _decider = new NetworkDecider(new Random(_env._rng.nextLong()));
 
             if (_env._calibrate) {
                 _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
             } else {
-                OrderedMemoryTransportImpl.RoutingDecisions myDecider = new OrderedMemoryTransportImpl.RoutingDecisions() {
-                    private Random _rng = new Random(_env._rng.nextLong());
-
-                    public boolean sendUnreliable() {
-                        return true;
-                    }
-
-                    public boolean receive() {
-                        return true;
-                    }
-
-                    public boolean sendReliable() {
-                        return true;
-                    }
-
-                    public boolean connect() {
-                        return true;
-                    }
-                };
-
-                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, myDecider);
+                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, _decider);
             }
 
             FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
@@ -245,6 +232,35 @@ public class LongTerm {
                 _dispatcher.init(_transport);
             } catch (Exception anE) {
                 throw new RuntimeException("Failed to add a dispatcher", anE);
+            }
+        }
+
+        class NetworkDecider implements OrderedMemoryTransportImpl.RoutingDecisions {
+            private final Random _rng;
+            private AtomicBoolean _isSettling = new AtomicBoolean(false);
+
+            NetworkDecider(Random aRandom) {
+                _rng = aRandom;
+            }
+
+            public boolean sendUnreliable() {
+                return true;
+            }
+
+            public boolean receive() {
+                return true;
+            }
+
+            public boolean sendReliable() {
+                return true;
+            }
+
+            public boolean connect() {
+                return true;
+            }
+
+            public void settle() {
+                _isSettling.set(true);
             }
         }
 
@@ -263,6 +279,11 @@ public class LongTerm {
          * to allow appropriate implementation of restore
          *
          */
+
+        public void settle() {
+            _decider.settle();
+        }
+
         public void terminate() {
             _transport.terminate();
         }
@@ -367,33 +388,48 @@ public class LongTerm {
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        long opsSinceCkpt = 0;
+        cycle(myClient, _env._maxCycles, _env._ckptCycle);
 
         if (! _env._calibrate) {
-            // Setup failure model
+            System.out.println("********** Transition to Settling **********");
+
+            _env.settle();
+
+            cycle(myClient, _env._settleCycles, _env._ckptCycle);
         }
 
-        while (_env._opCount < _env._maxCycles) {
+        myTransport.terminate();
+
+        _env.terminate();
+
+        _env._factory.stop();
+    }
+
+    private void cycle(ClientDispatcher aClient, long aCycles, long aCkptCycle) {
+        long opsSinceCkpt = 0;
+        long myOpCount = 0;
+
+        while (myOpCount < aCycles) {
             /*
              * Perform a paxos vote - need to react to other leader messages but ignore all else - allows us to
              * cope with strategies that switch our leader to test out election and recover from them (assuming we
              * get the right response)
              */
             ByteBuffer myBuffer = ByteBuffer.allocate(8);
-            myBuffer.putLong(_env._opCount);
+            myBuffer.putLong(myOpCount);
             Proposal myProposal = new Proposal("data", myBuffer.array());
 
-            myClient.send(new Envelope(myProposal),
+            aClient.send(new Envelope(myProposal),
                     _env._currentLeader.getLocalAddress());
 
-            VoteOutcome myEv = myClient.getNext(10000);
+            VoteOutcome myEv = aClient.getNext(10000);
 
             ++opsSinceCkpt;
 
             if (myEv.getResult() == VoteOutcome.Reason.OTHER_LEADER) {
                 _env.updateLeader(myEv.getLeader());
             } else if (myEv.getResult() == VoteOutcome.Reason.VALUE) {
-                if (opsSinceCkpt >= _env._ckptCycle) {
+                if (opsSinceCkpt >= aCkptCycle) {
                     _env.checkpoint();
 
                     opsSinceCkpt = 0;
@@ -402,14 +438,8 @@ public class LongTerm {
 
             // Round we go again
             //
-            _env._opCount++;
+            myOpCount++;
         }
-
-        myTransport.terminate();
-
-        _env.terminate();
-
-        _env._factory.stop();
     }
 
     public static void main(String[] anArgs) throws Exception {
