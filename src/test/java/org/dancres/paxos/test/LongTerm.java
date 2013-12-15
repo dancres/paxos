@@ -199,7 +199,6 @@ public class LongTerm {
         private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
         private final CheckpointHandling _checkpointer = new CheckpointHandling();
         private final Environment _env;
-        private final Random _rng;
 
         NodeAdminImpl(InetSocketAddress aLocalAddr,
                       InetSocketAddress aBroadcastAddr,
@@ -207,8 +206,32 @@ public class LongTerm {
                       int aNodeNum,
                       Environment anEnv) {
             _env = anEnv;
-            _rng = new Random(_env._rng.nextLong());
-            _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
+
+            if (_env._calibrate) {
+                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
+            } else {
+                OrderedMemoryTransportImpl.RoutingDecisions myDecider = new OrderedMemoryTransportImpl.RoutingDecisions() {
+                    private Random _rng = new Random(_env._rng.nextLong());
+
+                    public boolean sendUnreliable() {
+                        return true;
+                    }
+
+                    public boolean receive() {
+                        return true;
+                    }
+
+                    public boolean sendReliable() {
+                        return true;
+                    }
+
+                    public boolean connect() {
+                        return true;
+                    }
+                };
+
+                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, myDecider);
+            }
 
             FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
 
