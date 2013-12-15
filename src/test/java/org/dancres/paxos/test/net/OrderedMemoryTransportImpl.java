@@ -32,6 +32,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
     /**
      * A RoutingDecisions instance determines whether a network action should take place.
+     * This is typically used for failure testing etc.
      */
     public interface RoutingDecisions {
 
