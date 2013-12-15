@@ -86,7 +86,6 @@ public class LongTerm {
 
         Transport _currentLeader;
         final OrderedMemoryNetwork _factory;
-        final TransportFactory _tpFactory;
 
         long _opCount = 0;
 
@@ -95,11 +94,26 @@ public class LongTerm {
             _calibrate = doCalibrate;
             _maxCycles = aCycles;
             _rng = new Random(aSeed);
-            _tpFactory = new TransportFactory(this);
             _factory = new OrderedMemoryNetwork();
 
+            OrderedMemoryNetwork.Factory myFactory = new OrderedMemoryNetwork.Factory() {
+                private int _nextNodeNum = 0;
+
+                public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
+                                                                                InetSocketAddress aBroadcastAddr,
+                                                                                OrderedMemoryNetwork aNetwork) {
+                    NodeAdminImpl myTp = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, _nextNodeNum,
+                            Environment.this);
+
+                    _nodes.add(myTp);
+                    _nextNodeNum++;
+
+                    return myTp.getTransport();
+                }
+            };
+
             for (int i = 0; i < 5; i++) {
-                _factory.newTransport(_tpFactory);
+                _factory.newTransport(myFactory);
             }
 
             _currentLeader = _nodes.get(0).getTransport();
@@ -177,26 +191,6 @@ public class LongTerm {
     private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
         _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle);
         _env.stabilise();
-    }
-
-    private static class TransportFactory implements OrderedMemoryNetwork.Factory {
-        private int _nextNodeNum = 0;
-        private final Environment _environment;
-
-        TransportFactory(Environment anEnv) {
-            _environment = anEnv;
-        }
-
-        public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
-                                                                        InetSocketAddress aBroadcastAddr,
-                                                                        OrderedMemoryNetwork aNetwork) {
-            NodeAdminImpl myTp = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, _nextNodeNum, _environment);
-
-            _environment._nodes.add(myTp);
-            _nextNodeNum++;
-
-            return myTp.getTransport();
-        }
     }
 
     private static class NodeAdminImpl implements NodeAdmin, Listener {
