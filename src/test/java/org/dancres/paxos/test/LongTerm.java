@@ -198,6 +198,10 @@ public class LongTerm {
         _env.stabilise();
     }
 
+    long getSettleCycles() {
+        return _env._settleCycles;
+    }
+
     private static class NodeAdminImpl implements NodeAdmin, Listener {
         private final OrderedMemoryTransportImpl _transport;
         private final ServerDispatcher _dispatcher;
@@ -454,14 +458,17 @@ public class LongTerm {
 
         double myDuration = (System.currentTimeMillis() - myStart) / 1000.0;
 
-        System.out.println("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
-
         if (myArgs.isCalibrate()) {
+            System.out.println("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
+
             double myOpsPerSec = myDuration / myArgs.getCycles();
             double myOpsHour = myOpsPerSec * 60 * 60;
 
             System.out.println("Calibration recommendation - ops/sec: " + myOpsPerSec +
                     " iterations in an hour would be: " + myOpsHour);
+        } else {
+            System.out.println("Run for " + (myArgs.getCycles() + myLT.getSettleCycles()) +
+                    " cycles took " + myDuration + " seconds");
         }
     }
 }
