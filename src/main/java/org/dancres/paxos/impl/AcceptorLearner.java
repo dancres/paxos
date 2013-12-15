@@ -682,8 +682,8 @@ public class AcceptorLearner implements MessageProcessor {
 		InetSocketAddress myNodeId = aPacket.getSource();
 		long mySeqNum = myMessage.getSeqNum();
 
-		_logger.info("AL: got " + myNodeId + " " + myMessage + ", " + _common.getTransport().getLocalAddress() + ", " +
-            _common.getLowWatermark().getSeqNum());
+		_logger.info("AL: got " + myNodeId + " " + myMessage + ", loIp " + _common.getTransport().getLocalAddress() +
+                ", loWmk " + _common.getLowWatermark().getSeqNum());
 
 		switch (myMessage.getType()) {
             case Operations.NEED : {
