@@ -272,7 +272,7 @@ public class AcceptorLearner implements MessageProcessor {
                     }
                 }, _storage, _common.getTransport().getPickler()).produce(0);
             } catch (Exception anE) {
-                _logger.error("Failed to replay log", anE);
+                _logger.error(toString() + " Failed to replay log", anE);
             }
         } finally {
             _common.testAndSetState(Constants.FSMStates.RECOVERING, Constants.FSMStates.ACTIVE);
@@ -310,7 +310,7 @@ public class AcceptorLearner implements MessageProcessor {
             _storage.close();
 
         } catch (Exception anE) {
-            _logger.error("Failed to close storage", anE);
+            _logger.error(toString() + " Failed to close storage", anE);
             throw new Error(anE);
         }
     }
@@ -365,7 +365,8 @@ public class AcceptorLearner implements MessageProcessor {
     private long installCheckpoint(ALCheckpointHandle aHandle) {
         _common.setLastCollect(aHandle.getLastCollect());
 
-        _logger.info("Checkpoint installed: " + aHandle.getLastCollect() + " @ " + aHandle.getLowWatermark());
+        _logger.info(toString() + " Checkpoint installed: " + aHandle.getLastCollect() + " @ " +
+                aHandle.getLowWatermark());
 
         return _common.install(aHandle.getLowWatermark());
     }
@@ -546,11 +547,12 @@ public class AcceptorLearner implements MessageProcessor {
                                      * which for this particular case would be COLLECT at seqnum = 0 with a window of
                                      * -1 to triggering packet seqnum - 1.
                                      */
-                                    _logger.info("Transition to recovery: " + _common.getLowWatermark().getSeqNum() +
-                                        ", " + _common.getTransport().getLocalAddress());
+                                    _logger.info(toString() + " Transition to recovery: " +
+                                            _common.getLowWatermark().getSeqNum());
 
                                     if (_common.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
-                                        _logger.warn("Current collect could interfere with recovery window - binning " +
+                                        _logger.warn(toString() +
+                                                " Current collect could interfere with recovery window - binning " +
                                             _common.getLastCollect().getMessage() + ", " + aNeed);
 
                                         _common.clearLeadership();
@@ -605,11 +607,11 @@ public class AcceptorLearner implements MessageProcessor {
              * future check otherwise fail.
              */
             if (! _past.equals(_common.getLowWatermark())) {
-                _logger.debug("Recovery is progressing, " + _common.getTransport().getLocalAddress());
+                _logger.debug(toString() + " Recovery is progressing");
 
                 reschedule();
             } else {
-                _logger.warn("Recovery is NOT progressing - terminate, " + _common.getTransport().getLocalAddress());
+                _logger.warn(toString() + " Recovery is NOT progressing - terminate");
 
                 terminateRecovery();
                 _common.testAndSetState(Constants.FSMStates.RECOVERING, Constants.FSMStates.ACTIVE);
@@ -621,7 +623,7 @@ public class AcceptorLearner implements MessageProcessor {
     // when the alarm has expired (thus does not need cancelling) when it is called from the alarm itself.
     //
     private void reschedule() {
-        _logger.debug("Rescheduling, " + _common.getTransport().getLocalAddress());
+        _logger.debug(toString() + " Rescheduling");
 
         TimerTask myAlarm = new Watchdog();
 
@@ -649,7 +651,7 @@ public class AcceptorLearner implements MessageProcessor {
     // thus there's no need to cancel the alarm.
     //
     private void terminateRecovery() {
-        _logger.debug("Recovery terminate, " + _common.getTransport().getLocalAddress());
+        _logger.debug(toString() + " Recovery terminate");
 
         /*
          * This will cause the AL to re-enter recovery when another packet is received and thus a new
@@ -660,7 +662,7 @@ public class AcceptorLearner implements MessageProcessor {
     }
 
     private void completedRecovery() {
-        _logger.info("Recovery complete, " + _common.getTransport().getLocalAddress());
+        _logger.info(toString() + " Recovery complete");
 
         TimerTask myAlarm = _recoveryAlarm.getAndSet(null);
         if (myAlarm != null) {
@@ -682,7 +684,7 @@ public class AcceptorLearner implements MessageProcessor {
 		InetSocketAddress myNodeId = aPacket.getSource();
 		long mySeqNum = myMessage.getSeqNum();
 
-		_logger.info("AL: got " + myNodeId + " " + myMessage + ", loIp " + _common.getTransport().getLocalAddress() +
+		_logger.info(toString() + " rxd " + myNodeId + " " + myMessage +
                 ", loWmk " + _common.getLowWatermark().getSeqNum());
 
 		switch (myMessage.getType()) {
@@ -700,7 +702,7 @@ public class AcceptorLearner implements MessageProcessor {
                             aPacket.getSource());
 
                 } else if (myNeed.getMaxSeq() <= _common.getLowWatermark().getSeqNum()) {
-                    _logger.debug("Running streamer: " + _common.getTransport().getLocalAddress());
+                    _logger.debug(toString() + " Running streamer");
 
                     new RemoteStreamer(aPacket.getSource(), myNeed).start();
                 }
@@ -714,15 +716,15 @@ public class AcceptorLearner implements MessageProcessor {
 				if (!_common.amAccepting(aPacket)) {
 					_ignoredCollects.incrementAndGet();
 
-					_logger.warn("AL:Not accepting: " + myCollect + ", "
-							+ getIgnoredCollectsCount() + ", " + _common.getTransport().getLocalAddress());
+					_logger.warn(toString() + " Not accepting: " + myCollect + ", "
+							+ getIgnoredCollectsCount());
 					return;
 				}
 
 				// If the collect supercedes our previous collect save it, return last proposal etc
 				//
 				if (_common.supercedes(aPacket)) {
-                    _logger.debug("Accepting collect: " + myCollect + ", " + _common.getTransport().getLocalAddress());
+                    _logger.debug(toString() + " Accepting collect: " + myCollect);
 
 					aWriter.write(aPacket, true);
                     
@@ -737,8 +739,8 @@ public class AcceptorLearner implements MessageProcessor {
                     aSender.send(constructLast(myCollect), myNodeId);
 
 				} else {
-                    _logger.warn("Rejecting collect: " + myCollect + " against " +
-                            _common.getLastCollect().getMessage() + ", " + _common.getTransport().getLocalAddress());
+                    _logger.warn(toString() + " Rejecting collect: " + myCollect + " against " +
+                            _common.getLastCollect().getMessage());
 
 					// Another collect has already arrived with a higher priority, tell the proposer it has competition
 					//
@@ -783,8 +785,8 @@ public class AcceptorLearner implements MessageProcessor {
 					 * Quiet, didn't see the collect, leader hasn't accounted for
 					 * our values, it hasn't seen our last and we're likely out of sync with the majority
 					 */
-					_logger.warn("AL:Missed collect, going silent: " + mySeqNum
-							+ " [ " + myBegin.getRndNumber() + " ], " + _common.getTransport().getLocalAddress());
+					_logger.warn(toString() + " Missed collect, going silent: " + mySeqNum
+							+ " [ " + myBegin.getRndNumber() + " ], ");
 				}
 				
 				break;
@@ -852,12 +854,11 @@ public class AcceptorLearner implements MessageProcessor {
         if (myBegin.getConsolidatedValue().equals(LeaderFactory.HEARTBEAT)) {
             _receivedHeartbeats.incrementAndGet();
 
-            _logger.debug("AL: discarded heartbeat: "
+            _logger.debug(toString() + " discarded heartbeat: "
                     + System.currentTimeMillis() + ", "
-                    + getHeartbeatCount() + ", " + _common.getTransport().getLocalAddress());
+                    + getHeartbeatCount());
         } else {
-            _logger.info("AL:Learnt value: " + mySeqNum + ", " +
-                    _common.getTransport().getLocalAddress());
+            _logger.info(toString() + " Learnt value: " + mySeqNum);
 
             signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
                     _common.getLeaderRndNum(),
@@ -924,7 +925,7 @@ public class AcceptorLearner implements MessageProcessor {
                 ++myAcceptTally;
 
         if (myAcceptTally >= _common.getTransport().getFD().getMajority()) {
-            _logger.debug("*** Speculative COMMIT possible ***");
+            _logger.debug(toString() + " *** Speculative COMMIT possible ***");
 
             return _common.getTransport().getPickler().newPacket(new Learned(aBegin.getSeqNum(),
                     aBegin.getRndNumber()));
@@ -946,8 +947,8 @@ public class AcceptorLearner implements MessageProcessor {
 			} else 
 				myState = new StateFinder(mySeqNum, myLow.getLogOffset()).getState();
 		} catch (Exception anE) {
-			_logger.error("Failed to replay log" + ", " + _common.getTransport().getLocalAddress(), anE);
-			throw new RuntimeException("Failed to replay log" + ", " + _common.getTransport().getLocalAddress(), anE);
+			_logger.error(toString() + "Failed to replay log", anE);
+			throw new RuntimeException(toString() + "Failed to replay log", anE);
 		}
 		
 		if (myState != null) {
@@ -977,7 +978,7 @@ public class AcceptorLearner implements MessageProcessor {
             if (_common.testState(Constants.FSMStates.SHUTDOWN))
                 return;
 
-            _logger.info("AL sending: " + aMessage);
+            _logger.info(AcceptorLearner.this.toString() + " sending: " + aMessage);
             _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), aNodeId);
         }        
     }
@@ -1015,8 +1016,7 @@ public class AcceptorLearner implements MessageProcessor {
             try {
                 return _storage.put(_common.getTransport().getPickler().pickle(aPacket), aForceRequired);
             } catch (Exception anE) {
-                _logger.error("AL: cannot log: " + System.currentTimeMillis() + ", " +
-                        _common.getTransport().getLocalAddress(), anE);
+                _logger.error(toString() + " cannot log: " + System.currentTimeMillis(), anE);
                 throw new RuntimeException(anE);
             }            
         }
@@ -1068,24 +1068,24 @@ public class AcceptorLearner implements MessageProcessor {
 
         public void run() {
             if (guard()) {
-                _logger.warn("Aborting RemoteStreamer, " + _common.getTransport().getLocalAddress());
+                _logger.warn(toString() + " Aborting RemoteStreamer");
                 return;
             } else {
-                _logger.info("RemoteStreamer starting, " + _common.getTransport().getLocalAddress());
+                _logger.info(toString() + " RemoteStreamer starting");
             }
 
             try {
                 new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this, _storage,
                         _common.getTransport().getPickler()).produce(0);
             } catch (Exception anE) {
-                _logger.error("Failed to replay log", anE);
+                _logger.error(toString() + " Failed to replay log", anE);
             } finally {
                 unguard();
             }
         }
 
         public void process(Transport.Packet aPacket, long aLogOffset) {
-            _logger.debug("Streaming: " + aPacket.getMessage());
+            _logger.debug(toString() + " Streaming: " + aPacket.getMessage());
             _common.getTransport().send(aPacket, _target);
         }
     }
@@ -1099,5 +1099,9 @@ public class AcceptorLearner implements MessageProcessor {
     private void signal(StateEvent aStatus) {
         for (Listener myTarget : _listeners)
             myTarget.transition(aStatus);
+    }
+
+    public String toString() {
+        return "AL [ " + _common.getTransport().getLocalAddress() + " ]";
     }
 }
