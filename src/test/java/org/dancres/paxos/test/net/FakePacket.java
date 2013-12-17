@@ -31,4 +31,8 @@ public class FakePacket implements Transport.Packet {
     public PaxosMessage getMessage() {
         return _message;
     }
+
+    public String toString() {
+        return "PK [ " + _address + " ] " + _message;
+    }
 }

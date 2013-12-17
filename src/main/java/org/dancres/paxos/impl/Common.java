@@ -49,6 +49,10 @@ class Common {
         public PaxosMessage getMessage() {
             return _message;
         }
+
+        public String toString() {
+            return "PK [ " + _address + " ] " + _message;
+        }
     }
 
     Common(Transport aTransport) {

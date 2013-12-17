@@ -58,7 +58,11 @@ public class StandalonePickler implements Transport.PacketPickler {
 
         public PaxosMessage getMessage() {
             return _msg;
-        }       
+        }
+
+        public String toString() {
+            return "PK [ " + _source + " ] " + _msg;
+        }
     }
 }
 

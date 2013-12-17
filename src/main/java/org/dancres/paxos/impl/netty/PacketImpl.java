@@ -21,5 +21,9 @@ class PacketImpl implements Transport.Packet {
     public PaxosMessage getMessage() {
         return _msg;
     }
+
+    public String toString() {
+        return "PK [ " + _source + " ] " + _msg;
+    }
 }
 
