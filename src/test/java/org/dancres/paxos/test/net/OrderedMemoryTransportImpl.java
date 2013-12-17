@@ -49,20 +49,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
          * @return
          */
         boolean receive();
-
-        /**
-         * Acceptable to send a reliable packet?
-         *
-         * @return
-         */
-        boolean sendReliable();
-
-        /**
-         * Acceptable to make a stream connection?
-         *
-         * @return
-         */
-        boolean connect();
     }
 
     private static class NullRoutingDecisionsImpl implements RoutingDecisions {
@@ -71,14 +57,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         }
 
         public boolean receive() {
-            return true;
-        }
-
-        public boolean sendReliable() {
-            return true;
-        }
-
-        public boolean connect() {
             return true;
         }
     }

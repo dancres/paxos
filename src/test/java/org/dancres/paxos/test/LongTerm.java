@@ -255,14 +255,6 @@ public class LongTerm {
                 return true;
             }
 
-            public boolean sendReliable() {
-                return true;
-            }
-
-            public boolean connect() {
-                return true;
-            }
-
             public void settle() {
                 _isSettling.set(true);
             }
