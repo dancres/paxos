@@ -60,10 +60,10 @@ class Leader implements Instance {
 
     private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
 
-    private static class StateMachine {
-        private static final Map<State, Set<State>> _acceptableTransitions;
+    private class StateMachine {
+        private Map<State, Set<State>> _acceptableTransitions;
 
-        static {
+        private StateMachine() {
             Map<State, Set<State>> myAccTrans = new HashMap<State, Set<State>>();
 
             myAccTrans.put(State.INITIAL, new HashSet<State>(Arrays.asList(State.SUBMITTED, State.SHUTDOWN)));
@@ -82,7 +82,7 @@ class Leader implements Instance {
 
         void transition(State aNewState) {
             if (_acceptableTransitions.get(_currentState).contains(aNewState)) {
-                Leader._logger.info(_currentState + " -> " + aNewState);
+                Leader._logger.info(Leader.this.toString() + " " + _currentState + " -> " + aNewState);
 
                 _currentState = aNewState;
             } else {
@@ -185,7 +185,7 @@ class Leader implements Instance {
     private void process(List<Transport.Packet> aMessages) {
         switch (_stateMachine.getCurrentState()) {
             case SHUTDOWN : {
-                _logger.info(toString());
+                _logger.info(toString() + " Shutdown");
                 
                 if (_interactionAlarm != null)
                     cancelInteraction();
@@ -194,7 +194,7 @@ class Leader implements Instance {
             }
 
             case ABORT : {
-                _logger.info(toString() + " : " + _outcomes);
+                _logger.info(toString() + " Abort: " + _outcomes);
 
                 if (_interactionAlarm != null)
                     cancelInteraction();
@@ -205,7 +205,7 @@ class Leader implements Instance {
             }
 
             case EXIT : {
-            	_logger.info(toString() + " : " + _outcomes);
+            	_logger.info(toString() + " Exit: " + _outcomes);
 
                 reportOutcome();
 
@@ -301,7 +301,7 @@ class Leader implements Instance {
 
         InetSocketAddress myCompetingNodeId = myOldRound.getLeaderNodeId();
 
-        _logger.info(toString() + ": Another leader is active, backing down: " + myCompetingNodeId + " (" +
+        _logger.info(toString() + " Other leader active, backing down: " + myCompetingNodeId + " (" +
                 Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
         _stateMachine.transition(State.ABORT);
@@ -363,7 +363,7 @@ class Leader implements Instance {
 
     private void expired() {
         synchronized(this) {
-            _logger.info(toString() + " : Watchdog requested abort: ");
+            _logger.info(toString() + " Watchdog requested abort: ");
 
             switch (_stateMachine.getCurrentState()) {
                 case SUCCESS : {
@@ -405,8 +405,7 @@ class Leader implements Instance {
      * @param aValue is the value to attempt to agree upon
      */
     void submit(Proposal aValue, Completion<VoteOutcome> aSubmitter) {
-        _logger.info(_common.getTransport().getLocalAddress() +
-                ": (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")");
+        _logger.info(toString() + " (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")");
 
         synchronized (this) {
             if (_stateMachine.getCurrentState() != State.INITIAL)
@@ -414,8 +413,6 @@ class Leader implements Instance {
 
             if (aSubmitter == null)
                 throw new IllegalArgumentException("Submitter cannot be null");
-
-            _logger.info(toString());
 
             _submitter = aSubmitter;
             _prop = aValue;
@@ -425,7 +422,7 @@ class Leader implements Instance {
 
             _membership = _common.getTransport().getFD().getMembers();
 
-            _logger.debug(toString() + " : got membership: (" +
+            _logger.debug(toString() + " got membership: (" +
                     _membership.getSize() + ")");
 
             process(NO_MESSAGES);
@@ -459,7 +456,7 @@ class Leader implements Instance {
                 }
             }
 
-            _logger.info(toString() + " : " + myMessage);
+            _logger.info(toString() + " " + myMessage);
 
             if (myMessage instanceof LeaderSelection) {
                 if (((LeaderSelection) myMessage).routeable(this)) {
@@ -486,13 +483,11 @@ class Leader implements Instance {
                 }
             }
 
-            _logger.warn(toString() + ": Unexpected message received: " + myMessage);
+            _logger.warn(toString() + " Unexpected message received: " + myMessage);
         }
     }
 
     public String toString() {
-    	return _common.getTransport().getLocalAddress() +
-                ": (" + Long.toHexString(_rndNumber) + ")" +
-                " tries: " + _tries + "/" + MAX_TRIES;
+        return "LD [ " + _common.getTransport().getLocalAddress() + " ]";
     }
 }
