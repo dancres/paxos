@@ -50,7 +50,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public void terminate() {
-        _logger.info("Core terminating");
+        _logger.info(toString() + " terminating");
 
         _common.stop();
 
@@ -60,9 +60,9 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public void init(Transport aTransport) throws Exception {
-        _logger.info("Core initialised");
-
         _common.setTransport(aTransport);
+
+        _logger.info(toString() + " initialised");
 
         _al.open(_handle);
 
@@ -113,7 +113,7 @@ public class Core implements Transport.Dispatcher, Paxos {
             return didProcess;
 
         } catch (Throwable anE) {
-            _logger.error("Unexpected exception", anE);
+            _logger.error(toString() + " Unexpected exception", anE);
             return false;
         }
     }
@@ -132,6 +132,10 @@ public class Core implements Transport.Dispatcher, Paxos {
      */
     public void submit(Proposal aVal, Completion<VoteOutcome> aCompletion) throws InactiveException {
         _ld.newLeader().submit(aVal, aCompletion);
+    }
+
+    public String toString() {
+        return "CR [ " + _common.getTransport().getLocalAddress() + " ]";
     }
 }
 
