@@ -547,7 +547,7 @@ public class AcceptorLearner implements MessageProcessor {
                                      * which for this particular case would be COLLECT at seqnum = 0 with a window of
                                      * -1 to triggering packet seqnum - 1.
                                      */
-                                    _logger.info(toString() + " Transition to recovery: " +
+                                    _logger.info(AcceptorLearner.this.toString() + " Transition to recovery: " +
                                             _common.getLowWatermark().getSeqNum());
 
                                     if (_common.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
@@ -607,11 +607,11 @@ public class AcceptorLearner implements MessageProcessor {
              * future check otherwise fail.
              */
             if (! _past.equals(_common.getLowWatermark())) {
-                _logger.debug(toString() + " Recovery is progressing");
+                _logger.debug(AcceptorLearner.this.toString() + " Recovery is progressing");
 
                 reschedule();
             } else {
-                _logger.warn(toString() + " Recovery is NOT progressing - terminate");
+                _logger.warn(AcceptorLearner.this.toString() + " Recovery is NOT progressing - terminate");
 
                 terminateRecovery();
                 _common.testAndSetState(Constants.FSMStates.RECOVERING, Constants.FSMStates.ACTIVE);
@@ -1016,7 +1016,7 @@ public class AcceptorLearner implements MessageProcessor {
             try {
                 return _storage.put(_common.getTransport().getPickler().pickle(aPacket), aForceRequired);
             } catch (Exception anE) {
-                _logger.error(toString() + " cannot log: " + System.currentTimeMillis(), anE);
+                _logger.error(AcceptorLearner.this.toString() + " cannot log: " + System.currentTimeMillis(), anE);
                 throw new RuntimeException(anE);
             }            
         }
@@ -1068,24 +1068,24 @@ public class AcceptorLearner implements MessageProcessor {
 
         public void run() {
             if (guard()) {
-                _logger.warn(toString() + " Aborting RemoteStreamer");
+                _logger.warn(AcceptorLearner.this.toString() + " Aborting RemoteStreamer");
                 return;
             } else {
-                _logger.info(toString() + " RemoteStreamer starting");
+                _logger.info(AcceptorLearner.this.toString() + " RemoteStreamer starting");
             }
 
             try {
                 new LogRangeProducer(_need.getMinSeq(), _need.getMaxSeq(), this, _storage,
                         _common.getTransport().getPickler()).produce(0);
             } catch (Exception anE) {
-                _logger.error(toString() + " Failed to replay log", anE);
+                _logger.error(AcceptorLearner.this.toString() + " Failed to replay log", anE);
             } finally {
                 unguard();
             }
         }
 
         public void process(Transport.Packet aPacket, long aLogOffset) {
-            _logger.debug(toString() + " Streaming: " + aPacket.getMessage());
+            _logger.debug(AcceptorLearner.this.toString() + " Streaming: " + aPacket.getMessage());
             _common.getTransport().send(aPacket, _target);
         }
     }
