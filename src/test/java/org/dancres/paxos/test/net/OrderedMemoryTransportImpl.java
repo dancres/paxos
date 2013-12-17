@@ -41,22 +41,22 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
          *
          * @return
          */
-        boolean sendUnreliable();
+        boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport);
 
         /**
          * Acceptable to receive a packet?
          *
          * @return
          */
-        boolean receive();
+        boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport);
     }
 
     private static class NullRoutingDecisionsImpl implements RoutingDecisions {
-        public boolean sendUnreliable() {
+        public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
             return true;
         }
 
-        public boolean receive() {
+        public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
             return true;
         }
     }
@@ -110,7 +110,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 		guard();
 		
 		try {
-            if (_decisions.sendUnreliable())
+            if (_decisions.sendUnreliable(this))
 			    _parent.enqueue(aPacket, anAddr);
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
@@ -118,7 +118,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public void distribute(Transport.Packet aPacket) {
-        if (_decisions.receive()) {
+        if (_decisions.receive(this)) {
             if ((_fd != null) && (_fd.accepts(aPacket))) {
                 try {
                     _fd.processMessage(aPacket);

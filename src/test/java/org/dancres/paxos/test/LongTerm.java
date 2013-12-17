@@ -247,11 +247,11 @@ public class LongTerm {
                 _rng = aRandom;
             }
 
-            public boolean sendUnreliable() {
+            public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
                 return true;
             }
 
-            public boolean receive() {
+            public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
                 return true;
             }
 
