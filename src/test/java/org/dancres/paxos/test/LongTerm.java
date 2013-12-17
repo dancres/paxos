@@ -242,16 +242,33 @@ public class LongTerm {
         class NetworkDecider implements OrderedMemoryTransportImpl.RoutingDecisions {
             private final Random _rng;
             private AtomicBoolean _isSettling = new AtomicBoolean(false);
+            private AtomicBoolean _haveDropped = new AtomicBoolean(false);
 
             NetworkDecider(Random aRandom) {
                 _rng = aRandom;
             }
 
             public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
+                /*
+                if (_rng.nextInt(100) < 10) {
+                    if (_haveDropped.compareAndSet(false, true)) {
+                        _logger.warn("ND [ " + aTransport.getLocalAddress() + "] Dropped on send");
+                        return false;
+                    }
+                }
+                */
+
                 return true;
             }
 
             public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
+                if ((! _isSettling.get()) && (_rng.nextInt(100) < 10)) {
+                    if (_haveDropped.compareAndSet(false, true)) {
+                        _logger.warn("ND [ " + aTransport.getLocalAddress() + "] Dropped on receive");
+                        return false;
+                    }
+                }
+
                 return true;
             }
 
