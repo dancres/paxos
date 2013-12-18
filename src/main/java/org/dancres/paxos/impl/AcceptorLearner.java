@@ -754,25 +754,37 @@ public class AcceptorLearner implements MessageProcessor {
 			case Operations.BEGIN: {
 				Begin myBegin = (Begin) myMessage;
 
-                if (mySeqNum <= _common.getLowWatermark().getSeqNum())
-                    return;
-
 				// If the begin matches the last round of a collect we're fine
 				//
 				if (_common.originates(aPacket)) {
 					_common.leaderAction();
-                    _cachedBegins.put(myBegin.getSeqNum(), myBegin);
 
-					aWriter.write(aPacket, true);
+                    /*
+                     * Special case, the leader could be playing catchup on the ledger because it never saw
+                     * accepts (by virtue of packet loss or timeout) and has fallen back to a COLLECT which
+                     * has produced LASTs which it's now trying to re-settle and move on. This is acceptable,
+                     * just tell it ACCEPT again and let it move on.
+                     */
+                    if (mySeqNum <= _common.getLowWatermark().getSeqNum()) {
+                        _logger.warn(toString() + " Leader is resync'ing with Ledger " + myBegin);
 
-					aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()),
-                            _common.getTransport().getBroadcastAddress());
+                        aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()),
+                                _common.getTransport().getBroadcastAddress());
 
-                    purgeAcceptLedger(myBegin);
+                    } else {
+                        _cachedBegins.put(myBegin.getSeqNum(), myBegin);
 
-                    Transport.Packet myLearned = tallyAccepts(myBegin);
-                    if (myLearned != null)
-                        learned(myLearned, aWriter);
+                        aWriter.write(aPacket, true);
+
+                        aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()),
+                                _common.getTransport().getBroadcastAddress());
+
+                        purgeAcceptLedger(myBegin);
+
+                        Transport.Packet myLearned = tallyAccepts(myBegin);
+                        if (myLearned != null)
+                            learned(myLearned, aWriter);
+                    }
 
 				} else if (_common.precedes(aPacket)) {
 					// New collect was received since the collect for this begin,
@@ -795,6 +807,8 @@ public class AcceptorLearner implements MessageProcessor {
             case Operations.ACCEPT: {
                 Accept myAccept = (Accept) myMessage;
 
+                // Don't process a value we've already learnt...
+                //
                 if (myAccept.getSeqNum() <= _common.getLowWatermark().getSeqNum())
                     return;
 
