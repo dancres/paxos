@@ -418,9 +418,13 @@ public class LongTerm {
         _env._factory.stop();
     }
 
-    private void cycle(ClientDispatcher aClient, long aCycles, long aCkptCycle) {
+    /**
+     * @return number of successful cycles in the run
+     */
+    private long cycle(ClientDispatcher aClient, long aCycles, long aCkptCycle) {
         long opsSinceCkpt = 0;
         long myOpCount = 0;
+        long mySuccessCount = 0;
 
         while (myOpCount < aCycles) {
             /*
@@ -442,6 +446,8 @@ public class LongTerm {
             if (myEv.getResult() == VoteOutcome.Reason.OTHER_LEADER) {
                 _env.updateLeader(myEv.getLeader());
             } else if (myEv.getResult() == VoteOutcome.Reason.VALUE) {
+                mySuccessCount++;
+
                 if (opsSinceCkpt >= aCkptCycle) {
                     _env.checkpoint();
 
@@ -453,6 +459,8 @@ public class LongTerm {
             //
             myOpCount++;
         }
+
+        return mySuccessCount;
     }
 
     public static void main(String[] anArgs) throws Exception {
