@@ -252,7 +252,6 @@ public class LongTerm {
                 /*
                 if (_rng.nextInt(100) < 10) {
                     if (_haveDropped.compareAndSet(false, true)) {
-                        _logger.warn("ND [ " + aTransport.getLocalAddress() + "] Dropped on send");
                         return false;
                     }
                 }
@@ -264,7 +263,6 @@ public class LongTerm {
             public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
                 if ((! _isSettling.get()) && (_rng.nextInt(100) < 10)) {
                     if (_haveDropped.compareAndSet(false, true)) {
-                        _logger.warn("ND [ " + aTransport.getLocalAddress() + "] Dropped on receive");
                         return false;
                     }
                 }
