@@ -396,6 +396,11 @@ public class LongTerm {
     }
 
     private void run() throws Exception {
+        // We expect at least an 80% success rate post-settle
+        //
+        long myProgressTarget = (long) (_env._settleCycles * 0.8);
+        long mySuccesses = 0;
+
         ClientDispatcher myClient = new ClientDispatcher();
         Transport myTransport = _env._factory.newTransport(null);
         myTransport.routeTo(myClient);
@@ -408,7 +413,7 @@ public class LongTerm {
 
             _env.settle();
 
-            cycle(myClient, _env._settleCycles, _env._ckptCycle);
+            mySuccesses = cycle(myClient, _env._settleCycles, _env._ckptCycle);
         }
 
         myTransport.terminate();
@@ -416,6 +421,14 @@ public class LongTerm {
         _env.terminate();
 
         _env._factory.stop();
+
+        if (! _env._calibrate) {
+            System.out.println("Required success cycles in settle was " + myProgressTarget +
+                    " actual was " + mySuccesses);
+
+            if (! (mySuccesses > myProgressTarget))
+                throw new Exception("Failed to settle successfully");
+        }
     }
 
     /**
