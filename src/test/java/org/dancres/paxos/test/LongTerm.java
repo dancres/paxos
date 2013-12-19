@@ -86,7 +86,7 @@ public class LongTerm {
         final Random _rng;
         private final List<NodeAdmin> _nodes = new LinkedList<NodeAdmin>();
 
-        Transport _currentLeader;
+        NodeAdmin _currentLeader;
         final OrderedMemoryNetwork _factory;
 
         Environment(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
@@ -116,7 +116,7 @@ public class LongTerm {
                 _factory.newTransport(myFactory);
             }
 
-            _currentLeader = _nodes.get(0).getTransport();
+            _currentLeader = _nodes.get(0);
         }
 
         void stabilise() throws Exception {
@@ -140,7 +140,7 @@ public class LongTerm {
                 Transport myTp = myNA.getTransport();
 
                 if (myTp.getLocalAddress().equals(anAddr)) {
-                    _currentLeader = myTp;
+                    _currentLeader = myNA;
                     break;
                 }
             }
@@ -437,7 +437,7 @@ public class LongTerm {
             Proposal myProposal = new Proposal("data", myBuffer.array());
 
             aClient.send(new Envelope(myProposal),
-                    _env._currentLeader.getLocalAddress());
+                    _env._currentLeader.getTransport().getLocalAddress());
 
             VoteOutcome myEv = aClient.getNext(10000);
 
