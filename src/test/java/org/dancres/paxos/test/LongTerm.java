@@ -79,7 +79,7 @@ public class LongTerm {
     }
 
     private static class Environment {
-        final boolean _calibrate;
+        final boolean _isLive;
         final long _maxCycles;
         final long _settleCycles = 50;
         final long _ckptCycle;
@@ -91,7 +91,7 @@ public class LongTerm {
 
         Environment(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
             _ckptCycle = aCkptCycle;
-            _calibrate = doCalibrate;
+            _isLive = ! doCalibrate;
             _maxCycles = aCycles;
             _rng = new Random(aSeed);
             _factory = new OrderedMemoryNetwork();
@@ -218,7 +218,7 @@ public class LongTerm {
             _env = anEnv;
             _decider = new NetworkDecider(new Random(_env._rng.nextLong()));
 
-            if (_env._calibrate) {
+            if (! _env._isLive) {
                 _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
             } else {
                 _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, _decider);
@@ -408,7 +408,7 @@ public class LongTerm {
 
         cycle(myClient, _env._maxCycles, _env._ckptCycle);
 
-        if (! _env._calibrate) {
+        if (_env._isLive) {
             System.out.println("********** Transition to Settling **********");
 
             _env.settle();
@@ -422,7 +422,7 @@ public class LongTerm {
 
         _env._factory.stop();
 
-        if (! _env._calibrate) {
+        if (_env._isLive) {
             System.out.println("Required success cycles in settle was " + myProgressTarget +
                     " actual was " + mySuccesses);
 
