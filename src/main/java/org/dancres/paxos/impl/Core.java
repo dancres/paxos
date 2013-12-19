@@ -97,8 +97,6 @@ public class Core implements Transport.Dispatcher, Paxos {
         if (! _initd.get())
             return false;
 
-    	PaxosMessage myMessage = aPacket.getMessage();
-        EnumSet<PaxosMessage.Classification> myClassifications = myMessage.getClassifications();
         boolean didProcess = false;
 
         try {

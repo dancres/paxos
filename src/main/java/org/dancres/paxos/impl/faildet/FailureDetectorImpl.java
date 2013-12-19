@@ -55,8 +55,6 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         }
     }
 
-    private static final Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
-
     /**
      * @param aClusterSize is the number of members in the cluster
      * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
