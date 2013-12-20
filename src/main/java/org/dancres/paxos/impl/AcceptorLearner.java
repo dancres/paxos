@@ -481,7 +481,7 @@ public class AcceptorLearner implements MessageProcessor {
                      * to that node using a LiveSender and a ReplayWriter.
                      */
                     case Operations.NEED : {
-                        _logger.info("Serving NEED from recovery " + aPacket);
+                        _logger.debug("Serving NEED from recovery " + aPacket);
 
                         process(aPacket, new ReplayWriter(0), new LiveSender());
 
@@ -557,7 +557,7 @@ public class AcceptorLearner implements MessageProcessor {
                                      * which for this particular case would be COLLECT at seqnum = 0 with a window of
                                      * -1 to triggering packet seqnum - 1.
                                      */
-                                    _logger.info(AcceptorLearner.this.toString() + " Transition to recovery: " +
+                                    _logger.debug(AcceptorLearner.this.toString() + " Transition to recovery: " +
                                             _common.getLowWatermark().getSeqNum());
 
                                     if (_common.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
@@ -633,7 +633,7 @@ public class AcceptorLearner implements MessageProcessor {
     // when the alarm has expired (thus does not need cancelling) when it is called from the alarm itself.
     //
     private void reschedule() {
-        _logger.debug(toString() + " Rescheduling");
+        _logger.trace(toString() + " Rescheduling");
 
         TimerTask myAlarm = new Watchdog();
 
@@ -672,7 +672,7 @@ public class AcceptorLearner implements MessageProcessor {
     }
 
     private void completedRecovery() {
-        _logger.info(toString() + " Recovery complete");
+        _logger.debug(toString() + " Recovery complete");
 
         TimerTask myAlarm = _recoveryAlarm.getAndSet(null);
         if (myAlarm != null) {
@@ -694,7 +694,7 @@ public class AcceptorLearner implements MessageProcessor {
 		InetSocketAddress myNodeId = aPacket.getSource();
 		long mySeqNum = myMessage.getSeqNum();
 
-		_logger.info(toString() + " rxd " + myNodeId + " " + myMessage +
+		_logger.debug(toString() + " rxd " + myNodeId + " " + myMessage +
                 ", loWmk " + Long.toHexString(_common.getLowWatermark().getSeqNum()));
 
 		switch (myMessage.getType()) {
@@ -734,7 +734,7 @@ public class AcceptorLearner implements MessageProcessor {
 				// If the collect supercedes our previous collect save it, return last proposal etc
 				//
 				if (_common.supercedes(aPacket)) {
-                    _logger.debug(toString() + " Accepting collect: " + myCollect);
+                    _logger.trace(toString() + " Accepting collect: " + myCollect);
 
 					aWriter.write(aPacket, true);
                     
@@ -880,11 +880,11 @@ public class AcceptorLearner implements MessageProcessor {
         if (myBegin.getConsolidatedValue().equals(LeaderFactory.HEARTBEAT)) {
             _receivedHeartbeats.incrementAndGet();
 
-            _logger.debug(toString() + " discarded heartbeat: "
+            _logger.trace(toString() + " discarded heartbeat: "
                     + System.currentTimeMillis() + ", "
                     + getHeartbeatCount());
         } else {
-            _logger.info(toString() + " Learnt value: " + mySeqNum);
+            _logger.debug(toString() + " Learnt value: " + mySeqNum);
 
             signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
                     _common.getLeaderRndNum(),
@@ -951,7 +951,7 @@ public class AcceptorLearner implements MessageProcessor {
                 ++myAcceptTally;
 
         if (myAcceptTally >= _common.getTransport().getFD().getMajority()) {
-            _logger.debug(toString() + " *** Speculative COMMIT possible ***");
+            _logger.trace(toString() + " *** Speculative COMMIT possible ***");
 
             return _common.getTransport().getPickler().newPacket(new Learned(aBegin.getSeqNum(),
                     aBegin.getRndNumber()));
@@ -1004,7 +1004,7 @@ public class AcceptorLearner implements MessageProcessor {
             if (_common.testState(Constants.FSMStates.SHUTDOWN))
                 return;
 
-            _logger.info(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + aNodeId);
+            _logger.debug(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + aNodeId);
             _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), aNodeId);
         }        
     }
@@ -1097,7 +1097,7 @@ public class AcceptorLearner implements MessageProcessor {
                 _logger.warn(AcceptorLearner.this.toString() + " Aborting RemoteStreamer");
                 return;
             } else {
-                _logger.info(AcceptorLearner.this.toString() + " RemoteStreamer starting");
+                _logger.debug(AcceptorLearner.this.toString() + " RemoteStreamer starting");
             }
 
             try {
@@ -1111,7 +1111,7 @@ public class AcceptorLearner implements MessageProcessor {
         }
 
         public void process(Transport.Packet aPacket, long aLogOffset) {
-            _logger.debug(AcceptorLearner.this.toString() + " Streaming: " + aPacket);
+            _logger.trace(AcceptorLearner.this.toString() + " Streaming: " + aPacket);
             _common.getTransport().send(aPacket, _target);
         }
     }
