@@ -82,7 +82,7 @@ class Leader implements Instance {
 
         void transition(State aNewState) {
             if (_acceptableTransitions.get(_currentState).contains(aNewState)) {
-                Leader._logger.info(Leader.this.toString() + " " + _currentState + " -> " + aNewState);
+                Leader._logger.debug(Leader.this.toString() + " " + _currentState + " -> " + aNewState);
 
                 _currentState = aNewState;
             } else {
@@ -185,7 +185,7 @@ class Leader implements Instance {
     private void process(List<Transport.Packet> aMessages) {
         switch (_stateMachine.getCurrentState()) {
             case SHUTDOWN : {
-                _logger.info(toString() + " Shutdown");
+                _logger.debug(toString() + " Shutdown");
                 
                 if (_interactionAlarm != null)
                     cancelInteraction();
@@ -194,7 +194,7 @@ class Leader implements Instance {
             }
 
             case ABORT : {
-                _logger.info(toString() + " Abort: " + _outcomes);
+                _logger.debug(toString() + " Abort: " + _outcomes);
 
                 if (_interactionAlarm != null)
                     cancelInteraction();
@@ -205,7 +205,7 @@ class Leader implements Instance {
             }
 
             case EXIT : {
-            	_logger.info(toString() + " Exit: " + _outcomes);
+            	_logger.debug(toString() + " Exit: " + _outcomes);
 
                 reportOutcome();
 
@@ -301,7 +301,7 @@ class Leader implements Instance {
 
         InetSocketAddress myCompetingNodeId = myOldRound.getLeaderNodeId();
 
-        _logger.info(toString() + " Other leader active, backing down: " + myCompetingNodeId + " (" +
+        _logger.warn(toString() + " Other leader active, backing down: " + myCompetingNodeId + " (" +
                 Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
         _stateMachine.transition(State.ABORT);
@@ -327,7 +327,7 @@ class Leader implements Instance {
         _stateMachine.transition(State.ABORT);
         _outcomes.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop, aLeader));
         
-        _logger.info(toString() + " : " + _outcomes);
+        _logger.error(toString() + " : " + _outcomes);
 
         process(NO_MESSAGES);
     }
@@ -335,7 +335,7 @@ class Leader implements Instance {
     private void emit(PaxosMessage aMessage) {
         startInteraction();
 
-        _logger.info(toString() + " : " + aMessage);
+        _logger.debug(toString() + " : " + aMessage);
 
         _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage),
                 _common.getTransport().getBroadcastAddress());
@@ -363,7 +363,7 @@ class Leader implements Instance {
 
     private void expired() {
         synchronized(this) {
-            _logger.info(toString() + " Watchdog requested abort: ");
+            _logger.debug(toString() + " Watchdog requested abort: ");
 
             switch (_stateMachine.getCurrentState()) {
                 case SUCCESS : {
@@ -405,7 +405,7 @@ class Leader implements Instance {
      * @param aValue is the value to attempt to agree upon
      */
     void submit(Proposal aValue, Completion<VoteOutcome> aSubmitter) {
-        _logger.info(toString() + " (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")");
+        _logger.debug(toString() + " (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")");
 
         synchronized (this) {
             if (_stateMachine.getCurrentState() != State.INITIAL)
@@ -422,7 +422,7 @@ class Leader implements Instance {
 
             _membership = _common.getTransport().getFD().getMembers();
 
-            _logger.debug(toString() + " got membership: (" +
+            _logger.trace(toString() + " got membership: (" +
                     _membership.getSize() + ")");
 
             process(NO_MESSAGES);
@@ -456,7 +456,7 @@ class Leader implements Instance {
                 }
             }
 
-            _logger.info(toString() + " " + myMessage);
+            _logger.debug(toString() + " " + myMessage);
 
             if (myMessage instanceof LeaderSelection) {
                 if (((LeaderSelection) myMessage).routeable(this)) {
