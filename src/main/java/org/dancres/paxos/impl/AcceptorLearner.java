@@ -561,7 +561,7 @@ public class AcceptorLearner implements MessageProcessor {
                                             _common.getLowWatermark().getSeqNum());
 
                                     if (_common.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
-                                        _logger.warn(toString() +
+                                        _logger.warn(AcceptorLearner.this.toString() +
                                                 " Current collect could interfere with recovery window - binning " +
                                             _common.getLastCollect().getMessage() + ", " + aNeed);
 
