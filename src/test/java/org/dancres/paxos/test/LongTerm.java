@@ -84,7 +84,7 @@ public class LongTerm {
         final long _maxCycles;
         final long _settleCycles = 50;
         final long _ckptCycle;
-        final Random _rng;
+        final Random _baseRng;
         private final List<NodeAdmin> _nodes = new LinkedList<NodeAdmin>();
 
         NodeAdmin _currentLeader;
@@ -94,7 +94,7 @@ public class LongTerm {
             _ckptCycle = aCkptCycle;
             _isLive = ! doCalibrate;
             _maxCycles = aCycles;
-            _rng = new Random(aSeed);
+            _baseRng = new Random(aSeed);
             _factory = new OrderedMemoryNetwork();
 
             OrderedMemoryNetwork.Factory myFactory = new OrderedMemoryNetwork.Factory() {
@@ -227,7 +227,7 @@ public class LongTerm {
                       int aNodeNum,
                       Environment anEnv) {
             _env = anEnv;
-            _decider = new NetworkDecider(new Random(_env._rng.nextLong()));
+            _decider = new NetworkDecider(new Random(_env._baseRng.nextLong()));
 
             if (! _env._isLive) {
                 _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
