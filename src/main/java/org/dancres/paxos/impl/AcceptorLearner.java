@@ -474,9 +474,19 @@ public class AcceptorLearner implements MessageProcessor {
 
             if (_common.testState(Constants.FSMStates.RECOVERING)) {
                 switch (myMessage.getType()) {
-                    // If the packet is a recovery request, ignore it
-                    //
-                    case Operations.NEED : return;
+                    /*
+                     * If the packet is a Need, we can process it for anything up to the last point of consistency
+                     * in our log. Need's are never saved to the log so can only be received from other nodes looking
+                     * to get themselves back up-to-date. This means there's no danger in us streaming loud and proud
+                     * to that node using a LiveSender and a ReplayWriter.
+                     */
+                    case Operations.NEED : {
+                        _logger.info("Serving NEED from recovery " + aPacket);
+
+                        process(aPacket, new ReplayWriter(0), new LiveSender());
+
+                        return;
+                    }
 
                     // If we're out of date, we need to get the user-code to find a checkpoint
                     //
