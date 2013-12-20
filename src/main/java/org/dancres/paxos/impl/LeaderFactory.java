@@ -100,7 +100,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
             //
             _heartbeatAlarm = new TimerTask() {
                 public void run() {
-                    _logger.info(this + ": sending heartbeat: " + System.currentTimeMillis());
+                    _logger.trace(this + ": sending heartbeat: " + System.currentTimeMillis());
 
                     newLeaderImpl().submit(HEARTBEAT, new Completion<VoteOutcome>() {
                         public void complete(VoteOutcome anOutcome) {
@@ -133,10 +133,10 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     }
 
     public void processMessage(Transport.Packet aPacket) {
-        _logger.debug("Got packet for leaders: " + aPacket.getSource() + "->" + aPacket.getMessage());
+        _logger.trace("Got packet for leaders: " + aPacket.getSource() + "->" + aPacket.getMessage());
         
         synchronized(this) {
-            _logger.debug("Routing packet to leader " + _currentLeader);
+            _logger.trace("Routing packet to leader " + _currentLeader);
 
             if (_currentLeader != null)
                 _currentLeader.processMessage(aPacket);
