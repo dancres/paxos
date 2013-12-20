@@ -992,7 +992,7 @@ public class AcceptorLearner implements MessageProcessor {
             if (_common.testState(Constants.FSMStates.SHUTDOWN))
                 return;
 
-            _logger.info(AcceptorLearner.this.toString() + " sending: " + aMessage);
+            _logger.info(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + aNodeId);
             _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), aNodeId);
         }        
     }
@@ -1099,7 +1099,7 @@ public class AcceptorLearner implements MessageProcessor {
         }
 
         public void process(Transport.Packet aPacket, long aLogOffset) {
-            _logger.debug(AcceptorLearner.this.toString() + " Streaming: " + aPacket.getMessage());
+            _logger.debug(AcceptorLearner.this.toString() + " Streaming: " + aPacket);
             _common.getTransport().send(aPacket, _target);
         }
     }
