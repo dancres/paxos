@@ -828,12 +828,14 @@ public class AcceptorLearner implements MessageProcessor {
             /*
              * LEARNED will only be processed on a recovery run. It is generated and logged as the result of tallying
              * ACCEPTs from all AL's in the cluster and BEGINs from Leaders. It is NEVER, sent across the network
-             * by a leader but MAY be sent from another AL in response to a NEED.
+             * by a leader but MAY be sent from another AL in response to a NEED. This latter exposes a risk of
+             * packet loss causing the prior BEGIN to go missing which we must allow for.
              *
              * ACCEPTs themselves are never logged individually or even as a group.
              */
 			case Operations.LEARNED: {
-                learned(aPacket, aWriter);
+                if (_cachedBegins.get(myMessage.getSeqNum()) != null)
+                    learned(aPacket, aWriter);
 
 				break;
 			}
