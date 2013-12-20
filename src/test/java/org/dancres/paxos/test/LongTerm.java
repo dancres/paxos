@@ -76,6 +76,7 @@ public class LongTerm {
         void terminate();
         boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt);
         void settle();
+        long getDropCount();
     }
 
     private static class Environment {
@@ -117,6 +118,16 @@ public class LongTerm {
             }
 
             _currentLeader = _nodes.get(0);
+        }
+
+        long getDropCount() {
+            long myTotal = 0;
+
+            for (NodeAdmin myNA: _nodes) {
+                myTotal+= myNA.getDropCount();
+            }
+
+            return myTotal;
         }
 
         void stabilise() throws Exception {
@@ -243,6 +254,7 @@ public class LongTerm {
             private final Random _rng;
             private AtomicBoolean _isSettling = new AtomicBoolean(false);
             private AtomicBoolean _haveDropped = new AtomicBoolean(false);
+            private AtomicLong _dropCount = new AtomicLong(0);
 
             NetworkDecider(Random aRandom) {
                 _rng = aRandom;
@@ -263,6 +275,8 @@ public class LongTerm {
             public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
                 if ((! _isSettling.get()) && (_rng.nextInt(100) < 10)) {
                     if (_haveDropped.compareAndSet(false, true)) {
+                        _dropCount.incrementAndGet();
+
                         return false;
                     }
                 }
@@ -270,9 +284,17 @@ public class LongTerm {
                 return true;
             }
 
-            public void settle() {
+            void settle() {
                 _isSettling.set(true);
             }
+
+            long getDropCount() {
+                return _dropCount.get();
+            }
+        }
+
+        public long getDropCount() {
+            return _decider.getDropCount();
         }
 
         /*
@@ -421,6 +443,7 @@ public class LongTerm {
         _env._factory.stop();
 
         if (_env._isLive) {
+            System.out.println("Total dropped packets was " + _env.getDropCount());
             System.out.println("Required success cycles in settle was " + myProgressTarget +
                     " actual was " + mySuccesses);
 
