@@ -6,6 +6,7 @@ import com.lexicalscope.jewel.cli.Option;
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.messages.Envelope;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
@@ -252,7 +253,8 @@ public class LongTerm {
                 _rng = aRandom;
             }
 
-            public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
+            public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport,
+                                          Transport.Packet aPacket) {
                 /*
                 if (_rng.nextInt(100) < 10) {
                     if (_haveDropped.compareAndSet(false, true)) {
@@ -264,11 +266,18 @@ public class LongTerm {
                 return true;
             }
 
-            public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport) {
-                if ((! _isSettling.get()) && (_rng.nextInt(100) < 10)) {
-                    if (_haveDropped.compareAndSet(false, true)) {
-                        _dropCount.incrementAndGet();
+            public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Transport.Packet aPacket) {
+                // Client isn't written to cope with failure handling
+                //
+                if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT))
+                    return true;
 
+                if (! _isSettling.get()) {
+                    long myNum = _rng.nextInt(100);
+                    boolean myResult = (myNum < 2);
+
+                    if (myResult) {
+                        _dropCount.incrementAndGet();
                         return false;
                     }
                 }
