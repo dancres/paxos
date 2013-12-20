@@ -50,7 +50,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public void terminate() {
-        _logger.info(toString() + " terminating");
+        _logger.debug(toString() + " terminating");
 
         _common.stop();
 
@@ -62,7 +62,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     public void init(Transport aTransport) throws Exception {
         _common.setTransport(aTransport);
 
-        _logger.info(toString() + " initialised");
+        _logger.debug(toString() + " initialised");
 
         _al.open(_handle);
 
