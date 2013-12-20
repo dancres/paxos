@@ -22,13 +22,13 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
 	private final OrderedMemoryNetwork _parent;
 	private final PacketPickler _pickler;
-    private final MessageBasedFailureDetector _fd = new FailureDetectorImpl(5, 5000);
 	private final Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
 	private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
     private final RoutingDecisions _decisions;
-    private final Heartbeater _hb;
+    private MessageBasedFailureDetector _fd;
+    private Heartbeater _hb;
 
     /**
      * A RoutingDecisions instance determines whether a network action should take place.
@@ -62,19 +62,24 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
-                                      OrderedMemoryNetwork aParent, RoutingDecisions aDecisions) {
+                                      OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD,
+                                      RoutingDecisions aDecisions) {
         _unicastAddr = aLocalAddr;
         _broadcastAddr = aBroadAddr;
         _parent = aParent;
         _decisions = aDecisions;
         _pickler = new StandalonePickler(_unicastAddr);
-        _hb = _fd.newHeartbeater(this, _unicastAddr.toString().getBytes());
-        _hb.start();
+        _fd = anFD;
+
+        if (_fd != null) {
+            _hb = _fd.newHeartbeater(this, _unicastAddr.toString().getBytes());
+            _hb.start();
+        }
     }
 
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
-                                      OrderedMemoryNetwork aParent) {
-        this(aLocalAddr, aBroadAddr, aParent, new NullRoutingDecisionsImpl());
+                                      OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD) {
+        this(aLocalAddr, aBroadAddr, aParent, anFD, new NullRoutingDecisionsImpl());
     }
 
     public PacketPickler getPickler() {
@@ -146,14 +151,16 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     public void terminate() {
         guard();
 
-        _hb.halt();
+        if (_fd != null) {
+            _hb.halt();
 
-        try {
-            _hb.join();
-        } catch (InterruptedException anIE) {
+            try {
+                _hb.join();
+            } catch (InterruptedException anIE) {
+            }
+
+            _fd.stop();
         }
-
-        _fd.stop();
 
 		_isStopping.set(true);
 

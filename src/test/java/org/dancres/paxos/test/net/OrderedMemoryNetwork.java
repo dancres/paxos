@@ -1,7 +1,9 @@
 package org.dancres.paxos.test.net;
 
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +27,7 @@ public class OrderedMemoryNetwork implements Runnable {
 
     public interface Factory {
         public OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
-                                                   OrderedMemoryNetwork aNetwork);
+                                                   OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD);
     }
 
     private class PacketWrapper {
@@ -48,8 +50,8 @@ public class OrderedMemoryNetwork implements Runnable {
 
     private class DefaultFactory implements Factory {
         public OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
-                                                   OrderedMemoryNetwork aNetwork) {
-            return new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
+                                                   OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD) {
+            return new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD);
         }
     }
 
@@ -106,10 +108,11 @@ public class OrderedMemoryNetwork implements Runnable {
             _logger.warn("Couldn't distribute packet to target: " + aPayload.getTarget());
     }
 
-    public Transport newTransport(Factory aFactory) {
+    public Transport newTransport(Factory aFactory, MessageBasedFailureDetector anFD) {
         InetSocketAddress myAddr = Utils.getTestAddress();
-        OrderedMemoryTransport myTrans = (aFactory == null) ? _factory.newTransport(myAddr, _broadcastAddr, this) :
-                aFactory.newTransport(myAddr, _broadcastAddr, this);
+        OrderedMemoryTransport myTrans = (aFactory == null) ?
+                _factory.newTransport(myAddr, _broadcastAddr, this, anFD) :
+                aFactory.newTransport(myAddr, _broadcastAddr, this, anFD);
 
         _nodes.put(myAddr, myTrans);
 

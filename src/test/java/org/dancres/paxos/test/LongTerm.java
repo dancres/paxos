@@ -4,7 +4,9 @@ import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.Option;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
@@ -102,8 +104,9 @@ public class LongTerm {
 
                 public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
                                                                                 InetSocketAddress aBroadcastAddr,
-                                                                                OrderedMemoryNetwork aNetwork) {
-                    NodeAdminImpl myTp = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, _nextNodeNum,
+                                                                                OrderedMemoryNetwork aNetwork,
+                                                                                MessageBasedFailureDetector anFD) {
+                    NodeAdminImpl myTp = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _nextNodeNum,
                             Environment.this);
 
                     _nodes.add(myTp);
@@ -114,7 +117,7 @@ public class LongTerm {
             };
 
             for (int i = 0; i < 5; i++) {
-                _factory.newTransport(myFactory);
+                _factory.newTransport(myFactory, new FailureDetectorImpl(5, 5000));
             }
 
             _currentLeader = _nodes.get(0);
@@ -217,15 +220,16 @@ public class LongTerm {
         NodeAdminImpl(InetSocketAddress aLocalAddr,
                       InetSocketAddress aBroadcastAddr,
                       OrderedMemoryNetwork aNetwork,
+                      MessageBasedFailureDetector anFD,
                       int aNodeNum,
                       Environment anEnv) {
             _env = anEnv;
             _decider = new NetworkDecider(new Random(_env._baseRng.nextLong()));
 
             if (! _env._isLive) {
-                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork);
+                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD);
             } else {
-                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, _decider);
+                _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _decider);
             }
 
             FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
@@ -423,7 +427,7 @@ public class LongTerm {
         long mySuccesses = 0;
 
         ClientDispatcher myClient = new ClientDispatcher();
-        Transport myTransport = _env._factory.newTransport(null);
+        Transport myTransport = _env._factory.newTransport(null, null);
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
