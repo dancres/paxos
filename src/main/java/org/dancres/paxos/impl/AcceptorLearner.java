@@ -29,7 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author dan
  */
 public class AcceptorLearner implements MessageProcessor {
-    private static final long DEFAULT_RECOVERY_GRACE_PERIOD = 30 * 1000;
+    private static final long DEFAULT_RECOVERY_GRACE_PERIOD = 5 * 1000;
 
 	private static final Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
