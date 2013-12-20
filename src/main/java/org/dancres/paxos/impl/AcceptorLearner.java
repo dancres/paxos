@@ -685,7 +685,7 @@ public class AcceptorLearner implements MessageProcessor {
 		long mySeqNum = myMessage.getSeqNum();
 
 		_logger.info(toString() + " rxd " + myNodeId + " " + myMessage +
-                ", loWmk " + _common.getLowWatermark().getSeqNum());
+                ", loWmk " + Long.toHexString(_common.getLowWatermark().getSeqNum()));
 
 		switch (myMessage.getType()) {
             case Operations.NEED : {
