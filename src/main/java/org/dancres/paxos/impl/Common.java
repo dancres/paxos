@@ -162,16 +162,16 @@ class Common {
         long myCurrentTime = System.currentTimeMillis();
 
         if (((Collect) _lastCollect.get().getMessage()).isInitial()) {
-            _logger.debug("Current collect is initial - allow leader");
+            _logger.trace("Current collect is initial - allow leader");
 
             return true;
         } else {
             if (_leaderUtils.sameLeader(aCollect, _lastCollect.get())) {
-                _logger.debug("Current collect is from same leader - allow");
+                _logger.trace("Current collect is from same leader - allow");
 
                 return true;
             } else
-                _logger.debug("Check leader expiry: " + myCurrentTime + ", " + _lastLeaderActionTime.get() + ", " +
+                _logger.trace("Check leader expiry: " + myCurrentTime + ", " + _lastLeaderActionTime.get() + ", " +
                         Constants.getLeaderLeaseDuration() + ", " + (myCurrentTime > _lastLeaderActionTime.get()
                         + Constants.getLeaderLeaseDuration()));
 
