@@ -5,7 +5,6 @@ import com.lexicalscope.jewel.cli.Option;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.junit.FDUtil;
@@ -130,12 +129,6 @@ public class LongTerm {
             return myTotal;
         }
 
-        void stabilise() throws Exception {
-            for (NodeAdmin myNA : _nodes) {
-                FDUtil.ensureFD(myNA.getTransport().getFD());
-            }
-        }
-
         void settle() {
             for (NodeAdmin myNA : _nodes)
                 myNA.settle();
@@ -206,7 +199,6 @@ public class LongTerm {
 
     private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
         _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle);
-        _env.stabilise();
     }
 
     long getSettleCycles() {
