@@ -63,6 +63,16 @@ public class StandalonePickler implements Transport.PacketPickler {
         public String toString() {
             return "PK [ " + _source + " ] " + _msg;
         }
+
+        public boolean equals(Object anObject) {
+            if (anObject instanceof PacketImpl) {
+                PacketImpl myPacket = (PacketImpl) anObject;
+                return ((myPacket._source == _source) && (myPacket._msg.equals(_msg)));
+            }
+
+            return false;
+
+        }
     }
 }
 

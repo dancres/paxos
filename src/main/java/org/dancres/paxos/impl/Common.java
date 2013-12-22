@@ -53,6 +53,16 @@ class Common {
         public String toString() {
             return "PK [ " + _address + " ] " + _message;
         }
+
+        public boolean equals(Object anObject) {
+            if (anObject instanceof FakePacket) {
+                FakePacket myPacket = (FakePacket) anObject;
+                return ((myPacket._address == _address) && (myPacket._message.equals(_message)));
+            }
+
+            return false;
+
+        }
     }
 
     Common(Transport aTransport) {
