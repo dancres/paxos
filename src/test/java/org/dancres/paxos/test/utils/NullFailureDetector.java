@@ -20,7 +20,7 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
 	}
 
     public Map<InetSocketAddress, MetaData> getMemberMap() {
-        return new HashMap<InetSocketAddress, MetaData>();
+        return new HashMap<>();
     }
 
     public InetSocketAddress getRandomMember(InetSocketAddress aLocal) {

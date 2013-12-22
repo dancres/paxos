@@ -7,7 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class MemoryCheckpointStorage implements CheckpointStorage {
-    private List<byte[]> _checkpoints = new LinkedList<byte[]>();
+    private List<byte[]> _checkpoints = new LinkedList<>();
 
     public int numFiles() {
         synchronized(this) {
