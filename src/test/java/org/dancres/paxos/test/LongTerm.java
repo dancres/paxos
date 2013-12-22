@@ -250,7 +250,6 @@ public class LongTerm {
         class NetworkDecider implements OrderedMemoryTransportImpl.RoutingDecisions {
             private final Random _rng;
             private AtomicBoolean _isSettling = new AtomicBoolean(false);
-            private AtomicBoolean _haveDropped = new AtomicBoolean(false);
             private AtomicLong _dropCount = new AtomicLong(0);
 
             NetworkDecider(Random aRandom) {
@@ -259,13 +258,15 @@ public class LongTerm {
 
             public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport,
                                           Transport.Packet aPacket) {
-                /*
-                if (_rng.nextInt(100) < 10) {
-                    if (_haveDropped.compareAndSet(false, true)) {
+                if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT))
+                    return true;
+
+                if (! _isSettling.get()) {
+                    if (_rng.nextInt(100) < 2) {
+                        _dropCount.incrementAndGet();
                         return false;
                     }
                 }
-                */
 
                 return true;
             }
@@ -276,11 +277,9 @@ public class LongTerm {
                 if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT))
                     return true;
 
-                if (! _isSettling.get()) {
-                    long myNum = _rng.nextInt(100);
-                    boolean myResult = (myNum < 2);
 
-                    if (myResult) {
+                if (! _isSettling.get()) {
+                    if (_rng.nextInt(100) < 2) {
                         _dropCount.incrementAndGet();
                         return false;
                     }
