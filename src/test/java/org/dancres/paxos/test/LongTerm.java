@@ -86,7 +86,7 @@ public class LongTerm {
     private static class Environment {
         final boolean _isLive;
         final long _maxCycles;
-        final long _settleCycles = 50;
+        final long _settleCycles = 100;
         final long _ckptCycle;
         final Random _baseRng;
         private final List<NodeAdmin> _nodes = new LinkedList<>();
