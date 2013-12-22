@@ -36,7 +36,7 @@ public class ALRecoveryTransitionTest {
 	private static class TransportImpl implements Transport {
         private Transport.PacketPickler _pickler;
 
-		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
+		private List<PaxosMessage> _messages = new ArrayList<>();
 		private InetSocketAddress _nodeId;
         private InetSocketAddress _broadcastId;
         private MessageBasedFailureDetector _fd = new NullFailureDetector();

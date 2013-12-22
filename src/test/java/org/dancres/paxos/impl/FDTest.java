@@ -47,11 +47,8 @@ public class FDTest implements MembershipListener {
         Assert.assertTrue(_tport2.getFD().getMemberMap().size() == 2);
 
         Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _tport1.getFD().getMemberMap();
-        Iterator<Map.Entry<InetSocketAddress, FailureDetector.MetaData>> myMemberIt = myMembers.entrySet().iterator();
 
-        while(myMemberIt.hasNext()) {
-            Map.Entry<InetSocketAddress, FailureDetector.MetaData> myEntry = myMemberIt.next();
-
+        for (Map.Entry<InetSocketAddress, FailureDetector.MetaData> myEntry : myMembers.entrySet()) {
             if (myEntry.getKey().equals(_tport1.getLocalAddress())) {
                 Assert.assertTrue("node1".equals(new String(myEntry.getValue().getData())));
             } else if (myEntry.getKey().equals(_tport2.getLocalAddress())) {

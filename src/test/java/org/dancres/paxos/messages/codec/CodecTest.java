@@ -161,8 +161,8 @@ public class CodecTest {
     }
     
     private void dump(byte[] aBuffer) {
-        for (int i = 0; i < aBuffer.length; i++) {
-            System.err.print(Integer.toHexString(aBuffer[i]) + " ");
+        for (byte anABuffer : aBuffer) {
+            System.err.print(Integer.toHexString(anABuffer) + " ");
         }
 
         System.err.println();

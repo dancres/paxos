@@ -38,7 +38,7 @@ public class ALCheckpointTest {
             return _fd;
         }
 
-        private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
+        private List<PaxosMessage> _messages = new ArrayList<>();
 
         public void send(Packet aPacket, InetSocketAddress aNodeId) {
             synchronized(_messages) {

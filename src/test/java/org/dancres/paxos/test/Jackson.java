@@ -12,7 +12,7 @@ public class Jackson {
     public static void main(String[] anArgs) throws Exception {
         ObjectMapper myMapper = new ObjectMapper();
 
-        Map<String, String> myTable = new HashMap<String, String>();
+        Map<String, String> myTable = new HashMap<>();
         myTable.put("node1", "aURL");
         myTable.put("node2", "anotherURL");
 

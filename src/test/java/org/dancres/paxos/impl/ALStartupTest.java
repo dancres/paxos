@@ -28,7 +28,7 @@ public class ALStartupTest {
         private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
         private MessageBasedFailureDetector _fd = new NullFailureDetector();
 
-		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
+		private List<PaxosMessage> _messages = new ArrayList<>();
 
 		public void send(Packet aPacket, InetSocketAddress aNodeId) {
 			synchronized(_messages) {

@@ -42,9 +42,9 @@ public class HowlTest {
 		
 		myLogger.close();
 		
-		Assert.assertTrue(myListener.getError() == false);
+		Assert.assertTrue(!myListener.getError());
 		Assert.assertTrue(myListener.getRecordCount() == 6);
-		Assert.assertTrue(myListener.gotEnd() == true);
+		Assert.assertTrue(myListener.gotEnd());
 	}
 	
 	private static class ReplayListenerImpl implements ReplayListener {

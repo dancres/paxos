@@ -49,7 +49,7 @@ public class ProposalAllocatorTest {
                 new VoteOutcome(VoteOutcome.Reason.VALUE, myInstance.getSeqNum(), myInstance.getRound(),
                         Proposal.NO_VALUE, null));
 
-        List<Instance> myInstances = new LinkedList<Instance>();
+        List<Instance> myInstances = new LinkedList<>();
 
         for (int i = 0; i < (ProposalAllocator.MAX_INFLIGHT - 1); i++) {
             myInstances.add(myFactory.nextInstance(1));
@@ -156,7 +156,7 @@ public class ProposalAllocatorTest {
                 new VoteOutcome(VoteOutcome.Reason.VALUE, myInstance.getSeqNum(), myInstance.getRound(),
                         Proposal.NO_VALUE, null));
 
-        List<Instance> myInstances = new LinkedList<Instance>();
+        List<Instance> myInstances = new LinkedList<>();
 
         for (int i = 0; i < (ProposalAllocator.MAX_INFLIGHT - 1); i++) {
             myInstances.add(myFactory.nextInstance(1));

@@ -43,7 +43,7 @@ public class OldAlStateTest {
         private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
         private MessageBasedFailureDetector _fd = new NullFailureDetector();
 
-		private List<PaxosMessage> _messages = new ArrayList<PaxosMessage>();
+		private List<PaxosMessage> _messages = new ArrayList<>();
 
         public void routeTo(Dispatcher aDispatcher) {
         }
