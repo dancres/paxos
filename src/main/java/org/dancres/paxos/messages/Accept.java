@@ -43,7 +43,7 @@ public class Accept implements PaxosMessage, LeaderSelection {
     	if (anObject instanceof Accept) {
     		Accept myOther = (Accept) anObject;
     		
-    		return (_seqNum == myOther._seqNum) && (_rndNumber == myOther._seqNum);  
+    		return (_seqNum == myOther._seqNum) && (_rndNumber == myOther._rndNumber);
     	}
     	
     	return false;

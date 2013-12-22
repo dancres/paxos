@@ -3,12 +3,16 @@ package org.dancres.paxos.impl;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Learned;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
 class AcceptLedger {
+    private static final Logger _logger = LoggerFactory.getLogger(AcceptLedger.class);
+
     private Set<Transport.Packet> _ledger = new HashSet<>();
     private final long _seqNum;
 
@@ -64,9 +68,11 @@ class AcceptLedger {
                 if (((Accept) myAcc.getMessage()).getRndNumber() == aBegin.getRndNumber())
                     ++myAcceptTally;
 
-            if (myAcceptTally >= aMajority)
+            if (myAcceptTally >= aMajority) {
+                _logger.debug("Accepted on set " + _ledger + " with majority " + aMajority);
+
                 return new Learned(aBegin.getSeqNum(), aBegin.getRndNumber());
-            else
+            } else
                 return null;
         }
     }
