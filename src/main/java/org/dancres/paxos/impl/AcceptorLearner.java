@@ -558,7 +558,7 @@ public class AcceptorLearner implements MessageProcessor {
                                      * -1 to triggering packet seqnum - 1.
                                      */
                                     _logger.debug(AcceptorLearner.this.toString() + " Transition to recovery: " +
-                                            _common.getLowWatermark().getSeqNum());
+                                            Long.toHexString(_common.getLowWatermark().getSeqNum()));
 
                                     if (_common.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
                                         _logger.warn(AcceptorLearner.this.toString() +
