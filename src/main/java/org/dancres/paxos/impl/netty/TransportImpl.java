@@ -237,6 +237,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	}
 	
 	protected void finalize() throws Throwable {
+        super.finalize();
+
 		if (! _isStopping.get())
 			_logger.warn("Failed to close transport before JVM exit");
 	}
