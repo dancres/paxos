@@ -73,7 +73,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
     private final ChannelGroup _channels = new DefaultChannelGroup();
 
-    private final Set<Dispatcher> _dispatchers = new CopyOnWriteArraySet<Dispatcher>();
+    private final Set<Dispatcher> _dispatchers = new CopyOnWriteArraySet<>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
     private final PacketPickler _pickler = new PicklerImpl();
     private final PipelineFactory _pipelineFactory;

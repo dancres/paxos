@@ -80,10 +80,10 @@ public class HowlLogger implements LogStorage {
 		
 	    private void dump(String aMessage, byte[] aBuffer) {
 	    	System.err.print(aMessage + " ");
-	    	
-	        for (int i = 0; i < aBuffer.length; i++) {
-	            System.err.print(Integer.toHexString(aBuffer[i]) + " ");
-	        }
+
+            for (byte anABuffer : aBuffer) {
+                System.err.print(Integer.toHexString(anABuffer) + " ");
+            }
 
 	        System.err.println();
 	    }			

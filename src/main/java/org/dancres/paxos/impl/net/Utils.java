@@ -21,7 +21,7 @@ public class Utils {
      */
     static {
         SortedSet<NetworkInterface> myWorkableInterfaces = 
-        	new TreeSet<NetworkInterface>(new NetworkInterfaceComparator());
+        	new TreeSet<>(new NetworkInterfaceComparator());
 
         try {
             Enumeration<NetworkInterface> myInterfaces = NetworkInterface.getNetworkInterfaces();
@@ -42,9 +42,8 @@ public class Utils {
                     myWorkableInterfaces.add(myInterface);
             }
 
-            Iterator<NetworkInterface> myPossibles = myWorkableInterfaces.iterator();
-            while (myPossibles.hasNext()) {
-                _logger.debug("Candidate Interface: " + myPossibles.next());
+            for (NetworkInterface myWorkableInterface : myWorkableInterfaces) {
+                _logger.debug("Candidate Interface: " + myWorkableInterface);
             }
 
             /*

@@ -8,7 +8,7 @@ public class Proposal {
     public static final Proposal NO_VALUE =
         	new Proposal("org.dancres.paxos.NoValue", new byte[0]);
 
-	private final Map<String, byte[]> _values = new HashMap<String, byte[]>();
+	private final Map<String, byte[]> _values = new HashMap<>();
 	
 	public Proposal() {
 	}

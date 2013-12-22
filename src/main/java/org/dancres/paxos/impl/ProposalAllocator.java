@@ -17,9 +17,9 @@ class ProposalAllocator {
     private long _nextRnd;
     private long _nextSeq;
     private boolean _amLeader;
-    private final SortedSet<Long> _recycling = new TreeSet<Long>();
-    private final Set<Long> _inflight = new HashSet<Long>();
-    private final Set<Listener> _listeners = new CopyOnWriteArraySet<Listener>();
+    private final SortedSet<Long> _recycling = new TreeSet<>();
+    private final Set<Long> _inflight = new HashSet<>();
+    private final Set<Listener> _listeners = new CopyOnWriteArraySet<>();
 
     ProposalAllocator(long aCurrentSeq, long aCurrentRnd) {
         _nextSeq = aCurrentSeq;

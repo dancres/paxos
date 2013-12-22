@@ -7,7 +7,7 @@ import java.util.*;
 class PacketSorter {
     private static final long MAX_INFLIGHT = 1;
 
-    private SortedMap<Long, List<Transport.Packet>> _packets = new TreeMap<Long, List<Transport.Packet>>();
+    private SortedMap<Long, List<Transport.Packet>> _packets = new TreeMap<>();
 
     int numPackets() {
         int myTotal = 0;
@@ -38,7 +38,7 @@ class PacketSorter {
          *
          * Packets less than the low watermark are ignored in AL.process()
          */
-        List<Transport.Packet> myConsumables = new LinkedList<Transport.Packet>();
+        List<Transport.Packet> myConsumables = new LinkedList<>();
 
         synchronized(this) {
             Iterator<Map.Entry<Long, List<Transport.Packet>>> mySeqsAndPkts = _packets.entrySet().iterator();
@@ -56,7 +56,7 @@ class PacketSorter {
         if ((myConsumables.size() == 0) && (_packets.size() != 0)) {
             // Do we need to trigger recovery?
             //
-            SortedSet<Long> myAllSeqs = new TreeSet<Long>(_packets.keySet());
+            SortedSet<Long> myAllSeqs = new TreeSet<>(_packets.keySet());
             Long myLastSeq = myAllSeqs.last();
 
             if (myLastSeq > (aLowWatermark + MAX_INFLIGHT))
@@ -84,7 +84,7 @@ class PacketSorter {
         List<Transport.Packet> myPackets = aPackets.get(mySeq);
 
         if (myPackets == null) {
-            myPackets = new LinkedList<Transport.Packet>();
+            myPackets = new LinkedList<>();
             _packets.put(mySeq, myPackets);
         }
 

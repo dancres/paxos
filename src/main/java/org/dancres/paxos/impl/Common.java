@@ -22,9 +22,9 @@ class Common {
     private AtomicLong _lastLeaderActionTime = new AtomicLong(0);
     private final Timer _watchdog = new Timer("Paxos timers");
     private final AtomicReference<Constants.FSMStates> _fsmState =
-            new AtomicReference<Constants.FSMStates>(Constants.FSMStates.INITIAL);
+            new AtomicReference<>(Constants.FSMStates.INITIAL);
     private final AtomicReference<AcceptorLearner.Watermark> _lowWatermark =
-            new AtomicReference<AcceptorLearner.Watermark>(AcceptorLearner.Watermark.INITIAL);
+            new AtomicReference<>(AcceptorLearner.Watermark.INITIAL);
     private final LeaderUtils _leaderUtils = new LeaderUtils();
 
     private class FakePacket implements Transport.Packet {

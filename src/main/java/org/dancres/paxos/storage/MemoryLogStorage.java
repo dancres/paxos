@@ -1,26 +1,22 @@
 package org.dancres.paxos.storage;
 
 import org.dancres.paxos.LogStorage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 public class MemoryLogStorage implements LogStorage {
-    private Logger _logger = LoggerFactory.getLogger(MemoryLogStorage.class);
-
-    private long _nextKey = 0;    
-    private final SortedMap<Long, byte[]> _log = new TreeMap<Long, byte[]>();
+    private long _nextKey = 0;
+    private final SortedMap<Long, byte[]> _log = new TreeMap<>();
 
     private boolean isClosed = false;
     private boolean isOpened = false;
     
 	public void close() throws Exception {
 		synchronized(this) {
-			assert (isOpened == true);
-			assert (isClosed == false);
+			assert (isOpened);
+			assert (!isClosed);
 
 			isClosed = true;
 		}
@@ -31,7 +27,7 @@ public class MemoryLogStorage implements LogStorage {
 			Iterator<Long> myKeys = _log.keySet().iterator();
 			while (myKeys.hasNext()) {
 				Long myKey = myKeys.next();
-				if (myKey.longValue() < key)
+				if (myKey < key)
 					myKeys.remove();
 			}
 		}
@@ -39,8 +35,8 @@ public class MemoryLogStorage implements LogStorage {
 
 	public void open() throws Exception {
 		synchronized(this) {
-			assert (isOpened == false);
-			assert (isClosed == false);
+			assert (!isOpened);
+			assert (!isClosed);
 			
 			isOpened = true;
 		}
@@ -48,13 +44,13 @@ public class MemoryLogStorage implements LogStorage {
 
 	public long put(byte[] data, boolean sync) throws Exception {
 		synchronized(this) {
-			assert (isOpened == true);
-			assert (isClosed == false);
+			assert (isOpened);
+			assert (!isClosed);
 			
 			long myKey = _nextKey;
 			
 			++_nextKey;			
-			_log.put(new Long(myKey), data);
+			_log.put(myKey, data);
 			
 			return myKey;
 		}
@@ -62,26 +58,23 @@ public class MemoryLogStorage implements LogStorage {
 
 	public byte[] get(long position) throws Exception {
 		synchronized(this) {
-			assert (isOpened == true);
-			assert (isClosed == false);
+			assert (isOpened);
+			assert (!isClosed);
 			
-			return _log.get(new Long(position));
+			return _log.get(position);
 		}
 	}
 	
 	public void replay(RecordListener listener, long mark) throws Exception {
 		synchronized(this) {
-			assert (isOpened == true);
-			assert (isClosed == false);
-			
-			Iterator<Long> myKeys = _log.keySet().iterator();
-			while (myKeys.hasNext()) {
-				Long myKey = myKeys.next();
-				
-				if (myKey.longValue() >= mark) {
-					listener.onRecord(myKey.longValue(), _log.get(myKey));
-				}
-			}
+			assert (isOpened);
+			assert (!isClosed);
+
+            for (Long myKey : _log.keySet()) {
+                if (myKey >= mark) {
+                    listener.onRecord(myKey, _log.get(myKey));
+                }
+            }
 		}
 	}
 }

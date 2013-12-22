@@ -31,7 +31,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
     private final Random _random = new Random();
     private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats =
-            new ConcurrentHashMap<InetSocketAddress, MetaDataImpl>();
+            new ConcurrentHashMap<>();
     private final Timer _tasks = new Timer();
     private final long _maximumPeriodOfUnresponsiveness;
     private final AtomicBoolean _stopping = new AtomicBoolean(false);
@@ -165,11 +165,11 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     public Membership getMembers() {
-        return new MembershipImpl(new HashSet<InetSocketAddress>(_lastHeartbeats.keySet()));
+        return new MembershipImpl(new HashSet<>(_lastHeartbeats.keySet()));
     }
 
     public InetSocketAddress getRandomMember(InetSocketAddress aLocalAddress) {
-        LinkedList<InetSocketAddress> myMembers = new LinkedList<InetSocketAddress>(_lastHeartbeats.keySet());
+        LinkedList<InetSocketAddress> myMembers = new LinkedList<>(_lastHeartbeats.keySet());
 
         myMembers.remove(aLocalAddress);
         return myMembers.get(_random.nextInt(myMembers.size()));

@@ -56,23 +56,23 @@ class Leader implements Instance {
     /**
      * In cases of ABORT, indicates the reason
      */
-    private final Deque<VoteOutcome> _outcomes = new LinkedBlockingDeque<VoteOutcome>();
+    private final Deque<VoteOutcome> _outcomes = new LinkedBlockingDeque<>();
 
-    private final List<Transport.Packet> _messages = new ArrayList<Transport.Packet>();
+    private final List<Transport.Packet> _messages = new ArrayList<>();
 
     private class StateMachine {
         private Map<State, Set<State>> _acceptableTransitions;
 
         private StateMachine() {
-            Map<State, Set<State>> myAccTrans = new HashMap<State, Set<State>>();
+            Map<State, Set<State>> myAccTrans = new HashMap<>();
 
-            myAccTrans.put(State.INITIAL, new HashSet<State>(Arrays.asList(State.SUBMITTED, State.SHUTDOWN)));
-            myAccTrans.put(State.SUBMITTED, new HashSet<State>(Arrays.asList(State.BEGIN, State.COLLECT, State.ABORT)));
-            myAccTrans.put(State.COLLECT, new HashSet<State>(Arrays.asList(State.BEGIN)));
-            myAccTrans.put(State.BEGIN, new HashSet<State>(Arrays.asList(State.SUCCESS, State.ABORT)));
-            myAccTrans.put(State.SUCCESS, new HashSet<State>(Arrays.asList(State.ABORT, State.EXIT)));
-            myAccTrans.put(State.EXIT, new HashSet<State>(Arrays.asList(State.SHUTDOWN)));
-            myAccTrans.put(State.ABORT, new HashSet<State>(Arrays.asList(State.SHUTDOWN)));
+            myAccTrans.put(State.INITIAL, new HashSet<>(Arrays.asList(State.SUBMITTED, State.SHUTDOWN)));
+            myAccTrans.put(State.SUBMITTED, new HashSet<>(Arrays.asList(State.BEGIN, State.COLLECT, State.ABORT)));
+            myAccTrans.put(State.COLLECT, new HashSet<>(Arrays.asList(State.BEGIN)));
+            myAccTrans.put(State.BEGIN, new HashSet<>(Arrays.asList(State.SUCCESS, State.ABORT)));
+            myAccTrans.put(State.SUCCESS, new HashSet<>(Arrays.asList(State.ABORT, State.EXIT)));
+            myAccTrans.put(State.EXIT, new HashSet<>(Arrays.asList(State.SHUTDOWN)));
+            myAccTrans.put(State.ABORT, new HashSet<>(Arrays.asList(State.SHUTDOWN)));
             myAccTrans.put(State.SHUTDOWN, new HashSet<State>());
 
             _acceptableTransitions = Collections.unmodifiableMap(myAccTrans);
@@ -465,7 +465,7 @@ class Leader implements Instance {
                     } else {
                         _messages.add(aPacket);
 
-                        Set<InetSocketAddress> myRespondingAddresses = new HashSet<InetSocketAddress>();
+                        Set<InetSocketAddress> myRespondingAddresses = new HashSet<>();
 
                         for (Transport.Packet myPacket : _messages)
                             myRespondingAddresses.add(myPacket.getSource());

@@ -100,9 +100,8 @@ public class DirectoryCheckpointStorage implements CheckpointStorage {
         DirectoryCheckpointStorage myStorage = new DirectoryCheckpointStorage(new File(anArgs[0]));
         
         File[] myFiles = myStorage.getFiles();
-        
-        for (int i = 0; i < myFiles.length; i++)
-            System.out.println(myFiles[i]);
+
+        for (File myFile : myFiles) System.out.println(myFile);
         
         WriteCheckpoint myCkpt = myStorage.newCheckpoint();
         ObjectOutputStream myOOS = new ObjectOutputStream(myCkpt.getStream());

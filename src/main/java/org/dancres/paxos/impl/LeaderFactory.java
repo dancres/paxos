@@ -77,7 +77,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
             _currentLeader = new Leader(_common, _stateFactory);
 
         } else {
-            CompletionImpl<Leader> myResult = new CompletionImpl<Leader>();
+            CompletionImpl<Leader> myResult = new CompletionImpl<>();
 
             _currentLeader.nextLeader(myResult);
             _currentLeader = myResult.await();
