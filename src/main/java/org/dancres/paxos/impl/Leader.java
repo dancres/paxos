@@ -456,7 +456,7 @@ class Leader implements Instance {
                 }
             }
 
-            _logger.debug(toString() + " " + myMessage);
+            _logger.debug(toString() + " " + aPacket);
 
             if (myMessage instanceof LeaderSelection) {
                 if (((LeaderSelection) myMessage).routeable(this)) {
@@ -481,9 +481,9 @@ class Leader implements Instance {
 
                     return;
                 }
+            } else {
+                _logger.trace(toString() + " Dropped message (didn't route) " + myMessage);
             }
-
-            _logger.warn(toString() + " Unexpected message received: " + myMessage);
         }
     }
 
