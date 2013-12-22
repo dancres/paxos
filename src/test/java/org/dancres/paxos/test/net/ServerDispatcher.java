@@ -71,7 +71,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
                 return true;
             } else {
 
-                _logger.debug("Unrecognised message:" + myMessage);
+                _logger.trace("Unrecognised message:" + myMessage);
                 return false;
             }
         } catch (Throwable anE) {
