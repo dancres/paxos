@@ -60,7 +60,7 @@ public class AcceptorLearner implements MessageProcessor {
      * for values and ensures that any value is logged only once (because it doesn't appear in any other messages).
      */
     private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<>();
-    private final Map<Long, List<Accept>> _acceptLedgers = new ConcurrentHashMap<>();
+    private final Map<Long, Set<Transport.Packet>> _acceptLedgers = new ConcurrentHashMap<>();
 
     private final Lock _guardLock = new ReentrantLock();
     private final Condition _notActive = _guardLock.newCondition();
@@ -822,7 +822,7 @@ public class AcceptorLearner implements MessageProcessor {
                 if (myAccept.getSeqNum() <= _common.getLowWatermark().getSeqNum())
                     return;
 
-                getAndCreateAcceptLedger(myAccept).add(myAccept);
+                getAndCreateAcceptLedger(aPacket).add(aPacket);
 
                 Begin myCachedBegin = _cachedBegins.get(myAccept.getSeqNum());
 
@@ -898,13 +898,13 @@ public class AcceptorLearner implements MessageProcessor {
      * @param anAccept
      * @return the newly or previously created ledger for the specified sequence number.
      */
-    private List<Accept> getAndCreateAcceptLedger(Accept anAccept) {
-        Long mySeqNum = anAccept.getSeqNum();
-        List<Accept> myAccepts = _acceptLedgers.get(mySeqNum);
+    private Set<Transport.Packet> getAndCreateAcceptLedger(Transport.Packet anAccept) {
+        Long mySeqNum = anAccept.getMessage().getSeqNum();
+        Set<Transport.Packet> myAccepts = _acceptLedgers.get(mySeqNum);
 
         if (myAccepts == null) {
-            List<Accept> myInitial = new CopyOnWriteArrayList<>();
-            List<Accept> myResult = _acceptLedgers.put(mySeqNum, myInitial);
+            Set<Transport.Packet> myInitial = new HashSet<>();
+            Set<Transport.Packet> myResult = _acceptLedgers.put(mySeqNum, myInitial);
 
             myAccepts = ((myResult == null) ? myInitial : myResult);
         }
@@ -919,16 +919,16 @@ public class AcceptorLearner implements MessageProcessor {
      * @param aBegin
      */
     private void purgeAcceptLedger(Begin aBegin) {
-        List<Accept> myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
+        Set<Transport.Packet> myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
 
         if (myAccepts == null)
             return;
 
-        Iterator<Accept> myAccs = myAccepts.iterator();
+        Iterator<Transport.Packet> myAccs = myAccepts.iterator();
 
         while (myAccs.hasNext()) {
-            Accept myAcc = myAccs.next();
-            if (myAcc.getRndNumber() != aBegin.getRndNumber())
+            Transport.Packet myAcc = myAccs.next();
+            if (((Accept) myAcc.getMessage()).getRndNumber() != aBegin.getRndNumber())
                 myAccs.remove();
         }
     }
@@ -941,13 +941,13 @@ public class AcceptorLearner implements MessageProcessor {
      */
     private Transport.Packet tallyAccepts(Begin aBegin) {
         int myAcceptTally = 0;
-        List<Accept> myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
+        Set<Transport.Packet> myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
 
         if (myAccepts == null)
             return null;
 
-        for (Accept myAcc : myAccepts)
-            if (myAcc.getRndNumber() == aBegin.getRndNumber())
+        for (Transport.Packet myAcc : myAccepts)
+            if (((Accept) myAcc.getMessage()).getRndNumber() == aBegin.getRndNumber())
                 ++myAcceptTally;
 
         if (myAcceptTally >= _common.getTransport().getFD().getMajority()) {
