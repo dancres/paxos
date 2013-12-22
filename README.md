@@ -11,3 +11,7 @@ features of the framework including clustering, checkpointing and recovery.
 
 Detailed notes for the implementation of a service that uses the framework can be found in
 the javadoc for `org.dancres.paxos.Paxos`
+
+ Note: Not to be used for high-reliability systems until the LongTerm (see 'LongTerm.java')
+ failure-simulation test is fully implemented and has run successfully across a substantial 
+ set of sequences.
