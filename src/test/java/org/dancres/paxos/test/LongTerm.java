@@ -87,7 +87,7 @@ public class LongTerm {
         final long _settleCycles = 50;
         final long _ckptCycle;
         final Random _baseRng;
-        private final List<NodeAdmin> _nodes = new LinkedList<NodeAdmin>();
+        private final List<NodeAdmin> _nodes = new LinkedList<>();
 
         NodeAdmin _currentLeader;
         final OrderedMemoryNetwork _factory;

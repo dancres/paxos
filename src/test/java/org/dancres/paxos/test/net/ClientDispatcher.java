@@ -13,7 +13,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 
 public class ClientDispatcher implements Transport.Dispatcher {
 	private Transport _transport;
-	private List<VoteOutcome> _queue = new ArrayList<VoteOutcome>();
+	private List<VoteOutcome> _queue = new ArrayList<>();
 	
 	public boolean messageReceived(Packet aPacket) {
 		PaxosMessage myMessage = aPacket.getMessage();

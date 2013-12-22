@@ -43,11 +43,11 @@ public class Backend {
     private final InetSocketAddress _serverAddr;
     private final int _clusterSize;
 
-    private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<String, String>();
+    private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<>();
 
 
     public static void main(String[] anArgs) throws Exception {
-        new Backend(Integer.valueOf(anArgs[0]).intValue(), Integer.valueOf(anArgs[1]).intValue()).start(anArgs[2]);
+        new Backend(Integer.valueOf(anArgs[0]), Integer.valueOf(anArgs[1])).start(anArgs[2]);
     }
 
     private Backend(int aPort, int aClusterSize) {
@@ -110,7 +110,7 @@ public class Backend {
                 
                 Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getDetector().getMemberMap();
                 
-                Map<String, String> myMemberData = new HashMap<String, String>();
+                Map<String, String> myMemberData = new HashMap<>();
                 
                 try {
                     for (Map.Entry<InetSocketAddress, FailureDetector.MetaData> myDetails : myMembers.entrySet()) {
@@ -156,7 +156,7 @@ public class Backend {
                     return "";
                 }
                     
-                final CompletionImpl<VoteOutcome> myResult = new CompletionImpl<VoteOutcome>();
+                final CompletionImpl<VoteOutcome> myResult = new CompletionImpl<>();
 
                 Proposal myProp = new Proposal();
                 myProp.put("KEY", request.params(":key").getBytes());
@@ -274,7 +274,7 @@ public class Backend {
     }
 
     class Recovery extends Thread {
-        private List<String> _targetURLs = new LinkedList<String>();
+        private List<String> _targetURLs = new LinkedList<>();
         
         Recovery(String anURL) throws Exception {
             _targetURLs.add(anURL);

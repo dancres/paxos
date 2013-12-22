@@ -56,11 +56,11 @@ public class OrderedMemoryNetwork implements Runnable {
     }
 
     private Factory _factory = new DefaultFactory();
-    private BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<PacketWrapper>();
+    private BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<>();
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
     private InetSocketAddress  _broadcastAddr;
     private Map<InetSocketAddress, OrderedMemoryTransport> _nodes =
-            new ConcurrentHashMap<InetSocketAddress, OrderedMemoryTransport>();
+            new ConcurrentHashMap<>();
 
     public OrderedMemoryNetwork() throws Exception {
         _broadcastAddr = new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getBroadcastAddress(), 255);

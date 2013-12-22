@@ -22,7 +22,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
 	private final OrderedMemoryNetwork _parent;
 	private final PacketPickler _pickler;
-	private final Set<Dispatcher> _dispatcher = new HashSet<Dispatcher>();
+	private final Set<Dispatcher> _dispatcher = new HashSet<>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
 	private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
