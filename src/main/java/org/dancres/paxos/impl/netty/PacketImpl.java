@@ -33,7 +33,10 @@ class PacketImpl implements Transport.Packet {
         }
 
         return false;
+    }
 
+    public int hashCode() {
+        return _msg.hashCode() ^ _source.hashCode();
     }
 }
 

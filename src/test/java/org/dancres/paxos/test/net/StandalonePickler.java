@@ -71,7 +71,10 @@ public class StandalonePickler implements Transport.PacketPickler {
             }
 
             return false;
+        }
 
+        public int hashCode() {
+            return _msg.hashCode() ^ _source.hashCode();
         }
     }
 }

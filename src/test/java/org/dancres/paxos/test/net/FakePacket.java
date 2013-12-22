@@ -43,6 +43,9 @@ public class FakePacket implements Transport.Packet {
         }
 
         return false;
+    }
 
+    public int hashCode() {
+        return _message.hashCode() ^ _address.hashCode();
     }
 }
