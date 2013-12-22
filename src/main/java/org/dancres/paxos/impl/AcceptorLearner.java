@@ -60,7 +60,7 @@ public class AcceptorLearner implements MessageProcessor {
      * for values and ensures that any value is logged only once (because it doesn't appear in any other messages).
      */
     private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<>();
-    private final Map<Long, Set<Transport.Packet>> _acceptLedgers = new ConcurrentHashMap<>();
+    private final Map<Long, AcceptLedger> _acceptLedgers = new ConcurrentHashMap<>();
 
     private final Lock _guardLock = new ReentrantLock();
     private final Condition _notActive = _guardLock.newCondition();
@@ -898,13 +898,13 @@ public class AcceptorLearner implements MessageProcessor {
      * @param anAccept
      * @return the newly or previously created ledger for the specified sequence number.
      */
-    private Set<Transport.Packet> getAndCreateAcceptLedger(Transport.Packet anAccept) {
+    private AcceptLedger getAndCreateAcceptLedger(Transport.Packet anAccept) {
         Long mySeqNum = anAccept.getMessage().getSeqNum();
-        Set<Transport.Packet> myAccepts = _acceptLedgers.get(mySeqNum);
+        AcceptLedger myAccepts = _acceptLedgers.get(mySeqNum);
 
         if (myAccepts == null) {
-            Set<Transport.Packet> myInitial = new HashSet<>();
-            Set<Transport.Packet> myResult = _acceptLedgers.put(mySeqNum, myInitial);
+            AcceptLedger myInitial = new AcceptLedger(mySeqNum);
+            AcceptLedger myResult = _acceptLedgers.put(mySeqNum, myInitial);
 
             myAccepts = ((myResult == null) ? myInitial : myResult);
         }
@@ -919,18 +919,10 @@ public class AcceptorLearner implements MessageProcessor {
      * @param aBegin
      */
     private void purgeAcceptLedger(Begin aBegin) {
-        Set<Transport.Packet> myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
+        AcceptLedger myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
 
-        if (myAccepts == null)
-            return;
-
-        Iterator<Transport.Packet> myAccs = myAccepts.iterator();
-
-        while (myAccs.hasNext()) {
-            Transport.Packet myAcc = myAccs.next();
-            if (((Accept) myAcc.getMessage()).getRndNumber() != aBegin.getRndNumber())
-                myAccs.remove();
-        }
+        if (myAccepts != null)
+            myAccepts.purge(aBegin);
     }
 
     /**
@@ -940,23 +932,19 @@ public class AcceptorLearner implements MessageProcessor {
      * @return A Learned packet to be logged if there are sufficient accepts, <code>null</code> otherwise.
      */
     private Transport.Packet tallyAccepts(Begin aBegin) {
-        int myAcceptTally = 0;
-        Set<Transport.Packet> myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
+        AcceptLedger myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
 
-        if (myAccepts == null)
-            return null;
+        if (myAccepts != null) {
+            Learned myLearned = myAccepts.tally(aBegin, _common.getTransport().getFD().getMajority());
 
-        for (Transport.Packet myAcc : myAccepts)
-            if (((Accept) myAcc.getMessage()).getRndNumber() == aBegin.getRndNumber())
-                ++myAcceptTally;
+            if (myLearned != null) {
+                _logger.trace(toString() + " *** Speculative COMMIT possible ***");
 
-        if (myAcceptTally >= _common.getTransport().getFD().getMajority()) {
-            _logger.trace(toString() + " *** Speculative COMMIT possible ***");
+                return _common.getTransport().getPickler().newPacket(myLearned);
+            }
+        }
 
-            return _common.getTransport().getPickler().newPacket(new Learned(aBegin.getSeqNum(),
-                    aBegin.getRndNumber()));
-        } else
-            return null;
+        return null;
     }
 
 	private PaxosMessage constructLast(Collect aCollect) {
