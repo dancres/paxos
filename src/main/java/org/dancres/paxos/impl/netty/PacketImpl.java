@@ -29,7 +29,7 @@ class PacketImpl implements Transport.Packet {
     public boolean equals(Object anObject) {
         if (anObject instanceof PacketImpl) {
             PacketImpl myPacket = (PacketImpl) anObject;
-            return ((myPacket._source == _source) && (myPacket._msg.equals(_msg)));
+            return ((myPacket._source.equals(_source)) && (myPacket._msg.equals(_msg)));
         }
 
         return false;

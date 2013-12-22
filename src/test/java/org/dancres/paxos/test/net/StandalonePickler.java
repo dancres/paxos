@@ -67,7 +67,7 @@ public class StandalonePickler implements Transport.PacketPickler {
         public boolean equals(Object anObject) {
             if (anObject instanceof PacketImpl) {
                 PacketImpl myPacket = (PacketImpl) anObject;
-                return ((myPacket._source == _source) && (myPacket._msg.equals(_msg)));
+                return ((myPacket._source.equals(_source)) && (myPacket._msg.equals(_msg)));
             }
 
             return false;

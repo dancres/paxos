@@ -39,7 +39,7 @@ public class FakePacket implements Transport.Packet {
     public boolean equals(Object anObject) {
         if (anObject instanceof FakePacket) {
             FakePacket myPacket = (FakePacket) anObject;
-            return ((myPacket._address == _address) && (myPacket._message.equals(_message)));
+            return ((myPacket._address.equals(_address)) && (myPacket._message.equals(_message)));
         }
 
         return false;
