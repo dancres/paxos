@@ -79,6 +79,8 @@ public class LongTerm {
         boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt);
         void settle();
         long getDropCount();
+        long getTxCount();
+        long getRxCount();
     }
 
     private static class Environment {
@@ -128,6 +130,26 @@ public class LongTerm {
 
             for (NodeAdmin myNA: _nodes) {
                 myTotal+= myNA.getDropCount();
+            }
+
+            return myTotal;
+        }
+
+        long getTxCount() {
+            long myTotal = 0;
+
+            for (NodeAdmin myNA: _nodes) {
+                myTotal+= myNA.getTxCount();
+            }
+
+            return myTotal;
+        }
+
+        long getRxCount() {
+            long myTotal = 0;
+
+            for (NodeAdmin myNA: _nodes) {
+                myTotal+= myNA.getRxCount();
             }
 
             return myTotal;
@@ -251,6 +273,8 @@ public class LongTerm {
             private final Random _rng;
             private AtomicBoolean _isSettling = new AtomicBoolean(false);
             private AtomicLong _dropCount = new AtomicLong(0);
+            private AtomicLong _packetsTx = new AtomicLong(0);
+            private AtomicLong _packetsRx = new AtomicLong(0);
 
             NetworkDecider(Random aRandom) {
                 _rng = aRandom;
@@ -260,6 +284,8 @@ public class LongTerm {
                                           Transport.Packet aPacket) {
                 if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT))
                     return true;
+
+                _packetsTx.incrementAndGet();
 
                 if (! _isSettling.get()) {
                     if (_rng.nextInt(100) < 2) {
@@ -277,6 +303,7 @@ public class LongTerm {
                 if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT))
                     return true;
 
+                _packetsRx.incrementAndGet();
 
                 if (! _isSettling.get()) {
                     if (_rng.nextInt(100) < 2) {
@@ -295,10 +322,26 @@ public class LongTerm {
             long getDropCount() {
                 return _dropCount.get();
             }
+
+            long getRxPacketCount() {
+                return _packetsRx.get();
+            }
+
+            long getTxPacketCount() {
+                return _packetsTx.get();
+            }
         }
 
         public long getDropCount() {
             return _decider.getDropCount();
+        }
+
+        public long getTxCount() {
+            return _decider.getTxPacketCount();
+        }
+
+        public long getRxCount() {
+            return _decider.getRxPacketCount();
         }
 
         /*
@@ -422,7 +465,7 @@ public class LongTerm {
     private void run() throws Exception {
         // We expect at least an 80% success rate post-settle
         //
-        long myProgressTarget = (long) (_env._settleCycles * 0.8);
+        long myProgressTarget = (long) (_env._settleCycles * 0.75);
         long mySuccesses = 0;
 
         ClientDispatcher myClient = new ClientDispatcher();
@@ -448,6 +491,9 @@ public class LongTerm {
 
         if (_env._isLive) {
             System.out.println("Total dropped packets was " + _env.getDropCount());
+            System.out.println("Total rx packets was " + _env.getRxCount());
+            System.out.println("Total tx packets was " + _env.getTxCount());
+
             System.out.println("Required success cycles in settle was " + myProgressTarget +
                     " actual was " + mySuccesses);
 
