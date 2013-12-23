@@ -26,14 +26,6 @@ public interface FailureDetector {
     public Membership getMembers();
 
     /**
-     * Currently a simple majority test - ultimately we only need one member of the previous majority to be present
-     * in this majority for Paxos to work.
-     *
-     * @return true if at this point, available membership would allow for a majority
-     */
-    public boolean couldComplete();
-
-    /**
      * @return the size of membership required for a majority
      */
     public int getMajority();

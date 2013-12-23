@@ -69,10 +69,6 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
         }
     }
 
-	public boolean couldComplete() {
-		return true;
-	}
-	
-	public void stop() {		
+	public void stop() {
 	}
 }

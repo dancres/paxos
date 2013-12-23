@@ -171,16 +171,6 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         return myFuture;
     }
 
-    /**
-     * Currently a simple majority test - ultimately we only need one member of the previous majority to be present
-     * in this majority for Paxos to work.
-     * 
-     * @return true if at this point, available membership would allow for a majority
-     */
-    public boolean couldComplete() {
-        return isMajority(_lastHeartbeats.size());
-    }
-
     private boolean isMajority(int aSize) {
         return (aSize >= _majority);
     }
