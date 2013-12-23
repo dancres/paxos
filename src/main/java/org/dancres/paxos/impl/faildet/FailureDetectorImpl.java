@@ -24,14 +24,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class FailureDetectorImpl extends MessageBasedFailureDetector {
     private static final int DEFAULT_CLUSTER_SIZE = 3;
 
+    private final Timer _tasks = new Timer();
+
     private volatile Collection<InetSocketAddress> _pinned = null;
+    private final AtomicBoolean _stopping = new AtomicBoolean(false);
+
     private final LinkedBlockingQueue<FutureImpl> _futures = new LinkedBlockingQueue<>();
     private final Random _random = new Random();
-    private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats =
-            new ConcurrentHashMap<>();
-    private final Timer _tasks = new Timer();
+    private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats = new ConcurrentHashMap<>();
     private final long _maximumPeriodOfUnresponsiveness;
-    private final AtomicBoolean _stopping = new AtomicBoolean(false);
     private final int _majority;
 
     private class MetaDataImpl implements FailureDetector.MetaData {
@@ -49,6 +50,24 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
         public long getTimestamp() {
             return _timestamp;
+        }
+    }
+
+    private class ScanImpl extends TimerTask {
+        public void run() {
+            Iterator<InetSocketAddress> myProcesses = _lastHeartbeats.keySet().iterator();
+            long myMinTime = System.currentTimeMillis() - _maximumPeriodOfUnresponsiveness;
+
+            while (myProcesses.hasNext()) {
+                InetSocketAddress myAddress = myProcesses.next();
+                long myTimeout = _lastHeartbeats.get(myAddress)._timestamp;
+
+                // No heartbeat since myMinTime means we assume dead
+                //
+                if (myTimeout < myMinTime) {
+                    myProcesses.remove();
+                }
+            }
         }
     }
 
@@ -89,41 +108,8 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         return new HeartbeaterImpl(aTransport, aMetaData, (_maximumPeriodOfUnresponsiveness / 3) - 100);
     }   
 
-    private class ScanImpl extends TimerTask {
-        public void run() {
-            Iterator<InetSocketAddress> myProcesses = _lastHeartbeats.keySet().iterator();
-            long myMinTime = System.currentTimeMillis() - _maximumPeriodOfUnresponsiveness;
-
-            while (myProcesses.hasNext()) {
-                InetSocketAddress myAddress = myProcesses.next();
-                long myTimeout = _lastHeartbeats.get(myAddress)._timestamp;
-
-                // No heartbeat since myMinTime means we assume dead
-                //
-                if (myTimeout < myMinTime) {
-                    myProcesses.remove();
-                }
-            }
-        }
-    }
-
     public boolean accepts(Packet aPacket) {
         return aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR);
-    }
-
-    public void pin(Collection<InetSocketAddress> aMembers) {
-        _pinned = aMembers;
-
-        if (_pinned == null)
-            return;
-
-        Iterator<InetSocketAddress> myCurrentMembers = _lastHeartbeats.keySet().iterator();
-        while (myCurrentMembers.hasNext()) {
-            InetSocketAddress myMember = myCurrentMembers.next();
-
-            if (! _pinned.contains(myMember))
-                _lastHeartbeats.remove(myMember);
-        }
     }
 
     /**
@@ -201,6 +187,21 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         _futures.add(myFuture);
 
         return myFuture;
+    }
+
+    public void pin(Collection<InetSocketAddress> aMembers) {
+        _pinned = aMembers;
+
+        if (_pinned == null)
+            return;
+
+        Iterator<InetSocketAddress> myCurrentMembers = _lastHeartbeats.keySet().iterator();
+        while (myCurrentMembers.hasNext()) {
+            InetSocketAddress myMember = myCurrentMembers.next();
+
+            if (! _pinned.contains(myMember))
+                _lastHeartbeats.remove(myMember);
+        }
     }
 
     public int getMajority() {
