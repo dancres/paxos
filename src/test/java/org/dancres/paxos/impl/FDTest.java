@@ -43,10 +43,10 @@ public class FDTest implements MembershipListener {
         FDUtil.ensureFD(_tport1.getFD());
         FDUtil.ensureFD(_tport2.getFD());
 
-        Assert.assertTrue(_tport1.getFD().getMemberMap().size() == 2);
-        Assert.assertTrue(_tport2.getFD().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport2.getFD().getMembers().getMemberMap().size() == 2);
 
-        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _tport1.getFD().getMemberMap();
+        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _tport1.getFD().getMembers().getMemberMap();
 
         for (Map.Entry<InetSocketAddress, FailureDetector.MetaData> myEntry : myMembers.entrySet()) {
             if (myEntry.getKey().equals(_tport1.getLocalAddress())) {

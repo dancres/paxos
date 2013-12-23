@@ -15,8 +15,6 @@ public interface FailureDetector {
         public long getTimestamp();
     }
 
-    public Map<InetSocketAddress, MetaData> getMemberMap();
-
     /**
      * Return a random member that the FD believes is live, excluding the local address specified
      *

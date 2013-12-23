@@ -108,7 +108,7 @@ public class Backend {
             public Object handle(Request request, Response response) {
                 ObjectMapper myMapper = new ObjectMapper();
                 
-                Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getDetector().getMemberMap();
+                Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getMembership().getMemberMap();
                 
                 Map<String, String> myMemberData = new HashMap<>();
                 
@@ -178,7 +178,7 @@ public class Backend {
                             response.status(301);
                             
                             response.header("Location",
-                                    toHttp(_paxos.getDetector().getMemberMap().get(myOutcome.getLeader()).getData()));
+                                    toHttp(_paxos.getMembership().getMemberMap().get(myOutcome.getLeader()).getData()));
 
                             return "";
                         }
@@ -248,7 +248,7 @@ public class Backend {
                     if (_outOfDate.compareAndSet(false, true)) {
                         try {
                             new Recovery(
-                                    toHttp(_paxos.getDetector().getMemberMap().get(anEvent.getLeader()).getData())
+                                    toHttp(_paxos.getMembership().getMemberMap().get(anEvent.getLeader()).getData())
                             ).start();
                         } catch (Exception anE) {
                             _logger.error("Couldn't start recovery thread", anE);
@@ -281,7 +281,7 @@ public class Backend {
             
             // Stock the list with other members but not ourselves and not the first target
             //
-            for (FailureDetector.MetaData m : _paxos.getDetector().getMemberMap().values()) {
+            for (FailureDetector.MetaData m : _paxos.getMembership().getMemberMap().values()) {
                 if (! toInetAddress(m.getData()).equals(_serverAddr)) {
                     String myURL = toHttp(m.getData());
                     
@@ -333,7 +333,7 @@ public class Backend {
 
                     _targetURLs.clear();
 
-                    for (FailureDetector.MetaData m : _paxos.getDetector().getMemberMap().values()) {
+                    for (FailureDetector.MetaData m : _paxos.getMembership().getMemberMap().values()) {
                         if (! toInetAddress(m.getData()).equals(_serverAddr)) {
                             _targetURLs.add(toHttp(m.getData()));
                         }

@@ -1,5 +1,6 @@
 package org.dancres.paxos.test.utils;
 
+import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Membership;
 import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
@@ -58,6 +59,10 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
 
         public boolean isMajority(Collection<InetSocketAddress> aListOfAddresses) {
             return (aListOfAddresses.size() >= _responseCount);
+        }
+
+        public Map<InetSocketAddress, MetaData> getMemberMap() {
+            return new HashMap<>();
         }
     }
 

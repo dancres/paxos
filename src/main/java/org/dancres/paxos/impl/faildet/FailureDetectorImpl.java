@@ -2,13 +2,10 @@ package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Membership;
-import org.dancres.paxos.MembershipListener;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.*;
@@ -160,12 +157,8 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         return _majority;
     }
 
-    public Map<InetSocketAddress, MetaData> getMemberMap() {
-        return new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats);
-    }
-
     public Membership getMembers() {
-        return new MembershipImpl(new HashSet<>(_lastHeartbeats.keySet()));
+        return new MembershipImpl(new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats));
     }
 
     public InetSocketAddress getRandomMember(InetSocketAddress aLocalAddress) {
@@ -185,22 +178,26 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         /**
          * Tracks the membership that forms the base for each round
          */
-        private final Set<InetSocketAddress> _initialMemberAddresses;
+        private final Map<InetSocketAddress, MetaData> _members;
 
-        MembershipImpl(Set<InetSocketAddress> anInitialAddresses) {
-            _initialMemberAddresses = anInitialAddresses;
+        MembershipImpl(Map<InetSocketAddress, MetaData> anInitialAddresses) {
+            _members = anInitialAddresses;
+        }
+
+        public Map<InetSocketAddress, MetaData> getMemberMap() {
+            return _members;
         }
 
         public int getSize() {
-            return _initialMemberAddresses.size();
+            return _members.size();
         }
 
         public boolean couldComplete() {
-            return (_initialMemberAddresses.size() >= _majority);
+            return (_members.size() >= _majority);
         }
 
         public boolean isMajority(Collection<InetSocketAddress> aListOfAddresses) {
-            return ((_initialMemberAddresses.containsAll(aListOfAddresses)) &&
+            return ((_members.keySet().containsAll(aListOfAddresses)) &&
                     aListOfAddresses.size() >= _majority);
         }
     }

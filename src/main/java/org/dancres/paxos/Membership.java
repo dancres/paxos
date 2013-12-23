@@ -2,6 +2,7 @@ package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * Represents a membership snapshot from a particular point in time.
@@ -16,4 +17,6 @@ public interface Membership {
     public boolean couldComplete();
 
     public boolean isMajority(Collection<InetSocketAddress> aListOfAddresses);
+
+    public Map<InetSocketAddress, FailureDetector.MetaData> getMemberMap();
 }

@@ -2,12 +2,10 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport.Packet;
-import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -77,8 +75,8 @@ public class Core implements Transport.Dispatcher, Paxos {
         return _al.bringUpToDate(aHandle);
     }
 
-    public FailureDetector getDetector() {
-        return _common.getTransport().getFD();
+    public Membership getMembership() {
+        return _common.getTransport().getFD().getMembers();
     }
 
     public AcceptorLearner getAcceptorLearner() {

@@ -3,6 +3,10 @@ package org.dancres.paxos;
 /**
  * Service implementation notes:
  *
+ * @todo Provide a helper utility to implement the leader selection policy for a client
+ *
+ * @todo Implement the membership change instruction plus support for an initial membership configuration.
+ *
  * <p>Leader selection is a client-based element (or at least outside of the library). It is up to the client to decide
  * which leader to go to and it may be re-directed should that leader be aware of another leader. A failing leader
  * provides no guidance in respect of other leadership. Note that the decision process for leader selection should
@@ -84,5 +88,5 @@ public interface Paxos {
     public void submit(Proposal aValue, Completion<VoteOutcome> aCompletion) throws InactiveException;
     public void add(Listener aListener);
     public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception;
-    public FailureDetector getDetector();
+    public Membership getMembership();
 }
