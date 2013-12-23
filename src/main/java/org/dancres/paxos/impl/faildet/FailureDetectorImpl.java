@@ -6,6 +6,7 @@ import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.util.AbstractFuture;
 
 import java.net.InetSocketAddress;
 import java.util.*;
@@ -26,6 +27,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
      */
     private static final int DEFAULT_CLUSTER_SIZE = 3;
 
+    private final Queue<FutureImpl> _futures = new LinkedBlockingQueue<>();
     private final Random _random = new Random();
     private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats =
             new ConcurrentHashMap<>();
@@ -136,7 +138,37 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
                     break;
                 }
             }
+
+            if ((_futures.size() != 0) && (_lastHeartbeats.size() >= _majority)) {
+                while (true) {
+                    FutureImpl myFuture = _futures.poll();
+
+                    if (myFuture == null)
+                        return;
+
+                    myFuture.set(true);
+                }
+            }
         }
+    }
+
+    private class FutureImpl extends AbstractFuture<Boolean> {
+        private final Queue _queue;
+
+        FutureImpl(Queue aQueue) {
+            _queue = aQueue;
+        }
+
+        protected void done() {
+            _queue.remove();
+        }
+    }
+
+    public Future<Boolean> barrier() {
+        FutureImpl myFuture = new FutureImpl(_futures);
+        _futures.add(myFuture);
+
+        return myFuture;
     }
 
     /**

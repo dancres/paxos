@@ -2,6 +2,7 @@ package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 /**
  * Base interface for failure detector implementations.  For more on failure detectors read: Unreliable Failure
@@ -36,4 +37,6 @@ public interface FailureDetector {
      * @return the size of membership required for a majority
      */
     public int getMajority();
+
+    public Future<Boolean> barrier();
 }

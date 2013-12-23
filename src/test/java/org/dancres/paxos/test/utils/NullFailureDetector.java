@@ -11,6 +11,7 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 public class NullFailureDetector extends MessageBasedFailureDetector {
 
@@ -30,7 +31,11 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
         return 2;
     }
 
-	public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
+    public Future<Boolean> barrier() {
+        return null;
+    }
+
+    public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
 		return null;
 	}
 
