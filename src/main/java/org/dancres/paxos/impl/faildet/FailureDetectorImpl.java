@@ -139,22 +139,23 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
                 }
             }
 
-            int myMembershipSize = _lastHeartbeats.size();
-
             if (_futures.size() != 0) {
+
+                Membership myMembership =
+                        new MembershipImpl(new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats));
 
                 Iterator<FutureImpl> myFutures = _futures.iterator();
 
                 while (myFutures.hasNext()) {
                     FutureImpl myFuture = myFutures.next();
 
-                    myFuture.offer(myMembershipSize);
+                    myFuture.offer(myMembership);
                 }
             }
         }
     }
 
-    private class FutureImpl extends AbstractFuture<Boolean> {
+    private class FutureImpl extends AbstractFuture<Membership> {
         private final Queue _queue;
         private final int _required;
 
@@ -163,9 +164,9 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
             _required = aRequired;
         }
 
-        void offer(int aSize) {
-            if (aSize >= _required)
-                set(true);
+        void offer(Membership aMembership) {
+            if (aMembership.getSize() >= _required)
+                set(aMembership);
         }
 
         protected void done() {
@@ -173,11 +174,11 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         }
     }
 
-    public Future<Boolean> barrier() {
+    public Future<Membership> barrier() {
         return barrier(getMajority());
     }
 
-    public Future<Boolean> barrier(int aRequired) {
+    public Future<Membership> barrier(int aRequired) {
         FutureImpl myFuture = new FutureImpl(_futures, aRequired);
         _futures.add(myFuture);
 

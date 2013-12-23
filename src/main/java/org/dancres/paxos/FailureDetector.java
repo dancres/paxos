@@ -31,13 +31,15 @@ public interface FailureDetector {
     public int getMajority();
 
     /**
-     * @return A <code>Future</code> that will return <code>true</code> when membership reaches a majority.
+     * @return A <code>Future</code> that will return a <code>Membership</code> snapshot when the
+     * majority is achieved.
      */
-    public Future<Boolean> barrier();
+    public Future<Membership> barrier();
 
     /**
      * @param aRequired is the number of members required
-     * @return A <code>Future</code> that will return <code>true</code> when the specified membership size is achieved.
+     * @return A <code>Future</code> that will return a <code>Membership</code> snapshot when the
+     * specified size is achieved.
      */
-    public Future<Boolean> barrier(int aRequired);
+    public Future<Membership> barrier(int aRequired);
 }

@@ -31,11 +31,11 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
         return 2;
     }
 
-    public Future<Boolean> barrier() {
+    public Future<Membership> barrier() {
         return null;
     }
 
-    public Future<Boolean> barrier(int aRequired) {
+    public Future<Membership> barrier(int aRequired) {
         return null;
     }
 
