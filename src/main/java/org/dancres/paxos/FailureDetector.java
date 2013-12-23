@@ -1,6 +1,7 @@
 package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.Future;
 
@@ -42,4 +43,11 @@ public interface FailureDetector {
      * specified size is achieved.
      */
     public Future<Membership> barrier(int aRequired);
+
+    /**
+     * Restrict membership to the specified set of members
+     *
+     * @param aMembers which, if <code>null</code>, causes the FailureDetector to become unpinned.
+     */
+    public void pin(Collection<InetSocketAddress> aMembers);
 }

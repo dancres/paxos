@@ -27,6 +27,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
      */
     private static final int DEFAULT_CLUSTER_SIZE = 3;
 
+    private volatile Collection<InetSocketAddress> _pinned = null;
     private final LinkedBlockingQueue<FutureImpl> _futures = new LinkedBlockingQueue<>();
     private final Random _random = new Random();
     private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats =
@@ -113,6 +114,21 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         return aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR);
     }
 
+    public void pin(Collection<InetSocketAddress> aMembers) {
+        _pinned = aMembers;
+
+        if (_pinned == null)
+            return;
+
+        Iterator<InetSocketAddress> myCurrentMembers = _lastHeartbeats.keySet().iterator();
+        while (myCurrentMembers.hasNext()) {
+            InetSocketAddress myMember = myCurrentMembers.next();
+
+            if (! _pinned.contains(myMember))
+                _lastHeartbeats.remove(myMember);
+        }
+    }
+
     /**
      * Examine a received {@link PaxosMessage} and update liveness information as appropriate.
      */
@@ -124,6 +140,11 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
             final Heartbeat myHeartbeat = (Heartbeat) myMessage;
             final InetSocketAddress myNodeId = aPacket.getSource();
+
+            // If we see a heartbeat from a node that isn't pinned, ignore it
+            //
+            if ((_pinned != null) && (! _pinned.contains(myNodeId)))
+                return;
 
             for (;;) {
                 myLast = _lastHeartbeats.get(myNodeId);

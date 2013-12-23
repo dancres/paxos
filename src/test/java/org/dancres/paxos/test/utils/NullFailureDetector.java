@@ -39,6 +39,9 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
         return null;
     }
 
+    public void pin(Collection<InetSocketAddress> aMembers) {
+    }
+
     public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
 		return null;
 	}
