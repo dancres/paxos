@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.Operations;
@@ -53,15 +54,7 @@ public class PacketDropTest {
         Proposal myProposal = new Proposal("data", myBuffer.array());
         FailureDetector myFd = _tport1.getFD();
 
-        int myChances = 0;
-
-        while (!myFd.couldComplete()) {
-            ++myChances;
-            if (myChances == 4)
-                Assert.assertTrue("Membership not achieved", false);
-
-            Thread.sleep(5000);
-        }
+        FDUtil.ensureFD(myFd);
 
         /*
          * Node2 should be a member as we allow it's heartbeats but no other packets to reach other nodes.

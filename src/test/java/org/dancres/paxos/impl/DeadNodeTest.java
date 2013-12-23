@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.Envelope;
@@ -53,15 +54,7 @@ public class DeadNodeTest {
 
         FailureDetector myFd = _tport1.getFD();
 
-        int myChances = 0;
-
-        while (!myFd.couldComplete()) {
-            ++myChances;
-            if (myChances == 4)
-                Assert.assertTrue("Membership not achieved", false);
-
-            Thread.sleep(5000);
-        }
+        FDUtil.ensureFD(myFd);
 
         /*
          * Break node2's communications to the outside world now that we've got it in the majority.

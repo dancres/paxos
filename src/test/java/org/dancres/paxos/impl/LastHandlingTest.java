@@ -7,6 +7,7 @@ import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.MemoryLogStorage;
+import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -97,15 +98,7 @@ public class LastHandlingTest {
         Proposal myProposal = new Proposal("data", myBuffer.array());        
         FailureDetector myFd = _tport1.getFD();
 
-        int myChances = 0;
-
-        while (!myFd.couldComplete()) {
-            ++myChances;
-            if (myChances == 4)
-                Assert.assertTrue("Membership not achieved", false);
-
-            Thread.sleep(5000);
-        }
+        FDUtil.ensureFD(myFd);
 
         myClient.send(new Envelope(myProposal), _tport1.getLocalAddress());
 
