@@ -150,6 +150,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         _unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
         _unicast = _unicastFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
 
+        _unicast.getConfig().setReuseAddress(true);
         _unicast.bind(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 0)).await();
         _channels.add(_unicast);
 
