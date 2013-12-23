@@ -130,6 +130,11 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     }
 
     public TransportImpl(PipelineFactory aFactory, MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
+        this(aFactory, new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 0), anFD, aMeta);
+    }
+
+    public TransportImpl(PipelineFactory aFactory, InetSocketAddress aServerAddr,
+                         MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
         if (aFactory == null)
             throw new IllegalArgumentException();
 
@@ -151,7 +156,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         _unicast = _unicastFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
 
         _unicast.getConfig().setReuseAddress(true);
-        _unicast.bind(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 0)).await();
+        _unicast.bind(aServerAddr).await();
         _channels.add(_unicast);
 
         _unicastAddr = _unicast.getLocalAddress();
