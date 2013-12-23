@@ -5,7 +5,7 @@ package org.dancres.paxos;
  *
  * @todo Provide a helper utility to implement the leader selection policy for a client
  *
- * @todo Implement the membership change instruction plus support for an initial membership configuration.
+ * @todo Implement the membership change instruction
  *
  * <p>Leader selection is a client-based element (or at least outside of the library). It is up to the client to decide
  * which leader to go to and it may be re-directed should that leader be aware of another leader. A failing leader
