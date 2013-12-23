@@ -22,9 +22,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * other messages sent by a node for a suitable period of time.
  */
 public class FailureDetectorImpl extends MessageBasedFailureDetector {
-    /**
-     * @todo Fix up this cluster size to be more dynamic
-     */
     private static final int DEFAULT_CLUSTER_SIZE = 3;
 
     private volatile Collection<InetSocketAddress> _pinned = null;
