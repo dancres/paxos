@@ -206,10 +206,6 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         return myFuture;
     }
 
-    private boolean isMajority(int aSize) {
-        return (aSize >= _majority);
-    }
-
     public int getMajority() {
         return _majority;
     }
