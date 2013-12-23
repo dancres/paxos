@@ -27,7 +27,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
      */
     private static final int DEFAULT_CLUSTER_SIZE = 3;
 
-    private final Queue<FutureImpl> _futures = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<FutureImpl> _futures = new LinkedBlockingQueue<>();
     private final Random _random = new Random();
     private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats =
             new ConcurrentHashMap<>();
@@ -139,14 +139,16 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
                 }
             }
 
-            if ((_futures.size() != 0) && (_lastHeartbeats.size() >= _majority)) {
-                while (true) {
-                    FutureImpl myFuture = _futures.poll();
+            int myMembershipSize = _lastHeartbeats.size();
 
-                    if (myFuture == null)
-                        return;
+            if (_futures.size() != 0) {
 
-                    myFuture.set(true);
+                Iterator<FutureImpl> myFutures = _futures.iterator();
+
+                while (myFutures.hasNext()) {
+                    FutureImpl myFuture = myFutures.next();
+
+                    myFuture.offer(myMembershipSize);
                 }
             }
         }
@@ -154,9 +156,16 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
     private class FutureImpl extends AbstractFuture<Boolean> {
         private final Queue _queue;
+        private final int _required;
 
-        FutureImpl(Queue aQueue) {
+        FutureImpl(Queue aQueue, int aRequired) {
             _queue = aQueue;
+            _required = aRequired;
+        }
+
+        void offer(int aSize) {
+            if (aSize >= _required)
+                set(true);
         }
 
         protected void done() {
@@ -165,7 +174,11 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     public Future<Boolean> barrier() {
-        FutureImpl myFuture = new FutureImpl(_futures);
+        return barrier(getMajority());
+    }
+
+    public Future<Boolean> barrier(int aRequired) {
+        FutureImpl myFuture = new FutureImpl(_futures, aRequired);
         _futures.add(myFuture);
 
         return myFuture;

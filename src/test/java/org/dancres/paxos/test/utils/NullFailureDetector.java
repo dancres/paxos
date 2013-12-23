@@ -35,6 +35,10 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
         return null;
     }
 
+    public Future<Boolean> barrier(int aRequired) {
+        return null;
+    }
+
     public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
 		return null;
 	}
