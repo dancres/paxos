@@ -119,7 +119,7 @@ public class LongTerm {
             };
 
             for (int i = 0; i < 5; i++) {
-                _factory.newTransport(myFactory, new FailureDetectorImpl(5, 5000));
+                _factory.newTransport(myFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN));
             }
 
             _currentLeader = _nodes.get(0);

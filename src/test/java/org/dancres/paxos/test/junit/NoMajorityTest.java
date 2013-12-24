@@ -18,7 +18,7 @@ public class NoMajorityTest {
 
     @Before public void init() throws Exception {
         _node1 = new ServerDispatcher();
-        _tport1 = new TransportImpl(new FailureDetectorImpl(5000));
+        _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _tport1.routeTo(_node1);
         _node1.init(_tport1);
     }

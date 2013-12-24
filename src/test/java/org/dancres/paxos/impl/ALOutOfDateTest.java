@@ -42,11 +42,11 @@ public class ALOutOfDateTest {
 
         _node1 = new ServerDispatcher(new HowlLogger(_node1Log));
         _node2 = new ServerDispatcher(new HowlLogger(_node2Log));
-        _tport1 = new OODTransportImpl(new FailureDetectorImpl(5000));
+        _tport1 = new OODTransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _tport1.routeTo(_node1);
         _node1.init(_tport1);
 
-        _tport2 = new OODTransportImpl(new FailureDetectorImpl(5000));
+        _tport2 = new OODTransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }
@@ -99,7 +99,7 @@ public class ALOutOfDateTest {
         Listener myListener = new Listener();
 
         _node3 = new ServerDispatcher(new HowlLogger(_node3Log));
-        _tport3 = new TransportImpl(new FailureDetectorImpl(5000));
+        _tport3 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _tport3.routeTo(_node3);
         _node3.init(_tport3);
         _node3.add(myListener);

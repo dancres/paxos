@@ -26,7 +26,7 @@ public class ALStartupTest {
 
 	private class TransportImpl implements Transport {
         private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
-        private MessageBasedFailureDetector _fd = new FailureDetectorImpl(5000);
+        private MessageBasedFailureDetector _fd = new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN);
 
 		private List<PaxosMessage> _messages = new ArrayList<>();
 

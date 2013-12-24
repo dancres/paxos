@@ -37,7 +37,7 @@ public class CheckpointHandleTest {
         private List<PaxosMessage> _messages = new ArrayList<>();
         private InetSocketAddress _nodeId;
         private InetSocketAddress _broadcastId;
-        private MessageBasedFailureDetector _fd = new FailureDetectorImpl(5000);
+        private MessageBasedFailureDetector _fd = new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN);
 
         TransportImpl(InetSocketAddress aNodeId, InetSocketAddress aBroadcastId) {
             _nodeId = aNodeId;
