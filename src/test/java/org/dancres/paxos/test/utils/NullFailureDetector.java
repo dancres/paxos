@@ -46,6 +46,10 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
     public void pin(Collection<InetSocketAddress> aMembers) {
     }
 
+    public boolean isPinned() {
+        return true;
+    }
+
     public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
 		return null;
 	}

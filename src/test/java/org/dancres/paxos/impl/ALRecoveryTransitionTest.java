@@ -67,6 +67,10 @@ public class ALRecoveryTransitionTest {
         public void pin(Collection<InetSocketAddress> aMembers) {
         }
 
+        public boolean isPinned() {
+            return true;
+        }
+
         public boolean accepts(Transport.Packet aPacket) {
             return aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR);
         }

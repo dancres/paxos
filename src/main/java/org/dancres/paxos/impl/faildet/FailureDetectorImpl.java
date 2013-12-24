@@ -219,7 +219,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         }
     }
 
-    private boolean isPinned() {
+    public boolean isPinned() {
         return (_pinned != null);
     }
 

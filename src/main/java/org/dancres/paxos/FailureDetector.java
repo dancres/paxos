@@ -58,5 +58,7 @@ public interface FailureDetector {
      */
     public void pin(Collection<InetSocketAddress> aMembers);
 
+    public boolean isPinned();
+
     public void addListener(StateListener aListener);
 }
