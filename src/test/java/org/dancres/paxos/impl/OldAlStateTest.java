@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
@@ -14,7 +15,6 @@ import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.net.*;
 import org.dancres.paxos.test.utils.FileSystem;
-import org.dancres.paxos.test.utils.NullFailureDetector;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,7 +41,7 @@ public class OldAlStateTest {
 	private class TransportImpl implements Transport {
         private InetSocketAddress _broadcast = Utils.getTestAddress();
         private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
-        private MessageBasedFailureDetector _fd = new NullFailureDetector();
+        private MessageBasedFailureDetector _fd = new FailureDetectorImpl(5000);
 
 		private List<PaxosMessage> _messages = new ArrayList<>();
 

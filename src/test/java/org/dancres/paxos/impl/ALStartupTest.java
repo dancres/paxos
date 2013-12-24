@@ -9,10 +9,10 @@ import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Listener;
 import org.dancres.paxos.StateEvent;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;
-import org.dancres.paxos.test.utils.NullFailureDetector;
 import org.dancres.paxos.test.net.Utils;
 import org.dancres.paxos.test.net.StandalonePickler;
 import org.junit.Before;
@@ -26,7 +26,7 @@ public class ALStartupTest {
 
 	private class TransportImpl implements Transport {
         private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
-        private MessageBasedFailureDetector _fd = new NullFailureDetector();
+        private MessageBasedFailureDetector _fd = new FailureDetectorImpl(5000);
 
 		private List<PaxosMessage> _messages = new ArrayList<>();
 
