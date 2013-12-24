@@ -62,24 +62,47 @@ public class FDTest {
         }
     }
 
-    @Test public void pinListener() throws Exception {
+    class StateReceiver implements FailureDetector.StateListener {
+        private AtomicReference<FailureDetector.State> _state = new AtomicReference<>();
+
+        public void change(FailureDetector aDetector, FailureDetector.State aState) {
+            _state.set(aState);
+        }
+
+        FailureDetector.State get() {
+            return _state.get();
+        }
+    }
+
+    @Test public void openPin() throws Exception {
         FDUtil.ensureFD(_tport1.getFD());
         FDUtil.ensureFD(_tport2.getFD());
 
         Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
         Assert.assertTrue(_tport2.getFD().getMembers().getMemberMap().size() == 2);
 
-        class StateReceiver implements FailureDetector.StateListener {
-            private AtomicReference<FailureDetector.State> _state = new AtomicReference<>();
+        StateReceiver myReceiver = new StateReceiver();
 
-            public void change(FailureDetector aDetector, FailureDetector.State aState) {
-                _state.set(aState);
-            }
+        _tport1.getFD().addListener(myReceiver);
 
-            FailureDetector.State get() {
-                return _state.get();
-            }
-        }
+        Assert.assertEquals(FailureDetector.State.OPEN, myReceiver.get());
+
+        _tport1.getFD().pin(FailureDetectorImpl.OPEN_PIN);
+
+        // An open pin is treated like a pin but membership is wildcarded
+        //
+        Assert.assertEquals(FailureDetector.State.PINNED, myReceiver.get());
+        Assert.assertTrue(_tport1.getFD().isPinned());
+        Assert.assertFalse(_tport2.getFD().isPinned());
+        Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
+    }
+
+    @Test public void pinListener() throws Exception {
+        FDUtil.ensureFD(_tport1.getFD());
+        FDUtil.ensureFD(_tport2.getFD());
+
+        Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport2.getFD().getMembers().getMemberMap().size() == 2);
 
         StateReceiver myReceiver = new StateReceiver();
 

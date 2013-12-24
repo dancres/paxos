@@ -22,6 +22,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * other messages sent by a node for a suitable period of time.
  */
 public class FailureDetectorImpl extends MessageBasedFailureDetector {
+    private static class ContainsAll<T> extends LinkedList<T> {
+        public boolean contains(Object anObject) {
+            return true;
+        }
+    }
+
+    public static final List<InetSocketAddress> OPEN_PIN = new ContainsAll<>();
+
     private static final int DEFAULT_CLUSTER_SIZE = 3;
 
     private final Timer _tasks = new Timer();
@@ -73,13 +81,41 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     /**
+     * Assumes a three-node cluster in which a majority of 2 is sufficient for progress
+     *
+     * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
+     */
+    public FailureDetectorImpl(long anUnresponsivenessThreshold) {
+        this(DEFAULT_CLUSTER_SIZE, anUnresponsivenessThreshold);
+    }
+
+    /**
+     * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
+     * @param aPinSet is the set of addresses to allow into the membership
+     */
+    public FailureDetectorImpl(long anUnresponsivenessThreshold, Collection<InetSocketAddress> aPinSet) {
+        this(DEFAULT_CLUSTER_SIZE, anUnresponsivenessThreshold, aPinSet);
+    }
+
+    /**
      * @param aClusterSize is the number of members in the cluster
      * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
      */
     public FailureDetectorImpl(int aClusterSize, long anUnresponsivenessThreshold) {
+        this(aClusterSize, anUnresponsivenessThreshold, null);
+    }
+
+    /**
+     * @param aClusterSize is the number of members in the cluster
+     * @param anUnresponsivenessThreshold is the maximum period a node may "dark" before being declared failed.
+     * @param aPinSet is the set of addresses to allow into the membership
+     */
+    public FailureDetectorImpl(int aClusterSize, long anUnresponsivenessThreshold,
+                               Collection<InetSocketAddress> aPinSet) {
         _majority = calculateMajority(aClusterSize);
         _maximumPeriodOfUnresponsiveness = anUnresponsivenessThreshold;
         _tasks.schedule(new ScanImpl(), 0, (_maximumPeriodOfUnresponsiveness / 5));
+        _pinned = aPinSet;
     }
 
     private int calculateMajority(int aClusterSize) {
@@ -87,15 +123,6 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
             throw new IllegalArgumentException("Cluster size must be an odd number");
 
         return (aClusterSize / 2) + 1;
-    }
-
-    /**
-     * Assumes a three-node cluster in which a majority of 2 is sufficient for progress
-     *
-     * @param anUnresponsivenessThreshold
-     */
-    public FailureDetectorImpl(long anUnresponsivenessThreshold) {
-        this(DEFAULT_CLUSTER_SIZE, anUnresponsivenessThreshold);
     }
 
     public void stop() {
