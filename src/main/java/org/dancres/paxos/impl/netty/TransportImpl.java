@@ -58,7 +58,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
 	private static final int BROADCAST_PORT = 41952;
 
-    private final Heartbeater _hb;
+    private volatile Heartbeater _hb;
     private final MessageBasedFailureDetector _fd;
     private final byte[] _meta;
     private final InetSocketAddress _unicastAddr;
@@ -167,10 +167,22 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
             _meta = aMeta;
 
         if (_fd != null) {
-            _hb = _fd.newHeartbeater(this, _meta);
-            _hb.start();
-        } else
-            _hb = null;
+            /*
+             * Activation of a heartbeater causes this transport to become visible to other cluster members
+             * and clients. The result is it can "attract attention" before the node is fully initialised with
+             * Paxos state such that it becomes disruptive.
+             */
+            _fd.addListener(new FailureDetector.StateListener() {
+                                public void change(FailureDetector aDetector, FailureDetector.State aState) {
+                                    if (aState.equals(FailureDetector.State.PINNED)) {
+                                        _logger.debug("Activating Heartbeater");
+
+                                        _hb = _fd.newHeartbeater(TransportImpl.this, _meta);
+                                        _hb.start();
+                                    }
+                                }
+                            });
+        }
 
         _logger.debug("Transport bound on: " + _unicastAddr);
     }
