@@ -13,6 +13,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
 
+/**
+ * @deprecated In most cases one can use <code>FailureDetectorImpl</code>, where this is not possible, a private
+ * implementation of <code>MessageBasedFailureDetector</code> should be used.
+ */
 public class NullFailureDetector extends MessageBasedFailureDetector {
 
 	public Membership getMembers() {
