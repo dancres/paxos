@@ -19,10 +19,6 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
 		return new MembershipImpl();
 	}
 
-    public Map<InetSocketAddress, MetaData> getMemberMap() {
-        return new HashMap<>();
-    }
-
     public InetSocketAddress getRandomMember(InetSocketAddress aLocal) {
         return null;
     }
