@@ -3,11 +3,12 @@ package org.dancres.paxos.impl;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Future;
 
 import org.dancres.paxos.*;
-import org.dancres.paxos.impl.*;
-import org.dancres.paxos.impl.AcceptorLearner;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
@@ -17,7 +18,6 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Learned;
 import org.dancres.paxos.test.net.*;
 import org.dancres.paxos.test.utils.FileSystem;
-import org.dancres.paxos.test.utils.NullFailureDetector;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,20 +26,59 @@ public class ALRecoveryTransitionTest {
 	private static final String DIRECTORY = "howllogs";
 	private static byte[] HANDBACK = new byte[] {1, 2, 3, 4};
 	
-	private InetSocketAddress _nodeId = Utils.getTestAddress();
-    private InetSocketAddress _broadcastId = Utils.getTestAddress();
+	private static InetSocketAddress _nodeId = Utils.getTestAddress();
+    private static InetSocketAddress _broadcastId = Utils.getTestAddress();
 
 	@Before public void init() throws Exception {
     	FileSystem.deleteDirectory(new File(DIRECTORY));
 	}
-	
+
+    private static class FakeDetector extends MessageBasedFailureDetector {
+        public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
+            return null;
+        }
+
+        public void stop() {
+        }
+
+        public InetSocketAddress getRandomMember(InetSocketAddress aLocal) {
+            return _nodeId;
+        }
+
+        public Membership getMembers() {
+            return null;
+        }
+
+        public int getMajority() {
+            return 2;
+        }
+
+        public Future<Membership> barrier() {
+            return null;
+        }
+
+        public Future<Membership> barrier(int aRequired) {
+            return null;
+        }
+
+        public void pin(Collection<InetSocketAddress> aMembers) {
+        }
+
+        public boolean accepts(Transport.Packet aPacket) {
+            return aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.FAILURE_DETECTOR);
+        }
+
+        public void processMessage(Transport.Packet aPacket) {
+        }
+    }
+
 	private static class TransportImpl implements Transport {
         private Transport.PacketPickler _pickler;
 
 		private List<PaxosMessage> _messages = new ArrayList<>();
 		private InetSocketAddress _nodeId;
         private InetSocketAddress _broadcastId;
-        private MessageBasedFailureDetector _fd = new NullFailureDetector();
+        private MessageBasedFailureDetector _fd = new FakeDetector();
 
 		TransportImpl(InetSocketAddress aNodeId, InetSocketAddress aBroadcastId) {
 			_nodeId = aNodeId;
