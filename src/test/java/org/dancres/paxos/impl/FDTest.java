@@ -13,8 +13,10 @@ import org.junit.Test;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class FDTest {
     private ServerDispatcher _node1;
@@ -58,6 +60,40 @@ public class FDTest {
                 Assert.fail();
             }
         }
+    }
+
+    @Test public void pinListener() throws Exception {
+        FDUtil.ensureFD(_tport1.getFD());
+        FDUtil.ensureFD(_tport2.getFD());
+
+        Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport2.getFD().getMembers().getMemberMap().size() == 2);
+
+        class StateReceiver implements FailureDetector.StateListener {
+            private AtomicReference<FailureDetector.State> _state = new AtomicReference<>();
+
+            public void change(FailureDetector aDetector, FailureDetector.State aState) {
+                _state.set(aState);
+            }
+
+            FailureDetector.State get() {
+                return _state.get();
+            }
+        }
+
+        StateReceiver myReceiver = new StateReceiver();
+
+        _tport1.getFD().addListener(myReceiver);
+
+        Assert.assertEquals(FailureDetector.State.OPEN, myReceiver.get());
+
+        Collection<InetSocketAddress> myAddresses = new LinkedList<>();
+        myAddresses.add(_tport1.getLocalAddress());
+        myAddresses.add(_tport2.getLocalAddress());
+
+        _tport1.getFD().pin(myAddresses);
+
+        Assert.assertEquals(FailureDetector.State.PINNED, myReceiver.get());
     }
 
     @Test public void pin() throws Exception {

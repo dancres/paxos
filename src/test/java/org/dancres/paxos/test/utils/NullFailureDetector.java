@@ -31,6 +31,10 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
         return 2;
     }
 
+    public void addListener(StateListener aListener) {
+        throw new RuntimeException("Not implemented");
+    }
+
     public Future<Membership> barrier() {
         return null;
     }

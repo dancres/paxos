@@ -12,6 +12,12 @@ import java.util.concurrent.Future;
  * @author dan
  */
 public interface FailureDetector {
+    enum State {PINNED, OPEN}
+
+    public interface StateListener {
+        public void change(FailureDetector aDetector, State aState);
+    }
+
     public interface MetaData {
         public byte[] getData();
         public long getTimestamp();
@@ -51,4 +57,6 @@ public interface FailureDetector {
      * @param aMembers which, if <code>null</code>, causes the FailureDetector to become unpinned.
      */
     public void pin(Collection<InetSocketAddress> aMembers);
+
+    public void addListener(StateListener aListener);
 }

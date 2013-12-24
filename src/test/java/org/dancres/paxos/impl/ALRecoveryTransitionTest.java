@@ -41,6 +41,9 @@ public class ALRecoveryTransitionTest {
         public void stop() {
         }
 
+        public void addListener(StateListener aListener) {
+        }
+
         public InetSocketAddress getRandomMember(InetSocketAddress aLocal) {
             return _nodeId;
         }

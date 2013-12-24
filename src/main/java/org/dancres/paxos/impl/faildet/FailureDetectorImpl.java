@@ -29,6 +29,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     private volatile Collection<InetSocketAddress> _pinned = null;
     private final AtomicBoolean _stopping = new AtomicBoolean(false);
 
+    private final LinkedBlockingQueue<StateListener> _listeners = new LinkedBlockingQueue<>();
     private final LinkedBlockingQueue<FutureImpl> _futures = new LinkedBlockingQueue<>();
     private final Random _random = new Random();
     private final ConcurrentMap<InetSocketAddress, MetaDataImpl> _lastHeartbeats = new ConcurrentHashMap<>();
@@ -101,7 +102,17 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         _stopping.set(true);
         _tasks.cancel();
     }
-    
+
+    private void notifyListeners(State aState) {
+        for (StateListener myL : _listeners)
+            myL.change(this, aState);
+    }
+
+    public void addListener(StateListener aListener) {
+        _listeners.add(aListener);
+        aListener.change(this, isPinned() ? State.PINNED : State.OPEN);
+    }
+
     public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {
         // We want at least three heartbeats within the unresponsiveness period
         //
@@ -192,8 +203,12 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     public void pin(Collection<InetSocketAddress> aMembers) {
         _pinned = aMembers;
 
-        if (_pinned == null)
+        if (_pinned == null) {
+            notifyListeners(State.OPEN);
             return;
+        } else {
+            notifyListeners(State.PINNED);
+        }
 
         Iterator<InetSocketAddress> myCurrentMembers = _lastHeartbeats.keySet().iterator();
         while (myCurrentMembers.hasNext()) {
@@ -202,6 +217,10 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
             if (! _pinned.contains(myMember))
                 _lastHeartbeats.remove(myMember);
         }
+    }
+
+    private boolean isPinned() {
+        return (_pinned != null);
     }
 
     public int getMajority() {
