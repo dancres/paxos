@@ -38,8 +38,13 @@ class HeartbeaterImpl extends Thread implements Heartbeater {
     
     public void run() {
         while (! isStopping()) {
-            _transport.send(_transport.getPickler().newPacket(new Heartbeat(_metaData)),
+
+            try {
+                _transport.send(_transport.getPickler().newPacket(new Heartbeat(_metaData)),
                     _transport.getBroadcastAddress());
+            } catch (Throwable aT) {
+                // Doesn't matter
+            }
 
             try {
                 Thread.sleep(_pulseRate);
