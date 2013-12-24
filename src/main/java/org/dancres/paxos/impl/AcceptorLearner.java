@@ -577,9 +577,11 @@ public class AcceptorLearner implements MessageProcessor {
                                      * window, a partial recovery or no recovery will be noticed and we'll ask a new
                                      * random node to bring us up to speed.
                                      */
-                                    new LiveSender().send(aNeed,
-                                            _common.getTransport().getFD().getRandomMember(
-                                                    _common.getTransport().getLocalAddress()));
+                                    InetSocketAddress myNeedTarget = _common.getTransport().getFD().getRandomMember(
+                                            _common.getTransport().getLocalAddress());
+
+                                    if (myNeedTarget != null)
+                                        new LiveSender().send(aNeed, myNeedTarget);
 
                                     // Startup recovery watchdog
                                     //

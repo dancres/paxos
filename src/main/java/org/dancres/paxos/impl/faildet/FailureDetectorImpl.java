@@ -216,7 +216,11 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         LinkedList<InetSocketAddress> myMembers = new LinkedList<>(_lastHeartbeats.keySet());
 
         myMembers.remove(aLocalAddress);
-        return myMembers.get(_random.nextInt(myMembers.size()));
+
+        if (myMembers.size() > 0)
+            return myMembers.get(_random.nextInt(myMembers.size()));
+        else
+            return null;
     }
 
     /**

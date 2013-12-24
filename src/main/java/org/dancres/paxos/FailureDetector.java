@@ -18,9 +18,10 @@ public interface FailureDetector {
     }
 
     /**
-     * Return a random member that the FD believes is live, excluding the local address specified
-     *
      * @param aLocal the address of the node to exclude from the result
+     *
+     * @return a random member that the FD believes is live, excluding the local address specified or <code>null</code>
+     * if there are no suitable candidates.
      */
     public InetSocketAddress getRandomMember(InetSocketAddress aLocal);
 
