@@ -28,6 +28,9 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         }
     }
 
+    /**
+     * An open pin is treated like a pin but membership is wildcard'ed -- TESTING USE ONLY
+     */
     public static final List<InetSocketAddress> OPEN_PIN = new ContainsAll<>();
 
     private static final int DEFAULT_CLUSTER_SIZE = 3;
@@ -270,8 +273,9 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     /**
-     * A snapshot of the membership at some point in time, updated by the <code>FailureDetectorImpl</code> over time.  Note the snapshot only
-     * reduces in size, it cannot grow so as to allow correct behaviour in cases where majorities are required.
+     * A snapshot of the membership at some point in time, updated by the <code>FailureDetectorImpl</code> over time.
+     * Note the snapshot only reduces in size, it cannot grow so as to allow correct behaviour in cases where
+     * majorities are required.
      *
      * @author dan
      */
