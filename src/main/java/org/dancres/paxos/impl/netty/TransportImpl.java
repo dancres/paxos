@@ -171,11 +171,12 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
              * Activation of a heartbeater causes this transport to become visible to other cluster members
              * and clients. The result is it can "attract attention" before the node is fully initialised with
              * Paxos state such that it becomes disruptive. So we don't enable heartbeating until the FD is
-             * properly initialised with a membership.
+             * properly initialised (pinned) with a membership.
              */
             _fd.addListener(new FailureDetector.StateListener() {
                                 public void change(FailureDetector aDetector, FailureDetector.State aState) {
-                                    if (aState.equals(FailureDetector.State.PINNED)) {
+                                    if ((aState.equals(FailureDetector.State.PINNED)) &&
+                                            (_hb == null)) {
                                         _logger.debug("Activating Heartbeater");
 
                                         _hb = _fd.newHeartbeater(TransportImpl.this, _meta);
