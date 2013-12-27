@@ -7,9 +7,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Codecs {
     private static final Map<Integer, Codec> CODECS =
@@ -35,6 +33,28 @@ public class Codecs {
         ByteBuffer myBuffer = ByteBuffer.wrap(aBuffer);
 
         return (PaxosMessage) CODECS.get(myBuffer.getInt(0)).decode(myBuffer);
+    }
+
+    public static byte[] flatten(Collection<InetSocketAddress> aList) {
+        ByteBuffer myBuffer = ByteBuffer.allocate(4 + (8 * aList.size()));
+
+        myBuffer.putInt(aList.size());
+
+        for (InetSocketAddress myAddr : aList)
+            myBuffer.putLong(flatten(myAddr));
+
+        return myBuffer.array();
+    }
+
+    public static Collection<InetSocketAddress> expand(byte[] aListOfAddresses) {
+        ByteBuffer myBuffer = ByteBuffer.wrap(aListOfAddresses);
+        int myNumAddr = myBuffer.getInt();
+        LinkedList<InetSocketAddress> myAddrs = new LinkedList<>();
+
+        for (int i = 0; i < myNumAddr; i++)
+            myAddrs.add(expand(myBuffer.getLong()));
+
+        return myAddrs;
     }
 
     public static long flatten(InetSocketAddress anAddr) {
