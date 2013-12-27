@@ -255,6 +255,10 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         return (_pinned != null);
     }
 
+    public Collection<InetSocketAddress> getPinned() {
+        return _pinned;
+    }
+
     public int getMajority() {
         return _majority;
     }

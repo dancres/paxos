@@ -2,9 +2,12 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.TimerTask;
 
 /**
@@ -110,6 +113,18 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
 
             _common.getWatchdog().schedule(_heartbeatAlarm, calculateLeaderRefresh());
         }
+    }
+
+    boolean updateMembership(Collection<InetSocketAddress> aClusterMembers) {
+        CompletionImpl<VoteOutcome> myResult = new CompletionImpl<>();
+
+        newLeaderImpl().submit(new Proposal(AcceptorLearner.MEMBER_CHANGE_KEY, Codecs.flatten(aClusterMembers)),
+                myResult);
+
+        VoteOutcome myOutcome = myResult.await();
+
+        return ((myOutcome.getResult() == VoteOutcome.Reason.VALUE) &&
+                (myOutcome.getValues().get(AcceptorLearner.MEMBER_CHANGE_KEY) != null));
     }
 
     private long calculateLeaderRefresh() {

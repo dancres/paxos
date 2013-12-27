@@ -2,6 +2,7 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.messages.*;
+import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +30,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author dan
  */
 public class AcceptorLearner implements MessageProcessor {
-    public static final String HEARTBEAT_KEY = "org.dancres.paxos.Heartbeat";
+    public static final String HEARTBEAT_KEY = "org.dancres.paxos.Hbt";
+    public static final String MEMBER_CHANGE_KEY = "org.dancres.paxos.MemChg";
 
     private static final long DEFAULT_RECOVERY_GRACE_PERIOD = 5 * 1000;
 
@@ -882,12 +884,21 @@ public class AcceptorLearner implements MessageProcessor {
 
         _common.install(new Watermark(mySeqNum, myLogOffset));
 
-        if (myBegin.getConsolidatedValue().get(AcceptorLearner.HEARTBEAT_KEY) != null) {
+        if (myBegin.getConsolidatedValue().get(HEARTBEAT_KEY) != null) {
             _receivedHeartbeats.incrementAndGet();
 
             _logger.trace(toString() + " discarded heartbeat: "
                     + System.currentTimeMillis() + ", "
                     + getHeartbeatCount());
+        } else if (myBegin.getConsolidatedValue().get(MEMBER_CHANGE_KEY) != null) {
+            _logger.trace(toString() + " membership change received");
+
+            Collection<InetSocketAddress> myAddrs =
+                    Codecs.expand(myBegin.getConsolidatedValue().get(MEMBER_CHANGE_KEY));
+
+            _logger.debug(toString() + " membership changed to " + myAddrs);
+
+            _common.getTransport().getFD().pin(myAddrs);
         } else {
             _logger.debug(toString() + " Learnt value: " + mySeqNum);
 

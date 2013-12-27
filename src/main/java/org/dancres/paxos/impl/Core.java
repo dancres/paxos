@@ -5,7 +5,9 @@ import org.dancres.paxos.impl.Transport.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -128,6 +130,10 @@ public class Core implements Transport.Dispatcher, Paxos {
      */
     public void submit(Proposal aVal, Completion<VoteOutcome> aCompletion) throws InactiveException {
         _ld.newLeader().submit(aVal, aCompletion);
+    }
+
+    boolean updateMembership(Collection<InetSocketAddress> aMembers) {
+        return _ld.updateMembership(aMembers);
     }
 
     public String toString() {
