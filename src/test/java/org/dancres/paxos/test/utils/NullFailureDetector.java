@@ -27,6 +27,10 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
         return null;
     }
 
+    public boolean isMember(InetSocketAddress anAddress) {
+        return true;
+    }
+
     public int getMajority() {
         return 2;
     }
@@ -44,10 +48,6 @@ public class NullFailureDetector extends MessageBasedFailureDetector {
     }
 
     public void pin(Collection<InetSocketAddress> aMembers) {
-    }
-
-    public boolean isPinned() {
-        return true;
     }
 
     public Heartbeater newHeartbeater(Transport aTransport, byte[] aMetaData) {

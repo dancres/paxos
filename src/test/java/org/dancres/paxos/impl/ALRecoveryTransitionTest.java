@@ -48,6 +48,10 @@ public class ALRecoveryTransitionTest {
             return _nodeId;
         }
 
+        public boolean isMember(InetSocketAddress anAddress) {
+            return true;
+        }
+
         public Membership getMembers() {
             return null;
         }
@@ -65,10 +69,6 @@ public class ALRecoveryTransitionTest {
         }
 
         public void pin(Collection<InetSocketAddress> aMembers) {
-        }
-
-        public boolean isPinned() {
-            return true;
         }
 
         public boolean accepts(Transport.Packet aPacket) {

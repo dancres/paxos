@@ -29,7 +29,9 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     /**
-     * An open pin is treated like a pin but membership is wildcard'ed -- TESTING USE ONLY
+     * An open pin is treated like a pin but membership is wildcard'ed -- TESTING USE ONLY. Membership in a real
+     * cluster must change as the result of an instance of Paxos in order to maintain the constraints required for
+     * safe progress.
      */
     public static final List<InetSocketAddress> OPEN_PIN = new ContainsAll<>();
 
@@ -249,7 +251,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         }
     }
 
-    public boolean isPinned() {
+    private boolean isPinned() {
         return (_pinned != null);
     }
 
@@ -259,6 +261,10 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
     public Membership getMembers() {
         return new MembershipImpl(new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats));
+    }
+
+    public boolean isMember(InetSocketAddress anAddress) {
+        return _pinned.contains(anAddress);
     }
 
     public InetSocketAddress getRandomMember(InetSocketAddress aLocalAddress) {

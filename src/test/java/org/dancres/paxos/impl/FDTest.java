@@ -93,7 +93,6 @@ public class FDTest {
         // An open pin is treated like a pin but membership is wildcarded
         //
         Assert.assertEquals(FailureDetector.State.PINNED, myReceiver.get());
-        Assert.assertTrue(_tport1.getFD().isPinned());
         Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
     }
 

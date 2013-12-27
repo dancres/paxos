@@ -31,6 +31,8 @@ public interface FailureDetector {
      */
     public InetSocketAddress getRandomMember(InetSocketAddress aLocal);
 
+    public boolean isMember(InetSocketAddress anAddress);
+
     public Membership getMembers();
 
     /**
@@ -57,8 +59,6 @@ public interface FailureDetector {
      * @param aMembers which, if <code>null</code>, causes the FailureDetector to become unpinned.
      */
     public void pin(Collection<InetSocketAddress> aMembers);
-
-    public boolean isPinned();
 
     public void addListener(StateListener aListener);
 }
