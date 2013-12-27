@@ -215,6 +215,8 @@ class Leader implements Instance {
             case SUBMITTED : {
                 if (! _membership.couldComplete()) {
                     error(VoteOutcome.Reason.BAD_MEMBERSHIP);
+                } else if (! _common.amMember()) {
+                    error(VoteOutcome.Reason.NOT_MEMBER);
                 } else {
                     _stateMachine.transition(_startState);
                     process(NO_MESSAGES);

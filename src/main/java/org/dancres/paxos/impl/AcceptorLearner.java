@@ -516,7 +516,8 @@ public class AcceptorLearner implements MessageProcessor {
                         _sorter.process(_common.getLowWatermark().getSeqNum(), new PacketSorter.PacketProcessor() {
                             public void consume(Transport.Packet aPacket) {
                                 boolean myRecoveryInProgress = _common.testState(Constants.FSMStates.RECOVERING);
-                                Sender mySender = (myRecoveryInProgress) ? new RecoverySender() : new LiveSender();
+                                Sender mySender = ((myRecoveryInProgress) || (! _common.amMember())) ?
+                                        new RecoverySender() : new LiveSender();
 
                                 process(aPacket, myWriter, mySender);
 

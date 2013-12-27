@@ -106,7 +106,11 @@ class Common {
         _lastCollect.set(new FakePacket(Collect.INITIAL));
         resetLeaderAction();
     }
-    
+
+    boolean amMember() {
+        return _transport.getFD().isMember(_transport.getLocalAddress());
+    }
+
     void setLastCollect(Transport.Packet aCollect) {
         if (! (aCollect.getMessage() instanceof Collect))
             throw new IllegalArgumentException();

@@ -35,9 +35,15 @@ public class VoteOutcome {
          * The sequence number and round associated with the instance are present in the outcome.
          */
         public static final int OTHER_VALUE = 4;
-        
+
+        /**
+         * This process is not a member of the cluster (as defined by configuration or an instance of paxos
+         * to agree a membership change) and cannot therefore lead.
+         */
+        public static final int NOT_MEMBER = 5;
+
         private static final String[] _names = {"Value", "Other Leader", "Vote Timeout", "Bad Membership",
-        	"Other Value"};
+        	"Other Value", "Not Member"};
         
         public static String nameFor(int aCode) {
         	if (aCode < 0 || aCode > _names.length - 1)
