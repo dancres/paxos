@@ -17,9 +17,6 @@ import java.util.TimerTask;
 class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     private static final Logger _logger = LoggerFactory.getLogger(LeaderFactory.class);
 
-    public static final Proposal HEARTBEAT = new Proposal("heartbeat",
-            "org.dancres.paxos.Heartbeat".getBytes());
-    
     private final Common _common;
     private ProposalAllocator _stateFactory;
     private Leader _currentLeader;
@@ -102,11 +99,12 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
                 public void run() {
                     _logger.trace(this + ": sending heartbeat: " + System.currentTimeMillis());
 
-                    newLeaderImpl().submit(HEARTBEAT, new Completion<VoteOutcome>() {
-                        public void complete(VoteOutcome anOutcome) {
-                            // Do nothing
-                        }
-                    });
+                    newLeaderImpl().submit(new Proposal(AcceptorLearner.HEARTBEAT_KEY, "hearbeat".getBytes()),
+                            new Completion<VoteOutcome>() {
+                                public void complete(VoteOutcome anOutcome) {
+                                    // Do nothing
+                                }
+                            });
                 }
             };
 

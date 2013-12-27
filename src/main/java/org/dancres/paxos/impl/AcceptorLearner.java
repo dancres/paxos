@@ -29,6 +29,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author dan
  */
 public class AcceptorLearner implements MessageProcessor {
+    public static final String HEARTBEAT_KEY = "org.dancres.paxos.Heartbeat";
+
     private static final long DEFAULT_RECOVERY_GRACE_PERIOD = 5 * 1000;
 
 	private static final Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
@@ -880,7 +882,7 @@ public class AcceptorLearner implements MessageProcessor {
 
         _common.install(new Watermark(mySeqNum, myLogOffset));
 
-        if (myBegin.getConsolidatedValue().equals(LeaderFactory.HEARTBEAT)) {
+        if (myBegin.getConsolidatedValue().get(AcceptorLearner.HEARTBEAT_KEY) != null) {
             _receivedHeartbeats.incrementAndGet();
 
             _logger.trace(toString() + " discarded heartbeat: "
