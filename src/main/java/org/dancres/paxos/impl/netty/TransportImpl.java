@@ -129,11 +129,11 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     	System.runFinalizersOnExit(true);
     }
 
-    public TransportImpl(PipelineFactory aFactory, MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
+    private TransportImpl(PipelineFactory aFactory, MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
         this(aFactory, new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 0), anFD, aMeta);
     }
 
-    public TransportImpl(PipelineFactory aFactory, InetSocketAddress aServerAddr,
+    private TransportImpl(PipelineFactory aFactory, InetSocketAddress aServerAddr,
                          MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
         if (aFactory == null)
             throw new IllegalArgumentException();
@@ -170,7 +170,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
             /*
              * Activation of a heartbeater causes this transport to become visible to other cluster members
              * and clients. The result is it can "attract attention" before the node is fully initialised with
-             * Paxos state such that it becomes disruptive.
+             * Paxos state such that it becomes disruptive. So we don't enable heartbeating until the FD is
+             * properly initialised with a membership.
              */
             _fd.addListener(new FailureDetector.StateListener() {
                                 public void change(FailureDetector aDetector, FailureDetector.State aState) {
