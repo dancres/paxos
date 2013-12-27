@@ -216,7 +216,7 @@ public class AcceptorLearner implements MessageProcessor {
         _guardLock.lock();
 
         try {
-            if (_common.testState(Constants.FSMStates.SHUTDOWN))
+            if (_common.getNodeState().test(NodeState.State.SHUTDOWN))
                 return true;
 
             _activeCount++;
@@ -253,7 +253,7 @@ public class AcceptorLearner implements MessageProcessor {
         _storage.open();
 
         try {
-            _common.setState(Constants.FSMStates.RECOVERING);
+            _common.getNodeState().set(NodeState.State.RECOVERING);
 
             long myStartSeqNum = -1;
             
@@ -275,7 +275,7 @@ public class AcceptorLearner implements MessageProcessor {
                 _logger.error(toString() + " Failed to replay log", anE);
             }
         } finally {
-            _common.testAndSetState(Constants.FSMStates.RECOVERING, Constants.FSMStates.ACTIVE);
+            _common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE);
         }
     }
 
@@ -284,7 +284,7 @@ public class AcceptorLearner implements MessageProcessor {
             /*
              * Allow for the fact we might be actively processing packets. Mark ourselves shutdown and drain...
              */
-            _common.setState(Constants.FSMStates.SHUTDOWN);
+            _common.getNodeState().set(NodeState.State.SHUTDOWN);
 
             _guardLock.lock();
 
@@ -319,7 +319,7 @@ public class AcceptorLearner implements MessageProcessor {
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
-        if (_common.testState(Constants.FSMStates.OUT_OF_DATE)) {
+        if (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)) {
             unguard();
 
             throw new IllegalStateException("Instance is out of date");
@@ -383,7 +383,7 @@ public class AcceptorLearner implements MessageProcessor {
             throw new IllegalStateException("Instance is shutdown");
 
         try {
-            if (! _common.testState(Constants.FSMStates.OUT_OF_DATE))
+            if (! _common.getNodeState().test(NodeState.State.OUT_OF_DATE))
                 throw new IllegalStateException("Not out of date");
 
             if (! (aHandle instanceof ALCheckpointHandle))
@@ -400,7 +400,7 @@ public class AcceptorLearner implements MessageProcessor {
              * of Paxos. Additional state will be obtained from another AL via the lightweight recovery protocol.
              * Out of date means that the existing log has no useful data within it implying it can be discarded.
              */
-            if (_common.testAndSetState(Constants.FSMStates.OUT_OF_DATE, Constants.FSMStates.ACTIVE)) {
+            if (_common.getNodeState().testAndSet(NodeState.State.OUT_OF_DATE, NodeState.State.ACTIVE)) {
                 installCheckpoint(myHandle);
 
                 // Write collect from our new checkpoint to log and use that as the starting point for replay.
@@ -465,14 +465,14 @@ public class AcceptorLearner implements MessageProcessor {
         try {
             // If we're not processing packets because we're out of date or because we're shutting down
             //
-            if (_common.testState(Constants.FSMStates.OUT_OF_DATE)) {
+            if (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)) {
                 return;
             }
 
             PaxosMessage myMessage = aPacket.getMessage();
             long mySeqNum = myMessage.getSeqNum();
 
-            if (_common.testState(Constants.FSMStates.RECOVERING)) {
+            if (_common.getNodeState().test(NodeState.State.RECOVERING)) {
                 switch (myMessage.getType()) {
                     /*
                      * If the packet is a Need, we can process it for anything up to the last point of consistency
@@ -493,7 +493,7 @@ public class AcceptorLearner implements MessageProcessor {
                     case Operations.OUTOFDATE : {
                         synchronized(this) {
                             completedRecovery();
-                            _common.setState(Constants.FSMStates.OUT_OF_DATE);
+                            _common.getNodeState().set(NodeState.State.OUT_OF_DATE);
                         }
 
                         // Signal with node that pronounced us out of date - likely user code will get ckpt from there.
@@ -515,7 +515,7 @@ public class AcceptorLearner implements MessageProcessor {
                 myProcessed =
                         _sorter.process(_common.getLowWatermark().getSeqNum(), new PacketSorter.PacketProcessor() {
                             public void consume(Transport.Packet aPacket) {
-                                boolean myRecoveryInProgress = _common.testState(Constants.FSMStates.RECOVERING);
+                                boolean myRecoveryInProgress = _common.getNodeState().test(NodeState.State.RECOVERING);
                                 Sender mySender = ((myRecoveryInProgress) || (! _common.amMember())) ?
                                         new RecoverySender() : new LiveSender();
 
@@ -523,8 +523,8 @@ public class AcceptorLearner implements MessageProcessor {
 
                                 if (myRecoveryInProgress) {
                                     if ((_common.getLowWatermark().getSeqNum() == _recoveryWindow.get().getMaxSeq()) &&
-                                            (_common.testAndSetState(Constants.FSMStates.RECOVERING,
-                                                    Constants.FSMStates.ACTIVE))) {
+                                            (_common.getNodeState().testAndSet(NodeState.State.RECOVERING,
+                                                    NodeState.State.ACTIVE))) {
                                         _common.resetLeaderAction();
                                         completedRecovery();
                                     }
@@ -532,8 +532,8 @@ public class AcceptorLearner implements MessageProcessor {
                             }
 
                             public boolean recover(Need aNeed) {
-                                boolean myResult = _common.testAndSetState(Constants.FSMStates.ACTIVE,
-                                        Constants.FSMStates.RECOVERING);
+                                boolean myResult = _common.getNodeState().testAndSet(NodeState.State.ACTIVE,
+                                        NodeState.State.RECOVERING);
 
                                 if (myResult) {
                                     _recoveryWindow.set(aNeed);
@@ -609,7 +609,7 @@ public class AcceptorLearner implements MessageProcessor {
         private final Watermark _past = _common.getLowWatermark();
 
         public void run() {
-            if (! _common.testState(Constants.FSMStates.RECOVERING)) {
+            if (! _common.getNodeState().test(NodeState.State.RECOVERING)) {
                 // Someone else will do cleanup
                 //
                 return;
@@ -627,7 +627,7 @@ public class AcceptorLearner implements MessageProcessor {
                 _logger.warn(AcceptorLearner.this.toString() + " Recovery is NOT progressing - terminate");
 
                 terminateRecovery();
-                _common.testAndSetState(Constants.FSMStates.RECOVERING, Constants.FSMStates.ACTIVE);
+                _common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE);
             }
         }
     }
@@ -992,7 +992,7 @@ public class AcceptorLearner implements MessageProcessor {
         public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
             // Go silent if we're shutting down - shutdown process can be brutal, we don't want to send out lies
             //
-            if (_common.testState(Constants.FSMStates.SHUTDOWN))
+            if (_common.getNodeState().test(NodeState.State.SHUTDOWN))
                 return;
 
             _logger.debug(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + aNodeId);

@@ -48,8 +48,8 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
      * @return a leader for a new sequence
      */
     Leader newLeader() throws InactiveException {
-        if ((_common.testState(Constants.FSMStates.SHUTDOWN)) ||
-                (_common.testState(Constants.FSMStates.OUT_OF_DATE)))
+        if ((_common.getNodeState().test(NodeState.State.SHUTDOWN)) ||
+                (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)))
             throw new InactiveException();
 
         synchronized(this) {

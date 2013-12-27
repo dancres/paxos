@@ -21,8 +21,7 @@ class Common {
             new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
     private AtomicLong _lastLeaderActionTime = new AtomicLong(0);
     private final Timer _watchdog = new Timer("Paxos timers");
-    private final AtomicReference<Constants.FSMStates> _fsmState =
-            new AtomicReference<>(Constants.FSMStates.INITIAL);
+    private final NodeState _nodeState = new NodeState();
     private final AtomicReference<AcceptorLearner.Watermark> _lowWatermark =
             new AtomicReference<>(AcceptorLearner.Watermark.INITIAL);
     private final LeaderUtils _leaderUtils = new LeaderUtils();
@@ -130,18 +129,6 @@ class Common {
         _lastLeaderActionTime.set(0);
     }
 
-    void setState(Constants.FSMStates aState) {
-        _fsmState.getAndSet(aState);
-    }
-
-    boolean testAndSetState(Constants.FSMStates anExpected, Constants.FSMStates aNewState) {
-        return _fsmState.compareAndSet(anExpected, aNewState);
-    }
-
-    boolean testState(Constants.FSMStates aState) {
-        return _fsmState.get().equals(aState);
-    }
-
     long getLeaderRndNum() {
         return ((Collect) _lastCollect.get().getMessage()).getRndNumber();
     }
@@ -207,5 +194,9 @@ class Common {
 
     boolean precedes(Transport.Packet aBegin) {
         return _leaderUtils.precedes(aBegin, _lastCollect.get());
+    }
+
+    NodeState getNodeState() {
+        return _nodeState;
     }
 }

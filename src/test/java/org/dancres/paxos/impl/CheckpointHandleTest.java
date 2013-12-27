@@ -101,7 +101,7 @@ public class CheckpointHandleTest {
         });
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
 
-        Assert.assertFalse(myCommon.testState(Constants.FSMStates.RECOVERING));
+        Assert.assertFalse(myCommon.getNodeState().test(NodeState.State.RECOVERING));
 
         long myRndNum = 1;
         long mySeqNum = 0;

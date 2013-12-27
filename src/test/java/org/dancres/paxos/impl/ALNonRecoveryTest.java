@@ -129,7 +129,7 @@ public class ALNonRecoveryTest {
         Assert.assertTrue(_node2.getCore().getCommon().getLowWatermark().getSeqNum() !=
         	_node3.getCore().getCommon().getLowWatermark().getSeqNum());
 
-        Assert.assertFalse(_node3.getCore().getCommon().testState(Constants.FSMStates.RECOVERING));
+        Assert.assertFalse(_node3.getCore().getCommon().getNodeState().test(NodeState.State.RECOVERING));
 
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is
