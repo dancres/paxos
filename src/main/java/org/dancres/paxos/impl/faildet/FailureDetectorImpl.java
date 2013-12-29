@@ -268,7 +268,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     public boolean isMember(InetSocketAddress anAddress) {
-        return _pinned.contains(anAddress);
+        return ((_pinned != null) && (_pinned.contains(anAddress)));
     }
 
     public InetSocketAddress getRandomMember(InetSocketAddress aLocalAddress) {
