@@ -64,7 +64,7 @@ public class HeartbeatTest {
 
         Thread.sleep(5000 + Constants.getLeaderLeaseDuration());
 
-        Assert.assertTrue(myAl.getHeartbeatCount() == 1);
+        Assert.assertTrue(myAl.getStats().getHeartbeatCount() == 1);
     }
     
     public static void main(String[] anArgs) throws Exception {

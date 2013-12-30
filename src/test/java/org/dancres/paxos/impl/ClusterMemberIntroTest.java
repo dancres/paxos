@@ -128,7 +128,7 @@ public class ClusterMemberIntroTest {
         //
         Assert.assertTrue(_node2.getCore().getCommon().getLowWatermark().getSeqNum() ==
                 _node3.getCore().getCommon().getLowWatermark().getSeqNum());
-        Assert.assertEquals(1, _node3.getAcceptorLearner().getRecoveryCycles());
+        Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getRecoveryCycles());
 
         // Node 3 should still have no membership
         //
@@ -150,8 +150,8 @@ public class ClusterMemberIntroTest {
         //
         Assert.assertTrue(_node2.getCore().getCommon().getLowWatermark().getSeqNum() ==
                 _node3.getCore().getCommon().getLowWatermark().getSeqNum());
-        Assert.assertEquals(1, _node3.getAcceptorLearner().getRecoveryCycles());
-        Assert.assertEquals(0, _node3.getAcceptorLearner().getActiveAccepts());
+        Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getRecoveryCycles());
+        Assert.assertEquals(0, _node3.getAcceptorLearner().getStats().getActiveAccepts());
 
         // Promote node 3
         //
@@ -179,8 +179,8 @@ public class ClusterMemberIntroTest {
         //
         Assert.assertTrue(_node2.getCore().getCommon().getLowWatermark().getSeqNum() ==
                 _node3.getCore().getCommon().getLowWatermark().getSeqNum());
-        Assert.assertEquals(1, _node3.getAcceptorLearner().getRecoveryCycles());
-        Assert.assertEquals(1, _node3.getAcceptorLearner().getActiveAccepts());
+        Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getRecoveryCycles());
+        Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getActiveAccepts());
 
         myTransport.terminate();
     }

@@ -30,6 +30,53 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author dan
  */
 public class AcceptorLearner implements MessageProcessor {
+    interface Stats {
+        public long getHeartbeatCount();
+        public long getIgnoredCollectsCount();
+        public long getActiveAccepts();
+        public long getRecoveryCycles();
+    }
+
+    private class StatsImpl implements Stats {
+        /**
+         * Statistic that tracks the number of Collects this AcceptorLearner ignored
+         * from competing leaders within DEFAULT_LEASE ms of activity from the
+         * current leader.
+         */
+        private final AtomicLong _ignoredCollects = new AtomicLong();
+
+        /**
+         * Statistic that tracks the number of leader heartbeats received.
+         */
+        private final AtomicLong _receivedHeartbeats = new AtomicLong();
+
+        /**
+         * Statistic that tracks the number of recoveries executed for this instance.
+         */
+        private final AtomicLong _recoveryCycles = new AtomicLong();
+
+        /**
+         * Statistic that tracks the number of active (non-recovery and as a member) votes for this instance.
+         */
+        private final AtomicLong _activeAccepts = new AtomicLong();
+
+        public long getHeartbeatCount() {
+            return _receivedHeartbeats.longValue();
+        }
+
+        public long getIgnoredCollectsCount() {
+            return _ignoredCollects.longValue();
+        }
+
+        public long getActiveAccepts() {
+            return _activeAccepts.longValue();
+        }
+
+        public long getRecoveryCycles() {
+            return _recoveryCycles.longValue();
+        }
+    }
+
     public static final String HEARTBEAT_KEY = "org.dancres.paxos.Hbt";
     public static final String MEMBER_CHANGE_KEY = "org.dancres.paxos.MemChg";
 
@@ -37,16 +84,7 @@ public class AcceptorLearner implements MessageProcessor {
 
 	private static final Logger _logger = LoggerFactory.getLogger(AcceptorLearner.class);
 
-	/**
-	 * Statistic that tracks the number of Collects this AcceptorLearner ignored
-	 * from competing leaders within DEFAULT_LEASE ms of activity from the
-	 * current leader.
-	 */
-	private final AtomicLong _ignoredCollects = new AtomicLong();
-	private final AtomicLong _receivedHeartbeats = new AtomicLong();
-    private final AtomicLong _recoveryCycles = new AtomicLong();
-    private final AtomicLong _activeAccepts = new AtomicLong();
-
+    private final StatsImpl _stats = new StatsImpl();
     private final AtomicLong _gracePeriod = new AtomicLong(DEFAULT_RECOVERY_GRACE_PERIOD);
 
     private final AtomicReference<TimerTask> _recoveryAlarm = new AtomicReference<>(null);
@@ -435,26 +473,8 @@ public class AcceptorLearner implements MessageProcessor {
         }
     }
 
-    /* ********************************************************************************************
-     *
-     * Stats methods
-     * 
-     ******************************************************************************************** */
-
-	long getHeartbeatCount() {
-		return _receivedHeartbeats.longValue();
-	}
-
-	long getIgnoredCollectsCount() {
-		return _ignoredCollects.longValue();
-	}
-
-    long getActiveAccepts() {
-        return _activeAccepts.longValue();
-    }
-
-    long getRecoveryCycles() {
-        return _recoveryCycles.longValue();
+    Stats getStats() {
+        return _stats;
     }
 
     /* ********************************************************************************************
@@ -551,7 +571,7 @@ public class AcceptorLearner implements MessageProcessor {
 
                                 if (myResult) {
                                     _recoveryWindow.set(aNeed);
-                                    _recoveryCycles.incrementAndGet();
+                                    _stats._recoveryCycles.incrementAndGet();
 
                                     /*
                                      * Both cachedBegins and acceptLedger run ahead of the low watermark thus if we're
@@ -749,10 +769,10 @@ public class AcceptorLearner implements MessageProcessor {
 				Collect myCollect = (Collect) myMessage;
 
 				if (!_common.amAccepting(aPacket)) {
-					_ignoredCollects.incrementAndGet();
+					_stats._ignoredCollects.incrementAndGet();
 
 					_logger.warn(toString() + " Not accepting: " + myCollect + ", "
-							+ getIgnoredCollectsCount());
+							+ _stats.getIgnoredCollectsCount());
 					return;
 				}
 
@@ -903,11 +923,11 @@ public class AcceptorLearner implements MessageProcessor {
         _common.install(new Watermark(mySeqNum, myLogOffset));
 
         if (myBegin.getConsolidatedValue().get(HEARTBEAT_KEY) != null) {
-            _receivedHeartbeats.incrementAndGet();
+            _stats._receivedHeartbeats.incrementAndGet();
 
             _logger.trace(toString() + " discarded heartbeat: "
                     + System.currentTimeMillis() + ", "
-                    + getHeartbeatCount());
+                    + _stats.getHeartbeatCount());
         } else if (myBegin.getConsolidatedValue().get(MEMBER_CHANGE_KEY) != null) {
             _logger.trace(toString() + " membership change received");
 
@@ -1027,7 +1047,7 @@ public class AcceptorLearner implements MessageProcessor {
                 return;
 
             if (aMessage.getType() == Operations.ACCEPT)
-                _activeAccepts.incrementAndGet();
+                _stats._activeAccepts.incrementAndGet();
 
             _logger.debug(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + aNodeId);
             _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), aNodeId);

@@ -72,6 +72,6 @@ public class IgnoreCollectsTest {
         // Must wait for message to make it's way to acceptor learners
         Thread.sleep(5000);
 
-        Assert.assertTrue(myAl.getIgnoredCollectsCount() == 1);
+        Assert.assertTrue(myAl.getStats().getIgnoredCollectsCount() == 1);
     }
 }
