@@ -1,7 +1,7 @@
 package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.messages.Need;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -13,7 +13,7 @@ public class NeedCodec implements Codec {
 		ByteBuffer myBuffer;
 		
 		myBuffer = ByteBuffer.allocate(4 + 8 + 8);
-		myBuffer.putInt(Operations.NEED);
+		myBuffer.putInt(PaxosMessage.Types.NEED);
 		myBuffer.putLong(myNeed.getMinSeq());
 		myBuffer.putLong(myNeed.getMaxSeq());
 		

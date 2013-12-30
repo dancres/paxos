@@ -5,10 +5,10 @@ import java.nio.ByteBuffer;
 
 import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.VoteOutcome;
@@ -78,7 +78,7 @@ public class PacketDropTest {
         }
 
         public void send(Packet aPacket, InetSocketAddress anAddress) {
-            if (aPacket.getMessage().getType() == Operations.HEARTBEAT)
+            if (aPacket.getMessage().getType() == PaxosMessage.Types.HEARTBEAT)
                 super.send(aPacket, anAddress);
         }
     }

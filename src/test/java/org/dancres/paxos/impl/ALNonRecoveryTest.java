@@ -3,12 +3,12 @@ package org.dancres.paxos.impl;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -161,7 +161,7 @@ public class ALNonRecoveryTest {
         public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {
             Packet myPacket = (Packet) anEvent.getMessage();
 
-            if (myPacket.getMessage().getType() != Operations.NEED) {
+            if (myPacket.getMessage().getType() != PaxosMessage.Types.NEED) {
                 super.messageReceived(aContext, anEvent);
                 return;
             }

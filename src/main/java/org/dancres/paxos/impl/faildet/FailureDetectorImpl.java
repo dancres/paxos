@@ -4,7 +4,6 @@ import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Membership;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.util.AbstractFuture;
 
@@ -163,7 +162,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     public void processMessage(Packet aPacket) {
         PaxosMessage myMessage = aPacket.getMessage();
 
-        if (myMessage.getType() == Operations.HEARTBEAT) {
+        if (myMessage.getType() == PaxosMessage.Types.HEARTBEAT) {
             MetaDataImpl myLast;
 
             final Heartbeat myHeartbeat = (Heartbeat) myMessage;

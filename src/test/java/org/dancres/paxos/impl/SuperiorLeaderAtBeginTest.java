@@ -11,7 +11,6 @@ import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.OldRound;
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -95,7 +94,7 @@ public class SuperiorLeaderAtBeginTest {
             PaxosMessage myMessage = aPacket.getMessage();
 
             if (_core.getAcceptorLearner().accepts(aPacket)) {
-                if (myMessage.getType() == Operations.BEGIN) {
+                if (myMessage.getType() == PaxosMessage.Types.BEGIN) {
                     Begin myBegin = (Begin) myMessage;
 
                     _tp.send(

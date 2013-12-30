@@ -16,7 +16,7 @@ public class Collect implements PaxosMessage {
     }
 
     public int getType() {
-        return Operations.COLLECT;
+        return Types.COLLECT;
     }
     
     public EnumSet<Classification> getClassifications() {

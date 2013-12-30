@@ -1,6 +1,5 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import java.util.EnumSet;
@@ -18,7 +17,7 @@ public class Heartbeat implements PaxosMessage {
     }
     
     public int getType() {
-        return Operations.HEARTBEAT;
+        return Types.HEARTBEAT;
     }
 
     public EnumSet<Classification> getClassifications() {

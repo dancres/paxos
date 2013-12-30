@@ -1,7 +1,7 @@
 package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.impl.faildet.Heartbeat;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -11,7 +11,7 @@ public class HeartbeatCodec implements Codec {
         int myMetaDataLength = myHB.getMetaData().length;
         ByteBuffer myBuffer = ByteBuffer.allocate(8 + myMetaDataLength);
 
-        myBuffer.putInt(Operations.HEARTBEAT);
+        myBuffer.putInt(PaxosMessage.Types.HEARTBEAT);
         myBuffer.putInt(myMetaDataLength);
         myBuffer.put(myHB.getMetaData());
         myBuffer.flip();

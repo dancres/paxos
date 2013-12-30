@@ -2,7 +2,7 @@ package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Envelope;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -15,7 +15,7 @@ public class EnvelopeCodec implements Codec {
 
         // Length count does not include length bytes themselves
         //
-        myBuffer.putInt(Operations.ENVELOPE);
+        myBuffer.putInt(PaxosMessage.Types.ENVELOPE);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myEnvelope.getSeqNum());
         myBuffer.put(myBytes);

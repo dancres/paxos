@@ -26,7 +26,7 @@ public class Last implements PaxosMessage, LeaderSelection {
     }
 
     public int getType() {
-        return Operations.LAST;
+        return Types.LAST;
     }
 
     public EnumSet<Classification> getClassifications() {

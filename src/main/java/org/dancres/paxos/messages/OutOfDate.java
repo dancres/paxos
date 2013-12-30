@@ -21,7 +21,7 @@ public class OutOfDate implements PaxosMessage {
     }
 
     public int getType() {
-        return Operations.OUTOFDATE;
+        return Types.OUTOFDATE;
     }
 
     public String toString() {

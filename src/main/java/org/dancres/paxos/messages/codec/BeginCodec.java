@@ -2,7 +2,7 @@ package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Begin;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -15,7 +15,7 @@ class BeginCodec implements Codec {
 
         myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + myBytes.length);
 
-        myBuffer.putInt(Operations.BEGIN);
+        myBuffer.putInt(PaxosMessage.Types.BEGIN);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myBegin.getSeqNum());
         myBuffer.putLong(myBegin.getRndNumber());

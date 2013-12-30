@@ -11,7 +11,6 @@ import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Last;
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.net.*;
 import org.dancres.paxos.test.utils.FileSystem;
@@ -108,7 +107,7 @@ public class OldAlStateTest {
 		myAl.processMessage(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum)));
 		
 		PaxosMessage myResponse = myTransport.getNextMsg();	
-		Assert.assertTrue(myResponse.getType() == Operations.LAST);
+		Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.LAST);
 		
 		// Now push a value into the Al
 		//
@@ -121,7 +120,7 @@ public class OldAlStateTest {
                 new Begin(mySeqNum, myRndNum, myValue)));
 		
 		myResponse = myTransport.getNextMsg();
-		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
+		Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.ACCEPT);
 
 		/* 
 		 * Emulate leader having to do recovery and re-run the paxos instance with a new rnd number - the response
@@ -140,7 +139,7 @@ public class OldAlStateTest {
                 new Begin(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue())));
 		
 		myResponse = myTransport.getNextMsg();
-		Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
+		Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.ACCEPT);
 		
 		myAl.close();
 	}	

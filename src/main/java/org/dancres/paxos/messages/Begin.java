@@ -16,7 +16,7 @@ public class Begin implements PaxosMessage {
     }
 
     public int getType() {
-        return Operations.BEGIN;
+        return Types.BEGIN;
     }
 
     public EnumSet<Classification> getClassifications() {

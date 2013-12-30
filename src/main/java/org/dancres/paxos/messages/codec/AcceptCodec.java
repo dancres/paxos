@@ -1,7 +1,7 @@
 package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.messages.Accept;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -12,7 +12,7 @@ public class AcceptCodec implements Codec {
         // 4-byte length, 4-byte op, 3 * 8 bytes for Accept
         ByteBuffer myBuffer = ByteBuffer.allocate(4 + 8 + 8);
 
-        myBuffer.putInt(Operations.ACCEPT);
+        myBuffer.putInt(PaxosMessage.Types.ACCEPT);
         myBuffer.putLong(myAccept.getSeqNum());
         myBuffer.putLong(myAccept.getRndNumber());
 

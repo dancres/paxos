@@ -1,7 +1,7 @@
 package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.messages.OldRound;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -12,7 +12,7 @@ public class OldRoundCodec implements Codec {
         // 4-byte length, 4-byte op, 4 * 8 bytes for OldRound
         ByteBuffer myBuffer = ByteBuffer.allocate(4 + 8 + 8 + 8);
 
-        myBuffer.putInt(Operations.OLDROUND);
+        myBuffer.putInt(PaxosMessage.Types.OLDROUND);
         myBuffer.putLong(myOldRound.getSeqNum());
         myBuffer.putLong(Codecs.flatten(myOldRound.getLeaderNodeId()));
         myBuffer.putLong(myOldRound.getLastRound());

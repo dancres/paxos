@@ -22,7 +22,7 @@ public class Envelope implements PaxosMessage {
     }
 
     public int getType() {
-        return Operations.ENVELOPE;
+        return Types.ENVELOPE;
     }
 
     public EnumSet<Classification> getClassifications() {

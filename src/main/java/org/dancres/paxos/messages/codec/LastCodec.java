@@ -2,7 +2,7 @@ package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Last;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -18,7 +18,7 @@ public class LastCodec implements Codec {
         else
             myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + myBytes.length);
 
-        myBuffer.putInt(Operations.LAST);
+        myBuffer.putInt(PaxosMessage.Types.LAST);
 
         if (myBytes == null)
             myBuffer.putInt(0);

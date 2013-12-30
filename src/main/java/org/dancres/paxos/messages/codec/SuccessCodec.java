@@ -1,7 +1,7 @@
 package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.messages.Learned;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -13,7 +13,7 @@ public class SuccessCodec implements Codec {
 
         myBuffer = ByteBuffer.allocate(4 + 8 + 8);
 
-        myBuffer.putInt(Operations.LEARNED);
+        myBuffer.putInt(PaxosMessage.Types.LEARNED);
         myBuffer.putLong(myLearned.getSeqNum());
         myBuffer.putLong(myLearned.getRndNum());
 

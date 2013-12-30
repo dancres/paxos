@@ -1,6 +1,5 @@
 package org.dancres.paxos.messages.codec;
 
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetAddress;
@@ -12,17 +11,17 @@ import java.util.*;
 public class Codecs {
     private static final Map<Integer, Codec> CODECS =
             Collections.unmodifiableMap(new HashMap<Integer, Codec>() {{
-                put(Operations.HEARTBEAT, new HeartbeatCodec());
-                put(Operations.OUTOFDATE, new OutOfDateCodec());
-                put(Operations.ENVELOPE, new EnvelopeCodec());
-                put(Operations.COLLECT, new CollectCodec());
-                put(Operations.LAST, new LastCodec());
-                put(Operations.BEGIN, new BeginCodec());
-                put(Operations.ACCEPT, new AcceptCodec());
-                put(Operations.LEARNED, new SuccessCodec());
-                put(Operations.OLDROUND, new OldRoundCodec());
-                put(Operations.NEED, new NeedCodec());
-                put(Operations.EVENT, new EventCodec());
+                put(PaxosMessage.Types.HEARTBEAT, new HeartbeatCodec());
+                put(PaxosMessage.Types.OUTOFDATE, new OutOfDateCodec());
+                put(PaxosMessage.Types.ENVELOPE, new EnvelopeCodec());
+                put(PaxosMessage.Types.COLLECT, new CollectCodec());
+                put(PaxosMessage.Types.LAST, new LastCodec());
+                put(PaxosMessage.Types.BEGIN, new BeginCodec());
+                put(PaxosMessage.Types.ACCEPT, new AcceptCodec());
+                put(PaxosMessage.Types.LEARNED, new SuccessCodec());
+                put(PaxosMessage.Types.OLDROUND, new OldRoundCodec());
+                put(PaxosMessage.Types.NEED, new NeedCodec());
+                put(PaxosMessage.Types.EVENT, new EventCodec());
             }});
 
     public static byte[] encode(PaxosMessage aMessage) {

@@ -15,7 +15,7 @@ public class Accept implements PaxosMessage, LeaderSelection {
     }
 
     public int getType() {
-        return Operations.ACCEPT;
+        return Types.ACCEPT;
     }
 
     public EnumSet<Classification> getClassifications() {

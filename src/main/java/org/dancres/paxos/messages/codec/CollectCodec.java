@@ -1,7 +1,7 @@
 package org.dancres.paxos.messages.codec;
 
 import org.dancres.paxos.messages.Collect;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -11,7 +11,7 @@ public class CollectCodec implements Codec {
 
         ByteBuffer myBuffer = ByteBuffer.allocate(4 + 8 + 8);
 
-        myBuffer.putInt(Operations.COLLECT);
+        myBuffer.putInt(PaxosMessage.Types.COLLECT);
         myBuffer.putLong(myCollect.getSeqNum());
         myBuffer.putLong(myCollect.getRndNumber());
 

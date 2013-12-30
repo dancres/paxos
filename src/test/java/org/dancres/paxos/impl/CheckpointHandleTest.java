@@ -10,7 +10,6 @@ import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
-import org.dancres.paxos.messages.Operations;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Learned;
 import org.dancres.paxos.test.net.*;
@@ -113,7 +112,7 @@ public class CheckpointHandleTest {
         myAl.processMessage(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum)));
 
         PaxosMessage myResponse = myTransport.getNextMsg();
-        Assert.assertTrue(myResponse.getType() == Operations.LAST);
+        Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.LAST);
 
         // Now push a value into the Al, also held in packet buffer
         //
@@ -126,7 +125,7 @@ public class CheckpointHandleTest {
                 new Begin(mySeqNum, myRndNum, myValue)));
 
         myResponse = myTransport.getNextMsg();
-        Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
+        Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.ACCEPT);
 
         // Commit this instance
         //
@@ -142,7 +141,7 @@ public class CheckpointHandleTest {
                 new Begin(mySeqNum + 1, myRndNum, myValue)));
 
         myResponse = myTransport.getNextMsg();
-        Assert.assertTrue(myResponse.getType() == Operations.ACCEPT);
+        Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.ACCEPT);
 
         // Commit this instance
         //

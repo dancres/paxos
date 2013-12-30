@@ -514,7 +514,7 @@ public class AcceptorLearner implements MessageProcessor {
                      * to get themselves back up-to-date. This means there's no danger in us streaming loud and proud
                      * to that node using a LiveSender and a ReplayWriter.
                      */
-                    case Operations.NEED : {
+                    case PaxosMessage.Types.NEED : {
                         _logger.debug("Serving NEED from recovery " + aPacket);
 
                         process(aPacket, new ReplayWriter(0), new LiveSender());
@@ -524,7 +524,7 @@ public class AcceptorLearner implements MessageProcessor {
 
                     // If we're out of date, we need to get the user-code to find a checkpoint
                     //
-                    case Operations.OUTOFDATE : {
+                    case PaxosMessage.Types.OUTOFDATE : {
                         synchronized(this) {
                             completedRecovery();
                             _common.getNodeState().set(NodeState.State.OUT_OF_DATE);
@@ -743,7 +743,7 @@ public class AcceptorLearner implements MessageProcessor {
                 ", loWmk " + Long.toHexString(_common.getLowWatermark().getSeqNum()));
 
 		switch (myMessage.getType()) {
-            case Operations.NEED : {
+            case PaxosMessage.Types.NEED : {
                 final Need myNeed = (Need) myMessage;
 
                 /*
@@ -765,7 +765,7 @@ public class AcceptorLearner implements MessageProcessor {
                 break;
             }
 			
-			case Operations.COLLECT: {
+			case PaxosMessage.Types.COLLECT: {
 				Collect myCollect = (Collect) myMessage;
 
 				if (!_common.amAccepting(aPacket)) {
@@ -806,7 +806,7 @@ public class AcceptorLearner implements MessageProcessor {
 				break;
 			}
 
-			case Operations.BEGIN: {
+			case PaxosMessage.Types.BEGIN: {
 				Begin myBegin = (Begin) myMessage;
 
 				// If the begin matches the last round of a collect we're fine
@@ -859,7 +859,7 @@ public class AcceptorLearner implements MessageProcessor {
 				break;
 			}
 
-            case Operations.ACCEPT: {
+            case PaxosMessage.Types.ACCEPT: {
                 Accept myAccept = (Accept) myMessage;
 
                 // Don't process a value we've already learnt...
@@ -888,7 +888,7 @@ public class AcceptorLearner implements MessageProcessor {
              *
              * ACCEPTs themselves are never logged individually or even as a group.
              */
-			case Operations.LEARNED: {
+			case PaxosMessage.Types.LEARNED: {
                 if (_cachedBegins.get(myMessage.getSeqNum()) != null)
                     learned(aPacket, aWriter);
 
@@ -1046,7 +1046,7 @@ public class AcceptorLearner implements MessageProcessor {
             if (_common.getNodeState().test(NodeState.State.SHUTDOWN))
                 return;
 
-            if (aMessage.getType() == Operations.ACCEPT)
+            if (aMessage.getType() == PaxosMessage.Types.ACCEPT)
                 _stats._activeAccepts.incrementAndGet();
 
             _logger.debug(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + aNodeId);
@@ -1111,7 +1111,7 @@ public class AcceptorLearner implements MessageProcessor {
         public void process(Transport.Packet aPacket, long aLogOffset) {
             PaxosMessage myMessage = aPacket.getMessage();
 
-            if (myMessage.getType() == Operations.BEGIN) {
+            if (myMessage.getType() == PaxosMessage.Types.BEGIN) {
                 Begin myBegin = (Begin) myMessage;
 
                 if (_lastBegin == null) {

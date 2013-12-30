@@ -16,7 +16,7 @@ public class Event implements PaxosMessage {
     }
 
     public int getType() {
-        return Operations.EVENT;
+        return Types.EVENT;
     }
 
     public long getSeqNum() {

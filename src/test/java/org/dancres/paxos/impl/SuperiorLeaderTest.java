@@ -90,7 +90,7 @@ public class SuperiorLeaderTest {
             PaxosMessage myMessage = aPacket.getMessage();
 
             if (_core.getAcceptorLearner().accepts(aPacket)) {
-                if (myMessage.getType() == Operations.COLLECT) {
+                if (myMessage.getType() == PaxosMessage.Types.COLLECT) {
                     Collect myCollect = (Collect) myMessage;
 
                     _tp.send(

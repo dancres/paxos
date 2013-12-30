@@ -3,7 +3,7 @@ package org.dancres.paxos.messages.codec;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.messages.Event;
-import org.dancres.paxos.messages.Operations;
+import org.dancres.paxos.messages.PaxosMessage;
 
 import java.nio.ByteBuffer;
 
@@ -21,7 +21,7 @@ public class EventCodec implements Codec {
 
         myBuffer = ByteBuffer.allocate(4 + 4 + 8 + 8 + 4 + 8 + myBytes.length);
 
-        myBuffer.putInt(Operations.EVENT);
+        myBuffer.putInt(PaxosMessage.Types.EVENT);
         myBuffer.putInt(myBytes.length);
         myBuffer.putLong(myEvent.getSeqNum());
         myBuffer.putLong(myOutcome.getRndNumber());

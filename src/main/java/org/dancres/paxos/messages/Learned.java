@@ -12,7 +12,7 @@ public class Learned implements PaxosMessage {
     }
 
     public int getType() {
-        return Operations.LEARNED;
+        return Types.LEARNED;
     }
 
     public EnumSet<Classification> getClassifications() {

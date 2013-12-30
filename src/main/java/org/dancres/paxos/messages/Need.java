@@ -26,7 +26,7 @@ public class Need implements PaxosMessage {
 	}
 
 	public int getType() {
-		return Operations.NEED;
+		return Types.NEED;
 	}
 	
 	public long getMinSeq() {

@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.MemoryLogStorage;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
@@ -13,7 +14,6 @@ import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.messages.Last;
-import org.dancres.paxos.messages.Operations;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -176,7 +176,7 @@ public class LastHandlingTest {
                 if (_seenLast)
                     _tp.send(aPacket, anAddr);
                 else {
-                    if (aPacket.getMessage().getType() == Operations.LAST) {
+                    if (aPacket.getMessage().getType() == PaxosMessage.Types.LAST) {
                         ByteBuffer myBuffer = ByteBuffer.allocate(4);
                         myBuffer.putInt(66);
 

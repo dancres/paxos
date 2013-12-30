@@ -26,7 +26,7 @@ public class OldRound implements PaxosMessage, LeaderSelection {
     }
 
     public int getType() {
-        return Operations.OLDROUND;
+        return Types.OLDROUND;
     }
 
     public EnumSet<Classification> getClassifications() {
