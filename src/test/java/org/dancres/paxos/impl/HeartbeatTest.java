@@ -62,7 +62,7 @@ public class HeartbeatTest {
         //
         AcceptorLearner myAl = _node2.getAcceptorLearner();
 
-        Thread.sleep(5000 + Constants.getLeaderLeaseDuration());
+        Thread.sleep(5000 + Leader.LeaseDuration.get());
 
         Assert.assertTrue(myAl.getStats().getHeartbeatCount() == 1);
     }

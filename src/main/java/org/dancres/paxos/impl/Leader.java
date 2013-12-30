@@ -20,7 +20,20 @@ import java.util.concurrent.LinkedBlockingDeque;
  * @author dan
  */
 class Leader implements Instance {
-    
+
+    static class LeaseDuration {
+        private static final long DEFAULT_LEADER_LEASE = 30000;
+        private static volatile long _leaderLease = DEFAULT_LEADER_LEASE;
+
+        public static void set(long aDuration) {
+            _leaderLease = aDuration;
+        }
+
+        public static long get() {
+            return _leaderLease;
+        }
+    }
+
     private static final Logger _logger = LoggerFactory.getLogger(Leader.class);
 
     private static final List<Transport.Packet> NO_MESSAGES = Collections.emptyList();

@@ -39,7 +39,7 @@ public class OutOfDateLeaderTest {
 
         Runtime.getRuntime().runFinalizersOnExit(true);
 
-        Constants.setLeaderLeaseDuration(10000);
+        Leader.LeaseDuration.set(10000);
 
         _node1 = new ServerDispatcher(new HowlLogger(_node1Log), true);
         _node2 = new ServerDispatcher(new HowlLogger(_node2Log), true);
@@ -109,7 +109,7 @@ public class OutOfDateLeaderTest {
 
         // Need current leader lease to expire
         //
-        Thread.sleep(Constants.getLeaderLeaseDuration() + 1000);
+        Thread.sleep(Leader.LeaseDuration.get() + 1000);
 
         // Run another instance should cause _node3 to fail with OTHER_LEADER
         //

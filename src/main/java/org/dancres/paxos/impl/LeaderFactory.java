@@ -128,7 +128,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     }
 
     private long calculateLeaderRefresh() {
-        long myExpiry = Constants.getLeaderLeaseDuration();
+        long myExpiry = Leader.LeaseDuration.get();
         return myExpiry - (myExpiry * 10 / 100);
     }
 

@@ -1,6 +1,5 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -176,11 +175,11 @@ class Common {
                 return true;
             } else
                 _logger.trace("Check leader expiry: " + myCurrentTime + ", " + _lastLeaderActionTime.get() + ", " +
-                        Constants.getLeaderLeaseDuration() + ", " + (myCurrentTime > _lastLeaderActionTime.get()
-                        + Constants.getLeaderLeaseDuration()));
+                        Leader.LeaseDuration.get() + ", " + (myCurrentTime > _lastLeaderActionTime.get()
+                        + Leader.LeaseDuration.get()));
 
             return (myCurrentTime > _lastLeaderActionTime.get()
-                    + Constants.getLeaderLeaseDuration());
+                    + Leader.LeaseDuration.get());
         }
     }
 
