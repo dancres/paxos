@@ -12,7 +12,7 @@ import org.junit.Test;
 
 import java.net.InetSocketAddress;
 
-public class SimpleMembershpChangeTest {
+public class SimpleMembershipChangeTest {
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
