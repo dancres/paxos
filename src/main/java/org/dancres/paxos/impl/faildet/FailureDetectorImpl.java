@@ -131,6 +131,8 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     public void stop() {
+        notifyListeners(State.STOPPED);
+
         _stopping.set(true);
         _tasks.cancel();
     }

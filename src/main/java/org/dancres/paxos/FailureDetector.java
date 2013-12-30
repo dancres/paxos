@@ -12,7 +12,7 @@ import java.util.concurrent.Future;
  * @author dan
  */
 public interface FailureDetector {
-    enum State {PINNED, OPEN}
+    enum State {PINNED, OPEN, STOPPED}
 
     public interface StateListener {
         public void change(FailureDetector aDetector, State aState);

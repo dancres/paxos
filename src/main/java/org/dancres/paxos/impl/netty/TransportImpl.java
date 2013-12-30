@@ -175,12 +175,32 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
              */
             _fd.addListener(new FailureDetector.StateListener() {
                                 public void change(FailureDetector aDetector, FailureDetector.State aState) {
-                                    if ((aState.equals(FailureDetector.State.PINNED)) &&
-                                            (_hb == null)) {
-                                        _logger.debug("Activating Heartbeater");
+                                    switch(aState) {
+                                        case PINNED : {
+                                            if (_hb == null) {
+                                                _logger.debug("Activating Heartbeater");
 
-                                        _hb = _fd.newHeartbeater(TransportImpl.this, _meta);
-                                        _hb.start();
+                                                _hb = _fd.newHeartbeater(TransportImpl.this, _meta);
+                                                _hb.start();
+                                            }
+
+                                            break;
+                                        }
+
+                                        case STOPPED : {
+                                            if (_hb != null) {
+                                                _logger.debug("Deactivating Heartbeater");
+
+                                                _hb.halt();
+
+                                                try {
+                                                    _hb.join();
+                                                } catch (InterruptedException anIE) {
+                                                }
+                                            }
+
+                                            break;
+                                        }
                                     }
                                 }
                             });
@@ -218,15 +238,6 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 
     public void terminate() {
 		_isStopping.set(true);
-
-        if (_hb != null) {
-            _hb.halt();
-
-            try {
-                _hb.join();
-            } catch (InterruptedException anIE) {
-            }
-        }
 
         if (_fd != null)
             _fd.stop();
