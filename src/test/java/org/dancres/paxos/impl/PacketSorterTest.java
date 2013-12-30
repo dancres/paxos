@@ -8,6 +8,8 @@ import org.dancres.paxos.messages.Need;
 import org.dancres.paxos.test.net.FakePacket;
 import org.junit.Test;
 
+import java.net.InetSocketAddress;
+
 public class PacketSorterTest {
     @Test
     public void checkConsume() {
@@ -99,7 +101,7 @@ public class PacketSorterTest {
             _consumed++;
         }
 
-        public boolean recover(Need aNeed) {
+        public boolean recover(Need aNeed, InetSocketAddress aTriggeringSource) {
             _recoveryRequested = true;
             return _recoveryReturn;
         }
