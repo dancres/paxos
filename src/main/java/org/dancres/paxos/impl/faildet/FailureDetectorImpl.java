@@ -167,9 +167,9 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
             final Heartbeat myHeartbeat = (Heartbeat) myMessage;
             final InetSocketAddress myNodeId = aPacket.getSource();
 
-            // If we see a heartbeat from a node that isn't pinned, ignore it
+            // If we aren't pinned or see a heartbeat from a node that isn't pinned, ignore it
             //
-            if ((_pinned != null) && (! _pinned.contains(myNodeId)))
+            if ((_pinned == null) || ((_pinned != null) && (! _pinned.contains(myNodeId))))
                 return;
 
             for (;;) {
