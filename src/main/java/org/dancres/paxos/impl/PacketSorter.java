@@ -2,6 +2,7 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.messages.Need;
 
+import java.net.InetSocketAddress;
 import java.util.*;
 
 class PacketSorter {
@@ -59,8 +60,10 @@ class PacketSorter {
             SortedSet<Long> myAllSeqs = new TreeSet<>(_packets.keySet());
             Long myLastSeq = myAllSeqs.last();
 
-            if (myLastSeq > (aLowWatermark + MAX_INFLIGHT))
-                if (aProcessor.recover(new Need(aLowWatermark, myAllSeqs.last() - 1))) {
+            if (myLastSeq > (aLowWatermark + MAX_INFLIGHT)) {
+                InetSocketAddress myTriggerAddr = _packets.get(myLastSeq).get(0).getSource();
+
+                if (aProcessor.recover(new Need(aLowWatermark, myAllSeqs.last() - 1), myTriggerAddr)) {
                     synchronized(this) {
                         List<Transport.Packet> myLastPackets = _packets.get(myLastSeq);
 
@@ -68,6 +71,7 @@ class PacketSorter {
                         _packets.put(myLastSeq, myLastPackets);
                     }
                 }
+            }
 
             return 0;
         } else {
@@ -104,8 +108,10 @@ class PacketSorter {
 
         /**
          * @param aNeed
+         * @param aSourceAddr the node that originated the packet triggering recovery
+         *
          * @return true if the transition to recovery was successful
          */
-        boolean recover(Need aNeed);
+        boolean recover(Need aNeed, InetSocketAddress aSourceAddr);
     }
 }

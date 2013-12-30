@@ -535,7 +535,7 @@ public class AcceptorLearner implements MessageProcessor {
                                 }
                             }
 
-                            public boolean recover(Need aNeed) {
+                            public boolean recover(Need aNeed, InetSocketAddress aSourceAddr) {
                                 boolean myResult = _common.getNodeState().testAndSet(NodeState.State.ACTIVE,
                                         NodeState.State.RECOVERING);
 
@@ -585,8 +585,15 @@ public class AcceptorLearner implements MessageProcessor {
                                     InetSocketAddress myNeedTarget = _common.getTransport().getFD().getRandomMember(
                                             _common.getTransport().getLocalAddress());
 
+                                    /*
+                                     * Prefer random selection as it helps spread load but fallback to source node
+                                     * (likely the current leader) if all else fails (e.g. because we have no valid
+                                     * membership).
+                                     */
                                     if (myNeedTarget != null)
                                         new LiveSender().send(aNeed, myNeedTarget);
+                                    else
+                                        new LiveSender().send(aNeed, aSourceAddr);
 
                                     // Startup recovery watchdog
                                     //
