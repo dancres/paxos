@@ -44,6 +44,8 @@ public class AcceptorLearner implements MessageProcessor {
 	 */
 	private final AtomicLong _ignoredCollects = new AtomicLong();
 	private final AtomicLong _receivedHeartbeats = new AtomicLong();
+    private final AtomicLong _recoveryCycles = new AtomicLong();
+    private final AtomicLong _activeAccepts = new AtomicLong();
 
     private final AtomicLong _gracePeriod = new AtomicLong(DEFAULT_RECOVERY_GRACE_PERIOD);
 
@@ -447,6 +449,14 @@ public class AcceptorLearner implements MessageProcessor {
 		return _ignoredCollects.longValue();
 	}
 
+    long getActiveAccepts() {
+        return _activeAccepts.longValue();
+    }
+
+    long getRecoveryCycles() {
+        return _recoveryCycles.longValue();
+    }
+
     /* ********************************************************************************************
      *
      * Core message processing
@@ -541,6 +551,7 @@ public class AcceptorLearner implements MessageProcessor {
 
                                 if (myResult) {
                                     _recoveryWindow.set(aNeed);
+                                    _recoveryCycles.incrementAndGet();
 
                                     /*
                                      * Both cachedBegins and acceptLedger run ahead of the low watermark thus if we're
@@ -1014,6 +1025,9 @@ public class AcceptorLearner implements MessageProcessor {
             //
             if (_common.getNodeState().test(NodeState.State.SHUTDOWN))
                 return;
+
+            if (aMessage.getType() == Operations.ACCEPT)
+                _activeAccepts.incrementAndGet();
 
             _logger.debug(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + aNodeId);
             _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), aNodeId);
