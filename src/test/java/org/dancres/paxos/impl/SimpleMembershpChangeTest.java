@@ -12,7 +12,7 @@ import org.junit.Test;
 
 import java.net.InetSocketAddress;
 
-public class SimpleLeaderChangeTest {
+public class SimpleMembershpChangeTest {
     private ServerDispatcher _node1;
     private ServerDispatcher _node2;
 
@@ -52,6 +52,7 @@ public class SimpleLeaderChangeTest {
         boolean myResult = _node1.getCore().updateMembership(_fd1.getMembers().getMemberMap().keySet());
 
         Assert.assertTrue(myResult);
+        Assert.assertNotSame(FailureDetectorImpl.OPEN_PIN, _fd1.getPinned());
         Assert.assertEquals(2, _fd1.getPinned().size());
 
         for (InetSocketAddress myAddr : _fd1.getMembers().getMemberMap().keySet())
