@@ -5,14 +5,24 @@ import org.junit.Assert;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class FDUtil {
     public static void ensureFD(FailureDetector anFD) throws Exception {
-        for (int i = 0; i < 4; i++) {
-            if (anFD.barrier().get(5000, TimeUnit.MILLISECONDS) != null)
-                return;
+        testFD(anFD);
+    }
+
+    public static void testFD(FailureDetector anFD) throws Exception {
+        Assert.assertTrue("Membership not achieved", testFD(anFD, 20000));
+    }
+
+    public static boolean testFD(FailureDetector anFD, long aTimeout) throws Exception {
+        try {
+            if (anFD.barrier().get(aTimeout, TimeUnit.MILLISECONDS) != null)
+                return true;
+        } catch (TimeoutException aTE) {
         }
 
-        Assert.assertTrue("Membership not achieved", false);
+        return false;
     }
 }
