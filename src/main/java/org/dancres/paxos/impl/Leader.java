@@ -322,6 +322,8 @@ class Leader implements Instance {
         _stateMachine.transition(State.ABORT);
         _outcomes.add(new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
                 myOldRound.getLastRound(), _prop, myCompetingNodeId));
+        _common.signal(new StateEvent(StateEvent.Reason.NEW_LEADER, myOldRound.getSeqNum(), myOldRound.getLastRound(),
+                Proposal.NO_VALUE, myCompetingNodeId));
 
         process(NO_MESSAGES);
     }

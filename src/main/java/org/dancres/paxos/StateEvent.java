@@ -22,7 +22,12 @@ public class StateEvent {
         /**
          * This process is no longer lagging behind the paxos cluster and will report decisions accordingly.
          */
-        UP_TO_DATE
+        UP_TO_DATE,
+
+        /**
+         * A new leader has been elected
+         */
+        NEW_LEADER
     }
 
     private final Reason _result;

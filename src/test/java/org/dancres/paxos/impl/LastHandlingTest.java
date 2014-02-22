@@ -76,6 +76,9 @@ public class LastHandlingTest {
         }
 
         public void transition(StateEvent anEvent) {
+            Assert.assertTrue(anEvent.getResult().equals(StateEvent.Reason.NEW_LEADER) ||
+                anEvent.getResult().equals(StateEvent.Reason.VALUE));
+
             synchronized(this) {
                 ++_readyCount;
             }
@@ -114,8 +117,10 @@ public class LastHandlingTest {
         Assert.assertTrue(myEv.getResult() == VoteOutcome.Reason.OTHER_VALUE);
 
         Thread.sleep(5000);
-        
-        Assert.assertTrue("Listener count should be 1 but is: " + myListener.getCount(), myListener.testCount(1));
+
+        // Listener should see announce of a leader and a value
+        //
+        Assert.assertTrue("Listener count should be 2 but is: " + myListener.getCount(), myListener.testCount(2));
     }
 
     class LastListenerImpl implements Transport.Dispatcher {

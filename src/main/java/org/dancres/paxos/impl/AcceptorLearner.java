@@ -783,6 +783,10 @@ public class AcceptorLearner implements MessageProcessor {
                     
                     aSender.send(constructLast(myCollect), myNodeId);
 
+                    _common.signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
+                            _common.getLeaderRndNum(),
+                            Proposal.NO_VALUE, myNodeId));
+
 					/*
 					 * If the collect comes from the current leader (has same rnd
 					 * and node), we apply the multi-paxos optimisation, no need to

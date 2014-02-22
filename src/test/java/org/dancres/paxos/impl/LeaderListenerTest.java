@@ -66,10 +66,11 @@ public class LeaderListenerTest {
         /*
          * Packets are delivered in one or more separate threads and can actually arrive (due to scheduling vagaries and multiple processors) before the
          * listener get's a signal which can mean our count can be inaccurate.  We must wait just a small amount of settling time.
+         * Count includes a leader announcement
          */
         Thread.sleep(2000);
         
-        Assert.assertTrue("Listener count should be 5 but is: " + myListener.getCount(), myListener.testCount(5));
+        Assert.assertTrue("Listener count should be 6 but is: " + myListener.getCount(), myListener.testCount(6));
     }
 
     private class ListenerImpl implements Listener {
@@ -88,6 +89,9 @@ public class LeaderListenerTest {
         }
 
         public void transition(StateEvent anEvent) {
+            Assert.assertTrue(anEvent.getResult().equals(StateEvent.Reason.NEW_LEADER) ||
+                    anEvent.getResult().equals(StateEvent.Reason.VALUE));
+
             synchronized(this) {
                 ++_readyCount;
             }
