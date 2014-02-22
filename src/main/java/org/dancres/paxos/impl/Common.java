@@ -1,5 +1,7 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Listener;
+import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -8,7 +10,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
+import java.util.List;
 import java.util.Timer;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -24,6 +28,7 @@ class Common {
     private final AtomicReference<AcceptorLearner.Watermark> _lowWatermark =
             new AtomicReference<>(AcceptorLearner.Watermark.INITIAL);
     private final LeaderUtils _leaderUtils = new LeaderUtils();
+    private final List<Listener> _listeners = new CopyOnWriteArrayList<>();
 
     private class FakePacket implements Transport.Packet {
         private final PaxosMessage _message;
@@ -197,5 +202,16 @@ class Common {
 
     NodeState getNodeState() {
         return _nodeState;
+    }
+
+    void add(Listener aListener) {
+        synchronized(_listeners) {
+            _listeners.add(aListener);
+        }
+    }
+
+    void signal(StateEvent aStatus) {
+        for (Listener myTarget : _listeners)
+            myTarget.transition(aStatus);
     }
 }

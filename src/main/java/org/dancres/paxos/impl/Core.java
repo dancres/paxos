@@ -90,7 +90,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public void add(Listener aListener) {
-    	_al.add(aListener);
+    	_common.add(aListener);
     }
     
     public boolean messageReceived(Packet aPacket) {

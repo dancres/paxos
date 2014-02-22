@@ -90,8 +90,6 @@ public class AcceptorLearner implements MessageProcessor {
     private final AtomicReference<TimerTask> _recoveryAlarm = new AtomicReference<>(null);
     private final AtomicReference<Need> _recoveryWindow = new AtomicReference<>(null);
 
-    private final List<Listener> _listeners = new CopyOnWriteArrayList<>();
-
 	private final LogStorage _storage;
     private final Common _common;
     private final PacketSorter _sorter = new PacketSorter();
@@ -253,7 +251,7 @@ public class AcceptorLearner implements MessageProcessor {
     AcceptorLearner(LogStorage aStore, Common aCommon, Listener anInitialListener) {
         _storage = aStore;
         _common = aCommon;
-        _listeners.add(anInitialListener);
+        _common.add(anInitialListener);
     }
 
     private boolean guard() {
@@ -458,7 +456,7 @@ public class AcceptorLearner implements MessageProcessor {
              * live packet processing.
              */
             _common.leaderAction();
-            signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
+            _common.signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
                     myHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
                         Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
@@ -532,7 +530,7 @@ public class AcceptorLearner implements MessageProcessor {
 
                         // Signal with node that pronounced us out of date - likely user code will get ckpt from there.
                         //
-                        signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
+                        _common.signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
                                 _common.getLeaderRndNum(),
                                 new Proposal(), aPacket.getSource()));
                         return;
@@ -940,7 +938,7 @@ public class AcceptorLearner implements MessageProcessor {
         } else {
             _logger.debug(toString() + " Learnt value: " + mySeqNum);
 
-            signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
+            _common.signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
                     _common.getLeaderRndNum(),
                     myBegin.getConsolidatedValue(), aPacket.getSource()));
         }
@@ -1159,17 +1157,6 @@ public class AcceptorLearner implements MessageProcessor {
             _logger.trace(AcceptorLearner.this.toString() + " Streaming: " + aPacket);
             _common.getTransport().send(aPacket, _target);
         }
-    }
-
-    void add(Listener aListener) {
-        synchronized(_listeners) {
-            _listeners.add(aListener);
-        }
-    }
-
-    private void signal(StateEvent aStatus) {
-        for (Listener myTarget : _listeners)
-            myTarget.transition(aStatus);
     }
 
     public String toString() {
