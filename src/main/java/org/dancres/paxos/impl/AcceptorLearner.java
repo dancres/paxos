@@ -1,6 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
@@ -107,6 +108,147 @@ public class AcceptorLearner implements MessageProcessor {
     private final Condition _notActive = _guardLock.newCondition();
     private int _activeCount;
 
+    private static class LeadershipState {
+        private class FakePacket implements Transport.Packet {
+            private final PaxosMessage _message;
+            private InetSocketAddress _address;
+
+            FakePacket(PaxosMessage aMessage) {
+                _message = aMessage;
+
+                try {
+                    _address = new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345);
+                } catch (Exception anE) {
+                    _logger.error("Problems getting a useful address for FakePacket", anE);
+                    throw new RuntimeException("No localhost address, doomed");
+                }
+            }
+
+            public InetSocketAddress getSource() {
+                return _address;
+            }
+
+            public PaxosMessage getMessage() {
+                return _message;
+            }
+
+            public String toString() {
+                return "PK [ " + _address + " ] " + _message;
+            }
+
+            public boolean equals(Object anObject) {
+                if (anObject instanceof FakePacket) {
+                    FakePacket myPacket = (FakePacket) anObject;
+                    return ((myPacket._address.equals(_address)) && (myPacket._message.equals(_message)));
+                }
+
+                return false;
+            }
+
+            public int hashCode() {
+                return _message.hashCode() ^ _address.hashCode();
+            }
+        }
+
+        private final AtomicReference<Transport.Packet> _lastCollect =
+                new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
+        private AtomicLong _lastLeaderActionTime = new AtomicLong(0);
+        private final LeaderUtils _leaderUtils = new LeaderUtils();
+
+        void leaderAction() {
+            _lastLeaderActionTime.set(System.currentTimeMillis());
+        }
+
+        void resetLeaderAction() {
+            _lastLeaderActionTime.set(0);
+        }
+
+        void clearLeadership() {
+            _lastCollect.set(new FakePacket(Collect.INITIAL));
+            resetLeaderAction();
+        }
+
+        void setLastCollect(Transport.Packet aCollect) {
+            if (! (aCollect.getMessage() instanceof Collect))
+                throw new IllegalArgumentException();
+
+            _lastCollect.set(aCollect);
+        }
+
+        Transport.Packet getLastCollect() {
+            return _lastCollect.get();
+        }
+
+        long getLeaderRndNum() {
+            return ((Collect) _lastCollect.get().getMessage()).getRndNumber();
+        }
+
+        InetSocketAddress getLeaderAddress() {
+            return _lastCollect.get().getSource();
+        }
+
+        /**
+         * @param aCollect
+         *            should be tested to see if it supercedes the current COLLECT
+         * @return <code>true</code> if it supercedes, <code>false</code> otherwise
+         */
+        boolean supercedes(Transport.Packet aCollect) {
+            Transport.Packet myCurrentLast;
+
+            do {
+                myCurrentLast = _lastCollect.get();
+
+                if (! _leaderUtils.supercedes(aCollect, myCurrentLast))
+                    return false;
+
+            } while (! _lastCollect.compareAndSet(myCurrentLast, aCollect));
+
+            return true;
+        }
+
+        /**
+         * @return <code>true</code> if the collect is either from the existing
+         *         leader, or there is no leader or there's been nothing heard from
+         *         the current leader within DEFAULT_LEASE milliseconds else
+         *         <code>false</code>
+         */
+        boolean amAccepting(Transport.Packet aCollect) {
+            long myCurrentTime = System.currentTimeMillis();
+
+            if (((Collect) _lastCollect.get().getMessage()).isInitial()) {
+                _logger.trace("Current collect is initial - allow leader");
+
+                return true;
+            } else {
+                if (_leaderUtils.sameLeader(aCollect, _lastCollect.get())) {
+                    _logger.trace("Current collect is from same leader - allow");
+
+                    return true;
+                } else
+                    _logger.trace("Check leader expiry: " + myCurrentTime + ", " + _lastLeaderActionTime.get() + ", " +
+                            Leader.LeaseDuration.get() + ", " + (myCurrentTime > _lastLeaderActionTime.get()
+                            + Leader.LeaseDuration.get()));
+
+                return (myCurrentTime > _lastLeaderActionTime.get()
+                        + Leader.LeaseDuration.get());
+            }
+        }
+
+        boolean sameLeader(Transport.Packet aCollect) {
+            return _leaderUtils.sameLeader(aCollect, _lastCollect.get());
+        }
+
+        boolean originates(Transport.Packet aBegin) {
+            return _leaderUtils.originates(aBegin, _lastCollect.get());
+        }
+
+        boolean precedes(Transport.Packet aBegin) {
+            return _leaderUtils.precedes(aBegin, _lastCollect.get());
+        }
+    }
+
+    private final LeadershipState _leadershipState = new LeadershipState();
+    
     /**
      * Tracks the last contiguous sequence number for which we have a value.
      *
@@ -310,7 +452,7 @@ public class AcceptorLearner implements MessageProcessor {
      */
     public LedgerSnapshot open(CheckpointHandle aHandle) throws Exception {
         _lastCheckpoint.set(
-                new ALCheckpointHandle(Watermark.INITIAL, _common.getLastCollect(),
+                new ALCheckpointHandle(Watermark.INITIAL, _leadershipState.getLastCollect(),
                         null, _common.getTransport().getPickler()));
 
         _storage.open();
@@ -341,7 +483,7 @@ public class AcceptorLearner implements MessageProcessor {
             _common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE);
         }
 
-        return new LedgerSnapshot(_lowWatermark.get().getSeqNum(), _common.getLeaderRndNum());
+        return new LedgerSnapshot(_lowWatermark.get().getSeqNum(), _leadershipState.getLeaderRndNum());
     }
 
     public void close() {
@@ -366,7 +508,7 @@ public class AcceptorLearner implements MessageProcessor {
 
             _recoveryWindow.set(null);
 
-            _common.clearLeadership();
+            _leadershipState.clearLeadership();
             _lowWatermark.set(Watermark.INITIAL);
 
             _sorter.clear();
@@ -394,7 +536,7 @@ public class AcceptorLearner implements MessageProcessor {
         //
         try {
             return new ALCheckpointHandle(_lowWatermark.get(),
-                    _common.getLastCollect(), this, _common.getTransport().getPickler());
+                    _leadershipState.getLastCollect(), this, _common.getTransport().getPickler());
         } finally {
             unguard();
         }
@@ -428,7 +570,7 @@ public class AcceptorLearner implements MessageProcessor {
     }
 
     private long installCheckpoint(ALCheckpointHandle aHandle) {
-        _common.setLastCollect(aHandle.getLastCollect());
+        _leadershipState.setLastCollect(aHandle.getLastCollect());
 
         _logger.info(toString() + " Checkpoint installed: " + aHandle.getLastCollect() + " @ " +
                 aHandle.getLowWatermark());
@@ -480,7 +622,7 @@ public class AcceptorLearner implements MessageProcessor {
              * otherwise we risk leader jitter. This ensures we get proper leader leasing as per
              * live packet processing.
              */
-            _common.leaderAction();
+            _leadershipState.leaderAction();
             _common.signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
                     myHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
@@ -502,6 +644,10 @@ public class AcceptorLearner implements MessageProcessor {
 
     Watermark getLowWatermark() {
         return _lowWatermark.get();
+    }
+
+    public long getLeaderRndNum() {
+        return _leadershipState.getLeaderRndNum();
     }
 
     /* ********************************************************************************************
@@ -560,7 +706,7 @@ public class AcceptorLearner implements MessageProcessor {
                         // Signal with node that pronounced us out of date - likely user code will get ckpt from there.
                         //
                         _common.signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
-                                _common.getLeaderRndNum(),
+                                _leadershipState.getLeaderRndNum(),
                                 new Proposal(), aPacket.getSource()));
                         return;
                     }
@@ -586,7 +732,7 @@ public class AcceptorLearner implements MessageProcessor {
                                     if ((_lowWatermark.get().getSeqNum() == _recoveryWindow.get().getMaxSeq()) &&
                                             (_common.getNodeState().testAndSet(NodeState.State.RECOVERING,
                                                     NodeState.State.ACTIVE))) {
-                                        _common.resetLeaderAction();
+                                        _leadershipState.resetLeaderAction();
                                         completedRecovery();
                                     }
                                 }
@@ -623,12 +769,12 @@ public class AcceptorLearner implements MessageProcessor {
                                     _logger.debug(AcceptorLearner.this.toString() + " Transition to recovery: " +
                                             Long.toHexString(_lowWatermark.get().getSeqNum()));
 
-                                    if (_common.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
+                                    if (_leadershipState.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
                                         _logger.warn(AcceptorLearner.this.toString() +
                                                 " Current collect could interfere with recovery window - binning " +
-                                            _common.getLastCollect().getMessage() + ", " + aNeed);
+                                            _leadershipState.getLastCollect().getMessage() + ", " + aNeed);
 
-                                        _common.clearLeadership();
+                                        _leadershipState.clearLeadership();
                                     }
 
                                     /*
@@ -795,7 +941,7 @@ public class AcceptorLearner implements MessageProcessor {
 			case PaxosMessage.Types.COLLECT: {
 				Collect myCollect = (Collect) myMessage;
 
-				if (!_common.amAccepting(aPacket)) {
+				if (!_leadershipState.amAccepting(aPacket)) {
 					_stats._ignoredCollects.incrementAndGet();
 
 					_logger.warn(toString() + " Not accepting: " + myCollect + ", "
@@ -805,7 +951,7 @@ public class AcceptorLearner implements MessageProcessor {
 
 				// If the collect supercedes our previous collect save it, return last proposal etc
 				//
-				if (_common.supercedes(aPacket)) {
+				if (_leadershipState.supercedes(aPacket)) {
                     _logger.trace(toString() + " Accepting collect: " + myCollect);
 
 					aWriter.write(aPacket, true);
@@ -813,7 +959,7 @@ public class AcceptorLearner implements MessageProcessor {
                     aSender.send(constructLast(myCollect), myNodeId);
 
                     _common.signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
-                            _common.getLeaderRndNum(),
+                            _leadershipState.getLeaderRndNum(),
                             Proposal.NO_VALUE, myNodeId));
 
 					/*
@@ -821,17 +967,17 @@ public class AcceptorLearner implements MessageProcessor {
 					 * and node), we apply the multi-paxos optimisation, no need to
 					 * save to disk, just respond with last proposal etc
 					 */
-				} else if (_common.sameLeader(aPacket)) {
+				} else if (_leadershipState.sameLeader(aPacket)) {
                     aSender.send(constructLast(myCollect), myNodeId);
 
 				} else {
                     _logger.warn(toString() + " Rejecting collect: " + myCollect + " against " +
-                            _common.getLastCollect().getMessage());
+                            _leadershipState.getLastCollect().getMessage());
 
 					// Another collect has already arrived with a higher priority, tell the proposer it has competition
 					//
                     aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
-                            _common.getLeaderAddress(), _common.getLeaderRndNum()), myNodeId);
+                            _leadershipState.getLeaderAddress(), _leadershipState.getLeaderRndNum()), myNodeId);
 				}
 				
 				break;
@@ -842,8 +988,8 @@ public class AcceptorLearner implements MessageProcessor {
 
 				// If the begin matches the last round of a collect we're fine
 				//
-				if (_common.originates(aPacket)) {
-					_common.leaderAction();
+				if (_leadershipState.originates(aPacket)) {
+					_leadershipState.leaderAction();
 
                     /*
                      * Special case, the leader could be playing catchup on the ledger because it never saw
@@ -854,7 +1000,7 @@ public class AcceptorLearner implements MessageProcessor {
                     if (mySeqNum <= _lowWatermark.get().getSeqNum()) {
                         _logger.warn(toString() + " Leader is resync'ing with Ledger " + myBegin);
 
-                        aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()),
+                        aSender.send(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
                                 _common.getTransport().getBroadcastAddress());
 
                     } else {
@@ -862,7 +1008,7 @@ public class AcceptorLearner implements MessageProcessor {
 
                         aWriter.write(aPacket, true);
 
-                        aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()),
+                        aSender.send(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
                                 _common.getTransport().getBroadcastAddress());
 
                         purgeAcceptLedger(myBegin);
@@ -872,12 +1018,12 @@ public class AcceptorLearner implements MessageProcessor {
                             learned(myLearned, aWriter);
                     }
 
-				} else if (_common.precedes(aPacket)) {
+				} else if (_leadershipState.precedes(aPacket)) {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
 					aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
-                            _common.getLeaderAddress(), _common.getLeaderRndNum()), myNodeId);
+                            _leadershipState.getLeaderAddress(), _leadershipState.getLeaderRndNum()), myNodeId);
 				} else {
 					/*
 					 * Quiet, didn't see the collect, leader hasn't accounted for
@@ -941,7 +1087,7 @@ public class AcceptorLearner implements MessageProcessor {
         Learned myLearned = (Learned) aPacket.getMessage();
         long mySeqNum = myLearned.getSeqNum();
 
-        _common.leaderAction();
+        _leadershipState.leaderAction();
 
         _acceptLedgers.remove(myLearned.getSeqNum());
 
@@ -972,7 +1118,7 @@ public class AcceptorLearner implements MessageProcessor {
             _logger.debug(toString() + " Learnt value: " + mySeqNum);
 
             _common.signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
-                    _common.getLeaderRndNum(),
+                    _leadershipState.getLeaderRndNum(),
                     myBegin.getConsolidatedValue(), aPacket.getSource()));
         }
     }
@@ -1058,8 +1204,8 @@ public class AcceptorLearner implements MessageProcessor {
              * the leader is out of date and we tell them. Otherwise, we're clean and give the leader a green light.
              */
             if (mySeqNum <= myLow.getSeqNum())
-                return new OldRound(myLow.getSeqNum(), _common.getLeaderAddress(),
-                        _common.getLeaderRndNum());
+                return new OldRound(myLow.getSeqNum(), _leadershipState.getLeaderAddress(),
+                        _leadershipState.getLeaderRndNum());
             else
                 return new Last(mySeqNum, myLow.getSeqNum(),
                         Long.MIN_VALUE, Proposal.NO_VALUE);
