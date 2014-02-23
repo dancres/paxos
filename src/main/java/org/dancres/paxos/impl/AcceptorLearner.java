@@ -425,11 +425,11 @@ public class AcceptorLearner implements MessageProcessor {
         }
     }
 
-    class LedgerSnapshot {
+    class LedgerPosition {
         private final long _seqNum;
         private final long _rndNum;
 
-        private LedgerSnapshot(long aSeqNum, long aRndNum) {
+        private LedgerPosition(long aSeqNum, long aRndNum) {
             _seqNum = aSeqNum;
             _rndNum = aRndNum;
         }
@@ -450,7 +450,7 @@ public class AcceptorLearner implements MessageProcessor {
      * @return LedgerSnapshot
      * @throws Exception
      */
-    public LedgerSnapshot open(CheckpointHandle aHandle) throws Exception {
+    public LedgerPosition open(CheckpointHandle aHandle) throws Exception {
         _lastCheckpoint.set(
                 new ALCheckpointHandle(Watermark.INITIAL, _leadershipState.getLastCollect(),
                         null, _common.getTransport().getPickler()));
@@ -483,7 +483,7 @@ public class AcceptorLearner implements MessageProcessor {
             _common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE);
         }
 
-        return new LedgerSnapshot(_lowWatermark.get().getSeqNum(), _leadershipState.getLeaderRndNum());
+        return new LedgerPosition(_lowWatermark.get().getSeqNum(), _leadershipState.getLeaderRndNum());
     }
 
     public void close() {
