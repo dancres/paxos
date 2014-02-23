@@ -12,7 +12,6 @@ import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
@@ -281,13 +280,32 @@ public class AcceptorLearner implements MessageProcessor {
         }
     }
 
+    class LedgerSnapshot {
+        private final long _seqNum;
+        private final long _rndNum;
+
+        private LedgerSnapshot(long aSeqNum, long aRndNum) {
+            _seqNum = aSeqNum;
+            _rndNum = aRndNum;
+        }
+
+        long getSeqNum() {
+            return _seqNum;
+        }
+
+        long getRndNum() {
+            return _rndNum;
+        }
+    }
+
     /**
      * If this method fails be sure to invoke close regardless.
      *
      * @param aHandle
+     * @return LedgerSnapshot
      * @throws Exception
      */
-    public void open(CheckpointHandle aHandle) throws Exception {
+    public LedgerSnapshot open(CheckpointHandle aHandle) throws Exception {
         _lastCheckpoint.set(
                 new ALCheckpointHandle(Watermark.INITIAL, _common.getLastCollect(),
                         null, _common.getTransport().getPickler()));
@@ -319,6 +337,8 @@ public class AcceptorLearner implements MessageProcessor {
         } finally {
             _common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE);
         }
+
+        return new LedgerSnapshot(_common.getLowWatermark().getSeqNum(), _common.getLeaderRndNum());
     }
 
     public void close() {
@@ -459,7 +479,7 @@ public class AcceptorLearner implements MessageProcessor {
             _common.signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
                     myHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
-                        Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
+                    Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
 
             _recoveryWindow.set(null);
             _cachedBegins.clear();
