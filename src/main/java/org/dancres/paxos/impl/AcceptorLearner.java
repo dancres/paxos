@@ -89,6 +89,9 @@ public class AcceptorLearner implements MessageProcessor {
     private final AtomicReference<TimerTask> _recoveryAlarm = new AtomicReference<>(null);
     private final AtomicReference<Need> _recoveryWindow = new AtomicReference<>(null);
 
+    private final AtomicReference<AcceptorLearner.Watermark> _lowWatermark =
+            new AtomicReference<>(AcceptorLearner.Watermark.INITIAL);
+    
 	private final LogStorage _storage;
     private final Common _common;
     private final PacketSorter _sorter = new PacketSorter();
@@ -338,7 +341,7 @@ public class AcceptorLearner implements MessageProcessor {
             _common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE);
         }
 
-        return new LedgerSnapshot(_common.getLowWatermark().getSeqNum(), _common.getLeaderRndNum());
+        return new LedgerSnapshot(_lowWatermark.get().getSeqNum(), _common.getLeaderRndNum());
     }
 
     public void close() {
@@ -364,7 +367,7 @@ public class AcceptorLearner implements MessageProcessor {
             _recoveryWindow.set(null);
 
             _common.clearLeadership();
-            _common.install(Watermark.INITIAL);
+            _lowWatermark.set(Watermark.INITIAL);
 
             _sorter.clear();
             _cachedBegins.clear();
@@ -390,7 +393,7 @@ public class AcceptorLearner implements MessageProcessor {
         // Low watermark will always lag collect so no need for atomicity here
         //
         try {
-            return new ALCheckpointHandle(_common.getLowWatermark(),
+            return new ALCheckpointHandle(_lowWatermark.get(),
                     _common.getLastCollect(), this, _common.getTransport().getPickler());
         } finally {
             unguard();
@@ -430,7 +433,9 @@ public class AcceptorLearner implements MessageProcessor {
         _logger.info(toString() + " Checkpoint installed: " + aHandle.getLastCollect() + " @ " +
                 aHandle.getLowWatermark());
 
-        return _common.install(aHandle.getLowWatermark());
+        _lowWatermark.set(aHandle.getLowWatermark());
+        
+        return aHandle.getLowWatermark().getSeqNum();        
     }
 
     /**
@@ -493,6 +498,10 @@ public class AcceptorLearner implements MessageProcessor {
 
     Stats getStats() {
         return _stats;
+    }
+
+    Watermark getLowWatermark() {
+        return _lowWatermark.get();
     }
 
     /* ********************************************************************************************
@@ -565,7 +574,7 @@ public class AcceptorLearner implements MessageProcessor {
 
             do {
                 myProcessed =
-                        _sorter.process(_common.getLowWatermark().getSeqNum(), new PacketSorter.PacketProcessor() {
+                        _sorter.process(_lowWatermark.get().getSeqNum(), new PacketSorter.PacketProcessor() {
                             public void consume(Transport.Packet aPacket) {
                                 boolean myRecoveryInProgress = _common.getNodeState().test(NodeState.State.RECOVERING);
                                 Sender mySender = ((myRecoveryInProgress) || (! _common.amMember())) ?
@@ -574,7 +583,7 @@ public class AcceptorLearner implements MessageProcessor {
                                 process(aPacket, myWriter, mySender);
 
                                 if (myRecoveryInProgress) {
-                                    if ((_common.getLowWatermark().getSeqNum() == _recoveryWindow.get().getMaxSeq()) &&
+                                    if ((_lowWatermark.get().getSeqNum() == _recoveryWindow.get().getMaxSeq()) &&
                                             (_common.getNodeState().testAndSet(NodeState.State.RECOVERING,
                                                     NodeState.State.ACTIVE))) {
                                         _common.resetLeaderAction();
@@ -612,7 +621,7 @@ public class AcceptorLearner implements MessageProcessor {
                                      * -1 to triggering packet seqnum - 1.
                                      */
                                     _logger.debug(AcceptorLearner.this.toString() + " Transition to recovery: " +
-                                            Long.toHexString(_common.getLowWatermark().getSeqNum()));
+                                            Long.toHexString(_lowWatermark.get().getSeqNum()));
 
                                     if (_common.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
                                         _logger.warn(AcceptorLearner.this.toString() +
@@ -666,7 +675,7 @@ public class AcceptorLearner implements MessageProcessor {
      ******************************************************************************************** */
 
     private class Watchdog extends TimerTask {
-        private final Watermark _past = _common.getLowWatermark();
+        private final Watermark _past = _lowWatermark.get();
 
         public void run() {
             if (! _common.getNodeState().test(NodeState.State.RECOVERING)) {
@@ -679,7 +688,7 @@ public class AcceptorLearner implements MessageProcessor {
              * If the watermark has advanced since we were started, recovery made some progress so we'll schedule a
              * future check otherwise fail.
              */
-            if (! _past.equals(_common.getLowWatermark())) {
+            if (! _past.equals(_lowWatermark.get())) {
                 _logger.debug(AcceptorLearner.this.toString() + " Recovery is progressing");
 
                 reschedule();
@@ -758,7 +767,7 @@ public class AcceptorLearner implements MessageProcessor {
 		long mySeqNum = myMessage.getSeqNum();
 
 		_logger.debug(toString() + " rxd " + myNodeId + " " + myMessage +
-                ", loWmk " + Long.toHexString(_common.getLowWatermark().getSeqNum()));
+                ", loWmk " + Long.toHexString(_lowWatermark.get().getSeqNum()));
 
 		switch (myMessage.getType()) {
             case PaxosMessage.Types.NEED : {
@@ -774,7 +783,7 @@ public class AcceptorLearner implements MessageProcessor {
                     _common.getTransport().send(_common.getTransport().getPickler().newPacket(new OutOfDate()),
                             aPacket.getSource());
 
-                } else if (myNeed.getMaxSeq() <= _common.getLowWatermark().getSeqNum()) {
+                } else if (myNeed.getMaxSeq() <= _lowWatermark.get().getSeqNum()) {
                     _logger.debug(toString() + " Running streamer");
 
                     new RemoteStreamer(aPacket.getSource(), myNeed).start();
@@ -821,7 +830,7 @@ public class AcceptorLearner implements MessageProcessor {
 
 					// Another collect has already arrived with a higher priority, tell the proposer it has competition
 					//
-                    aSender.send(new OldRound(_common.getLowWatermark().getSeqNum(),
+                    aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
                             _common.getLeaderAddress(), _common.getLeaderRndNum()), myNodeId);
 				}
 				
@@ -842,7 +851,7 @@ public class AcceptorLearner implements MessageProcessor {
                      * has produced LASTs which it's now trying to re-settle and move on. This is acceptable,
                      * just tell it ACCEPT again and let it move on.
                      */
-                    if (mySeqNum <= _common.getLowWatermark().getSeqNum()) {
+                    if (mySeqNum <= _lowWatermark.get().getSeqNum()) {
                         _logger.warn(toString() + " Leader is resync'ing with Ledger " + myBegin);
 
                         aSender.send(new Accept(mySeqNum, _common.getLeaderRndNum()),
@@ -867,7 +876,7 @@ public class AcceptorLearner implements MessageProcessor {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
-					aSender.send(new OldRound(_common.getLowWatermark().getSeqNum(),
+					aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
                             _common.getLeaderAddress(), _common.getLeaderRndNum()), myNodeId);
 				} else {
 					/*
@@ -886,7 +895,7 @@ public class AcceptorLearner implements MessageProcessor {
 
                 // Don't process a value we've already learnt...
                 //
-                if (myAccept.getSeqNum() <= _common.getLowWatermark().getSeqNum())
+                if (myAccept.getSeqNum() <= _lowWatermark.get().getSeqNum())
                     return;
 
                 getAndCreateAcceptLedger(aPacket).add(aPacket);
@@ -942,7 +951,7 @@ public class AcceptorLearner implements MessageProcessor {
         //
         long myLogOffset = aWriter.write(aPacket, true);
 
-        _common.install(new Watermark(mySeqNum, myLogOffset));
+        _lowWatermark.set(new Watermark(mySeqNum, myLogOffset));
 
         if (myBegin.getConsolidatedValue().get(HEARTBEAT_KEY) != null) {
             _stats._receivedHeartbeats.incrementAndGet();
@@ -1025,7 +1034,7 @@ public class AcceptorLearner implements MessageProcessor {
 
 	private PaxosMessage constructLast(Collect aCollect) {
         long mySeqNum = aCollect.getSeqNum();
-		Watermark myLow = _common.getLowWatermark();
+		Watermark myLow = _lowWatermark.get();
 
 		Begin myState;
 		

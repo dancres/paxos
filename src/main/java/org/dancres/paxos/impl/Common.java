@@ -25,8 +25,6 @@ class Common {
     private AtomicLong _lastLeaderActionTime = new AtomicLong(0);
     private final Timer _watchdog = new Timer("Paxos timers");
     private final NodeState _nodeState = new NodeState();
-    private final AtomicReference<AcceptorLearner.Watermark> _lowWatermark =
-            new AtomicReference<>(AcceptorLearner.Watermark.INITIAL);
     private final LeaderUtils _leaderUtils = new LeaderUtils();
     private final List<Listener> _listeners = new CopyOnWriteArrayList<>();
 
@@ -89,16 +87,6 @@ class Common {
 
     Transport getTransport() {
         return _transport;
-    }
-
-    long install(AcceptorLearner.Watermark aWatermark) {
-        _lowWatermark.set(aWatermark);
-
-        return aWatermark.getSeqNum();
-    }
-
-    AcceptorLearner.Watermark getLowWatermark() {
-        return _lowWatermark.get();
     }
 
     void stop() {

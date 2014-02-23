@@ -126,8 +126,8 @@ public class ClusterMemberIntroTest {
 
         // Node 3 should now have same low watermark as the other nodes & performed one recovery cycle
         //
-        Assert.assertTrue(_node2.getCore().getCommon().getLowWatermark().getSeqNum() ==
-                _node3.getCore().getCommon().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
+                _node3.getAcceptorLearner().getLowWatermark().getSeqNum());
         Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getRecoveryCycles());
 
         // Node 3 should still have no membership
@@ -148,8 +148,8 @@ public class ClusterMemberIntroTest {
 
         // Node 3 should have same watermark, no active accepts, one recovery cycle
         //
-        Assert.assertTrue(_node2.getCore().getCommon().getLowWatermark().getSeqNum() ==
-                _node3.getCore().getCommon().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
+                _node3.getAcceptorLearner().getLowWatermark().getSeqNum());
         Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getRecoveryCycles());
         Assert.assertEquals(0, _node3.getAcceptorLearner().getStats().getActiveAccepts());
 
@@ -177,8 +177,8 @@ public class ClusterMemberIntroTest {
 
         // Node 3 should have same watermark, one active accept, one recovery cycle
         //
-        Assert.assertTrue(_node2.getCore().getCommon().getLowWatermark().getSeqNum() ==
-                _node3.getCore().getCommon().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
+                _node3.getAcceptorLearner().getLowWatermark().getSeqNum());
         Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getRecoveryCycles());
         Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getActiveAccepts());
 

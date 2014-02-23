@@ -153,8 +153,8 @@ public class OutOfDateLeaderTest {
         // _node3 should now have same low watermark as the other nodes
         //
         Assert.assertEquals("Watermarks aren't equal, recovery fail?",
-                _node2.getCore().getCommon().getLowWatermark().getSeqNum(),
-                _node3.getCore().getCommon().getLowWatermark().getSeqNum());
+                _node2.getAcceptorLearner().getLowWatermark().getSeqNum(),
+                _node3.getAcceptorLearner().getLowWatermark().getSeqNum());
 
 
         /*
