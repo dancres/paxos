@@ -65,6 +65,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         _logger.debug(toString() + " initialised");
 
         _al.open(_handle);
+        _ld.init(new ProposalAllocator(_common.getLowWatermark().getSeqNum(), _common.getLeaderRndNum()));
 
         _initd.set(true);
     }

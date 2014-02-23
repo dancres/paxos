@@ -36,6 +36,13 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
         _disableHeartbeats = isDisableHeartbeats;
     }
 
+    void init(ProposalAllocator aPropAllocator) {
+        _stateFactory = aPropAllocator;
+
+        if (! _disableHeartbeats)
+            _stateFactory.add(this);
+    }
+
     /**
      * @throws org.dancres.paxos.InactiveException if the Paxos process is currently out of date or shutting down
      *
@@ -69,11 +76,6 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
 
     private Leader newLeaderImpl() {
         if (_currentLeader == null) {
-            _stateFactory = new ProposalAllocator(_common.getLowWatermark().getSeqNum(), _common.getLeaderRndNum());
-
-            if (! _disableHeartbeats)
-                _stateFactory.add(this);
-
             _currentLeader = new Leader(_common, _stateFactory);
 
         } else {
