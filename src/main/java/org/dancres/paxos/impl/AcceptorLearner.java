@@ -89,9 +89,6 @@ public class AcceptorLearner implements MessageProcessor {
     private final AtomicReference<TimerTask> _recoveryAlarm = new AtomicReference<>(null);
     private final AtomicReference<Need> _recoveryWindow = new AtomicReference<>(null);
 
-    private final AtomicReference<AcceptorLearner.Watermark> _lowWatermark =
-            new AtomicReference<>(AcceptorLearner.Watermark.INITIAL);
-    
 	private final LogStorage _storage;
     private final Common _common;
     private final PacketSorter _sorter = new PacketSorter();
@@ -163,6 +160,9 @@ public class AcceptorLearner implements MessageProcessor {
             return "Watermark: " + Long.toHexString(_seqNum) + ", " + Long.toHexString(_logOffset);
         }
     }
+
+    private final AtomicReference<AcceptorLearner.Watermark> _lowWatermark =
+            new AtomicReference<>(AcceptorLearner.Watermark.INITIAL);
 
     static class ALCheckpointHandle extends CheckpointHandle {    	
         private transient Watermark _lowWatermark;
