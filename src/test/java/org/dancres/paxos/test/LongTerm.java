@@ -562,7 +562,7 @@ public class LongTerm {
         if (myArgs.isCalibrate()) {
             System.out.println("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
 
-            double myOpsPerSec = myDuration / myArgs.getCycles();
+            double myOpsPerSec = myArgs.getCycles() / myDuration;
             double myOpsHour = myOpsPerSec * 60 * 60;
 
             System.out.println("Calibration recommendation - ops/sec: " + myOpsPerSec +
