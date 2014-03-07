@@ -10,6 +10,7 @@ import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
+import org.dancres.paxos.storage.MemoryLogStorage;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
@@ -67,6 +68,9 @@ public class LongTerm {
 
         @Option
         boolean isCalibrate();
+
+        @Option
+        boolean isMemory();
     }
 
     interface NodeAdmin {
@@ -84,6 +88,7 @@ public class LongTerm {
     }
 
     private static class Environment {
+        final boolean _isStorage;
         final boolean _isLive;
         final long _maxCycles;
         final long _settleCycles = 100;
@@ -94,12 +99,13 @@ public class LongTerm {
         NodeAdmin _currentLeader;
         final OrderedMemoryNetwork _factory;
 
-        Environment(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
+        Environment(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
             _ckptCycle = aCkptCycle;
             _isLive = ! doCalibrate;
             _maxCycles = aCycles;
             _baseRng = new Random(aSeed);
             _factory = new OrderedMemoryNetwork();
+            _isStorage = ! inMemory;
 
             OrderedMemoryNetwork.Factory myFactory = new OrderedMemoryNetwork.Factory() {
                 private int _nextNodeNum = 0;
@@ -223,8 +229,9 @@ public class LongTerm {
 
     private final Environment _env;
 
-    private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle) throws Exception {
-        _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle);
+    private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
+                     boolean isMemory) throws Exception {
+        _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle, isMemory);
     }
 
     long getSettleCycles() {
@@ -256,8 +263,9 @@ public class LongTerm {
 
             FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
 
-            _dispatcher =
-                    new ServerDispatcher(new HowlLogger(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
+            _dispatcher = (_env._isStorage) ?
+                    new ServerDispatcher(new HowlLogger(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs")) :
+                    new ServerDispatcher(new MemoryLogStorage());
 
             _dispatcher.add(this);
 
@@ -551,7 +559,8 @@ public class LongTerm {
         Args myArgs = CliFactory.parseArguments(Args.class, anArgs);
 
         LongTerm myLT =
-                new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate(), myArgs.getCkptCycle());
+                new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate(), myArgs.getCkptCycle(),
+                        myArgs.isMemory());
 
         long myStart = System.currentTimeMillis();
 
