@@ -129,8 +129,18 @@ public class Core implements Transport.Dispatcher, Paxos {
      * @param aVal
      * @throws org.dancres.paxos.InactiveException
      */
-    public void submit(Proposal aVal, Completion<VoteOutcome> aCompletion) throws InactiveException {
-        _ld.newLeader().submit(aVal, aCompletion);
+    public void submit(Proposal aVal, final Completion<VoteOutcome> aCompletion) throws InactiveException {
+        /*
+         * First outcome is always the one we report to the submitter even if there are others (available via
+         * getOutcomes()). Multiple outcomes occur when we detect a previously proposed value and must drive it
+         * to completion. The originally submitted value will need re-submitting. Hence submitter is told
+         * OTHER_VALUE whilst AL listeners will see VALUE containing the previously proposed value.
+         */
+        _ld.newLeader().submit(aVal, new Completion<Leader>() {
+            public void complete(Leader aLeader) {
+                aCompletion.complete(aLeader.getOutcomes().getFirst());
+            }
+        });
     }
 
     boolean updateMembership(Collection<InetSocketAddress> aMembers) {

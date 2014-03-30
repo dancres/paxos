@@ -49,7 +49,7 @@ class Leader implements Instance {
     private long _tries = 0;
 
     private Proposal _prop;
-    private Completion<VoteOutcome> _submitter;
+    private Completion<Leader> _submitter;
     private Completion<Leader> _leaderReceiver;
 
     /**
@@ -149,16 +149,14 @@ class Leader implements Instance {
         }
     }
 
+    Deque<VoteOutcome> getOutcomes() {
+        return _outcomes;
+    }
+
     private void reportOutcome() {
         _stateFactory.conclusion(this, _outcomes.getLast());
 
-        /*
-         * First outcome is always the one we report to the submitter even if there are others (available via
-         * getOutcomes()). Multiple outcomes occur when we detect a previously proposed value and must drive it
-         * to completion. The originally submitted value will need re-submitting. Hence submitter is told
-         * OTHER_VALUE whilst AL listeners will see VALUE containing the previously proposed value.
-         */
-        _submitter.complete(_outcomes.getFirst());
+        _submitter.complete(this);
         followUp();
     }
 
@@ -421,7 +419,7 @@ class Leader implements Instance {
      *
      * @param aValue is the value to attempt to agree upon
      */
-    void submit(Proposal aValue, Completion<VoteOutcome> aSubmitter) {
+    void submit(Proposal aValue, Completion<Leader> aSubmitter) {
         _logger.debug(toString() + " (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")");
 
         synchronized (this) {

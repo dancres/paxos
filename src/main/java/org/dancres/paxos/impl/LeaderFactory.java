@@ -105,8 +105,8 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
                     _logger.trace(this + ": sending heartbeat: " + System.currentTimeMillis());
 
                     newLeaderImpl().submit(new Proposal(AcceptorLearner.HEARTBEAT_KEY, "hearbeat".getBytes()),
-                            new Completion<VoteOutcome>() {
-                                public void complete(VoteOutcome anOutcome) {
+                            new Completion<Leader>() {
+                                public void complete(Leader anOutcome) {
                                     // Do nothing
                                 }
                             });
@@ -118,12 +118,12 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     }
 
     boolean updateMembership(Collection<InetSocketAddress> aClusterMembers) {
-        CompletionImpl<VoteOutcome> myResult = new CompletionImpl<>();
+        CompletionImpl<Leader> myResult = new CompletionImpl<>();
 
         newLeaderImpl().submit(new Proposal(AcceptorLearner.MEMBER_CHANGE_KEY, Codecs.flatten(aClusterMembers)),
                 myResult);
 
-        VoteOutcome myOutcome = myResult.await();
+        VoteOutcome myOutcome = myResult.await().getOutcomes().getFirst();
 
         return ((myOutcome.getResult() == VoteOutcome.Reason.VALUE) &&
                 (myOutcome.getValues().get(AcceptorLearner.MEMBER_CHANGE_KEY) != null));
