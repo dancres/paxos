@@ -155,32 +155,6 @@ class Leader implements Instance {
 
     private void reportOutcome() {
         _submitter.complete(this);
-        followUp();
-    }
-
-    private void followUp() {
-        if ((! _stateMachine.isDone()) || (_leaderReceiver == null))
-            return;
-        else
-            _leaderReceiver.complete(constructFollowing());
-    }
-
-    private Leader constructFollowing() {
-        return new Leader(_common, _stateFactory);
-    }
-
-    /**
-     * Get the next leader in the chain. Non-blocking, completion is called at the point a leader can be constructed
-     */
-    void nextLeader(Completion<Leader> aCompletion) {
-        synchronized(this) {
-            if (_leaderReceiver != null)
-                throw new IllegalStateException("Completion for leader already present");
-
-            _leaderReceiver = aCompletion;
-
-            followUp();
-        }
     }
 
     /**

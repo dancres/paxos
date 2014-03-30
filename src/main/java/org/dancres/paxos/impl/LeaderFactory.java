@@ -58,7 +58,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
                 (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)))
             throw new InactiveException();
 
-        synchronized(this) {
+        synchronized (this) {
             killHeartbeats();
 
             return newLeaderImpl();
@@ -70,6 +70,11 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
             public void complete(Leader aLeader) {
                 _stateFactory.conclusion(aLeader, aLeader.getOutcomes().getLast());
                 aCompletion.complete(aLeader.getOutcomes().getFirst());
+
+                synchronized (LeaderFactory.this) {
+                    _currentLeader = null;
+                    LeaderFactory.this.notify();
+                }
             }
         });
     }
@@ -83,15 +88,15 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     }
 
     private Leader newLeaderImpl() {
-        if (_currentLeader == null) {
-            _currentLeader = new Leader(_common, _stateFactory);
+        while (_currentLeader != null) {
+            try {
+                wait();
+            } catch (InterruptedException anIE) {
 
-        } else {
-            CompletionImpl<Leader> myResult = new CompletionImpl<>();
-
-            _currentLeader.nextLeader(myResult);
-            _currentLeader = myResult.await();
+            }
         }
+
+        _currentLeader = new Leader(_common, _stateFactory);
 
         return _currentLeader;
     }
@@ -134,7 +139,8 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
                     public void complete(VoteOutcome anOutcome) {
                         myResult.complete(anOutcome);
                     }
-                });
+                }
+        );
 
         VoteOutcome myOutcome = myResult.await();
 
@@ -163,7 +169,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     public void processMessage(Transport.Packet aPacket) {
         _logger.trace("Got packet for leaders: " + aPacket.getSource() + "->" + aPacket.getMessage());
         
-        synchronized(this) {
+        synchronized (this) {
             _logger.trace("Routing packet to leader " + _currentLeader);
 
             if (_currentLeader != null)
