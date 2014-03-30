@@ -117,7 +117,7 @@ class Leader implements Instance {
         _common = aCommon;
         _stateFactory = aStateFactory;
 
-        Instance myInstance = aStateFactory.nextInstance(0);
+        Instance myInstance = _stateFactory.nextInstance(0);
 
         _seqNum = myInstance.getSeqNum();
         _rndNumber = myInstance.getRound();
@@ -154,8 +154,6 @@ class Leader implements Instance {
     }
 
     private void reportOutcome() {
-        _stateFactory.conclusion(this, _outcomes.getLast());
-
         _submitter.complete(this);
         followUp();
     }

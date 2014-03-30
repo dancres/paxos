@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.TimerTask;
 
 /**
@@ -51,10 +52,8 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
      *
      * @todo Allow concurrent leaders - this would also require modifications to the out-of-date detection used in
      * AcceptorLearner.
-     *
-     * @return a leader for a new sequence
      */
-    Leader newLeader() throws InactiveException {
+    private Leader newLeader() throws InactiveException {
         if ((_common.getNodeState().test(NodeState.State.SHUTDOWN)) ||
                 (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)))
             throw new InactiveException();
@@ -64,6 +63,15 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
 
             return newLeaderImpl();
         }
+    }
+
+    void submit(Proposal aValue, final Completion<VoteOutcome> aCompletion) throws InactiveException {
+        newLeader().submit(aValue, new Completion<Leader>() {
+            public void complete(Leader aLeader) {
+                _stateFactory.conclusion(aLeader, aLeader.getOutcomes().getLast());
+                aCompletion.complete(aLeader.getOutcomes().getFirst());
+            }
+        });
     }
 
     private void killHeartbeats() {
@@ -106,8 +114,8 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
 
                     newLeaderImpl().submit(new Proposal(AcceptorLearner.HEARTBEAT_KEY, "hearbeat".getBytes()),
                             new Completion<Leader>() {
-                                public void complete(Leader anOutcome) {
-                                    // Do nothing
+                                public void complete(Leader aLeader) {
+                                    _stateFactory.conclusion(aLeader, aLeader.getOutcomes().getLast());
                                 }
                             });
                 }
@@ -123,7 +131,11 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
         newLeaderImpl().submit(new Proposal(AcceptorLearner.MEMBER_CHANGE_KEY, Codecs.flatten(aClusterMembers)),
                 myResult);
 
-        VoteOutcome myOutcome = myResult.await().getOutcomes().getFirst();
+        Leader myLeader = myResult.await();
+        Deque<VoteOutcome> myOutcomes = myLeader.getOutcomes();
+        VoteOutcome myOutcome = myOutcomes.getFirst();
+
+        _stateFactory.conclusion(myLeader, myOutcomes.getLast());
 
         return ((myOutcome.getResult() == VoteOutcome.Reason.VALUE) &&
                 (myOutcome.getValues().get(AcceptorLearner.MEMBER_CHANGE_KEY) != null));
