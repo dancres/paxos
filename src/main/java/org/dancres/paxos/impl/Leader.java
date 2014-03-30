@@ -42,15 +42,12 @@ class Leader implements Instance {
     private static final long MAX_TRIES = 3;
 
     private final Common _common;
-    private final ProposalAllocator _stateFactory;
-
     private final long _seqNum;
     private final long _rndNumber;
     private long _tries = 0;
 
     private Proposal _prop;
     private Completion<Leader> _submitter;
-    private Completion<Leader> _leaderReceiver;
 
     /**
      * This alarm is used to limit the amount of time the leader will wait for responses from all apparently live
@@ -113,15 +110,11 @@ class Leader implements Instance {
         }
     }
 
-    Leader(Common aCommon, ProposalAllocator aStateFactory) {
+    Leader(Common aCommon, Instance anInstance) {
         _common = aCommon;
-        _stateFactory = aStateFactory;
-
-        Instance myInstance = _stateFactory.nextInstance(0);
-
-        _seqNum = myInstance.getSeqNum();
-        _rndNumber = myInstance.getRound();
-        _startState = myInstance.getState();
+        _seqNum = anInstance.getSeqNum();
+        _rndNumber = anInstance.getRound();
+        _startState = anInstance.getState();
     }
 
     void shutdown() {

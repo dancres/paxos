@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.TimerTask;
 
 /**
@@ -96,7 +95,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
             }
         }
 
-        _currentLeader = new Leader(_common, _stateFactory);
+        _currentLeader = new Leader(_common, _stateFactory.nextInstance(0));
 
         return _currentLeader;
     }
