@@ -140,7 +140,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         _ld.submit(aVal, aCompletion);
     }
 
-    boolean updateMembership(Collection<InetSocketAddress> aMembers) {
+    boolean updateMembership(Collection<InetSocketAddress> aMembers) throws InactiveException {
         return _ld.updateMembership(aMembers);
     }
 

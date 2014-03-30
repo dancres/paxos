@@ -112,12 +112,13 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
                 public void run() {
                     _logger.trace(this + ": sending heartbeat: " + System.currentTimeMillis());
 
-                    newLeaderImpl().submit(new Proposal(AcceptorLearner.HEARTBEAT_KEY, "hearbeat".getBytes()),
-                            new Completion<Leader>() {
-                                public void complete(Leader aLeader) {
-                                    _stateFactory.conclusion(aLeader, aLeader.getOutcomes().getLast());
-                                }
-                            });
+                    try {
+                        submit(new Proposal(AcceptorLearner.HEARTBEAT_KEY, "hearbeat".getBytes()),
+                                new Completion<VoteOutcome>() {
+                                    public void complete(VoteOutcome anOutcome) {}});
+                    } catch (InactiveException anIE) {
+                        // Nothing to worry about, just give up
+                    }
                 }
             };
 
@@ -125,17 +126,17 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
         }
     }
 
-    boolean updateMembership(Collection<InetSocketAddress> aClusterMembers) {
-        CompletionImpl<Leader> myResult = new CompletionImpl<>();
+    boolean updateMembership(Collection<InetSocketAddress> aClusterMembers) throws InactiveException {
+        final CompletionImpl<VoteOutcome> myResult = new CompletionImpl<>();
 
-        newLeaderImpl().submit(new Proposal(AcceptorLearner.MEMBER_CHANGE_KEY, Codecs.flatten(aClusterMembers)),
-                myResult);
+        submit(new Proposal(AcceptorLearner.MEMBER_CHANGE_KEY, Codecs.flatten(aClusterMembers)),
+                new Completion<VoteOutcome>() {
+                    public void complete(VoteOutcome anOutcome) {
+                        myResult.complete(anOutcome);
+                    }
+                });
 
-        Leader myLeader = myResult.await();
-        Deque<VoteOutcome> myOutcomes = myLeader.getOutcomes();
-        VoteOutcome myOutcome = myOutcomes.getFirst();
-
-        _stateFactory.conclusion(myLeader, myOutcomes.getLast());
+        VoteOutcome myOutcome = myResult.await();
 
         return ((myOutcome.getResult() == VoteOutcome.Reason.VALUE) &&
                 (myOutcome.getValues().get(AcceptorLearner.MEMBER_CHANGE_KEY) != null));
