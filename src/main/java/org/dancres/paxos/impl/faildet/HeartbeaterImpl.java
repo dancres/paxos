@@ -17,7 +17,12 @@ class HeartbeaterImpl extends Thread implements Heartbeater {
     private final long _pulseRate;
 
     private boolean _stopping = false;
-    
+
+    /**
+     * @param aTransport is the <code>Transport</code> instance to transmit heartbeats on
+     * @param metaData is the metadata to associate with the ip address of this heartbeater/node
+     * @param aPulseRate is the rate at which to heartbeat
+     */
     HeartbeaterImpl(Transport aTransport, byte[] metaData, long aPulseRate) {
         _transport = aTransport;
         _metaData = metaData;
