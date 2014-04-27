@@ -8,7 +8,7 @@ import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
 
 import java.nio.ByteBuffer;
 
-public class Framer extends OneToOneEncoder {
+class Framer extends OneToOneEncoder {
     protected Object encode(ChannelHandlerContext aCtx, Channel aChannel, Object anObject) throws Exception {
         ChannelBuffer myBuff = ChannelBuffers.dynamicBuffer();
         ByteBuffer myMessage = (ByteBuffer) anObject;

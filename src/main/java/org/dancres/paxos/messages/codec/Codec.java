@@ -2,7 +2,7 @@ package org.dancres.paxos.messages.codec;
 
 import java.nio.ByteBuffer;
 
-public interface Codec {
+interface Codec {
     ByteBuffer encode(Object anObject);
 
     Object decode(ByteBuffer aBuffer);

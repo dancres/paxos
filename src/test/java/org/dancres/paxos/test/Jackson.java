@@ -8,7 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Jackson {
+class Jackson {
     public static void main(String[] anArgs) throws Exception {
         ObjectMapper myMapper = new ObjectMapper();
 

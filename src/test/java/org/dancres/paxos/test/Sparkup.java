@@ -3,7 +3,7 @@ package org.dancres.paxos.test;
 import static spark.Spark.*;
 import spark.*;
 
-public class Sparkup {
+class Sparkup {
 
     public static void main(String[] args) {
 

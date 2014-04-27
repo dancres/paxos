@@ -332,7 +332,7 @@ public class Backend {
         }
     }
     
-    class Checkpointer extends Thread {
+    private class Checkpointer extends Thread {
         public void run() {
             try {
                 CheckpointHandle myHandle = _paxos.newCheckpoint();

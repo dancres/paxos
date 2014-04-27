@@ -8,7 +8,7 @@ package org.dancres.paxos.impl;
  * want to recover from the last contiguous sequence number in the stream of
  * paxos instances.
  */
-public class Watermark implements Comparable<Watermark> {
+class Watermark implements Comparable<Watermark> {
     static final Watermark INITIAL = new Watermark(Constants.UNKNOWN_SEQ, -1);
     private final long _seqNum;
     private final long _logOffset;
