@@ -35,8 +35,9 @@ public class StateEvent {
     private final long _rndNumber;
     private final Proposal _consolidatedValue;
     private final InetSocketAddress _leader;
+    private final byte[] _leaderId;
 
-    public StateEvent(Reason aResult, long aSeqNum, long aRndNumber, Proposal aValue,
+    public StateEvent(Reason aResult, long aSeqNum, long aRndNumber, Proposal aValue, byte[] aLeaderId,
                        InetSocketAddress aLeader) {
         assert(aValue != null);
 
@@ -44,6 +45,7 @@ public class StateEvent {
         _seqNum = aSeqNum;
         _rndNumber = aRndNumber;
         _consolidatedValue = aValue;
+        _leaderId = aLeaderId;
         _leader = aLeader;
     }
 
@@ -70,13 +72,20 @@ public class StateEvent {
     }
 
     /**
-     * @return additional information associated with the reason returned from <code>getResult()</code>.
+     * @return the address of the Paxos leader that issued the update.
      */
-    public InetSocketAddress getLeader() {
+    public InetSocketAddress getLeaderAddress() {
         return _leader;
     }
 
+    /**
+     * @return the user-code identifier for the leader that issued the update if it is available.
+     */
+    public byte[] getLeaderId() {
+        return _leaderId;
+    }
+
     public String toString() {
-        return "VoteOutcome: " + _result.name() + ", " + Long.toHexString(_seqNum) + ", " + _leader;
+        return "VoteOutcome: " + _result.name() + ", " + Long.toHexString(_seqNum) + ", " + _leaderId + ", " + _leader;
     }
 }

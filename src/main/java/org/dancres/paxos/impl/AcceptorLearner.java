@@ -431,7 +431,9 @@ public class AcceptorLearner implements MessageProcessor {
             _common.signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
                     myHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
-                    Proposal.NO_VALUE, myHandle.getLastCollect().getSource()));
+                    Proposal.NO_VALUE,
+                    _common.getTransport().getFD().dataForNode(myHandle.getLastCollect().getSource()),
+                    myHandle.getLastCollect().getSource()));
 
             _recoveryWindow.set(null);
             _cachedBegins.clear();
@@ -512,7 +514,9 @@ public class AcceptorLearner implements MessageProcessor {
                         //
                         _common.signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
                                 _leadershipState.getLeaderRndNum(),
-                                new Proposal(), aPacket.getSource()));
+                                new Proposal(),
+                                _common.getTransport().getFD().dataForNode(aPacket.getSource()),
+                                aPacket.getSource()));
                         return;
                     }
                 }
@@ -765,7 +769,9 @@ public class AcceptorLearner implements MessageProcessor {
 
                     _common.signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
                             _leadershipState.getLeaderRndNum(),
-                            Proposal.NO_VALUE, myNodeId));
+                            Proposal.NO_VALUE,
+                            _common.getTransport().getFD().dataForNode(myNodeId),
+                            myNodeId));
 
 					/*
 					 * If the collect comes from the current leader (has same rnd
@@ -924,7 +930,9 @@ public class AcceptorLearner implements MessageProcessor {
 
             _common.signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
                     _leadershipState.getLeaderRndNum(),
-                    myBegin.getConsolidatedValue(), aPacket.getSource()));
+                    myBegin.getConsolidatedValue(),
+                    _common.getTransport().getFD().dataForNode(aPacket.getSource()),
+                    aPacket.getSource()));
         }
     }
 

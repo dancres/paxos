@@ -178,7 +178,7 @@ public class Backend {
                             response.status(301);
                             
                             response.header("Location",
-                                    toHttp(_paxos.getMembership().getMemberMap().get(myOutcome.getLeader()).getData()));
+                                    toHttp(_paxos.getMembership().dataForNode(myOutcome.getLeader())));
 
                             return "";
                         }
@@ -248,8 +248,7 @@ public class Backend {
                     if (_outOfDate.compareAndSet(false, true)) {
                         try {
                             new Recovery(
-                                    toHttp(_paxos.getMembership().getMemberMap().get(anEvent.getLeader()).getData())
-                            ).start();
+                                    toHttp(anEvent.getLeaderId())).start();
                         } catch (Exception anE) {
                             _logger.error("Couldn't start recovery thread", anE);
                         }

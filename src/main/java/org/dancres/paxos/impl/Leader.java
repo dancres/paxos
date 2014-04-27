@@ -286,7 +286,8 @@ class Leader implements Instance {
         _outcomes.add(new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
                 myOldRound.getLastRound(), _prop, myCompetingNodeId));
         _common.signal(new StateEvent(StateEvent.Reason.NEW_LEADER, myOldRound.getSeqNum(), myOldRound.getLastRound(),
-                Proposal.NO_VALUE, myCompetingNodeId));
+                Proposal.NO_VALUE, _common.getTransport().getFD().dataForNode(myCompetingNodeId),
+                myCompetingNodeId));
 
         process(NO_MESSAGES);
     }
