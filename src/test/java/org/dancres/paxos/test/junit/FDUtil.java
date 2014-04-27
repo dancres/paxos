@@ -3,7 +3,6 @@ package org.dancres.paxos.test.junit;
 import org.dancres.paxos.FailureDetector;
 import org.junit.Assert;
 
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 

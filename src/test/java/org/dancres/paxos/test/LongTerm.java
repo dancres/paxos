@@ -11,7 +11,6 @@ import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.storage.MemoryLogStorage;
-import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
 import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;

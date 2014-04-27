@@ -3,7 +3,6 @@ package org.dancres.paxos.test.net;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

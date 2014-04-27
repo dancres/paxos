@@ -4,7 +4,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.dancres.paxos.*;
 import static org.dancres.paxos.CheckpointStorage.*;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.storage.DirectoryCheckpointStorage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.impl.net.Utils;
