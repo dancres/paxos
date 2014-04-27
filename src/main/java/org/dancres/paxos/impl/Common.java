@@ -10,8 +10,6 @@ import java.util.Timer;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 class Common {
-    private static final Logger _logger = LoggerFactory.getLogger(Common.class);
-
     private Transport _transport;
     private final Timer _watchdog = new Timer("Paxos timers");
     private final NodeState _nodeState = new NodeState();
