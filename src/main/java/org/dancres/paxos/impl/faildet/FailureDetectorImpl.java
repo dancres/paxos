@@ -290,11 +290,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     /**
-     * A snapshot of the membership at some point in time, updated by the <code>FailureDetectorImpl</code> over time.
-     * Note the snapshot only reduces in size, it cannot grow so as to allow correct behaviour in cases where
-     * majorities are required.
-     *
-     * @author dan
+     * A snapshot of the membership at some point in time.
      */
     class MembershipImpl implements Membership {
         /**
