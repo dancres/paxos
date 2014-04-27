@@ -268,6 +268,12 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         return new MembershipImpl(new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats));
     }
 
+    public byte[] dataForNode(InetSocketAddress anAddress) {
+        MetaDataImpl myMeta = _lastHeartbeats.get(anAddress);
+
+        return (myMeta != null) ? myMeta.getData() : null;
+    }
+
     public boolean isMember(InetSocketAddress anAddress) {
         return ((_pinned != null) && (_pinned.contains(anAddress)));
     }
@@ -315,6 +321,10 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         public boolean isMajority(Collection<InetSocketAddress> aListOfAddresses) {
             return ((_members.keySet().containsAll(aListOfAddresses)) &&
                     aListOfAddresses.size() >= _majority);
+        }
+
+        public byte[] dataForNode(InetSocketAddress anAddress) {
+            return _members.get(anAddress).getData();
         }
     }
 }

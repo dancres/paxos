@@ -19,4 +19,6 @@ public interface Membership {
     public boolean isMajority(Collection<InetSocketAddress> aListOfAddresses);
 
     public Map<InetSocketAddress, FailureDetector.MetaData> getMemberMap();
+
+    public byte[] dataForNode(InetSocketAddress anAddress);
 }

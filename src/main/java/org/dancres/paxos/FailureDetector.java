@@ -36,6 +36,13 @@ public interface FailureDetector {
     public Membership getMembers();
 
     /**
+     * @param anAddress is the Paxos node leader address
+     * @return the userdata associated with the passed address, if it is known (FD membership is volatile and an entry
+     * may be lost between getting the Paxos node leader address and the request for associated data).
+     */
+    public byte[] dataForNode(InetSocketAddress anAddress);
+
+    /**
      * @return the size of membership required for a majority
      */
     public int getMajority();
