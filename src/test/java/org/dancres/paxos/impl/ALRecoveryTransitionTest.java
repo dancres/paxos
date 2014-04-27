@@ -54,6 +54,10 @@ public class ALRecoveryTransitionTest {
             return null;
         }
 
+        public byte[] dataForNode(InetSocketAddress anAddress) {
+            return new byte[0];
+        }
+
         public int getMajority() {
             return 2;
         }
