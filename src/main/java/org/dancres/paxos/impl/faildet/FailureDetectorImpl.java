@@ -192,13 +192,8 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
                 Membership myMembership =
                         new MembershipImpl(new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats));
 
-                Iterator<FutureImpl> myFutures = _futures.iterator();
-
-                while (myFutures.hasNext()) {
-                    FutureImpl myFuture = myFutures.next();
-
+                for (FutureImpl myFuture : _futures)
                     myFuture.offer(myMembership);
-                }
             }
         }
     }
@@ -243,10 +238,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
             notifyListeners(State.PINNED);
         }
 
-        Iterator<InetSocketAddress> myCurrentMembers = _lastHeartbeats.keySet().iterator();
-        while (myCurrentMembers.hasNext()) {
-            InetSocketAddress myMember = myCurrentMembers.next();
-
+        for (InetSocketAddress myMember : _lastHeartbeats.keySet()) {
             if (! _pinned.contains(myMember))
                 _lastHeartbeats.remove(myMember);
         }
