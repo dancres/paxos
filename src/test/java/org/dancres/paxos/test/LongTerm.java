@@ -505,7 +505,7 @@ public class LongTerm {
         cycle(myClient, _env._maxCycles, _env._ckptCycle);
 
         if (_env._isLive) {
-            System.out.println("********** Transition to Settling **********");
+            _logger.info("********** Transition to Settling **********");
 
             _env.settle();
 
@@ -519,11 +519,11 @@ public class LongTerm {
         _env._factory.stop();
 
         if (_env._isLive) {
-            System.out.println("Total dropped packets was " + _env.getDropCount());
-            System.out.println("Total rx packets was " + _env.getRxCount());
-            System.out.println("Total tx packets was " + _env.getTxCount());
+            _logger.info("Total dropped packets was " + _env.getDropCount());
+            _logger.info("Total rx packets was " + _env.getRxCount());
+            _logger.info("Total tx packets was " + _env.getTxCount());
 
-            System.out.println("Required success cycles in settle was " + myProgressTarget +
+            _logger.info("Required success cycles in settle was " + myProgressTarget +
                     " actual was " + mySuccesses);
 
             if (! (mySuccesses > myProgressTarget))
@@ -583,7 +583,7 @@ public class LongTerm {
         Args myArgs = CliFactory.parseArguments(Args.class, anArgs);
 
         for (int myIterations = 0; myIterations < myArgs.getIterations(); myIterations++) {
-            System.out.println("Iteration: " + myIterations);
+            _logger.info("Iteration: " + myIterations);
 
             LongTerm myLT =
                     new LongTerm(myArgs.getSeed() + myIterations, myArgs.getCycles(),
@@ -596,15 +596,15 @@ public class LongTerm {
             double myDuration = (System.currentTimeMillis() - myStart) / 1000.0;
 
             if (myArgs.isCalibrate()) {
-                System.out.println("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
+                _logger.info("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
 
                 double myOpsPerSec = myArgs.getCycles() / myDuration;
                 double myOpsHour = myOpsPerSec * 60 * 60;
 
-                System.out.println("Calibration recommendation - ops/sec: " + myOpsPerSec +
+                _logger.info("Calibration recommendation - ops/sec: " + myOpsPerSec +
                         " iterations in an hour would be: " + myOpsHour);
             } else {
-                System.out.println("Run for " + (myArgs.getCycles() + myLT.getSettleCycles()) +
+                _logger.info("Run for " + (myArgs.getCycles() + myLT.getSettleCycles()) +
                         " cycles took " + myDuration + " seconds");
             }
         }
