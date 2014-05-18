@@ -28,7 +28,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Deque;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -65,6 +64,9 @@ public class LongTerm {
 
         @Option(defaultValue="200")
         int getCycles();
+
+        @Option(defaultValue="1")
+        int getIterations();
 
         @Option
         boolean isCalibrate();
@@ -580,27 +582,31 @@ public class LongTerm {
     public static void main(String[] anArgs) throws Exception {
         Args myArgs = CliFactory.parseArguments(Args.class, anArgs);
 
-        LongTerm myLT =
-                new LongTerm(myArgs.getSeed(), myArgs.getCycles(), myArgs.isCalibrate(), myArgs.getCkptCycle(),
-                        myArgs.isMemory());
+        for (int myIterations = 0; myIterations < myArgs.getIterations(); myIterations++) {
+            System.out.println("Iteration: " + myIterations);
 
-        long myStart = System.currentTimeMillis();
+            LongTerm myLT =
+                    new LongTerm(myArgs.getSeed() + myIterations, myArgs.getCycles(),
+                            myArgs.isCalibrate(), myArgs.getCkptCycle(), myArgs.isMemory());
 
-        myLT.run();
+            long myStart = System.currentTimeMillis();
 
-        double myDuration = (System.currentTimeMillis() - myStart) / 1000.0;
+            myLT.run();
 
-        if (myArgs.isCalibrate()) {
-            System.out.println("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
+            double myDuration = (System.currentTimeMillis() - myStart) / 1000.0;
 
-            double myOpsPerSec = myArgs.getCycles() / myDuration;
-            double myOpsHour = myOpsPerSec * 60 * 60;
+            if (myArgs.isCalibrate()) {
+                System.out.println("Run for " + myArgs.getCycles() + " cycles took " + myDuration + " seconds");
 
-            System.out.println("Calibration recommendation - ops/sec: " + myOpsPerSec +
-                    " iterations in an hour would be: " + myOpsHour);
-        } else {
-            System.out.println("Run for " + (myArgs.getCycles() + myLT.getSettleCycles()) +
-                    " cycles took " + myDuration + " seconds");
+                double myOpsPerSec = myArgs.getCycles() / myDuration;
+                double myOpsHour = myOpsPerSec * 60 * 60;
+
+                System.out.println("Calibration recommendation - ops/sec: " + myOpsPerSec +
+                        " iterations in an hour would be: " + myOpsHour);
+            } else {
+                System.out.println("Run for " + (myArgs.getCycles() + myLT.getSettleCycles()) +
+                        " cycles took " + myDuration + " seconds");
+            }
         }
     }
 }
