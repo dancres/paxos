@@ -2,8 +2,6 @@ package org.dancres.paxos.impl;
 
 import org.dancres.paxos.Listener;
 import org.dancres.paxos.StateEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Timer;
