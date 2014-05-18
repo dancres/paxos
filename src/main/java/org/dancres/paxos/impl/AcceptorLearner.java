@@ -453,6 +453,8 @@ public class AcceptorLearner implements MessageProcessor {
         return _lowWatermark.get();
     }
 
+    public long getLastSeq() { return _lowWatermark.get().getSeqNum(); }
+
     public long getLeaderRndNum() {
         return _leadershipState.getLeaderRndNum();
     }

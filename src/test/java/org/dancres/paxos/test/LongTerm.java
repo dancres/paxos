@@ -26,6 +26,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -84,6 +85,7 @@ public class LongTerm {
         long getDropCount();
         long getTxCount();
         long getRxCount();
+        long getLastSeq();
     }
 
     private static class Environment {
@@ -93,7 +95,7 @@ public class LongTerm {
         final long _settleCycles = 100;
         final long _ckptCycle;
         final Random _baseRng;
-        private final List<NodeAdmin> _nodes = new LinkedList<>();
+        private final Deque<NodeAdmin> _nodes = new LinkedList<>();
 
         NodeAdmin _currentLeader;
         final OrderedMemoryNetwork _factory;
@@ -127,7 +129,21 @@ public class LongTerm {
                 _factory.newTransport(myFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN));
             }
 
-            _currentLeader = _nodes.get(0);
+            _currentLeader = _nodes.getFirst();
+        }
+
+        boolean validate() {
+            // All AL's should be in sync post the stability phase of the test
+            //
+            Deque<NodeAdmin> myRest = new LinkedList<>(_nodes);
+            NodeAdmin myBase = myRest.removeFirst();
+
+            for (NodeAdmin myNA : myRest) {
+                if (myNA.getLastSeq() != myBase.getLastSeq())
+                    return false;
+            }
+
+            return true;
         }
 
         long getDropCount() {
@@ -351,6 +367,10 @@ public class LongTerm {
             return _decider.getRxPacketCount();
         }
 
+        public long getLastSeq() {
+            return _dispatcher.getAcceptorLearner().getLastSeq();
+        }
+
         /*
          * Create failure state machine at construction (passing in rng).
          *
@@ -506,6 +526,9 @@ public class LongTerm {
 
             if (! (mySuccesses > myProgressTarget))
                 throw new Exception("Failed to settle successfully");
+
+            if (! _env.validate())
+                throw new IllegalStateException("Paxos is not consistent");
         }
     }
 
