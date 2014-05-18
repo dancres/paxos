@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <li>Client sends a request to the server which is then sent to it's local leader.</li>
  * <li>Local leader will process the request and respond with success or failure.</li>
  * <li>Server acts upon the request and feeds back information to the client.</li>
+ * </ol>
  * <ul>
  * <li>If the local leader returns other_leader the server should probably send a message to the client which
  * redirects it to the server node housing the current leader. This can be effected by having each server
@@ -50,7 +51,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <li>The server is responsible for maintaining a list of active client requests and dispatching back to them
  * based on the responses from it's local leader and acceptorlearner.</li>
  * </ul>
- * </ol>
  */
 public class TransportImpl extends SimpleChannelHandler implements Transport {
 	private static final Logger _logger = LoggerFactory
@@ -81,7 +81,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     /**
      * Netty doesn't seem to like re-entrant behaviours so we need a thread pool
      *
-     * @todo Ought to be able to run this multi-threaded but AL is not ready for that yet
+     * TODO: Ought to be able to run this multi-threaded but AL is not ready for that yet
      */
     private final ExecutorService _packetDispatcher = Executors.newSingleThreadExecutor();
 

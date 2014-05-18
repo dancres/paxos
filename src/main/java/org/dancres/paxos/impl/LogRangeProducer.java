@@ -19,8 +19,8 @@ class LogRangeProducer implements LogStorage.RecordListener, Producer {
     private final Transport.PacketPickler _pickler;
 
     /**
-     * @param aLowerBoundSeq the sequence number above (>) which to stream records.
-     * @param aMaximumSeq the last sequence number in the range (<=) to stream.
+     * @param aLowerBoundSeq the sequence number above (&gt;) which to stream records.
+     * @param aMaximumSeq the last sequence number in the range (&lt;=) to stream.
      * @param aConsumer
      * @param aStorage
      */

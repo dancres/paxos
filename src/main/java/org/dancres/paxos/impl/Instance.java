@@ -16,7 +16,7 @@ public interface Instance {
      *
      * In EXIT a paxos instance was completed successfully, clean up is all that remains.
      *
-     * In ABORT a paxos instance failed for some reason (which will be found in </code>_outcome</code>).
+     * In ABORT a paxos instance failed for some reason (which will be found in <code>_outcome</code>).
      *
      * In SUBMITTED, Instance has been given a value and should attempt to complete a paxos instance.
      *

@@ -15,7 +15,7 @@ import java.util.concurrent.LinkedBlockingDeque;
  * to re-submit a request. This applies equally to handling conflicting values (that might occur as the result of a
  * need to drive a previous instance to completion as the result of LAST responses).
  *
- * @todo Add a test for validating retries on dropped packets in later leader states.
+ * TODO: Add a test for validating retries on dropped packets in later leader states.
  *
  * @author dan
  */
@@ -155,7 +155,7 @@ class Leader implements Instance {
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in LEARNED state
      * we expect ACCEPT or OLDROUND
      *
-     * @todo Shutdown needs sorting in the context of chained leaders (which can't happen whilst nextLeader
+     * TODO: Shutdown needs sorting in the context of chained leaders (which can't happen whilst nextLeader
      * is a blocking implementation).
      */
     private void process(List<Transport.Packet> aMessages) {
@@ -381,7 +381,7 @@ class Leader implements Instance {
      * Completion is for cleanup steps only. DO NOT ATTEMPT TO INITIATE FURTHER ROUNDS FROM WITHIN THIS CALLBACK AS
      * THEY WILL LIKELY DEADLOCK
      *
-     * @todo Remove the deadlocks (see method comment)
+     * TODO: Remove the deadlocks (see method comment)
      *
      * @param aValue is the value to attempt to agree upon
      */
@@ -420,7 +420,7 @@ class Leader implements Instance {
      * any future leader wading in will pick up our value. NOTE: This optimisation requires the membership impl to
      * understand the concept of minimum acceptable majority.
      *
-     * @todo Update OldRound handling - if we track all OldRounds and pick the highest by round and sequence number
+     * TODO: Update OldRound handling - if we track all OldRounds and pick the highest by round and sequence number
      * we can potentially accelerate recovery and reduce client disruption
      */
     void processMessage(Transport.Packet aPacket) {

@@ -49,7 +49,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
      * We stop allowing leaders in this process so as to avoid breaching the constraint where we can be sure we've
      * recorded an outcome at least locally.
      *
-     * @todo Allow concurrent leaders - this would also require modifications to the out-of-date detection used in
+     * TODO: Allow concurrent leaders - this would also require modifications to the out-of-date detection used in
      * AcceptorLearner.
      */
     private Leader newLeader() throws InactiveException {
@@ -106,7 +106,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
 
     /**
      *
-     * @todo Increment round number via heartbeats every so often to avoid jittering collects
+     * TODO: Increment round number via heartbeats every so often to avoid jittering collects
      */
     public void allConcluded() {
         if (_stateFactory.amLeader()) {

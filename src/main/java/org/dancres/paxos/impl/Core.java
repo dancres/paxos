@@ -118,7 +118,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     /**
-     * @todo Batching could be done here:
+     * TODO: Batching could be done here:
      *
      * <ol>
      *     <li>If first in (effected by atomic CAS on a boolean), atomic-queue proposal and then create a leader.</li>

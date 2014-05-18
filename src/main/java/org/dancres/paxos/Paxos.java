@@ -3,9 +3,9 @@ package org.dancres.paxos;
 /**
  * Service implementation notes:
  *
- * @todo Provide a helper utility to implement the leader selection policy for a client
+ * TODO: Provide a helper utility to implement the leader selection policy for a client
  *
- * @todo Implement the membership change instruction
+ * TODO: Implement the membership change instruction
  *
  * <p>Leader selection is a client-based element (or at least outside of the library). It is up to the client to decide
  * which leader to go to and it may be re-directed should that leader be aware of another leader. A failing leader
@@ -45,8 +45,8 @@ package org.dancres.paxos;
  *     <li>Invoke <code>newCheckpoint</code></li>
  *     <li>Obtain a checkpoint file via <code>CheckpointStorage.newCheckpoint</code></li>
  *     <li>Write current state to the checkpoint file along with the handle from <code>newCheckpoint</code></li>
- *     <li>Invoke <code></code>WriteCheckpoint.saved</code></li>
- *     <li>Invoke CheckpointHandle.saved</code></li>
+ *     <li>Invoke <code>WriteCheckpoint.saved</code></li>
+ *     <li>Invoke <code>CheckpointHandle.saved</code></li>
  * </ol>
  *
  * <p>The most recent checkpoint file would thus be obtained from another replica and a process similar to the following

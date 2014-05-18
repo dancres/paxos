@@ -4,7 +4,7 @@ import java.util.EnumSet;
 
 /**
  * Emitted by AL when it's looking for some paxos instances. Emitted on the initiation of recovery.
- * Actual range of instances required is _minSeq < i <= _maxSeq, where i is a single instance.
+ * Actual range of instances required is _minSeq &lt; i &lt;= _maxSeq, where i is a single instance.
  */
 public class Need implements PaxosMessage {
 	private final long _minSeq;

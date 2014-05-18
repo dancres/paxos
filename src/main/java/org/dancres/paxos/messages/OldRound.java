@@ -52,7 +52,7 @@ public class OldRound implements PaxosMessage, LeaderSelection {
      * OldRound always indicates a leader is not in charge regardless of sequence number, thus it needn't be attached to a
      * specific sequence number and thus OldRound can contain most recent successful sequence number not the original.
      * Note that two leaders at initial cluster start could attempt to use the same base round and thus it is necessary
-     * to test the _lastRound for = as well as >.
+     * to test the _lastRound for = as well as &gt;.
      */
     public boolean routeable(Instance anInstance) {
         return ((_lastRound >= anInstance.getRound()) &&
