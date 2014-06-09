@@ -154,9 +154,6 @@ class Leader implements Instance {
      * Do actions for the state we are now in.  Essentially, we're always one state ahead of the participants thus we
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in LEARNED state
      * we expect ACCEPT or OLDROUND
-     *
-     * TODO: Shutdown needs sorting in the context of chained leaders (which can't happen whilst nextLeader
-     * is a blocking implementation).
      */
     private void process(List<Transport.Packet> aMessages) {
         switch (_stateMachine.getCurrentState()) {
@@ -441,7 +438,7 @@ class Leader implements Instance {
 
             if (myMessage instanceof LeaderSelection) {
                 if (((LeaderSelection) myMessage).routeable(this)) {
-                    if (myMessage instanceof OldRound) {
+                    if (myMessage.getType() == PaxosMessage.Types.OLDROUND) {
                         oldRound(myMessage);
                     } else {
                         _messages.add(aPacket);
