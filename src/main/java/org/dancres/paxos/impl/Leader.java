@@ -216,6 +216,9 @@ class Leader implements Instance {
             }
 
             case BEGIN : {
+                if (goneBad(aMessages))
+                    return;
+
                 Transport.Packet myLast = null;
 
                 for(Transport.Packet p : aMessages) {
@@ -251,6 +254,9 @@ class Leader implements Instance {
             }
 
             case SUCCESS : {
+                if (goneBad(aMessages))
+                    return;
+
                 if (aMessages.size() >= _common.getTransport().getFD().getMajority()) {
                     // AL's monitor each other's accepts so auto-commit for themselves, no need to send a confirmation
                     //
@@ -266,6 +272,27 @@ class Leader implements Instance {
 
             default : throw new Error("Invalid state: " + _stateMachine.getCurrentState());
         }
+    }
+
+    private boolean goneBad(List<Transport.Packet> aMessages) {
+        OldRound myOld = null;
+
+        for (Transport.Packet aPacket : aMessages) {
+            PaxosMessage myMessage = aPacket.getMessage();
+
+            if (myMessage.getType() == PaxosMessage.Types.OLDROUND) {
+                OldRound myTempOld = (OldRound) myMessage;
+
+                if ((myOld == null) || (myTempOld.getLastRound() > myOld.getLastRound()))
+                    myOld = myTempOld;
+            }
+        }
+
+        if (myOld != null) {
+            oldRound(myOld);
+            return true;
+        } else
+            return false;
     }
 
     /**
@@ -416,9 +443,6 @@ class Leader implements Instance {
      * essence if we've progressed through enough phases to get a majority commit we can go ahead and set the value as
      * any future leader wading in will pick up our value. NOTE: This optimisation requires the membership impl to
      * understand the concept of minimum acceptable majority.
-     *
-     * TODO: Update OldRound handling - if we track all OldRounds and pick the highest by round and sequence number
-     * we can potentially accelerate recovery and reduce client disruption
      */
     void processMessage(Transport.Packet aPacket) {
         PaxosMessage myMessage = aPacket.getMessage();
@@ -438,26 +462,20 @@ class Leader implements Instance {
 
             if (myMessage instanceof LeaderSelection) {
                 if (((LeaderSelection) myMessage).routeable(this)) {
-                    if (myMessage.getType() == PaxosMessage.Types.OLDROUND) {
-                        oldRound(myMessage);
-                    } else {
-                        _messages.add(aPacket);
+                    _messages.add(aPacket);
 
-                        Set<InetSocketAddress> myRespondingAddresses = new HashSet<>();
+                    Set<InetSocketAddress> myRespondingAddresses = new HashSet<>();
 
-                        for (Transport.Packet myPacket : _messages)
-                            myRespondingAddresses.add(myPacket.getSource());
+                    for (Transport.Packet myPacket : _messages)
+                        myRespondingAddresses.add(myPacket.getSource());
 
-                        if (_membership.isMajority(myRespondingAddresses)) {
-                            cancelInteraction();
+                    if (_membership.isMajority(myRespondingAddresses)) {
+                        cancelInteraction();
 
-                            _tries = 0;
-                            process(_messages);
-                            _messages.clear();
-                        }
+                        _tries = 0;
+                        process(_messages);
+                        _messages.clear();
                     }
-
-                    return;
                 }
             } else {
                 _logger.trace(toString() + " Dropped message (didn't route) " + myMessage);
