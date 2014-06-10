@@ -214,11 +214,17 @@ public class LongTerm {
             //
             for (NodeAdmin myNA : _nodes) {
                 if (myNA.isOutOfDate())
-                    resolve(myNA);
+                    makeCurrent(myNA);
             }
         }
 
-        boolean resolve(NodeAdmin anAdmin) {
+        /**
+         * Bring the specified NodeAdmin up to date via another checkpoint if there is one available
+         *
+         * @param anAdmin
+         * @return <code>true</code> if the NodeAdmin was updated
+         */
+        boolean makeCurrent(NodeAdmin anAdmin) {
             for (NodeAdmin myNA : _nodes) {
                 if ((! myNA.isOutOfDate()) && (myNA.lastCheckpointTime() > anAdmin.lastCheckpointTime())) {
 
@@ -431,7 +437,7 @@ public class LongTerm {
                 case OUT_OF_DATE : {
                     // Seek an instant resolution and if it fails, flag it for later recovery
                     //
-                    if (! _env.resolve(this))
+                    if (! _env.makeCurrent(this))
                         _outOfDate.set(true);
 
                     break;
