@@ -149,6 +149,9 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     public void terminate() {
         guard();
 
+        _isStopping.set(true);
+
+
         if (_fd != null) {
             _hb.halt();
 
@@ -159,8 +162,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
             _fd.stop();
         }
-
-		_isStopping.set(true);
 
         _parent.destroy(this);
 
