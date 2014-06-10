@@ -415,6 +415,8 @@ public class AcceptorLearner implements MessageProcessor {
              * Out of date means that the existing log has no useful data within it implying it can be discarded.
              */
             if (_common.getNodeState().testAndSet(NodeState.State.OUT_OF_DATE, NodeState.State.ACTIVE)) {
+                _logger.debug(this + " restored to active");
+
                 installCheckpoint(myHandle);
 
                 // Write collect from our new checkpoint to log and use that as the starting point for replay.
@@ -423,7 +425,7 @@ public class AcceptorLearner implements MessageProcessor {
             }
 
             /*
-             * We do not want to allow a leader to immediately over-rule us, make it work a bit,
+             * We do not want to allow a leader to immediately over-rule current, make it work a bit,
              * otherwise we risk leader jitter. This ensures we get proper leader leasing as per
              * live packet processing.
              */
@@ -497,7 +499,7 @@ public class AcceptorLearner implements MessageProcessor {
                      * to that node using a LiveSender and a ReplayWriter.
                      */
                     case PaxosMessage.Types.NEED : {
-                        _logger.debug("Serving NEED from recovery " + aPacket);
+                        _logger.debug(AcceptorLearner.this.toString() + "Serving NEED from recovery " + aPacket);
 
                         process(aPacket, new ReplayWriter(0), new LiveSender());
 
@@ -509,6 +511,8 @@ public class AcceptorLearner implements MessageProcessor {
                     case PaxosMessage.Types.OUTOFDATE : {
                         synchronized(this) {
                             completedRecovery();
+                            _logger.warn(AcceptorLearner.this.toString() + "Moved to Out Of Date ");
+
                             _common.getNodeState().set(NodeState.State.OUT_OF_DATE);
                         }
 
@@ -526,6 +530,9 @@ public class AcceptorLearner implements MessageProcessor {
 
             final Writer myWriter = new LiveWriter();
             int myProcessed;
+
+            _logger.debug(toString() + " queuing " + aPacket.getSource() + ", " + myMessage +
+                    ", loWmk " + Long.toHexString(_lowWatermark.get().getSeqNum()));
 
             _sorter.add(aPacket);
 
@@ -702,7 +709,7 @@ public class AcceptorLearner implements MessageProcessor {
     }
 
     private void completedRecovery() {
-        _logger.debug(toString() + " Recovery complete");
+        _logger.debug(toString() + " Recovery complete: " + _common.getNodeState());
 
         TimerTask myAlarm = _recoveryAlarm.getAndSet(null);
         if (myAlarm != null) {
@@ -724,9 +731,6 @@ public class AcceptorLearner implements MessageProcessor {
 		InetSocketAddress myNodeId = aPacket.getSource();
 		long mySeqNum = myMessage.getSeqNum();
 
-		_logger.debug(toString() + " rxd " + myNodeId + " " + myMessage +
-                ", loWmk " + Long.toHexString(_lowWatermark.get().getSeqNum()));
-
 		switch (myMessage.getType()) {
             case PaxosMessage.Types.NEED : {
                 final Need myNeed = (Need) myMessage;
@@ -738,11 +742,13 @@ public class AcceptorLearner implements MessageProcessor {
                  * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
                  */
                 if (myNeed.getMinSeq() < _lastCheckpoint.get().getLowWatermark().getSeqNum()) {
+                    _logger.warn("Need is too old: " + myNeed + " from: " + myNodeId);
+
                     _common.getTransport().send(_common.getTransport().getPickler().newPacket(new OutOfDate()),
                             aPacket.getSource());
 
                 } else if (myNeed.getMaxSeq() <= _lowWatermark.get().getSeqNum()) {
-                    _logger.debug(toString() + " Running streamer");
+                    _logger.debug(toString() + " Running streamer -> " + myNodeId);
 
                     new RemoteStreamer(aPacket.getSource(), myNeed).start();
                 }
