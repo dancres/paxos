@@ -62,7 +62,10 @@ public interface FailureDetector {
     /**
      * Restrict membership to the specified set of members
      *
-     * @param aMembers which, if <code>null</code>, causes the FailureDetector to become unpinned.
+     * @param aMembers which, if <code>null</code>, causes the FailureDetector to become unpinned. When unpinned,
+     *                 no membership will be tracked/maintained and Paxos will not make progress. Note that a pinned
+     *                 membership is required to guarantee integrity although in some situations that constraint
+     *                 might be relaxed.
      */
     public void pin(Collection<InetSocketAddress> aMembers);
 
