@@ -26,9 +26,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -97,7 +96,7 @@ public class LongTerm {
         final long _settleCycles = 100;
         final long _ckptCycle;
         final Random _baseRng;
-        private final Deque<NodeAdmin> _nodes = new LinkedList<>();
+        private final Deque<NodeAdmin> _nodes = new ConcurrentLinkedDeque<>();
 
         NodeAdmin _currentLeader;
         final OrderedMemoryNetwork _factory;
@@ -183,6 +182,22 @@ public class LongTerm {
                 myNA.settle();
         }
 
+        void killAtRandom() {
+            ArrayList<NodeAdmin> myNodes = new ArrayList<>(_nodes);
+
+            // Avoid killing leader for now
+            //
+            myNodes.remove(_currentLeader);
+
+            int myIndex = _baseRng.nextInt(myNodes.size());
+            NodeAdmin myChoice = myNodes.get(myIndex);
+
+            _logger.info("Killing: " + myChoice);
+
+            _nodes.remove(myChoice);
+            myChoice.terminate();
+        }
+
         void terminate() {
             for (NodeAdmin myNA : _nodes)
                 myNA.terminate();
@@ -262,6 +277,7 @@ public class LongTerm {
     }
 
     private static class NodeAdminImpl implements NodeAdmin, Listener {
+        private static final AtomicLong _killCount = new AtomicLong(0);
         private final OrderedMemoryTransportImpl _transport;
         private final ServerDispatcher _dispatcher;
         private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
@@ -319,9 +335,11 @@ public class LongTerm {
                 _packetsTx.incrementAndGet();
 
                 if (! _isSettling.get()) {
-                    if (_rng.nextInt(100) < 2) {
+                    if (_rng.nextInt(101) < 2) {
                         _dropCount.incrementAndGet();
                         return false;
+                    } else {
+                        considerKill();
                     }
                 }
 
@@ -337,13 +355,21 @@ public class LongTerm {
                 _packetsRx.incrementAndGet();
 
                 if (! _isSettling.get()) {
-                    if (_rng.nextInt(100) < 2) {
+                    if (_rng.nextInt(101) < 2) {
                         _dropCount.incrementAndGet();
                         return false;
+                    } else {
+                        considerKill();
                     }
                 }
 
                 return true;
+            }
+
+            private void considerKill() {
+                if ((_killCount.get() != 1) && (_rng.nextInt(101) < 1) && (_killCount.compareAndSet(0, 1))) {
+                    _env.killAtRandom();
+                }
             }
 
             void settle() {
@@ -449,6 +475,10 @@ public class LongTerm {
                     break;
                 }
             }
+        }
+
+        public String toString() {
+            return "NodeAdmin: <" + _transport.getLocalAddress() + ">";
         }
     }
 
