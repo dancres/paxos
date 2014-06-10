@@ -648,6 +648,7 @@ public class AcceptorLearner implements MessageProcessor {
             if (! _past.equals(_lowWatermark.get())) {
                 _logger.debug(AcceptorLearner.this.toString() + " Recovery is progressing");
 
+                _recoveryAlarm.set(null);
                 reschedule();
             } else {
                 _logger.warn(AcceptorLearner.this.toString() + " Recovery is NOT progressing - terminate");
