@@ -6,6 +6,8 @@ import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.util.AbstractFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.*;
@@ -21,6 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * other messages sent by a node for a suitable period of time.
  */
 public class FailureDetectorImpl extends MessageBasedFailureDetector {
+    private static final Logger _logger = LoggerFactory.getLogger(FailureDetectorImpl.class);
+
     private static class ContainsAll<T> extends LinkedList<T> {
         public boolean contains(Object anObject) {
             return true;
@@ -78,6 +82,8 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
                 // No heartbeat since myMinTime means we assume dead
                 //
                 if (myTimeout < myMinTime) {
+                    _logger.debug("Dead node: " + myAddress);
+
                     myProcesses.remove();
                 }
             }
@@ -178,8 +184,11 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
                 if (myLast == null) {
                     if (_lastHeartbeats.putIfAbsent(myNodeId,
-                            new MetaDataImpl(System.currentTimeMillis(), myHeartbeat.getMetaData())) == null)
+                            new MetaDataImpl(System.currentTimeMillis(), myHeartbeat.getMetaData())) == null) {
+                        _logger.debug("Live node: " + myNodeId);
+
                         break;
+                    }
                 } else {
                     if (_lastHeartbeats.replace(myNodeId, myLast, new MetaDataImpl(System.currentTimeMillis(),
                             myHeartbeat.getMetaData())))
@@ -303,6 +312,10 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         }
 
         public boolean couldComplete() {
+            if (_members.size() < _majority) {
+                _logger.warn("No majority: " + _members);
+            }
+
             return (_members.size() >= _majority);
         }
 
