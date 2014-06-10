@@ -4,7 +4,6 @@ import org.dancres.paxos.impl.Core;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.netty.TransportImpl;
-import org.dancres.paxos.storage.MemoryLogStorage;
 
 public class PaxosFactory {
     /**
