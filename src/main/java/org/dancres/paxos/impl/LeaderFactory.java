@@ -8,7 +8,10 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.Map;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * <p>Each paxos instance is driven and represented by an individual instance of <code>Leader</code>.
@@ -22,14 +25,14 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
 
     private final Common _common;
     private ProposalAllocator _stateFactory;
-    private Leader _currentLeader;
     private final boolean _disableHeartbeats;
+    private final Map<Long, Leader> _activeLeaders = new ConcurrentHashMap<>();
 
     /**
      * This alarm is used to ensure the leader sends regular heartbeats in the face of inactivity so as to extend
      * its lease with AcceptorLearners.
      */
-    private TimerTask _heartbeatAlarm;
+    private AtomicReference<TimerTask> _heartbeatAlarm = new AtomicReference<>();
 
     LeaderFactory(Common aCommon, boolean isDisableHeartbeats) {
         _common = aCommon;
@@ -57,11 +60,9 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
                 (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)))
             throw new InactiveException();
 
-        synchronized (this) {
-            killHeartbeats();
+        killHeartbeats();
 
-            return newLeaderImpl();
-        }
+        return newLeaderImpl();
     }
 
     void submit(Proposal aValue, final Completion<VoteOutcome> aCompletion) throws InactiveException {
@@ -69,19 +70,16 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
             public void complete(Leader aLeader) {
                 _stateFactory.conclusion(aLeader, aLeader.getOutcomes().getLast());
                 aCompletion.complete(aLeader.getOutcomes().getFirst());
-
-                synchronized (LeaderFactory.this) {
-                    _currentLeader = null;
-                    LeaderFactory.this.notify();
-                }
+                _activeLeaders.remove(aLeader.getSeqNum());
             }
         });
     }
 
     private void killHeartbeats() {
-        if (_heartbeatAlarm != null) {
-            _heartbeatAlarm.cancel();
-            _heartbeatAlarm = null;
+        TimerTask myTask = _heartbeatAlarm.getAndSet(null);
+
+        if (myTask != null) {
+            myTask.cancel();
             _common.getWatchdog().purge();
         }
     }
@@ -94,17 +92,10 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
      * @return
      */
     private Leader newLeaderImpl() {
-        while (_currentLeader != null) {
-            try {
-                wait();
-            } catch (InterruptedException anIE) {
+        Leader myLeader = new Leader(_common, _stateFactory.nextInstance(0));
+        _activeLeaders.put(myLeader.getSeqNum(), myLeader);
 
-            }
-        }
-
-        _currentLeader = new Leader(_common, _stateFactory.nextInstance(0));
-
-        return _currentLeader;
+        return myLeader;
     }
 
     public void inFlight() {
@@ -119,7 +110,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
         if (_stateFactory.amLeader()) {
             // Still leader so heartbeat
             //
-            _heartbeatAlarm = new TimerTask() {
+            TimerTask myTask =  new TimerTask() {
                 public void run() {
                     _logger.trace(this + ": sending heartbeat: " + System.currentTimeMillis());
 
@@ -133,7 +124,11 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
                 }
             };
 
-            _common.getWatchdog().schedule(_heartbeatAlarm, calculateLeaderRefresh());
+            if (_heartbeatAlarm.compareAndSet(null, myTask)) {
+                _common.getWatchdog().schedule(myTask, calculateLeaderRefresh());
+            } else {
+                myTask.cancel();
+            }
         }
     }
 
@@ -160,12 +155,10 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     }
 
     public void shutdown() {
-        synchronized(this) {
-            killHeartbeats();
+        killHeartbeats();
 
-            if (_currentLeader != null)
-                _currentLeader.shutdown();
-        }
+        for (Leader myLeader : _activeLeaders.values())
+            myLeader.shutdown();
     }
 
     public boolean accepts(Transport.Packet aPacket) {
@@ -175,11 +168,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     public void processMessage(Transport.Packet aPacket) {
         _logger.trace("Got packet for leaders: " + aPacket.getSource() + "->" + aPacket.getMessage());
         
-        synchronized (this) {
-            _logger.trace("Routing packet to leader " + _currentLeader);
-
-            if (_currentLeader != null)
-                _currentLeader.processMessage(aPacket);
-        }
+        for (Leader myLeader : _activeLeaders.values())
+            myLeader.processMessage(aPacket);
     }
 }
