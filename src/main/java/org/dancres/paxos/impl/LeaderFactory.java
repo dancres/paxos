@@ -84,13 +84,6 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
         }
     }
 
-    /**
-     * TODO: Here is where we enforce a one leader at a time constraint. This perhaps should be done in the <code></code>ProposalAllocator</code>
-     * instead because that's also the place where we'll increases the number of concurrent instances, alongside the <code></code>PacketSorter</code> in
-     * <code>AcceptorLearner</code>. In fact, perhaps those two things (PA and PS) should share the max inflight information somehow?
-     *
-     * @return
-     */
     private Leader newLeaderImpl() {
         Leader myLeader = new Leader(_common, _stateFactory.nextInstance(0));
         _activeLeaders.put(myLeader.getSeqNum(), myLeader);
