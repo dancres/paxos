@@ -6,14 +6,12 @@ import java.net.InetSocketAddress;
 import java.util.*;
 
 class PacketSorter {
-    private static final int DEFAULT_MAX_INFLIGHT = 1;
-
     private final int _maxInflight;
 
     private SortedMap<Long, List<Transport.Packet>> _packets = new TreeMap<>();
 
     PacketSorter() {
-        this(DEFAULT_MAX_INFLIGHT);
+        this(Constants.DEFAULT_MAX_INFLIGHT);
     }
 
     PacketSorter(int aMaxInflight) {

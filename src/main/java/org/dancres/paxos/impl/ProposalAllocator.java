@@ -12,9 +12,7 @@ class ProposalAllocator {
         public void allConcluded();
     }
 
-    public static final int DEFAULT_MAX_INFLIGHT = 1;
-
-    private final long _maxInflight;
+    private final int _maxInflight;
 
     private long _nextRnd;
     private long _nextSeq;
@@ -24,7 +22,7 @@ class ProposalAllocator {
     private final Set<Listener> _listeners = new CopyOnWriteArraySet<>();
 
     ProposalAllocator(long aCurrentSeq, long aCurrentRnd) {
-        this(aCurrentSeq, aCurrentRnd, DEFAULT_MAX_INFLIGHT);
+        this(aCurrentSeq, aCurrentRnd, Constants.DEFAULT_MAX_INFLIGHT);
     }
 
     ProposalAllocator(long aCurrentSeq, long aCurrentRnd, int aMaxInflight) {
