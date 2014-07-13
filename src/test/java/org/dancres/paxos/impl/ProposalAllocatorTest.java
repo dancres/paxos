@@ -38,7 +38,9 @@ public class ProposalAllocatorTest {
 
     @Test
     public void listener() {
-        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
+        int myMaxInflight = 5;
+
+        ProposalAllocator myFactory = new ProposalAllocator(-1, 0, myMaxInflight);
         Listener myListener = new Listener();
 
         myFactory.add(myListener);
@@ -51,7 +53,7 @@ public class ProposalAllocatorTest {
 
         List<Instance> myInstances = new LinkedList<>();
 
-        for (int i = 0; i < (ProposalAllocator.MAX_INFLIGHT - 1); i++) {
+        for (int i = 0; i < (myMaxInflight - 1); i++) {
             myInstances.add(myFactory.nextInstance(1));
         }
 
@@ -66,7 +68,9 @@ public class ProposalAllocatorTest {
 
     @Test
     public void oneLeader() {
-        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
+        int myMaxInflight = 5;
+
+        ProposalAllocator myFactory = new ProposalAllocator(-1, 0, myMaxInflight);
 
         // Not yet a leader, so max of one in-flight instance applies (or should)
         Instance myFirstInstance = myFactory.nextInstance(1);
@@ -81,11 +85,11 @@ public class ProposalAllocatorTest {
 
         int myCount = 0;
 
-        while ((myFactory.nextInstance(1) != null) && (myCount <= ProposalAllocator.MAX_INFLIGHT))
+        while ((myFactory.nextInstance(1) != null) && (myCount <= myMaxInflight))
             myCount++;
 
         Assert.assertNull(myFactory.nextInstance(1));
-        Assert.assertEquals(ProposalAllocator.MAX_INFLIGHT, myCount);
+        Assert.assertEquals(myMaxInflight, myCount);
     }
 
     @Test
@@ -144,9 +148,9 @@ public class ProposalAllocatorTest {
     public void reuseSomeOnOtherLeader() {
         // This test can't run if inflight is too small
         //
-        Assert.assertTrue(ProposalAllocator.MAX_INFLIGHT >= 3);
+        int myMaxInflight = 5;
 
-        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator(-1, 0, myMaxInflight);
         Instance myInstance = myFactory.nextInstance(1);
 
         Assert.assertNotNull(myInstance);
@@ -158,7 +162,7 @@ public class ProposalAllocatorTest {
 
         List<Instance> myInstances = new LinkedList<>();
 
-        for (int i = 0; i < (ProposalAllocator.MAX_INFLIGHT - 1); i++) {
+        for (int i = 0; i < (myMaxInflight - 1); i++) {
             myInstances.add(myFactory.nextInstance(1));
         }
 

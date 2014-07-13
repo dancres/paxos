@@ -12,7 +12,9 @@ class ProposalAllocator {
         public void allConcluded();
     }
 
-    public static final int MAX_INFLIGHT = 5;
+    public static final int DEFAULT_MAX_INFLIGHT = 1;
+
+    private final long _maxInflight;
 
     private long _nextRnd;
     private long _nextSeq;
@@ -22,9 +24,14 @@ class ProposalAllocator {
     private final Set<Listener> _listeners = new CopyOnWriteArraySet<>();
 
     ProposalAllocator(long aCurrentSeq, long aCurrentRnd) {
+        this(aCurrentSeq, aCurrentRnd, DEFAULT_MAX_INFLIGHT);
+    }
+
+    ProposalAllocator(long aCurrentSeq, long aCurrentRnd, int aMaxInflight) {
         _nextSeq = aCurrentSeq;
         _nextRnd = aCurrentRnd + 1;
         _amLeader = false;
+        _maxInflight = aMaxInflight;
     }
 
     boolean amLeader() {
@@ -137,7 +144,7 @@ class ProposalAllocator {
                 return new NextInstance((_amLeader) ? Leader.State.BEGIN : Leader.State.COLLECT,
                         chooseNext(), _nextRnd);
             } else {
-                while (_inflight.size() >= MAX_INFLIGHT) {
+                while (_inflight.size() >= _maxInflight) {
                     long myPause = myExpiry - System.currentTimeMillis();
 
                     if (myPause < 1)
