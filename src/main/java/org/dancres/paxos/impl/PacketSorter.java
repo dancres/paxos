@@ -6,9 +6,19 @@ import java.net.InetSocketAddress;
 import java.util.*;
 
 class PacketSorter {
-    private static final long MAX_INFLIGHT = 1;
+    private static final int DEFAULT_MAX_INFLIGHT = 1;
+
+    private final int _maxInflight;
 
     private SortedMap<Long, List<Transport.Packet>> _packets = new TreeMap<>();
+
+    PacketSorter() {
+        this(DEFAULT_MAX_INFLIGHT);
+    }
+
+    PacketSorter(int aMaxInflight) {
+        _maxInflight = aMaxInflight;
+    }
 
     int numPackets() {
         int myTotal = 0;
@@ -60,7 +70,7 @@ class PacketSorter {
             SortedSet<Long> myAllSeqs = new TreeSet<>(_packets.keySet());
             Long myLastSeq = myAllSeqs.last();
 
-            if (myLastSeq > (aLowWatermark + MAX_INFLIGHT)) {
+            if (myLastSeq > (aLowWatermark + _maxInflight)) {
                 InetSocketAddress myTriggerAddr = _packets.get(myLastSeq).get(0).getSource();
 
                 if (aProcessor.recover(new Need(aLowWatermark, myAllSeqs.last() - 1), myTriggerAddr)) {
