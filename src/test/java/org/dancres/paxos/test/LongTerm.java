@@ -182,6 +182,10 @@ public class LongTerm {
                 myNA.settle();
         }
 
+        /**
+         * TODO: Have this method return necessary bits of state about the Node so it can be recovered if we desire
+         * (this probably amounts to it's id which is used to designate the filesystem location of its log files etc).
+         */
         void killAtRandom() {
             ArrayList<NodeAdmin> myNodes = new ArrayList<>(_nodes);
 
@@ -267,15 +271,6 @@ public class LongTerm {
 
     private final Environment _env;
 
-    private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
-                     boolean isMemory) throws Exception {
-        _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle, isMemory);
-    }
-
-    long getSettleCycles() {
-        return _env._settleCycles;
-    }
-
     private static class NodeAdminImpl implements NodeAdmin, Listener {
         private static final AtomicLong _killCount = new AtomicLong(0);
         private final OrderedMemoryTransportImpl _transport;
@@ -285,6 +280,18 @@ public class LongTerm {
         private final Environment _env;
         private final NetworkDecider _decider;
 
+        /**
+         * TODO: Remove the delete of directory done in here - this needs to be done on first time initialisation of
+         * LongTerm only. After that we don't do it, at least not in the case where we're simulating a machine that
+         * will recover. In the case of a failure, we should (these two cases suggest we should delete at point of
+         * failure if we've decided we're not recovering).
+         * @param aLocalAddr
+         * @param aBroadcastAddr
+         * @param aNetwork
+         * @param anFD
+         * @param aNodeNum
+         * @param anEnv
+         */
         NodeAdminImpl(InetSocketAddress aLocalAddr,
                       InetSocketAddress aBroadcastAddr,
                       OrderedMemoryNetwork aNetwork,
@@ -316,6 +323,12 @@ public class LongTerm {
             }
         }
 
+        /**
+         * TODO: This should schedule the recovery of a dead machine based on a certain
+         * number of iterations of the protocol so we can fence it to within the bounds
+         * of a single snapshot or let it cross, depending on the sophistication/challenge
+         * of testing we require.
+         */
         class NetworkDecider implements OrderedMemoryTransportImpl.RoutingDecisions {
             private final Random _rng;
             private AtomicBoolean _isSettling = new AtomicBoolean(false);
@@ -525,6 +538,15 @@ public class LongTerm {
         public long lastCheckpointTime() {
             return _checkpointTime.get();
         }
+    }
+
+    private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
+                     boolean isMemory) throws Exception {
+        _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle, isMemory);
+    }
+
+    long getSettleCycles() {
+        return _env._settleCycles;
     }
 
     private void run() throws Exception {
