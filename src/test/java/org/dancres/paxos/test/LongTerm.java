@@ -86,7 +86,13 @@ public class LongTerm {
         long getLastSeq();
     }
 
-    private static class Environment {
+    interface Environment {
+        Random getRng();
+        void killAtRandom();
+        boolean makeCurrent(NodeAdmin anAdmin);
+    }
+
+    private static class EnvironmentImpl implements Environment {
         final boolean _isStorage;
         final boolean _isLive;
         final long _maxCycles;
@@ -98,7 +104,7 @@ public class LongTerm {
         NodeAdmin _currentLeader;
         final OrderedMemoryNetwork _factory;
 
-        Environment(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
+        EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
             _ckptCycle = aCkptCycle;
             _isLive = ! doCalibrate;
             _maxCycles = aCycles;
@@ -107,18 +113,16 @@ public class LongTerm {
             _isStorage = ! inMemory;
 
             OrderedMemoryNetwork.Factory myFactory = new OrderedMemoryNetwork.Factory() {
-                private int _nextNodeNum = 0;
-
                 public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
                                                                                 InetSocketAddress aBroadcastAddr,
                                                                                 OrderedMemoryNetwork aNetwork,
                                                                                 MessageBasedFailureDetector anFD,
                                                                                 Object aContext) {
-                    NodeAdminImpl myTp = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _nextNodeNum,
-                            Environment.this);
+                    NodeAdminImpl myTp = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD,
+                            (NodeAdminImpl.Config) aContext,
+                            EnvironmentImpl.this);
 
                     _nodes.add(myTp);
-                    _nextNodeNum++;
 
                     return myTp.getTransport();
                 }
@@ -126,10 +130,14 @@ public class LongTerm {
 
             for (int i = 0; i < 5; i++) {
                 _factory.newTransport(myFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
-                        Utils.getTestAddress(), null);
+                        Utils.getTestAddress(), new NodeAdminImpl.Config(i, _isLive, _isStorage));
             }
 
             _currentLeader = _nodes.getFirst();
+        }
+
+        public Random getRng() {
+            return _baseRng;
         }
 
         boolean validate() {
@@ -186,7 +194,7 @@ public class LongTerm {
          * (this probably amounts to it's id which is used to designate the filesystem location of its log files etc.
          * Also need InetAddress).
          */
-        void killAtRandom() {
+        public void killAtRandom() {
             ArrayList<NodeAdmin> myNodes = new ArrayList<>(_nodes);
 
             // Avoid killing leader for now
@@ -243,7 +251,7 @@ public class LongTerm {
          * @param anAdmin
          * @return <code>true</code> if the NodeAdmin was updated
          */
-        boolean makeCurrent(NodeAdmin anAdmin) {
+        public boolean makeCurrent(NodeAdmin anAdmin) {
             for (NodeAdmin myNA : _nodes) {
                 if ((! myNA.isOutOfDate()) && (myNA.lastCheckpointTime() > anAdmin.lastCheckpointTime())) {
 
@@ -269,9 +277,22 @@ public class LongTerm {
         }
     }
 
-    private final Environment _env;
+    private final EnvironmentImpl _env;
 
     private static class NodeAdminImpl implements NodeAdmin, Listener {
+
+        private static class Config {
+            int _nodeNum;
+            boolean _isLive;
+            boolean _isStorage;
+
+            private Config(int aNodeNum, boolean isLive, boolean isStorage) {
+                _nodeNum = aNodeNum;
+                _isLive = isLive;
+                _isStorage = isStorage;
+            }
+        }
+
         private static final AtomicLong _killCount = new AtomicLong(0);
         private final OrderedMemoryTransportImpl _transport;
         private final ServerDispatcher _dispatcher;
@@ -289,28 +310,28 @@ public class LongTerm {
          * @param aBroadcastAddr
          * @param aNetwork
          * @param anFD
-         * @param aNodeNum
+         * @param aConfig
          * @param anEnv
          */
         NodeAdminImpl(InetSocketAddress aLocalAddr,
                       InetSocketAddress aBroadcastAddr,
                       OrderedMemoryNetwork aNetwork,
                       MessageBasedFailureDetector anFD,
-                      int aNodeNum,
+                      Config aConfig,
                       Environment anEnv) {
             _env = anEnv;
-            _decider = new NetworkDecider(new Random(_env._baseRng.nextLong()));
+            _decider = new NetworkDecider(new Random(_env.getRng().nextLong()));
 
-            if (! _env._isLive) {
+            if (! aConfig._isLive) {
                 _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD);
             } else {
                 _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _decider);
             }
 
-            FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs"));
+            FileSystem.deleteDirectory(new File(BASEDIR + "node" + Integer.toString(aConfig._nodeNum) + "logs"));
 
-            _dispatcher = (_env._isStorage) ?
-                    new ServerDispatcher(new HowlLogger(BASEDIR + "node" + Integer.toString(aNodeNum) + "logs")) :
+            _dispatcher = (aConfig._isStorage) ?
+                    new ServerDispatcher(new HowlLogger(BASEDIR + "node" + Integer.toString(aConfig._nodeNum) + "logs")) :
                     new ServerDispatcher(new MemoryLogStorage());
 
             _dispatcher.add(this);
@@ -542,7 +563,7 @@ public class LongTerm {
 
     private LongTerm(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
                      boolean isMemory) throws Exception {
-        _env = new Environment(aSeed, aCycles, doCalibrate, aCkptCycle, isMemory);
+        _env = new EnvironmentImpl(aSeed, aCycles, doCalibrate, aCkptCycle, isMemory);
     }
 
     long getSettleCycles() {
