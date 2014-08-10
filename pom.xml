@@ -98,7 +98,7 @@
               <argument>-classpath</argument>
               <classpath />
               <argument>
-                org.dancres.paxos.test.LongTerm
+                org.dancres.paxos.test.longterm.Main
               </argument>
               <argument>
                 --calibrate
@@ -130,7 +130,7 @@
               <argument>-classpath</argument>
               <classpath />
               <argument>
-                org.dancres.paxos.test.LongTerm
+                  org.dancres.paxos.test.longterm.Main
               </argument>
             </arguments>
           </configuration>
