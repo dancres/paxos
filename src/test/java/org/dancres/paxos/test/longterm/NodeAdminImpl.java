@@ -75,10 +75,11 @@ class NodeAdminImpl implements NodeAdmin, Listener {
 
 
     static class Config {
-        int _nodeNum;
-        boolean _isLive;
-        boolean _isStorage;
-        String _baseDir;
+        private int _nodeNum;
+        private boolean _isLive;
+        private boolean _isStorage;
+        private String _baseDir;
+        private final boolean _clean = true;
 
         Config(int aNodeNum, boolean isLive, boolean isStorage, String aBaseDir) {
             _nodeNum = aNodeNum;
@@ -97,10 +98,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     private final NetworkDecider _decider;
 
     /**
-     * TODO: Remove the delete of directory done in here - this needs to be done on first time initialisation of
-     * LongTerm only. After that we don't do it, at least not in the case where we're simulating a machine that
-     * will recover. In the case of a failure, we should (these two cases suggest we should delete at point of
-     * failure if we've decided we're not recovering).
      * @param aLocalAddr
      * @param aBroadcastAddr
      * @param aNetwork
@@ -123,7 +120,11 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _decider);
         }
 
-        FileSystem.deleteDirectory(new File(aConfig._baseDir + "node" + Integer.toString(aConfig._nodeNum) + "logs"));
+        if (aConfig._clean) {
+            _logger.info("Cleaning directory");
+
+            FileSystem.deleteDirectory(new File(aConfig._baseDir + "node" + Integer.toString(aConfig._nodeNum) + "logs"));
+        }
 
         _dispatcher = (aConfig._isStorage) ?
                 new ServerDispatcher(new HowlLogger(aConfig._baseDir + "node" + Integer.toString(aConfig._nodeNum) + "logs")) :
