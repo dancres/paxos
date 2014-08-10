@@ -184,7 +184,8 @@ public class LongTerm {
 
         /**
          * TODO: Have this method return necessary bits of state about the Node so it can be recovered if we desire
-         * (this probably amounts to it's id which is used to designate the filesystem location of its log files etc).
+         * (this probably amounts to it's id which is used to designate the filesystem location of its log files etc.
+         * Also need InetAddress).
          */
         void killAtRandom() {
             ArrayList<NodeAdmin> myNodes = new ArrayList<>(_nodes);
