@@ -103,6 +103,12 @@
               <argument>
                 --calibrate
               </argument>
+              <argument>
+                --memory
+              </argument>
+              <argument>
+                --cycles=100000
+              </argument>
             </arguments>
           </configuration>
         </plugin>
@@ -131,6 +137,9 @@
               <classpath />
               <argument>
                   org.dancres.paxos.test.longterm.Main
+              </argument>
+              <argument>
+                --iterations=10
               </argument>
             </arguments>
           </configuration>
