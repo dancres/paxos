@@ -11,10 +11,7 @@ import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.storage.MemoryLogStorage;
-import org.dancres.paxos.test.net.ClientDispatcher;
-import org.dancres.paxos.test.net.OrderedMemoryNetwork;
-import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
-import org.dancres.paxos.test.net.ServerDispatcher;
+import org.dancres.paxos.test.net.*;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
 
@@ -115,7 +112,8 @@ public class LongTerm {
                 public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
                                                                                 InetSocketAddress aBroadcastAddr,
                                                                                 OrderedMemoryNetwork aNetwork,
-                                                                                MessageBasedFailureDetector anFD) {
+                                                                                MessageBasedFailureDetector anFD,
+                                                                                Object aContext) {
                     NodeAdminImpl myTp = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _nextNodeNum,
                             Environment.this);
 
@@ -127,7 +125,8 @@ public class LongTerm {
             };
 
             for (int i = 0; i < 5; i++) {
-                _factory.newTransport(myFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN));
+                _factory.newTransport(myFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
+                        Utils.getTestAddress(), null);
             }
 
             _currentLeader = _nodes.getFirst();
@@ -557,7 +556,7 @@ public class LongTerm {
         long mySuccesses = 0;
 
         ClientDispatcher myClient = new ClientDispatcher();
-        Transport myTransport = _env._factory.newTransport(null, null);
+        Transport myTransport = _env._factory.newTransport(null, null, Utils.getTestAddress(), null);
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
