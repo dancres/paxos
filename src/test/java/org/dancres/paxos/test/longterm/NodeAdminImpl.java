@@ -96,6 +96,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     private final CheckpointHandling _checkpointer = new CheckpointHandling();
     private final Environment _env;
     private final NetworkDecider _decider;
+    private final Config _config;
 
     /**
      * @param aLocalAddr
@@ -111,6 +112,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
                   MessageBasedFailureDetector anFD,
                   Config aConfig,
                   Environment anEnv) {
+        _config = aConfig;
         _env = anEnv;
         _decider = new NetworkDecider(new Random(_env.getRng().nextLong()));
 
@@ -255,8 +257,21 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         _decider.settle();
     }
 
-    public void terminate() {
+    public Memento terminate() {
         _transport.terminate();
+
+        return new Memento() {
+            private final Config _cf = _config;
+            private final InetSocketAddress _ad = _transport.getLocalAddress();
+
+            public Object getContext() {
+                return _cf;
+            }
+
+            public InetSocketAddress getAddress() {
+                return _ad;
+            }
+        };
     }
 
     public OrderedMemoryNetwork.OrderedMemoryTransport getTransport() {
