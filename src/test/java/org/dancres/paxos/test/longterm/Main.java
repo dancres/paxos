@@ -242,6 +242,8 @@ public class Main {
                 }
             }
 
+            _logger.info("Not able to update: " + anAdmin);
+
             return false;
         }
     }
@@ -331,6 +333,8 @@ public class Main {
                 mySuccessCount++;
 
                 if (opsSinceCkpt >= aCkptCycle) {
+                    _logger.info("Issuing checkpoint");
+
                     _env.checkpoint();
 
                     opsSinceCkpt = 0;
