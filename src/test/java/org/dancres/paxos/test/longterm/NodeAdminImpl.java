@@ -21,9 +21,13 @@ import java.io.File;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 class NodeAdminImpl implements NodeAdmin, Listener {
     private static final Logger _logger = LoggerFactory.getLogger(NodeAdminImpl.class);
@@ -148,11 +152,39 @@ class NodeAdminImpl implements NodeAdmin, Listener {
      * of testing we require.
      */
     static class NetworkDecider implements OrderedMemoryTransportImpl.RoutingDecisions {
+        static class Grave {
+            private AtomicReference<Memento> _dna = new AtomicReference<>(null);
+            private AtomicLong _rebirthTime = new AtomicLong(0);
+
+            Grave(Memento aDna, long aRebirthTime) {
+                _dna.set(aDna);
+                _rebirthTime.set(aRebirthTime);
+            }
+
+            void awaken(Environment anEnv) {
+                Memento myDna = _dna.getAndSet(null);
+
+                if (myDna != null)
+                    anEnv.addNodeAdmin(myDna);
+            }
+
+            boolean reborn(Environment anEnv) {
+                if (_rebirthTime.decrementAndGet() == 0) {
+                    awaken(anEnv);
+
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
         private final Environment _env;
         private final Random _rng;
 
         private static final AtomicLong _killCount = new AtomicLong(0);
         private static final AtomicLong _deadCount = new AtomicLong(0);
+        private static final Deque<Grave> _graves = new ConcurrentLinkedDeque<>();
 
         private AtomicBoolean _isSettling = new AtomicBoolean(false);
         private AtomicLong _dropCount = new AtomicLong(0);
@@ -167,30 +199,34 @@ class NodeAdminImpl implements NodeAdmin, Listener {
 
         public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport,
                                       Transport.Packet aPacket) {
-            if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT))
-                return true;
-
             _packetsTx.incrementAndGet();
 
-            if (! _isSettling.get()) {
-                if (_rng.nextInt(101) < 2) {
-                    _dropCount.incrementAndGet();
-                    return false;
-                } else {
-                    considerKill();
-                }
-            }
-
-            return true;
+            return decide(aTransport, aPacket);
         }
 
         public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Transport.Packet aPacket) {
+            _packetsRx.incrementAndGet();
+
+            return decide(aTransport, aPacket);
+        }
+
+        private boolean decide(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Transport.Packet aPacket) {
+
             // Client isn't written to cope with failure handling
             //
             if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT))
                 return true;
 
-            _packetsRx.incrementAndGet();
+            Iterator<Grave> myGraves = _graves.iterator();
+
+            while (myGraves.hasNext()) {
+                Grave myGrave = myGraves.next();
+
+                if (myGrave.reborn(_env)) {
+                    _deadCount.decrementAndGet();
+                    _graves.remove();
+                }
+            }
 
             if (! _isSettling.get()) {
                 if (_rng.nextInt(101) < 2) {
@@ -210,8 +246,27 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             }
         }
 
+        private void considerTempDeath() {
+            long myDeadCount = _deadCount.get();
+
+            if ((myDeadCount < 3) && (_rng.nextInt(101) < 1) &&
+                    (_deadCount.compareAndSet(myDeadCount, myDeadCount + 1))) {
+
+                _graves.add(new Grave(_env.killAtRandom(), _rng.nextInt(100)));
+            }
+        }
+
         void settle() {
             _isSettling.set(true);
+
+            Iterator<Grave> myGraves = _graves.iterator();
+
+            while (myGraves.hasNext()) {
+                Grave myGrave = myGraves.next();
+
+                myGrave.awaken(_env);
+                _graves.remove();
+            }
         }
 
         long getDropCount() {
