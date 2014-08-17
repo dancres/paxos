@@ -89,7 +89,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         }
     }
 
-    private static final AtomicLong _killCount = new AtomicLong(0);
     private final OrderedMemoryTransportImpl _transport;
     private final ServerDispatcher _dispatcher;
     private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
@@ -114,7 +113,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
                   Environment anEnv) {
         _config = aConfig;
         _env = anEnv;
-        _decider = new NetworkDecider(new Random(_env.getRng().nextLong()));
+        _decider = new NetworkDecider(_env);
 
         if (! aConfig._isLive) {
             _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD);
@@ -148,15 +147,22 @@ class NodeAdminImpl implements NodeAdmin, Listener {
      * of a single snapshot or let it cross, depending on the sophistication/challenge
      * of testing we require.
      */
-    class NetworkDecider implements OrderedMemoryTransportImpl.RoutingDecisions {
+    static class NetworkDecider implements OrderedMemoryTransportImpl.RoutingDecisions {
+        private final Environment _env;
         private final Random _rng;
+
+        private static final AtomicLong _killCount = new AtomicLong(0);
+        private static final AtomicLong _deadCount = new AtomicLong(0);
+
         private AtomicBoolean _isSettling = new AtomicBoolean(false);
         private AtomicLong _dropCount = new AtomicLong(0);
         private AtomicLong _packetsTx = new AtomicLong(0);
         private AtomicLong _packetsRx = new AtomicLong(0);
 
-        NetworkDecider(Random aRandom) {
-            _rng = aRandom;
+        NetworkDecider(Environment anEnv) {
+            _env = anEnv;
+            _rng = new Random(_env.getRng().nextLong());
+
         }
 
         public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport,

@@ -72,6 +72,7 @@ public class Main {
 
         NodeAdmin _currentLeader;
         final OrderedMemoryNetwork _factory;
+        final OrderedMemoryNetwork.Factory _nodeFactory;
 
         EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
             _ckptCycle = aCkptCycle;
@@ -81,7 +82,7 @@ public class Main {
             _factory = new OrderedMemoryNetwork();
             _isStorage = ! inMemory;
 
-            OrderedMemoryNetwork.Factory myFactory = new OrderedMemoryNetwork.Factory() {
+            _nodeFactory = new OrderedMemoryNetwork.Factory() {
                 public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
                                                                                 InetSocketAddress aBroadcastAddr,
                                                                                 OrderedMemoryNetwork aNetwork,
@@ -98,11 +99,19 @@ public class Main {
             };
 
             for (int i = 0; i < 5; i++) {
-                _factory.newTransport(myFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
-                        Utils.getTestAddress(), new NodeAdminImpl.Config(i, _isLive, _isStorage, BASEDIR));
+                addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(i, _isLive, _isStorage, BASEDIR));
             }
 
             _currentLeader = _nodes.getFirst();
+        }
+
+        private void addNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
+            _factory.newTransport(_nodeFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
+                    anAddress, aConfig);
+        }
+
+        public void addNodeAdmin(NodeAdmin.Memento aMemento) {
+            addNodeAdmin(aMemento.getAddress(), (NodeAdminImpl.Config) aMemento.getContext());
         }
 
         public Random getRng() {
@@ -163,7 +172,7 @@ public class Main {
          * (this probably amounts to it's id which is used to designate the filesystem location of its log files etc.
          * Also need InetAddress).
          */
-        public void killAtRandom() {
+        public NodeAdmin.Memento killAtRandom() {
             ArrayList<NodeAdmin> myNodes = new ArrayList<>(_nodes);
 
             // Avoid killing leader for now
@@ -176,7 +185,7 @@ public class Main {
             _logger.info("Killing: " + myChoice);
 
             _nodes.remove(myChoice);
-            myChoice.terminate();
+            return myChoice.terminate();
         }
 
         void terminate() {
