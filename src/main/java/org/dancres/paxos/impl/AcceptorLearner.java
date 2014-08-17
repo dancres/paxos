@@ -296,6 +296,10 @@ public class AcceptorLearner implements MessageProcessor {
             /*
              * Allow for the fact we might be actively processing packets. Mark ourselves shutdown and drain...
              */
+            if (! _common.getNodeState().test(NodeState.State.ACTIVE)) {
+                _logger.warn(this + " not active at close: " + _common.getNodeState().toString());
+            }
+
             _common.getNodeState().set(NodeState.State.SHUTDOWN);
 
             _guardLock.lock();
@@ -366,8 +370,11 @@ public class AcceptorLearner implements MessageProcessor {
         do {
             myCurrent = _lastCheckpoint.get();
 
-            if (! aHandle.isNewerThan(myCurrent))
+            if (! aHandle.isNewerThan(myCurrent)) {
+                _logger.info(this + " checkpoint suggested is not new enough");
+
                 return false;
+            }
 
         } while (! _lastCheckpoint.compareAndSet(myCurrent, aHandle));
 
