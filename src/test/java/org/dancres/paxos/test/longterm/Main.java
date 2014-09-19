@@ -117,11 +117,27 @@ public class Main {
             addNodeAdmin(aMemento.getAddress(), (NodeAdminImpl.Config) aMemento.getContext());
         }
 
+        public long getSettleCycles() {
+            return _settleCycles;
+        }
+
+        public OrderedMemoryNetwork getFactory() {
+            return _factory;
+        }
+
+        public long getMaxCycles() {
+            return _maxCycles;
+        }
+
+        public boolean isLive() {
+            return _isLive;
+        }
+
         public Random getRng() {
             return _baseRng;
         }
 
-        boolean validate() {
+        public boolean validate() {
             // All AL's should be in sync post the stability phase of the test
             //
             Deque<NodeAdmin> myRest = new LinkedList<>(_nodes);
@@ -135,7 +151,11 @@ public class Main {
             return true;
         }
 
-        long getDropCount() {
+        public NodeAdmin getCurrentLeader() {
+            return _currentLeader;
+        }
+
+        public long getDropCount() {
             long myTotal = 0;
 
             for (NodeAdmin myNA: _nodes) {
@@ -145,7 +165,7 @@ public class Main {
             return myTotal;
         }
 
-        long getTxCount() {
+        public long getTxCount() {
             long myTotal = 0;
 
             for (NodeAdmin myNA: _nodes) {
@@ -155,7 +175,7 @@ public class Main {
             return myTotal;
         }
 
-        long getRxCount() {
+        public long getRxCount() {
             long myTotal = 0;
 
             for (NodeAdmin myNA: _nodes) {
@@ -165,7 +185,7 @@ public class Main {
             return myTotal;
         }
 
-        void settle() {
+        public void settle() {
             for (NodeAdmin myNA : _nodes)
                 myNA.settle();
         }
@@ -189,12 +209,14 @@ public class Main {
             return myChoice.terminate();
         }
 
-        void terminate() {
+        public void terminate() {
             for (NodeAdmin myNA : _nodes)
                 myNA.terminate();
+
+            _factory.stop();
         }
 
-        void updateLeader(InetSocketAddress anAddr) {
+        public void updateLeader(InetSocketAddress anAddr) {
             for (NodeAdmin myNA : _nodes) {
                 Transport myTp = myNA.getTransport();
 
@@ -270,7 +292,7 @@ public class Main {
         }
     }
 
-    private final EnvironmentImpl _env;
+    private final Environment _env;
 
     private Main(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
                  boolean isMemory) throws Exception {
@@ -278,37 +300,35 @@ public class Main {
     }
 
     long getSettleCycles() {
-        return _env._settleCycles;
+        return _env.getSettleCycles();
     }
 
     private void run() throws Exception {
         // We expect at least an 80% success rate post-settle
         //
-        long myProgressTarget = (long) (_env._settleCycles * 0.75);
+        long myProgressTarget = (long) (getSettleCycles() * 0.75);
         long mySuccesses = 0;
 
         ClientDispatcher myClient = new ClientDispatcher();
-        Transport myTransport = _env._factory.newTransport(null, null, Utils.getTestAddress(), null);
+        Transport myTransport = _env.getFactory().newTransport(null, null, Utils.getTestAddress(), null);
         myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
-        cycle(myClient, _env._maxCycles, _env._ckptCycle);
+        cycle(myClient, _env.getMaxCycles());
 
-        if (_env._isLive) {
+        if (_env.isLive()) {
             _logger.info("********** Transition to Settling **********");
 
             _env.settle();
 
-            mySuccesses = cycle(myClient, _env._settleCycles, _env._ckptCycle);
+            mySuccesses = cycle(myClient, getSettleCycles());
         }
 
         myTransport.terminate();
 
         _env.terminate();
 
-        _env._factory.stop();
-
-        if (_env._isLive) {
+        if (_env.isLive()) {
             _logger.info("Total dropped packets was " + _env.getDropCount());
             _logger.info("Total rx packets was " + _env.getRxCount());
             _logger.info("Total tx packets was " + _env.getTxCount());
@@ -327,7 +347,7 @@ public class Main {
     /**
      * @return number of successful cycles in the run
      */
-    private long cycle(ClientDispatcher aClient, long aCycles, long aCkptCycle) {
+    private long cycle(ClientDispatcher aClient, long aCycles) {
         long myOpCount = 0;
         long mySuccessCount = 0;
 
@@ -342,7 +362,7 @@ public class Main {
             Proposal myProposal = new Proposal("data", myBuffer.array());
 
             aClient.send(new Envelope(myProposal),
-                    _env._currentLeader.getTransport().getLocalAddress());
+                    _env.getCurrentLeader().getTransport().getLocalAddress());
 
             VoteOutcome myEv = aClient.getNext(10000);
 
