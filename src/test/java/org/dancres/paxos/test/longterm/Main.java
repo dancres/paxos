@@ -338,14 +338,14 @@ public class Main {
                 _env.updateLeader(myEv.getLeader());
             } else if (myEv.getResult() == VoteOutcome.Reason.VALUE) {
                 mySuccessCount++;
+            }
 
-                if (opsSinceCkpt >= aCkptCycle) {
-                    _logger.info("Issuing checkpoint");
+            if (opsSinceCkpt >= aCkptCycle) {
+                _logger.info("Issuing checkpoint");
 
-                    _env.checkpoint();
+                _env.checkpoint();
 
-                    opsSinceCkpt = 0;
-                }
+                opsSinceCkpt = 0;
             }
 
             // Round we go again
