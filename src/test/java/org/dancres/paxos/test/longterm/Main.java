@@ -17,6 +17,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Need a statistical failure model with varying probabilities for each thing within a tolerance / order
@@ -73,6 +74,8 @@ public class Main {
         NodeAdmin _currentLeader;
         final OrderedMemoryNetwork _factory;
         final OrderedMemoryNetwork.Factory _nodeFactory;
+
+        private AtomicLong _opsSinceCkpt = new AtomicLong(0);
 
         EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
             _ckptCycle = aCkptCycle;
@@ -202,7 +205,19 @@ public class Main {
             }
         }
 
-        public void checkpoint() {
+        public void doneOp() {
+            long myCount = _opsSinceCkpt.incrementAndGet();
+
+            if (myCount >= _ckptCycle) {
+                _logger.info("Issuing checkpoint");
+
+                checkpoint();
+
+                _opsSinceCkpt.compareAndSet(myCount, 0);
+            }
+        }
+
+        private void checkpoint() {
             for (NodeAdmin myNA : _nodes) {
                 try {
                     myNA.checkpoint();
@@ -313,7 +328,6 @@ public class Main {
      * @return number of successful cycles in the run
      */
     private long cycle(ClientDispatcher aClient, long aCycles, long aCkptCycle) {
-        long opsSinceCkpt = 0;
         long myOpCount = 0;
         long mySuccessCount = 0;
 
@@ -332,21 +346,13 @@ public class Main {
 
             VoteOutcome myEv = aClient.getNext(10000);
 
-            ++opsSinceCkpt;
-
             if (myEv.getResult() == VoteOutcome.Reason.OTHER_LEADER) {
                 _env.updateLeader(myEv.getLeader());
             } else if (myEv.getResult() == VoteOutcome.Reason.VALUE) {
                 mySuccessCount++;
             }
 
-            if (opsSinceCkpt >= aCkptCycle) {
-                _logger.info("Issuing checkpoint");
-
-                _env.checkpoint();
-
-                opsSinceCkpt = 0;
-            }
+            _env.doneOp();
 
             // Round we go again
             //
