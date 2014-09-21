@@ -356,8 +356,9 @@ public class Main {
      */
     private long cycle(ClientDispatcher aClient, long aCycles) {
         long mySuccessCount = 0;
+        long myEndCycles = _env.getDoneOps() + aCycles;
 
-        while (_env.getDoneOps() < aCycles) {
+        while (_env.getDoneOps() < myEndCycles) {
             /*
              * Perform a paxos vote - need to react to other leader messages but ignore all else - allows us to
              * cope with strategies that switch our leader to test out election and recover from them (assuming we
