@@ -1,5 +1,7 @@
 package org.dancres.paxos;
 
+import org.dancres.paxos.impl.Constants;
+
 import java.io.Serializable;
 
 /**
@@ -27,9 +29,15 @@ public abstract class CheckpointHandle implements Serializable {
                     //
                     return false;
                 }
+
+                public long getTimestamp() {
+                    return Constants.UNKNOWN_SEQ;
+                }
             };
 
     public abstract void saved() throws Exception;
     
     public abstract boolean isNewerThan(CheckpointHandle aHandle);
+
+    public abstract long getTimestamp();
 }

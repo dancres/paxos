@@ -169,6 +169,10 @@ public class AcceptorLearner implements MessageProcessor {
             }
         }
 
+        public long getTimestamp() {
+            return _lowWatermark.getSeqNum();
+        }
+
         Watermark getLowWatermark() {
             return _lowWatermark;
         }
