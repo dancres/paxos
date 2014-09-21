@@ -63,7 +63,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             myCkpt.saved();
             myHandle.saved();
 
-            _checkpointTime.set(System.currentTimeMillis());
+            _checkpointTime.set(myHandle.getTimestamp());
 
             assert(_ckptStorage.numFiles() == 1);
         }
