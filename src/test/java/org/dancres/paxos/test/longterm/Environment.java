@@ -39,4 +39,6 @@ public interface Environment {
     void updateLeader(InetSocketAddress anAddress);
 
     void doneOp();
+
+    long getDoneOps();
 }

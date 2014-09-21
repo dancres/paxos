@@ -76,6 +76,7 @@ public class Main {
         final OrderedMemoryNetwork.Factory _nodeFactory;
 
         private AtomicLong _opsSinceCkpt = new AtomicLong(0);
+        private AtomicLong _opCount = new AtomicLong(0);
 
         EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
             _ckptCycle = aCkptCycle;
@@ -227,7 +228,13 @@ public class Main {
             }
         }
 
+        public long getDoneOps() {
+            return _opCount.get();
+        }
+
         public void doneOp() {
+            _opCount.incrementAndGet();
+
             long myCount = _opsSinceCkpt.incrementAndGet();
 
             if (myCount >= _ckptCycle) {
@@ -348,17 +355,16 @@ public class Main {
      * @return number of successful cycles in the run
      */
     private long cycle(ClientDispatcher aClient, long aCycles) {
-        long myOpCount = 0;
         long mySuccessCount = 0;
 
-        while (myOpCount < aCycles) {
+        while (_env.getDoneOps() < aCycles) {
             /*
              * Perform a paxos vote - need to react to other leader messages but ignore all else - allows us to
              * cope with strategies that switch our leader to test out election and recover from them (assuming we
              * get the right response)
              */
             ByteBuffer myBuffer = ByteBuffer.allocate(8);
-            myBuffer.putLong(myOpCount);
+            myBuffer.putLong(_env.getDoneOps());
             Proposal myProposal = new Proposal("data", myBuffer.array());
 
             aClient.send(new Envelope(myProposal),
@@ -373,10 +379,6 @@ public class Main {
             }
 
             _env.doneOp();
-
-            // Round we go again
-            //
-            myOpCount++;
         }
 
         return mySuccessCount;
