@@ -17,6 +17,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -75,8 +76,9 @@ public class Main {
         final OrderedMemoryNetwork _factory;
         final OrderedMemoryNetwork.Factory _nodeFactory;
 
-        private AtomicLong _opsSinceCkpt = new AtomicLong(0);
-        private AtomicLong _opCount = new AtomicLong(0);
+        private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
+        private final AtomicLong _opCount = new AtomicLong(0);
+        private final AtomicBoolean _isSettling = new AtomicBoolean(false);
 
         EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
             _ckptCycle = aCkptCycle;
@@ -186,7 +188,13 @@ public class Main {
             return myTotal;
         }
 
+        public boolean isSettling() {
+            return _isSettling.get();
+        }
+
         public void settle() {
+            _isSettling.set(true);
+
             for (NodeAdmin myNA : _nodes)
                 myNA.settle();
         }
@@ -228,6 +236,10 @@ public class Main {
             }
         }
 
+        public long getNextCkptOp() {
+            return _opCount.get() - _opsSinceCkpt.get() + _ckptCycle;
+        }
+
         public long getDoneOps() {
             return _opCount.get();
         }
@@ -238,7 +250,7 @@ public class Main {
             long myCount = _opsSinceCkpt.incrementAndGet();
 
             if (myCount >= _ckptCycle) {
-                _logger.info("Issuing checkpoint");
+                _logger.info("Issuing checkpoint @ " + _opCount.get());
 
                 checkpoint();
 

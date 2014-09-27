@@ -91,6 +91,11 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             _isStorage = isStorage;
             _baseDir = aBaseDir;
         }
+
+        public String toString() {
+            return "Cfg -  NN:" + _nodeNum + ", LV:" + _isLive + ", ST:" + _isStorage + ", BD:" + _baseDir +
+                    ", CL:" + _clean;
+        }
     }
 
     private final OrderedMemoryTransportImpl _transport;
@@ -154,14 +159,16 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     static class NetworkDecider implements OrderedMemoryTransportImpl.RoutingDecisions {
         static class Grave {
             private AtomicReference<Memento> _dna = new AtomicReference<>(null);
-            private AtomicLong _rebirthTime = new AtomicLong(0);
+            private AtomicLong _deadCycles = new AtomicLong(0);
 
-            Grave(Memento aDna, long aRebirthTime) {
+            Grave(Memento aDna, long aDeadCycles) {
                 _dna.set(aDna);
-                _rebirthTime.set(aRebirthTime);
+                _deadCycles.set(aDeadCycles);
             }
 
             void awaken(Environment anEnv) {
+                _logger.info("Awaking from grave: " + _dna.get());
+
                 Memento myDna = _dna.getAndSet(null);
 
                 if (myDna != null)
@@ -169,7 +176,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             }
 
             boolean reborn(Environment anEnv) {
-                if (_rebirthTime.decrementAndGet() == 0) {
+                if (_deadCycles.decrementAndGet() == 0) {
                     awaken(anEnv);
 
                     return true;
@@ -186,7 +193,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         private static final AtomicLong _deadCount = new AtomicLong(0);
         private static final Deque<Grave> _graves = new ConcurrentLinkedDeque<>();
 
-        private AtomicBoolean _isSettling = new AtomicBoolean(false);
         private AtomicLong _dropCount = new AtomicLong(0);
         private AtomicLong _packetsTx = new AtomicLong(0);
         private AtomicLong _packetsRx = new AtomicLong(0);
@@ -228,12 +234,13 @@ class NodeAdminImpl implements NodeAdmin, Listener {
                 }
             }
 
-            if (! _isSettling.get()) {
+            if (! _env.isSettling()) {
                 if (_rng.nextInt(101) < 2) {
                     _dropCount.incrementAndGet();
                     return false;
                 } else {
-                    considerKill();
+                    // considerKill();
+                    considerTempDeath();
                 }
             }
 
@@ -249,16 +256,22 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         private void considerTempDeath() {
             long myDeadCount = _deadCount.get();
 
-            if ((myDeadCount < 3) && (_rng.nextInt(101) < 1) &&
+            if ((myDeadCount < 1) && (_rng.nextInt(101) < 1) &&
                     (_deadCount.compareAndSet(myDeadCount, myDeadCount + 1))) {
 
-                _graves.add(new Grave(_env.killAtRandom(), _rng.nextInt(100)));
+                int myRebirthPackets;
+
+                while ((myRebirthPackets = _rng.nextInt(100)) == 0);
+
+                Memento myMemento = _env.killAtRandom();
+
+                _logger.info("Grave would be dug for " + myMemento + " with return @ " + myRebirthPackets);
+
+                _graves.add(new Grave(myMemento, myRebirthPackets));
             }
         }
 
         void settle() {
-            _isSettling.set(true);
-
             Iterator<Grave> myGraves = _graves.iterator();
 
             while (myGraves.hasNext()) {
@@ -267,6 +280,9 @@ class NodeAdminImpl implements NodeAdmin, Listener {
                 myGrave.awaken(_env);
                 _graves.remove();
             }
+
+            _killCount.set(0);
+            _deadCount.set(0);
         }
 
         long getDropCount() {
@@ -331,6 +347,10 @@ class NodeAdminImpl implements NodeAdmin, Listener {
 
             public InetSocketAddress getAddress() {
                 return _ad;
+            }
+
+            public String toString() {
+                return "Memento: " + _cf + ", " + _ad;
             }
         };
     }

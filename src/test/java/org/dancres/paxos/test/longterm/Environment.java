@@ -41,4 +41,8 @@ public interface Environment {
     void doneOp();
 
     long getDoneOps();
+
+    long getNextCkptOp();
+
+    boolean isSettling();
 }
