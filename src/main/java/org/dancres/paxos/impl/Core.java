@@ -100,21 +100,18 @@ public class Core implements Transport.Dispatcher, Paxos {
 
         boolean didProcess = false;
 
-        try {
-
-            for (MessageProcessor myMP : _msgProcs) {
-                if (myMP.accepts(aPacket)) {
+        for (MessageProcessor myMP : _msgProcs) {
+            if (myMP.accepts(aPacket)) {
+                try {
                     myMP.processMessage(aPacket);
                     didProcess = true;
+                } catch (Throwable anE) {
+                    _logger.error(toString() + " Unexpected exception against " + aPacket, anE);
                 }
             }
-
-            return didProcess;
-
-        } catch (Throwable anE) {
-            _logger.error(toString() + " Unexpected exception", anE);
-            return false;
         }
+
+        return didProcess;
     }
 
     /**
