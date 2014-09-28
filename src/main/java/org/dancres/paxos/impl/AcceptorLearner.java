@@ -492,16 +492,29 @@ public class AcceptorLearner implements MessageProcessor {
             return;
 
         try {
-            // If we're not processing packets because we're out of date or because we're shutting down
-            //
-            if (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)) {
-                return;
-            }
-
             PaxosMessage myMessage = aPacket.getMessage();
             long mySeqNum = myMessage.getSeqNum();
 
-            if (_common.getNodeState().test(NodeState.State.RECOVERING)) {
+            // If we're not processing packets because we're out of date
+            //
+            if (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)) {
+                switch (myMessage.getType()) {
+                    /*
+                     * If the packet is a Need, we can process it for anything up to the last point of consistency
+                     * in our log. Need's are never saved to the log so can only be received from other nodes looking
+                     * to get themselves back up-to-date. This means there's no danger in us streaming loud and proud
+                     * to that node using a LiveSender and a ReplayWriter.
+                     */
+                    case PaxosMessage.Types.NEED: {
+                        _logger.debug(AcceptorLearner.this.toString() + "Serving NEED from recovery " + aPacket);
+
+                        process(aPacket, new ReplayWriter(0), new LiveSender());
+                        break;
+                    }
+                }
+
+                return;
+            } else if (_common.getNodeState().test(NodeState.State.RECOVERING)) {
                 switch (myMessage.getType()) {
                     /*
                      * If the packet is a Need, we can process it for anything up to the last point of consistency
