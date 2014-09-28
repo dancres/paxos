@@ -233,6 +233,9 @@ class NodeAdminImpl implements NodeAdmin, Listener {
 
                 if (myGrave.reborn(_env)) {
                     _deadCount.decrementAndGet();
+
+                    _logger.info("We're now " + _deadCount.get() + " nodes down");
+
                     _graves.remove();
                 }
             }
@@ -268,7 +271,8 @@ class NodeAdminImpl implements NodeAdmin, Listener {
 
                 Memento myMemento = _env.killAtRandom();
 
-                _logger.info("Grave would be dug for " + myMemento + " with return @ " + myRebirthPackets);
+                _logger.info("Grave dug for " + myMemento + " with return @ " + myRebirthPackets +
+                    " and we're " + (myDeadCount + 1) + " nodes down");
 
                 _graves.add(new Grave(myMemento, myRebirthPackets));
             }
