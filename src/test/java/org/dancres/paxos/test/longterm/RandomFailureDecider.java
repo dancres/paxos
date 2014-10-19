@@ -2,7 +2,6 @@ package org.dancres.paxos.test.longterm;
 
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.test.net.OrderedMemoryNetwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,20 +67,19 @@ class RandomFailureDecider implements Decider {
 
     }
 
-    public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport,
-                                  Transport.Packet aPacket) {
+    public boolean sendUnreliable(Transport.Packet aPacket) {
         _packetsTx.incrementAndGet();
 
-        return decide(aTransport, aPacket);
+        return decide(aPacket);
     }
 
-    public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Transport.Packet aPacket) {
+    public boolean receive(Transport.Packet aPacket) {
         _packetsRx.incrementAndGet();
 
-        return decide(aTransport, aPacket);
+        return decide(aPacket);
     }
 
-    private boolean decide(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Transport.Packet aPacket) {
+    private boolean decide(Transport.Packet aPacket) {
 
         // Client isn't written to cope with failure handling
         //

@@ -39,24 +39,14 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
          *
          * @return
          */
-        boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Packet aPacket);
+        boolean sendUnreliable(Packet aPacket);
 
         /**
          * Acceptable to receive a packet?
          *
          * @return
          */
-        boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Packet aPacket);
-    }
-
-    private static class NullRoutingDecisionsImpl implements RoutingDecisions {
-        public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Packet aPacket) {
-            return true;
-        }
-
-        public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Packet aPacket) {
-            return true;
-        }
+        boolean receive(Packet aPacket);
     }
 
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
@@ -77,7 +67,15 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
                                       OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD) {
-        this(aLocalAddr, aBroadAddr, aParent, anFD, new NullRoutingDecisionsImpl());
+        this(aLocalAddr, aBroadAddr, aParent, anFD, new RoutingDecisions() {
+            public boolean sendUnreliable(Packet aPacket) {
+                return true;
+            }
+
+            public boolean receive(Packet aPacket) {
+                return true;
+            }
+        });
     }
 
     public PacketPickler getPickler() {
@@ -113,7 +111,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 		guard();
 		
 		try {
-            if (_decisions.sendUnreliable(this, aPacket))
+            if (_decisions.sendUnreliable(aPacket))
 			    _parent.enqueue(aPacket, anAddr);
             else {
                 _logger.warn("OT [ " + getLocalAddress() + " ] dropped on txd: " + aPacket);
@@ -124,7 +122,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public void distribute(Transport.Packet aPacket) {
-        if (_decisions.receive(this, aPacket)) {
+        if (_decisions.receive(aPacket)) {
             if ((_fd != null) && (_fd.accepts(aPacket))) {
                 try {
                     _fd.processMessage(aPacket);
