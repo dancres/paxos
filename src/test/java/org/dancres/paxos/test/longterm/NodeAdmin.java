@@ -19,9 +19,5 @@ public interface NodeAdmin {
     boolean isOutOfDate();
     Memento terminate();
     boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt);
-    void settle();
-    long getDropCount();
-    long getTxCount();
-    long getRxCount();
     long getLastSeq();
 }

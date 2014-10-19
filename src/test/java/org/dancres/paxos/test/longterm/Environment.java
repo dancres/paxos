@@ -1,6 +1,7 @@
 package org.dancres.paxos.test.longterm;
 
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
+import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 
 import java.net.InetSocketAddress;
 import java.util.Random;
@@ -17,6 +18,8 @@ public interface Environment {
     long getSettleCycles();
 
     OrderedMemoryNetwork getFactory();
+
+    OrderedMemoryTransportImpl.RoutingDecisions getDecisionMaker();
 
     long getMaxCycles();
 

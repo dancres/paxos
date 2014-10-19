@@ -103,7 +103,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
     private final CheckpointHandling _checkpointer = new CheckpointHandling();
     private final Environment _env;
-    private final NetworkDecider _decider;
     private final Config _config;
 
     /**
@@ -124,13 +123,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
                   Environment anEnv) {
         _config = aConfig;
         _env = anEnv;
-        _decider = new NetworkDecider(_env);
-
-        if (! _config._isLive) {
-            _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD);
-        } else {
-            _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _decider);
-        }
+        _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _env.getDecisionMaker());
 
         if (_config._initialClean) {
             _logger.info("Cleaning directory");
@@ -153,169 +146,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         }
     }
 
-    /**
-     * TODO: This should schedule the recovery of a dead machine based on a certain
-     * number of iterations of the protocol so we can fence it to within the bounds
-     * of a single snapshot or let it cross, depending on the sophistication/challenge
-     * of testing we require.
-     */
-    static class NetworkDecider implements OrderedMemoryTransportImpl.RoutingDecisions {
-        static class Grave {
-            private AtomicReference<Memento> _dna = new AtomicReference<>(null);
-            private AtomicLong _deadCycles = new AtomicLong(0);
-
-            Grave(Memento aDna, long aDeadCycles) {
-                _dna.set(aDna);
-                _deadCycles.set(aDeadCycles);
-            }
-
-            void awaken(Environment anEnv) {
-                _logger.info("Awaking from grave: " + _dna.get());
-
-                Memento myDna = _dna.getAndSet(null);
-
-                if (myDna != null)
-                    anEnv.addNodeAdmin(myDna);
-            }
-
-            boolean reborn(Environment anEnv) {
-                if (_deadCycles.decrementAndGet() == 0) {
-                    awaken(anEnv);
-
-                    return true;
-                }
-
-                return false;
-            }
-        }
-
-        private final Environment _env;
-        private final Random _rng;
-
-        private static final AtomicLong _killCount = new AtomicLong(0);
-        private static final AtomicLong _deadCount = new AtomicLong(0);
-        private static final Deque<Grave> _graves = new ConcurrentLinkedDeque<>();
-
-        private AtomicLong _dropCount = new AtomicLong(0);
-        private AtomicLong _packetsTx = new AtomicLong(0);
-        private AtomicLong _packetsRx = new AtomicLong(0);
-
-        NetworkDecider(Environment anEnv) {
-            _env = anEnv;
-            _rng = new Random(_env.getRng().nextLong());
-
-        }
-
-        public boolean sendUnreliable(OrderedMemoryNetwork.OrderedMemoryTransport aTransport,
-                                      Transport.Packet aPacket) {
-            _packetsTx.incrementAndGet();
-
-            return decide(aTransport, aPacket);
-        }
-
-        public boolean receive(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Transport.Packet aPacket) {
-            _packetsRx.incrementAndGet();
-
-            return decide(aTransport, aPacket);
-        }
-
-        private boolean decide(OrderedMemoryNetwork.OrderedMemoryTransport aTransport, Transport.Packet aPacket) {
-
-            // Client isn't written to cope with failure handling
-            //
-            if (aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT))
-                return true;
-
-            Iterator<Grave> myGraves = _graves.iterator();
-
-            while (myGraves.hasNext()) {
-                Grave myGrave = myGraves.next();
-
-                if (myGrave.reborn(_env)) {
-                    _deadCount.decrementAndGet();
-
-                    _logger.info("We're now " + _deadCount.get() + " nodes down");
-
-                    _graves.remove();
-                }
-            }
-
-            if (! _env.isSettling()) {
-                if (_rng.nextInt(101) < 2) {
-                    _dropCount.incrementAndGet();
-                    return false;
-                } else {
-                    // considerKill();
-                    considerTempDeath();
-                }
-            }
-
-            return true;
-        }
-
-        private void considerKill() {
-            if ((_killCount.get() != 1) && (_rng.nextInt(101) < 1) && (_killCount.compareAndSet(0, 1))) {
-                _env.killAtRandom();
-            }
-        }
-
-        private void considerTempDeath() {
-            long myDeadCount = _deadCount.get();
-
-            if ((myDeadCount < 1) && (_rng.nextInt(101) < 1) &&
-                    (_deadCount.compareAndSet(myDeadCount, myDeadCount + 1))) {
-
-                int myRebirthPackets;
-
-                while ((myRebirthPackets = _rng.nextInt(100)) == 0);
-
-                Memento myMemento = _env.killAtRandom();
-
-                _logger.info("Grave dug for " + myMemento + " with return @ " + myRebirthPackets +
-                    " and we're " + (myDeadCount + 1) + " nodes down");
-
-                _graves.add(new Grave(myMemento, myRebirthPackets));
-            }
-        }
-
-        void settle() {
-            Iterator<Grave> myGraves = _graves.iterator();
-
-            while (myGraves.hasNext()) {
-                Grave myGrave = myGraves.next();
-
-                myGrave.awaken(_env);
-                _graves.remove();
-            }
-
-            _killCount.set(0);
-            _deadCount.set(0);
-        }
-
-        long getDropCount() {
-            return _dropCount.get();
-        }
-
-        long getRxPacketCount() {
-            return _packetsRx.get();
-        }
-
-        long getTxPacketCount() {
-            return _packetsTx.get();
-        }
-    }
-
-    public long getDropCount() {
-        return _decider.getDropCount();
-    }
-
-    public long getTxCount() {
-        return _decider.getTxPacketCount();
-    }
-
-    public long getRxCount() {
-        return _decider.getRxPacketCount();
-    }
 
     public long getLastSeq() {
         return _dispatcher.getAcceptorLearner().getLastSeq();
@@ -336,10 +166,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
          * to allow appropriate implementation of restore
          *
          */
-
-    public void settle() {
-        _decider.settle();
-    }
 
     public Memento terminate() {
         _transport.terminate();
