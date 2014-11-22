@@ -4,6 +4,7 @@ import org.dancres.paxos.CheckpointStorage;
 import org.dancres.paxos.impl.Transport;
 
 import java.net.InetSocketAddress;
+import java.util.Random;
 
 public interface NodeAdmin {
 
@@ -20,4 +21,5 @@ public interface NodeAdmin {
     Memento terminate();
     boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt);
     long getLastSeq();
+    Random getRngByName(String aName);
 }

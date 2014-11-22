@@ -24,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -104,6 +105,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     private final CheckpointHandling _checkpointer = new CheckpointHandling();
     private final Environment _env;
     private final Config _config;
+    private final ConcurrentHashMap<String, Random> _rngs = new ConcurrentHashMap<>();
 
     /**
      * TODO: Change the _initialClean reset to account for disk storage loss in later versions of the test
@@ -151,22 +153,36 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         return _dispatcher.getAcceptorLearner().getLastSeq();
     }
 
-        /*
-         * Create failure state machine at construction (passing in rng).
-         *
-         * Wedge each of distributed, send and connectTo to hit the state machine.
-         * State machine has listener and if it decides to trigger a failure it invokes
-         * on that listener so that appropriate implementation can be done.
-         *
-         * State machine returns type of fail or proceed to the caller. Caller
-         * can then determine what it should do (might be stop or continue or ...)
-         *
-         * State machine not only considers failures to inject but also sweeps it's current
-         * list of failures and if any have expired, invokes the listener appropriately
-         * to allow appropriate implementation of restore
-         *
-         */
+    public Random getRngByName(String aName) {
+        Random myRng = _rngs.get(aName);
 
+        if (myRng == null) {
+            myRng = new Random(_env.getRng().nextLong());
+
+            Random myTmpRng = _rngs.putIfAbsent(aName, myRng);
+
+            if (myTmpRng != null)
+                myRng = myTmpRng;
+        }
+
+        return myRng;
+    }
+
+    /*
+     * Create failure state machine at construction (passing in rng).
+     *
+     * Wedge each of distributed, send and connectTo to hit the state machine.
+     * State machine has listener and if it decides to trigger a failure it invokes
+     * on that listener so that appropriate implementation can be done.
+     *
+     * State machine returns type of fail or proceed to the caller. Caller
+     * can then determine what it should do (might be stop or continue or ...)
+     *
+     * State machine not only considers failures to inject but also sweeps it's current
+     * list of failures and if any have expired, invokes the listener appropriately
+     * to allow appropriate implementation of restore
+     *
+     */
     public Memento terminate() {
         _transport.terminate();
 
