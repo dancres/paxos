@@ -114,27 +114,39 @@ class RandomFailureDecider implements Decider {
     }
 
     private void considerKill() {
-        if ((_killCount.get() != 1) && (_rng.nextInt(101) < 1) && (_killCount.compareAndSet(0, 1))) {
-            _env.killAtRandom();
+        for (NodeAdmin myAdmin: _env.getNodes()) {
+            if ((myAdmin.getRngByName("PermDeath").nextInt(101) < 1) &&
+                    (_killCount.compareAndSet(0, 1))) {
+
+                if (_env.killSpecific(myAdmin) != null)
+                    _killCount.decrementAndGet();
+            }
         }
     }
 
+    /**
+     * @todo Update to allow temp death of more than one node in parallel.
+     */
     private void considerTempDeath() {
-        long myDeadCount = _deadCount.get();
+        for (NodeAdmin myAdmin: _env.getNodes()) {
+            if ((myAdmin.getRngByName("TmpDeath").nextInt(101) < 1) &&
+                (_deadCount.compareAndSet(0, 1))) {
 
-        if ((myDeadCount < 1) && (_rng.nextInt(101) < 1) &&
-                (_deadCount.compareAndSet(myDeadCount, myDeadCount + 1))) {
+                int myRebirthPackets;
 
-            int myRebirthPackets;
+                while ((myRebirthPackets = myAdmin.getRngByName("Rebirth").nextInt(100)) == 0);
 
-            while ((myRebirthPackets = _rng.nextInt(100)) == 0);
+                NodeAdmin.Memento myMemento = _env.killSpecific(myAdmin);
 
-            NodeAdmin.Memento myMemento = _env.killAtRandom();
+                if (myMemento != null) {
+                    _logger.info("Grave dug for " + myMemento + " with return @ " + myRebirthPackets +
+                            " and we're " + (_deadCount.get()) + " nodes down");
 
-            _logger.info("Grave dug for " + myMemento + " with return @ " + myRebirthPackets +
-                    " and we're " + (myDeadCount + 1) + " nodes down");
-
-            _graves.add(new Grave(myMemento, myRebirthPackets));
+                    _graves.add(new Grave(myMemento, myRebirthPackets));
+                } else {
+                    _deadCount.decrementAndGet();
+                }
+            }
         }
     }
 
