@@ -66,17 +66,17 @@ public class Main {
     }
 
     private static class EnvironmentImpl implements Environment {
-        final boolean _isStorage;
-        final boolean _isLive;
-        final long _maxCycles;
-        final long _settleCycles = 100;
-        final long _ckptCycle;
-        final Random _baseRng;
+        private final boolean _isStorage;
+        private final boolean _isLive;
+        private final long _maxCycles;
+        private final long _settleCycles = 100;
+        private final long _ckptCycle;
+        private final Random _baseRng;
         private final Deque<NodeAdmin> _nodes = new ConcurrentLinkedDeque<>();
 
-        NodeAdmin _currentLeader;
-        final OrderedMemoryNetwork _factory;
-        final OrderedMemoryNetwork.Factory _nodeFactory;
+        private NodeAdmin _currentLeader;
+        private final OrderedMemoryNetwork _factory;
+        private final OrderedMemoryNetwork.Factory _nodeFactory;
 
         private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
         private final AtomicLong _opCount = new AtomicLong(0);
