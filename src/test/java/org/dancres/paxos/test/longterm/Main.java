@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * Each of these will also have a typical time to fix. In essence we want an MTBF/MTRR model.
  *
- * @todo Implement failure model (might affect design for OUT_OF_DATE handling).
+ * TODO Implement failure model (might affect design for OUT_OF_DATE handling).
  */
 public class Main {
     private static final Logger _logger = LoggerFactory.getLogger(Main.class);
