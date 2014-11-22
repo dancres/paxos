@@ -157,7 +157,7 @@ public class Main {
          * TODO: Allow killing of current leader
          */
         public Deque<NodeAdmin> getNodes() {
-            Deque myNodes = new LinkedList(_nodes);
+            Deque<NodeAdmin> myNodes = new LinkedList<>(_nodes);
             myNodes.remove(_currentLeader);
 
             return myNodes;
