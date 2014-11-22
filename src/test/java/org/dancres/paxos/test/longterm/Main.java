@@ -153,6 +153,16 @@ public class Main {
             return _baseRng;
         }
 
+        /**
+         * TODO: Allow killing of current leader
+         */
+        public Deque<NodeAdmin> getNodes() {
+            Deque myNodes = new LinkedList(_nodes);
+            myNodes.remove(_currentLeader);
+
+            return myNodes;
+        }
+
         public boolean validate() {
             // All AL's should be in sync post the stability phase of the test
             //
@@ -192,23 +202,11 @@ public class Main {
             _decisionMaker.settle();
         }
 
-        /**
-         * TODO: Don't avoid killing the leader
-         */
-        public NodeAdmin.Memento killAtRandom() {
-            ArrayList<NodeAdmin> myNodes = new ArrayList<>(_nodes);
+        public NodeAdmin.Memento killSpecific(NodeAdmin anAdmin) {
+            _logger.info("Killing: " + anAdmin);
 
-            // Avoid killing leader for now
-            //
-            myNodes.remove(_currentLeader);
-
-            int myIndex = _baseRng.nextInt(myNodes.size());
-            NodeAdmin myChoice = myNodes.get(myIndex);
-
-            _logger.info("Killing: " + myChoice);
-
-            _nodes.remove(myChoice);
-            return myChoice.terminate();
+            _nodes.remove(anAdmin);
+            return anAdmin.terminate();
         }
 
         public void terminate() {
