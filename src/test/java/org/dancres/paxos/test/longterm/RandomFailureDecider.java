@@ -55,6 +55,7 @@ class RandomFailureDecider implements Decider {
 
     private final AtomicLong _killCount = new AtomicLong(0);
     private final AtomicLong _deadCount = new AtomicLong(0);
+    private final AtomicLong _totalTempDeaths = new AtomicLong(0);
     private final Deque<Grave> _graves = new ConcurrentLinkedDeque<>();
 
     private final AtomicLong _dropCount = new AtomicLong(0);
@@ -143,6 +144,7 @@ class RandomFailureDecider implements Decider {
                             " and we're " + (_deadCount.get()) + " nodes down");
 
                     _graves.add(new Grave(myMemento, myRebirthPackets));
+                    _totalTempDeaths.incrementAndGet();
                 } else {
                     _deadCount.decrementAndGet();
                 }
@@ -175,5 +177,7 @@ class RandomFailureDecider implements Decider {
     public long getTxPacketCount() {
         return _packetsTx.get();
     }
+
+    public long getTempDeathCount() { return _totalTempDeaths.get(); }
 }
 

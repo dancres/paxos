@@ -39,6 +39,8 @@ public interface Environment {
 
     long getTxCount();
 
+    long getTempDeathCount();
+
     boolean validate();
 
     NodeAdmin getCurrentLeader();

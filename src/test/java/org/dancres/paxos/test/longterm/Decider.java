@@ -9,5 +9,7 @@ interface Decider extends OrderedMemoryTransportImpl.RoutingDecisions {
 
     long getTxPacketCount();
 
+    long getTempDeathCount();
+
     void settle();
 };

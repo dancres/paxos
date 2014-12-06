@@ -193,6 +193,8 @@ public class Main {
             return _decisionMaker.getRxPacketCount();
         }
 
+        public long getTempDeathCount() { return _decisionMaker.getTempDeathCount(); }
+
         public boolean isSettling() {
             return _isSettling.get();
         }
@@ -341,6 +343,7 @@ public class Main {
         _logger.info("Total dropped packets was " + _env.getDropCount());
         _logger.info("Total rx packets was " + _env.getRxCount());
         _logger.info("Total tx packets was " + _env.getTxCount());
+        _logger.info("Total temp deaths were " + _env.getTempDeathCount());
 
         if (_env.isLive()) {
             _logger.info("Required success cycles in settle was " + myProgressTarget +

@@ -30,6 +30,10 @@ class PassiveDecider implements Decider {
         return _packetsTx.get();
     }
 
+    public long getTempDeathCount() {
+        return 0;
+    }
+
     public void settle() {
     }
 }
