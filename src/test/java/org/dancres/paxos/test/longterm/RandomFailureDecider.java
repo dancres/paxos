@@ -139,7 +139,7 @@ class RandomFailureDecider implements Decider {
                 NodeAdmin.Memento myMemento = _env.killSpecific(myAdmin);
 
                 if (myMemento != null) {
-                    _logger.info("Grave dug for " + myMemento + " with return @ " + myRebirthPackets +
+                    _logger.info("Grave dug for " + myMemento + " with return after " + myRebirthPackets +
                             " and we're " + (_deadCount.get()) + " nodes down");
 
                     _graves.add(new Grave(myMemento, myRebirthPackets));
