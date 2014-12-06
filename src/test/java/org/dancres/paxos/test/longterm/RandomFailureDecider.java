@@ -134,7 +134,7 @@ class RandomFailureDecider implements Decider {
 
                 int myRebirthPackets;
 
-                while ((myRebirthPackets = myAdmin.getRngByName("Rebirth").nextInt(100)) == 0);
+                while ((myRebirthPackets = myAdmin.getRngByName("Rebirth").nextInt(500)) == 0);
 
                 NodeAdmin.Memento myMemento = _env.killSpecific(myAdmin);
 
