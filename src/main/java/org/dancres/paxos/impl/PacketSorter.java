@@ -71,7 +71,7 @@ class PacketSorter {
             if (myLastSeq > (aLowWatermark + _maxInflight)) {
                 InetSocketAddress myTriggerAddr = _packets.get(myLastSeq).get(0).getSource();
 
-                if (aProcessor.recover(new Need(aLowWatermark, myAllSeqs.last() - 1), myTriggerAddr)) {
+                if (aProcessor.recover(new Need(aLowWatermark, myLastSeq - 1), myTriggerAddr)) {
                     synchronized(this) {
                         List<Transport.Packet> myLastPackets = _packets.get(myLastSeq);
 
