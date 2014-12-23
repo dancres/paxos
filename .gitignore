@@ -4,7 +4,7 @@ docs
 reports
 .DS_Store
 .diff
-*logs*
+*logs
 *.iml
 .idea/*
 scripts
