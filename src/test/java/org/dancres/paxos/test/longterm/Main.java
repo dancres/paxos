@@ -8,6 +8,7 @@ import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
+import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.*;
 
 import org.slf4j.Logger;
@@ -200,6 +201,7 @@ public class Main {
         public void settle() {
             _isSettling.set(true);
             _decisionMaker.settle();
+            stabilise();
         }
 
         public NodeAdmin.Memento killSpecific(NodeAdmin anAdmin) {
@@ -299,6 +301,19 @@ public class Main {
             _logger.info("Not able to update: " + anAdmin);
 
             return false;
+        }
+
+        private void stabilise() {
+            for (NodeAdmin myNA : _nodes) {
+                _logger.info("Stabilising on FD for: " + myNA);
+
+                try {
+                    FDUtil.testFD(myNA.getTransport().getFD());
+                } catch (Exception anE) {
+                    _logger.info("Failed to stabilise: ", anE);
+                    throw new IllegalStateException("No stability");
+                }
+            }
         }
     }
 
