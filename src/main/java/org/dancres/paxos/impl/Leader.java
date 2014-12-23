@@ -68,7 +68,7 @@ class Leader implements Instance {
      */
     private final Deque<VoteOutcome> _outcomes = new LinkedBlockingDeque<>();
 
-    private final List<Transport.Packet> _messages = new ArrayList<>();
+    private final Map<InetSocketAddress, Transport.Packet> _messages = new HashMap<>();
 
     private class StateMachine {
         private Map<State, Set<State>> _acceptableTransitions;
@@ -155,7 +155,7 @@ class Leader implements Instance {
      * process the result of a Collect in the BEGIN state which means we expect Last or OldRound and in LEARNED state
      * we expect ACCEPT or OLDROUND
      */
-    private void process(List<Transport.Packet> aMessages) {
+    private void process(Collection<Transport.Packet> aMessages) {
         switch (_stateMachine.getCurrentState()) {
             case SHUTDOWN : {
                 _logger.debug(toString() + " Shutdown");
@@ -274,7 +274,7 @@ class Leader implements Instance {
         }
     }
 
-    private boolean goneBad(List<Transport.Packet> aMessages) {
+    private boolean goneBad(Collection<Transport.Packet> aMessages) {
         OldRound myOld = null;
 
         for (Transport.Packet aPacket : aMessages) {
@@ -376,7 +376,7 @@ class Leader implements Instance {
 
                     if (_tries < MAX_TRIES) {
                         cancelInteraction();
-                        process(_messages);
+                        process(_messages.values());
                         _messages.clear();
                     } else {
                         error(VoteOutcome.Reason.VOTE_TIMEOUT);
@@ -462,18 +462,13 @@ class Leader implements Instance {
 
             if (myMessage instanceof LeaderSelection) {
                 if (((LeaderSelection) myMessage).routeable(this)) {
-                    _messages.add(aPacket);
+                    _messages.put(aPacket.getSource(), aPacket);
 
-                    Set<InetSocketAddress> myRespondingAddresses = new HashSet<>();
-
-                    for (Transport.Packet myPacket : _messages)
-                        myRespondingAddresses.add(myPacket.getSource());
-
-                    if (_membership.isMajority(myRespondingAddresses)) {
+                    if (_membership.isMajority(_messages.keySet())) {
                         cancelInteraction();
 
                         _tries = 0;
-                        process(_messages);
+                        process(_messages.values());
                         _messages.clear();
                     }
                 }
