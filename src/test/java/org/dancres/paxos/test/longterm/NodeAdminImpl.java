@@ -81,17 +81,15 @@ class NodeAdminImpl implements NodeAdmin, Listener {
 
     static class Config {
         private int _nodeNum;
-        private boolean _isLive;
         private LogStorageFactory _loggerFactory;
 
-        Config(int aNodeNum, boolean isLive, LogStorageFactory aLoggerFactory) {
+        Config(int aNodeNum, LogStorageFactory aLoggerFactory) {
             _nodeNum = aNodeNum;
-            _isLive = isLive;
             _loggerFactory = aLoggerFactory;
         }
 
         public String toString() {
-            return "Cfg -  NN: " + _nodeNum + ", LV: " + _isLive + ", ST: " + _loggerFactory.toString();
+            return "Cfg -  NN: " + _nodeNum + ", ST: " + _loggerFactory.toString();
         }
     }
 

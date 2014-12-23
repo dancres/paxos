@@ -115,7 +115,7 @@ public class Main {
                 LogStorageFactory myFactory = (_isStorage) ? new HowlLoggerFactory(BASEDIR, i) :
                         new MemoryLoggerFactory();
 
-                addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(i, _isLive, myFactory));
+                addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(i, myFactory));
             }
 
             _currentLeader = _nodes.getFirst();
