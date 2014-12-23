@@ -980,7 +980,7 @@ public class AcceptorLearner implements MessageProcessor {
         AcceptLedger myAccepts = _acceptLedgers.get(mySeqNum);
 
         if (myAccepts == null) {
-            AcceptLedger myInitial = new AcceptLedger(mySeqNum);
+            AcceptLedger myInitial = new AcceptLedger(toString(), mySeqNum);
             AcceptLedger myResult = _acceptLedgers.put(mySeqNum, myInitial);
 
             myAccepts = ((myResult == null) ? myInitial : myResult);

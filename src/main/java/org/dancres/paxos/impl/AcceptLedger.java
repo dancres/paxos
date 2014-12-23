@@ -15,9 +15,11 @@ class AcceptLedger {
 
     private Set<Transport.Packet> _ledger = new HashSet<>();
     private final long _seqNum;
+    private final String _alId;
 
-    AcceptLedger(long aSeqNum) {
+    AcceptLedger(String anALId, long aSeqNum) {
         _seqNum = aSeqNum;
+        _alId = anALId;
     }
 
     void add(Transport.Packet aPacket) {
@@ -69,7 +71,7 @@ class AcceptLedger {
                     ++myAcceptTally;
 
             if (myAcceptTally >= aMajority) {
-                _logger.debug("Accepted on set " + _ledger + " with majority " + aMajority);
+                _logger.debug(_alId + ": Accepted on set " + _ledger + " with majority " + aMajority);
 
                 return new Learned(aBegin.getSeqNum(), aBegin.getRndNumber());
             } else

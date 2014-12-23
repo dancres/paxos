@@ -10,7 +10,7 @@ import org.junit.Test;
 public class AcceptLedgerTest {
     @Test
     public void breakLedger() throws Exception {
-        AcceptLedger myAL = new AcceptLedger(1);
+        AcceptLedger myAL = new AcceptLedger("Test", 1);
 
         myAL.add(new FakePacket(new Accept(1, 2)));
         myAL.add(new FakePacket(new Accept(1, 2)));
