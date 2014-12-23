@@ -9,6 +9,7 @@ import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.net.*;
 
 import org.slf4j.Logger;
@@ -92,10 +93,7 @@ public class Main {
             _factory = new OrderedMemoryNetwork();
             _isStorage = ! inMemory;
 
-            if (_isLive)
-                _decisionMaker = new RandomFailureDecider(this);
-            else
-                _decisionMaker = new PassiveDecider();
+            _decisionMaker = (_isLive) ? new RandomFailureDecider(this) : new PassiveDecider();
 
             _nodeFactory = new OrderedMemoryNetwork.Factory() {
                 public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
@@ -114,7 +112,10 @@ public class Main {
             };
 
             for (int i = 0; i < 5; i++) {
-                addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(i, _isLive, _isStorage, BASEDIR));
+                LogStorageFactory myFactory = (_isStorage) ? new HowlLoggerFactory(BASEDIR, i) :
+                        new MemoryLoggerFactory();
+
+                addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(i, _isLive, myFactory));
             }
 
             _currentLeader = _nodes.getFirst();

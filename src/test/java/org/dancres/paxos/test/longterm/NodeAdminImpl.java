@@ -82,20 +82,16 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     static class Config {
         private int _nodeNum;
         private boolean _isLive;
-        private boolean _isStorage;
-        private String _baseDir;
-        private boolean _initialClean = true;
+        private LogStorageFactory _loggerFactory;
 
-        Config(int aNodeNum, boolean isLive, boolean isStorage, String aBaseDir) {
+        Config(int aNodeNum, boolean isLive, LogStorageFactory aLoggerFactory) {
             _nodeNum = aNodeNum;
             _isLive = isLive;
-            _isStorage = isStorage;
-            _baseDir = aBaseDir;
+            _loggerFactory = aLoggerFactory;
         }
 
         public String toString() {
-            return "Cfg -  NN:" + _nodeNum + ", LV:" + _isLive + ", ST:" + _isStorage + ", BD:" + _baseDir +
-                    ", CL:" + _initialClean;
+            return "Cfg -  NN: " + _nodeNum + ", LV: " + _isLive + ", ST: " + _loggerFactory.toString();
         }
     }
 
@@ -107,16 +103,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     private final Config _config;
     private final ConcurrentHashMap<String, Random> _rngs = new ConcurrentHashMap<>();
 
-    /**
-     * TODO: Change the _initialClean reset to account for disk storage loss in later versions of the test
-     *
-     * @param aLocalAddr
-     * @param aBroadcastAddr
-     * @param aNetwork
-     * @param anFD
-     * @param aConfig
-     * @param anEnv
-     */
     NodeAdminImpl(InetSocketAddress aLocalAddr,
                   InetSocketAddress aBroadcastAddr,
                   OrderedMemoryNetwork aNetwork,
@@ -127,17 +113,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         _env = anEnv;
         _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _env.getDecisionMaker());
 
-        if (_config._initialClean) {
-            _logger.info("Cleaning directory");
-
-            FileSystem.deleteDirectory(new File(_config._baseDir + "node" + Integer.toString(_config._nodeNum) + "logs"));
-            _config._initialClean = false;
-        }
-
-        _dispatcher = (_config._isStorage) ?
-                new ServerDispatcher(new HowlLogger(_config._baseDir + "node" + Integer.toString(_config._nodeNum) + "logs")) :
-                new ServerDispatcher(new MemoryLogStorage());
-
+        _dispatcher = new ServerDispatcher(_config._loggerFactory.getLogger());
         _dispatcher.add(this);
 
         try {
