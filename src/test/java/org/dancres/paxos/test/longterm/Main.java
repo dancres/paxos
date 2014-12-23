@@ -8,8 +8,6 @@ import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
-import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.net.*;
 
 import org.slf4j.Logger;
@@ -21,7 +19,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Need a statistical failure model with varying probabilities for each thing within a tolerance / order
