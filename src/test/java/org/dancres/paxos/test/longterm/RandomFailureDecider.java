@@ -5,6 +5,7 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.Random;
@@ -107,7 +108,7 @@ class RandomFailureDecider implements Decider {
                 return false;
             } else {
                 // considerKill();
-                considerTempDeath();
+                considerTempDeath(aPacket.getSource());
             }
         }
 
@@ -128,10 +129,11 @@ class RandomFailureDecider implements Decider {
     /**
      * @todo Update to allow temp death of more than one node in parallel.
      */
-    private void considerTempDeath() {
+    private void considerTempDeath(InetSocketAddress aSource) {
         for (NodeAdmin myAdmin: _env.getNodes()) {
             if ((myAdmin.getRngByName("TmpDeath").nextInt(101) < 1) &&
-                (_deadCount.compareAndSet(0, 1))) {
+                    (! myAdmin.getTransport().getLocalAddress().equals(aSource)) &&
+                    (_deadCount.compareAndSet(0, 1))) {
 
                 int myRebirthPackets;
 
