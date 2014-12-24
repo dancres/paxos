@@ -21,8 +21,8 @@ class PacketSorter {
     int numPackets() {
         int myTotal = 0;
 
-        for (Long myS : _packets.keySet())
-            myTotal += _packets.get(myS).size();
+        for (List<Transport.Packet> myPs : _packets.values())
+            myTotal += myPs.size();
 
         return myTotal;
     }
