@@ -50,7 +50,7 @@ public class ALRecoveryTransitionTest {
             return true;
         }
 
-        public Membership getMembers() {
+        public Assembly getMembers() {
             return null;
         }
 
@@ -62,11 +62,11 @@ public class ALRecoveryTransitionTest {
             return 2;
         }
 
-        public Future<Membership> barrier() {
+        public Future<Assembly> barrier() {
             return null;
         }
 
-        public Future<Membership> barrier(int aRequired) {
+        public Future<Assembly> barrier(int aRequired) {
             return null;
         }
 

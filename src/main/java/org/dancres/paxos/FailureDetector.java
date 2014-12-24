@@ -32,7 +32,7 @@ public interface FailureDetector {
 
     public boolean isMember(InetSocketAddress anAddress);
 
-    public Membership getMembers();
+    public Assembly getMembers();
 
     /**
      * @param anAddress is the Paxos node leader address
@@ -50,14 +50,14 @@ public interface FailureDetector {
      * @return A <code>Future</code> that will return a <code>Membership</code> snapshot when the
      * majority is achieved.
      */
-    public Future<Membership> barrier();
+    public Future<Assembly> barrier();
 
     /**
      * @param aRequired is the number of members required
      * @return A <code>Future</code> that will return a <code>Membership</code> snapshot when the
      * specified size is achieved.
      */
-    public Future<Membership> barrier(int aRequired);
+    public Future<Assembly> barrier(int aRequired);
 
     /**
      * Restrict membership to the specified set of members

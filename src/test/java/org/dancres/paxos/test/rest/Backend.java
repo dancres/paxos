@@ -107,7 +107,7 @@ public class Backend {
             public Object handle(Request request, Response response) {
                 ObjectMapper myMapper = new ObjectMapper();
                 
-                Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getMembership().getMemberMap();
+                Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _paxos.getMembership().getMembers();
                 
                 Map<String, String> myMemberData = new HashMap<>();
                 
@@ -322,7 +322,7 @@ public class Backend {
         List<String> getURLs() throws Exception {
             List<String> myURLs = new LinkedList<>();
 
-            for (FailureDetector.MetaData m : _paxos.getMembership().getMemberMap().values()) {
+            for (FailureDetector.MetaData m : _paxos.getMembership().getMembers().values()) {
                 if (! toInetAddress(m.getData()).equals(_serverAddr)) {
                     myURLs.add(toHttp(m.getData()));
                 }

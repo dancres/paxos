@@ -78,7 +78,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         return _al.bringUpToDate(aHandle);
     }
 
-    public Membership getMembership() {
+    public Assembly getMembership() {
         return _common.getTransport().getFD().getMembers();
     }
 

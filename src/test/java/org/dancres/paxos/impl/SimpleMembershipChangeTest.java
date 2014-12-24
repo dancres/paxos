@@ -49,13 +49,13 @@ public class SimpleMembershipChangeTest {
 
         Assert.assertEquals(FailureDetectorImpl.OPEN_PIN, _fd1.getPinned());
 
-        boolean myResult = _node1.getCore().updateMembership(_fd1.getMembers().getMemberMap().keySet());
+        boolean myResult = _node1.getCore().updateMembership(_fd1.getMembers().getMembers().keySet());
 
         Assert.assertTrue(myResult);
         Assert.assertNotSame(FailureDetectorImpl.OPEN_PIN, _fd1.getPinned());
         Assert.assertEquals(2, _fd1.getPinned().size());
 
-        for (InetSocketAddress myAddr : _fd1.getMembers().getMemberMap().keySet())
+        for (InetSocketAddress myAddr : _fd1.getMembers().getMembers().keySet())
             Assert.assertTrue(_fd1.getPinned().contains(myAddr));
     }
 }

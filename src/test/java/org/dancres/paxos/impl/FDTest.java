@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.Membership;
+import org.dancres.paxos.Assembly;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ServerDispatcher;
@@ -49,10 +49,10 @@ public class FDTest {
         FDUtil.ensureFD(_tport1.getFD());
         FDUtil.ensureFD(_tport2.getFD());
 
-        Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
-        Assert.assertTrue(_tport2.getFD().getMembers().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport1.getFD().getMembers().getMembers().size() == 2);
+        Assert.assertTrue(_tport2.getFD().getMembers().getMembers().size() == 2);
 
-        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _tport1.getFD().getMembers().getMemberMap();
+        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _tport1.getFD().getMembers().getMembers();
 
         for (Map.Entry<InetSocketAddress, FailureDetector.MetaData> myEntry : myMembers.entrySet()) {
             if (myEntry.getKey().equals(_tport1.getLocalAddress())) {
@@ -93,7 +93,7 @@ public class FDTest {
         // An open pin is treated like a pin but membership is wildcarded
         //
         Assert.assertEquals(FailureDetector.State.PINNED, myReceiver.get());
-        Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport1.getFD().getMembers().getMembers().size() == 2);
     }
 
     @Test public void pinListener() throws Exception {
@@ -121,10 +121,10 @@ public class FDTest {
         FDUtil.ensureFD(_tport1.getFD());
         FDUtil.ensureFD(_tport2.getFD());
 
-        Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
-        Assert.assertTrue(_tport2.getFD().getMembers().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport1.getFD().getMembers().getMembers().size() == 2);
+        Assert.assertTrue(_tport2.getFD().getMembers().getMembers().size() == 2);
 
-        Collection<InetSocketAddress> myMembers = _tport1.getFD().getMembers().getMemberMap().keySet();
+        Collection<InetSocketAddress> myMembers = _tport1.getFD().getMembers().getMembers().keySet();
 
         // Now the FD's are flooded, we can pin them
         //
@@ -140,17 +140,17 @@ public class FDTest {
 
         // myTport should end up with an FD containing 3 nodes because it is unpinned
         //
-        Membership myMembership = myTport.getFD().barrier(3).get(10000, TimeUnit.MILLISECONDS);
+        Assembly myAssembly = myTport.getFD().barrier(3).get(10000, TimeUnit.MILLISECONDS);
 
-        Assert.assertNotNull(myMembership);
+        Assert.assertNotNull(myAssembly);
 
         // Both other transports should still have membership of 2 and not mention node3
         //
-        Assert.assertTrue(_tport1.getFD().getMembers().getMemberMap().size() == 2);
-        Assert.assertTrue(_tport2.getFD().getMembers().getMemberMap().size() == 2);
+        Assert.assertTrue(_tport1.getFD().getMembers().getMembers().size() == 2);
+        Assert.assertTrue(_tport2.getFD().getMembers().getMembers().size() == 2);
 
-        Assert.assertFalse(_tport1.getFD().getMembers().getMemberMap().containsValue("node3"));
-        Assert.assertFalse(_tport2.getFD().getMembers().getMemberMap().containsValue("node3"));
+        Assert.assertFalse(_tport1.getFD().getMembers().getMembers().containsValue("node3"));
+        Assert.assertFalse(_tport2.getFD().getMembers().getMembers().containsValue("node3"));
 
         myTport.terminate();
     }

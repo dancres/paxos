@@ -88,5 +88,5 @@ public interface Paxos {
     public void submit(Proposal aValue, Completion<VoteOutcome> aCompletion) throws InactiveException;
     public void add(Listener aListener);
     public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception;
-    public Membership getMembership();
+    public Assembly getMembership();
 }

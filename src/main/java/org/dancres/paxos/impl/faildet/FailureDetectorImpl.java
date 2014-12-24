@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl.faildet;
 
 import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.Membership;
+import org.dancres.paxos.Assembly;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -198,16 +198,16 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
             if (_futures.size() != 0) {
 
-                Membership myMembership =
+                Assembly myAssembly =
                         new MembershipImpl(new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats));
 
                 for (FutureImpl myFuture : _futures)
-                    myFuture.offer(myMembership);
+                    myFuture.offer(myAssembly);
             }
         }
     }
 
-    private static class FutureImpl extends AbstractFuture<Membership> {
+    private static class FutureImpl extends AbstractFuture<Assembly> {
         private final Queue _queue;
         private final int _required;
 
@@ -216,9 +216,9 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
             _required = aRequired;
         }
 
-        void offer(Membership aMembership) {
-            if (aMembership.getSize() >= _required)
-                set(aMembership);
+        void offer(Assembly anAssembly) {
+            if (anAssembly.getSize() >= _required)
+                set(anAssembly);
         }
 
         protected void done() {
@@ -226,11 +226,11 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         }
     }
 
-    public Future<Membership> barrier() {
+    public Future<Assembly> barrier() {
         return barrier(getMajority());
     }
 
-    public Future<Membership> barrier(int aRequired) {
+    public Future<Assembly> barrier(int aRequired) {
         FutureImpl myFuture = new FutureImpl(_futures, aRequired);
         _futures.add(myFuture);
 
@@ -265,7 +265,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         return _majority;
     }
 
-    public Membership getMembers() {
+    public Assembly getMembers() {
         return new MembershipImpl(new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats));
     }
 
@@ -293,7 +293,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     /**
      * A snapshot of the membership at some point in time.
      */
-    class MembershipImpl implements Membership {
+    class MembershipImpl implements Assembly {
         /**
          * Tracks the membership that forms the base for each round
          */
@@ -303,7 +303,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
             _members = anInitialAddresses;
         }
 
-        public Map<InetSocketAddress, MetaData> getMemberMap() {
+        public Map<InetSocketAddress, MetaData> getMembers() {
             return _members;
         }
 

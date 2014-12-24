@@ -74,8 +74,8 @@ public class ClusterMemberIntroTest {
 
         // Lock down membership
         //
-        _tport1.getFD().pin(_tport1.getFD().getMembers().getMemberMap().keySet());
-        _tport2.getFD().pin(_tport2.getFD().getMembers().getMemberMap().keySet());
+        _tport1.getFD().pin(_tport1.getFD().getMembers().getMembers().keySet());
+        _tport2.getFD().pin(_tport2.getFD().getMembers().getMembers().keySet());
 
         // Run some instances
         //
@@ -156,7 +156,7 @@ public class ClusterMemberIntroTest {
         // Promote node 3
         //
         Collection<InetSocketAddress> myNewMembers = new LinkedList<>();
-        myNewMembers.addAll(_tport2.getFD().getMembers().getMemberMap().keySet());
+        myNewMembers.addAll(_tport2.getFD().getMembers().getMembers().keySet());
         myNewMembers.add(_tport3.getLocalAddress());
 
         Assert.assertTrue(_node2.getCore().updateMembership(myNewMembers));

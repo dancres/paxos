@@ -58,7 +58,7 @@ class Leader implements Instance {
     /**
      * Tracks membership for an entire paxos instance.
      */
-    private Membership _membership;
+    private Assembly _assembly;
 
     private final State _startState;
     private StateMachine _stateMachine = new StateMachine();
@@ -186,7 +186,7 @@ class Leader implements Instance {
             }
 
             case SUBMITTED : {
-                if (! _membership.couldComplete()) {
+                if (! _assembly.couldComplete()) {
                     error(VoteOutcome.Reason.BAD_MEMBERSHIP);
                 } else if (! _common.amMember()) {
                     error(VoteOutcome.Reason.NOT_MEMBER);
@@ -425,10 +425,10 @@ class Leader implements Instance {
             _tries = 0;
             _stateMachine.transition(State.SUBMITTED);
 
-            _membership = _common.getTransport().getFD().getMembers();
+            _assembly = _common.getTransport().getFD().getMembers();
 
             _logger.trace(toString() + " got membership: (" +
-                    _membership.getSize() + ")");
+                    _assembly.getSize() + ")");
 
             process(NO_MESSAGES);
         }
@@ -464,7 +464,7 @@ class Leader implements Instance {
                 if (((LeaderSelection) myMessage).routeable(this)) {
                     _messages.put(aPacket.getSource(), aPacket);
 
-                    if (_membership.isMajority(_messages.keySet())) {
+                    if (_assembly.isMajority(_messages.keySet())) {
                         cancelInteraction();
 
                         _tries = 0;
