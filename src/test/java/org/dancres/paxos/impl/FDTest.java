@@ -1,7 +1,5 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.Assembly;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ServerDispatcher;

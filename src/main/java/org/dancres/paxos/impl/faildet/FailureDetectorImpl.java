@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl.faildet;
 
-import org.dancres.paxos.FailureDetector;
-import org.dancres.paxos.Assembly;
+import org.dancres.paxos.impl.FailureDetector;
+import org.dancres.paxos.impl.Assembly;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.PaxosMessage;

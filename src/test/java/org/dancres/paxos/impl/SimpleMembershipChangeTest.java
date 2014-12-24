@@ -1,6 +1,5 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.test.junit.FDUtil;

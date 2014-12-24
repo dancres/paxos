@@ -1,6 +1,5 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;

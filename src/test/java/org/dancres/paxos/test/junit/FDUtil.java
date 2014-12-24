@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.junit;
 
-import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.FailureDetector;
 import org.junit.Assert;
 
 import java.util.concurrent.TimeUnit;

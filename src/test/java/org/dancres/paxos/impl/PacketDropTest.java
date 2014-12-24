@@ -3,7 +3,6 @@ package org.dancres.paxos.impl;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.junit.FDUtil;

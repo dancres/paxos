@@ -1,6 +1,6 @@
 package org.dancres.paxos.test.net;
 
-import org.dancres.paxos.FailureDetector;
+import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.Heartbeater;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;

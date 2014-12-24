@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.Listener;
 import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;

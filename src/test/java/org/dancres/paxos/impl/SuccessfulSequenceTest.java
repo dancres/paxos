@@ -2,7 +2,6 @@ package org.dancres.paxos.impl;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.FailureDetector;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
