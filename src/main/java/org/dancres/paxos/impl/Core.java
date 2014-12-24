@@ -6,9 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -78,9 +76,44 @@ public class Core implements Transport.Dispatcher, Paxos {
         return _al.bringUpToDate(aHandle);
     }
 
-    public Assembly getMembership() {
-        return _common.getTransport().getFD().getMembers();
+    private static class MembershipImpl implements Membership {
+        private final Assembly _assembly;
+
+        private MembershipImpl(Assembly anAssembly) {
+            _assembly = anAssembly;
+        }
+
+        public Map<InetSocketAddress, MetaData> getMembers() {
+            Map<InetSocketAddress, MetaData> myMembership = new HashMap<>();
+
+            for (Map.Entry<InetSocketAddress, FailureDetector.MetaData> myPair : _assembly.getMembers().entrySet())
+                myMembership.put(myPair.getKey(), new MetaDataImpl(myPair.getValue()));
+
+            return myMembership;
+        }
+
+        private static class MetaDataImpl implements MetaData {
+            private final FailureDetector.MetaData _metaData;
+
+            private MetaDataImpl(FailureDetector.MetaData aMeta) {
+                _metaData = aMeta;
+            }
+
+            public byte[] getData() {
+                return _metaData.getData();
+            }
+
+            public long getTimestamp() {
+                return _metaData.getTimestamp();
+            }
+        }
+
+        public byte[] dataForNode(InetSocketAddress anAddress) {
+            return _assembly.dataForNode(anAddress);
+        }
     }
+
+    public Membership getMembership() { return new MembershipImpl(_common.getTransport().getFD().getMembers()); }
 
     public AcceptorLearner getAcceptorLearner() {
         return _al;
