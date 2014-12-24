@@ -76,7 +76,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         return _al.bringUpToDate(aHandle);
     }
 
-    private static class MembershipImpl implements Membership {
+    private class MembershipImpl implements Membership {
         private final Assembly _assembly;
 
         private MembershipImpl(Assembly anAssembly) {
@@ -92,7 +92,7 @@ public class Core implements Transport.Dispatcher, Paxos {
             return myMembership;
         }
 
-        private static class MetaDataImpl implements MetaData {
+        private class MetaDataImpl implements MetaData {
             private final FailureDetector.MetaData _metaData;
 
             private MetaDataImpl(FailureDetector.MetaData aMeta) {
@@ -110,6 +110,10 @@ public class Core implements Transport.Dispatcher, Paxos {
 
         public byte[] dataForNode(InetSocketAddress anAddress) {
             return _assembly.dataForNode(anAddress);
+        }
+
+        public boolean updateMembership(Collection<InetSocketAddress> aMembers) throws InactiveException {
+            return Core.this.updateMembership(aMembers);
         }
     }
 
