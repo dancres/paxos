@@ -52,7 +52,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     private final long _maximumPeriodOfUnresponsiveness;
     private final int _majority;
 
-    private class MetaDataImpl implements FailureDetector.MetaData {
+    private static class MetaDataImpl implements FailureDetector.MetaData {
         final long _timestamp;
         final byte[] _metaData;
 
@@ -207,7 +207,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         }
     }
 
-    private class FutureImpl extends AbstractFuture<Membership> {
+    private static class FutureImpl extends AbstractFuture<Membership> {
         private final Queue _queue;
         private final int _required;
 

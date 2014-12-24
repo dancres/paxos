@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 class LeadershipState {
     private static final Logger _logger = LoggerFactory.getLogger(LeadershipState.class);
 
-    private class FakePacket implements Transport.Packet {
+    private static class FakePacket implements Transport.Packet {
         private final PaxosMessage _message;
         private InetSocketAddress _address;
 

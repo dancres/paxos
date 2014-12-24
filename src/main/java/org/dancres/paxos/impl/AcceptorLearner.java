@@ -36,7 +36,7 @@ public class AcceptorLearner implements MessageProcessor {
         public long getRecoveryCycles();
     }
 
-    private class StatsImpl implements Stats {
+    private static class StatsImpl implements Stats {
         /**
          * Statistic that tracks the number of Collects this AcceptorLearner ignored
          * from competing leaders within DEFAULT_LEASE ms of activity from the
@@ -112,7 +112,9 @@ public class AcceptorLearner implements MessageProcessor {
     private final AtomicReference<Watermark> _lowWatermark =
             new AtomicReference<>(Watermark.INITIAL);
 
-    static class ALCheckpointHandle extends CheckpointHandle {    	
+    static class ALCheckpointHandle extends CheckpointHandle {
+        private static final long serialVersionUID = -7904255942396151132L;
+
         private transient Watermark _lowWatermark;
         private transient Transport.Packet _lastCollect;
         private final transient AtomicReference<AcceptorLearner> _al = new AtomicReference<>(null);
@@ -235,7 +237,7 @@ public class AcceptorLearner implements MessageProcessor {
         }
     }
 
-    class LedgerPosition {
+    static class LedgerPosition {
         private final long _seqNum;
         private final long _rndNum;
 
@@ -1077,7 +1079,7 @@ public class AcceptorLearner implements MessageProcessor {
         }        
     }
     
-    class RecoverySender implements Sender {
+    static class RecoverySender implements Sender {
         public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
             // Drop silently
         }
@@ -1092,8 +1094,8 @@ public class AcceptorLearner implements MessageProcessor {
     interface Writer {
         public long write(Transport.Packet aPacket, boolean aForceRequired);
     }
-    
-    class ReplayWriter implements Writer {
+
+    static class ReplayWriter implements Writer {
         private final long _offset;
 
         ReplayWriter(long anOffset) {

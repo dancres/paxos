@@ -85,7 +85,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
      */
     private final ExecutorService _packetDispatcher = Executors.newSingleThreadExecutor();
 
-    private class Factory implements ThreadFactory {
+    private static class Factory implements ThreadFactory {
 		public Thread newThread(Runnable aRunnable) {
 			Thread myThread = new Thread(aRunnable);
 
