@@ -1,12 +1,15 @@
 package org.dancres.paxos.storage;
 
 import org.dancres.paxos.CheckpointStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.Arrays;
 import java.util.Comparator;
 
 public class DirectoryCheckpointStorage implements CheckpointStorage {
+    private static final Logger _logger = LoggerFactory.getLogger(DirectoryCheckpointStorage.class);
     private final File _dir;
 
     public DirectoryCheckpointStorage(File aDirectory) {
@@ -43,11 +46,14 @@ public class DirectoryCheckpointStorage implements CheckpointStorage {
                     _stream.close();
                 } catch (Exception anE) {}
 
-                _temp.renameTo(new File(_dir, "ckpt" + Long.toString(System.currentTimeMillis())));
+                if (! _temp.renameTo(new File(_dir, "ckpt" + Long.toString(System.currentTimeMillis()))))
+                    _logger.warn("Couldn't rename checkpoint file" + _temp + ", " + _dir, new RuntimeException());
                 
                 File[] myFiles = getFiles();
                 for (int i = 0; i <= myFiles.length - 2; i++) {
-                    myFiles[i].delete();
+                    if (! myFiles[i].delete()) {
+                        _logger.warn("Couldn't delete checkpoint file" + myFiles[i], new RuntimeException());
+                    }
                 }
             }
 
