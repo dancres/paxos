@@ -108,12 +108,12 @@ public class Proposal {
 	}
 	
 	public String toString() {
-		String mySummary = "Proposal (";
+		StringBuffer mySummary = new StringBuffer("Proposal (");
 		
 		for (String k: _values.keySet()) {
-			mySummary = mySummary + " " + k;
+			mySummary.append(" ").append(k);
 		}
 		
-		return mySummary + " )";
+		return mySummary.append(" )").toString();
 	}
 }
