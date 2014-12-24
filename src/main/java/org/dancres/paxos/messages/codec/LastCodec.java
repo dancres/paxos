@@ -13,24 +13,16 @@ public class LastCodec implements Codec {
 
         ByteBuffer myBuffer;
 
-        if (myBytes == null)
-            myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8);
-        else
-            myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + myBytes.length);
+        myBuffer = ByteBuffer.allocate(8 + 8 + 8 + 8 + myBytes.length);
 
         myBuffer.putInt(PaxosMessage.Types.LAST);
-
-        if (myBytes == null)
-            myBuffer.putInt(0);
-        else
-            myBuffer.putInt(myBytes.length);
+        myBuffer.putInt(myBytes.length);
 
         myBuffer.putLong(myLast.getSeqNum());
         myBuffer.putLong(myLast.getLowWatermark());
         myBuffer.putLong(myLast.getRndNumber());
-        
-        if (myBytes != null)
-            myBuffer.put(myBytes);
+
+        myBuffer.put(myBytes);
 
         myBuffer.flip();
         return myBuffer;
