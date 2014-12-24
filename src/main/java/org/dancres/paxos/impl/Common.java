@@ -46,9 +46,7 @@ class Common {
     }
 
     void add(Listener aListener) {
-        synchronized(_listeners) {
-            _listeners.add(aListener);
-        }
+        _listeners.add(aListener);
     }
 
     void signal(StateEvent aStatus) {
