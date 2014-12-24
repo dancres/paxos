@@ -61,7 +61,7 @@ public class OldRound implements PaxosMessage, LeaderSelection {
     }
 
     public int hashCode() {
-    	return new Long(_seqNum).hashCode() ^ new Long(_lastRound).hashCode() ^ _leaderNodeId.hashCode();
+    	return Long.valueOf(_seqNum).hashCode() ^ Long.valueOf(_lastRound).hashCode() ^ _leaderNodeId.hashCode();
     }
     
     public boolean equals(Object anObject) {

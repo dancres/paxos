@@ -41,7 +41,7 @@ public class Collect implements PaxosMessage {
     }
     
     public int hashCode() {
-    	return new Long(_rndNumber).hashCode() ^ new Long(_seqNum).hashCode();
+    	return Long.valueOf(_rndNumber).hashCode() ^ Long.valueOf(_seqNum).hashCode();
     }
     
     public boolean equals(Object anObject) {

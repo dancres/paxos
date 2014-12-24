@@ -28,7 +28,7 @@ public class Learned implements PaxosMessage {
     }
     
     public int hashCode() {
-    	return new Long(_seqNum).hashCode() ^ new Long(_rndNum).hashCode();
+    	return Long.valueOf(_seqNum).hashCode() ^ Long.valueOf(_rndNum).hashCode();
     }
     
     public boolean equals(Object anObject) {

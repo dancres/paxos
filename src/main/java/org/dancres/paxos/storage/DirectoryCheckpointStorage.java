@@ -105,7 +105,7 @@ public class DirectoryCheckpointStorage implements CheckpointStorage {
         
         WriteCheckpoint myCkpt = myStorage.newCheckpoint();
         ObjectOutputStream myOOS = new ObjectOutputStream(myCkpt.getStream());
-        myOOS.writeObject(new Integer(55));
+        myOOS.writeObject(Integer.valueOf(55));
         myOOS.close();
         myCkpt.saved();
         

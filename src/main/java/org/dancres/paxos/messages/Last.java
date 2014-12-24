@@ -66,8 +66,8 @@ public class Last implements PaxosMessage, LeaderSelection {
     }
 
     public int hashCode() {
-    	return new Long(_seqNum).hashCode() ^ new Long(_low).hashCode() ^ 
-    		new Long(_rndNumber).hashCode();
+    	return Long.valueOf(_seqNum).hashCode() ^ Long.valueOf(_low).hashCode() ^
+    		Long.valueOf(_rndNumber).hashCode();
     }
     
     public boolean equals(Object anObject) {
