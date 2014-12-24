@@ -3,10 +3,7 @@ package org.dancres.paxos.impl.net;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.*;
 import java.util.*;
 
@@ -59,7 +56,7 @@ public class Utils {
         }
     }
 
-    private static class NetworkInterfaceComparator implements Comparator<NetworkInterface> {
+    private static class NetworkInterfaceComparator implements Comparator<NetworkInterface>, Serializable {
 
         public int compare(NetworkInterface anNi, NetworkInterface anotherNi) {
             String myAName = anNi.getName();
