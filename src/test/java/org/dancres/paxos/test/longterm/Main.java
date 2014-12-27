@@ -72,16 +72,14 @@ public class Main {
         private final long _ckptCycle;
         private final Random _baseRng;
         private final Deque<NodeAdmin> _nodes = new ConcurrentLinkedDeque<>();
-
-        private NodeAdmin _currentLeader;
         private final OrderedMemoryNetwork _factory;
         private final OrderedMemoryNetwork.Factory _nodeFactory;
-
         private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
         private final AtomicLong _opCount = new AtomicLong(0);
         private final AtomicBoolean _isSettling = new AtomicBoolean(false);
-
         private final Decider _decisionMaker;
+
+        private NodeAdmin _currentLeader;
 
         EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
             _ckptCycle = aCkptCycle;
@@ -94,38 +92,44 @@ public class Main {
             _decisionMaker = (_isLive) ? new RandomFailureDecider(this) : new PassiveDecider();
 
             _nodeFactory = new OrderedMemoryNetwork.Factory() {
-                public OrderedMemoryNetwork.OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr,
-                                                                                InetSocketAddress aBroadcastAddr,
-                                                                                OrderedMemoryNetwork aNetwork,
-                                                                                MessageBasedFailureDetector anFD,
-                                                                                Object aContext) {
-                    NodeAdminImpl myTp = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD,
+                public Constructed newTransport(InetSocketAddress aLocalAddr,
+                                                InetSocketAddress aBroadcastAddr,
+                                                OrderedMemoryNetwork aNetwork,
+                                                MessageBasedFailureDetector anFD,
+                                                Object aContext) {
+                    NodeAdminImpl myNode = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD,
                             (NodeAdminImpl.Config) aContext,
                             EnvironmentImpl.this);
 
-                    _nodes.add(myTp);
-
-                    return myTp.getTransport();
+                    return new Constructed(myNode.getTransport(), myNode);
                 }
             };
+
+            Deque<NodeAdmin> myNodes = new LinkedList<>();
 
             for (int i = 0; i < 5; i++) {
                 LogStorageFactory myFactory = (_isStorage) ? new HowlLoggerFactory(BASEDIR, i) :
                         new MemoryLoggerFactory();
 
-                addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(i, myFactory));
+                OrderedMemoryNetwork.Factory.Constructed myResult =
+                        addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(i, myFactory));
+
+                myNodes.add((NodeAdmin) myResult.getAdditional());
             }
 
-            _currentLeader = _nodes.getFirst();
+            _currentLeader = myNodes.getFirst();
+            _nodes.addAll(myNodes);
         }
 
-        private void addNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
-            _factory.newTransport(_nodeFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
+        private OrderedMemoryNetwork.Factory.Constructed addNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
+            return _factory.newTransport(_nodeFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
                     anAddress, aConfig);
         }
 
         public void addNodeAdmin(NodeAdmin.Memento aMemento) {
-            addNodeAdmin(aMemento.getAddress(), (NodeAdminImpl.Config) aMemento.getContext());
+            OrderedMemoryNetwork.Factory.Constructed myResult =
+                    addNodeAdmin(aMemento.getAddress(), (NodeAdminImpl.Config) aMemento.getContext());
+            _nodes.add((NodeAdmin) myResult.getAdditional());
         }
 
         public OrderedMemoryTransportImpl.RoutingDecisions getDecisionMaker() {
@@ -335,9 +339,10 @@ public class Main {
         long mySuccesses = 0;
 
         ClientDispatcher myClient = new ClientDispatcher();
-        Transport myTransport = _env.getFactory().newTransport(null, null, Utils.getTestAddress(), null);
-        myTransport.routeTo(myClient);
-        myClient.init(myTransport);
+        OrderedMemoryNetwork.Factory.Constructed myResult =
+                _env.getFactory().newTransport(null, null, Utils.getTestAddress(), null);
+        myResult.getTransport().routeTo(myClient);
+        myClient.init(myResult.getTransport());
 
         cycle(myClient, _env.getMaxCycles());
 
@@ -349,7 +354,7 @@ public class Main {
             mySuccesses = cycle(myClient, getSettleCycles());
         }
 
-        myTransport.terminate();
+        myResult.getTransport().terminate();
 
         _env.terminate();
 

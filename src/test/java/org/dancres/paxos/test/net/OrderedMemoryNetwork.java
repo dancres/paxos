@@ -25,7 +25,25 @@ public class OrderedMemoryNetwork implements Runnable {
     }
 
     public interface Factory {
-        public OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
+        public class Constructed {
+            private final OrderedMemoryTransport _tp;
+            private final Object _add;
+
+            public Constructed(OrderedMemoryTransport aTransport, Object anAdditional) {
+                _tp = aTransport;
+                _add = anAdditional;
+            }
+
+            public OrderedMemoryTransport getTransport() {
+                return _tp;
+            }
+
+            public Object getAdditional() {
+                return _add;
+            }
+        }
+
+        public Constructed newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
                                                    OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD,
                                                    Object aContext);
     }
@@ -49,10 +67,10 @@ public class OrderedMemoryNetwork implements Runnable {
     }
 
     private class DefaultFactory implements Factory {
-        public OrderedMemoryTransport newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
+        public Constructed newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
                                                    OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD,
                                                    Object aContext) {
-            return new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD);
+            return new Constructed(new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD), null);
         }
     }
 
@@ -109,15 +127,15 @@ public class OrderedMemoryNetwork implements Runnable {
             _logger.warn("Couldn't distribute packet to target: " + aPayload.getTarget());
     }
 
-    public Transport newTransport(Factory aFactory, MessageBasedFailureDetector anFD, InetSocketAddress anAddr,
+    public Factory.Constructed newTransport(Factory aFactory, MessageBasedFailureDetector anFD, InetSocketAddress anAddr,
                                   Object aContext) {
-        OrderedMemoryTransport myTrans = (aFactory == null) ?
+        Factory.Constructed myResult = (aFactory == null) ?
                 _factory.newTransport(anAddr, _broadcastAddr, this, anFD, aContext) :
                 aFactory.newTransport(anAddr, _broadcastAddr, this, anFD, aContext);
 
-        _transports.put(anAddr, myTrans);
+        _transports.put(anAddr, myResult.getTransport());
 
-        return myTrans;
+        return myResult;
     }
 
     void destroy(OrderedMemoryTransport aTransport) {
