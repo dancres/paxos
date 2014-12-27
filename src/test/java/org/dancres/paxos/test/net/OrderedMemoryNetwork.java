@@ -60,7 +60,7 @@ public class OrderedMemoryNetwork implements Runnable {
     private BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<>();
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
     private InetSocketAddress  _broadcastAddr;
-    private Map<InetSocketAddress, OrderedMemoryTransport> _nodes =
+    private Map<InetSocketAddress, OrderedMemoryTransport> _transports =
             new ConcurrentHashMap<>();
 
     public OrderedMemoryNetwork() throws Exception {
@@ -87,7 +87,7 @@ public class OrderedMemoryNetwork implements Runnable {
 
                 if (myNext != null) {
                     if (myNext.getTarget().equals(_broadcastAddr)) {
-                        for (InetSocketAddress k : _nodes.keySet()) {
+                        for (InetSocketAddress k : _transports.keySet()) {
                             dispatch(new PacketWrapper(myNext.getPacket(), k));
                         }
                     } else {
@@ -101,7 +101,7 @@ public class OrderedMemoryNetwork implements Runnable {
     }
 
     private void dispatch(PacketWrapper aPayload) {
-        OrderedMemoryTransport myDest = _nodes.get(aPayload.getTarget());
+        OrderedMemoryTransport myDest = _transports.get(aPayload.getTarget());
 
         if (myDest != null)
             myDest.distribute(aPayload.getPacket());
@@ -115,12 +115,12 @@ public class OrderedMemoryNetwork implements Runnable {
                 _factory.newTransport(anAddr, _broadcastAddr, this, anFD, aContext) :
                 aFactory.newTransport(anAddr, _broadcastAddr, this, anFD, aContext);
 
-        _nodes.put(anAddr, myTrans);
+        _transports.put(anAddr, myTrans);
 
         return myTrans;
     }
 
     void destroy(OrderedMemoryTransport aTransport) {
-        _nodes.remove(aTransport.getLocalAddress());
+        _transports.remove(aTransport.getLocalAddress());
     }
 }
