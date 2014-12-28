@@ -394,6 +394,7 @@ public class AcceptorLearner implements MessageProcessor {
                 aHandle.getLowWatermark());
 
         _lowWatermark.set(aHandle.getLowWatermark());
+        _sorter.recoveredToCheckpoint(aHandle.getLowWatermark().getSeqNum());
         
         return aHandle.getLowWatermark().getSeqNum();        
     }

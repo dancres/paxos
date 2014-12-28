@@ -107,6 +107,32 @@ class PacketSorter {
         return aPackets;
     }
 
+    /**
+     * Normally packets exit from the sorter in a smooth linear order, following the low watermark's forward progress.
+     * This means there will be no packets "lagging" behind the watermark unless they are NEED requests (which get
+     * processed inline with other packet processing). This behaviour ensures an AL never responds in an out of date
+     * fashion, except during recovery where packet transmission is squelched to avoid such a situation.
+     *
+     * However, when an AL gets out of date, requiring recovery via a checkpoint, the low watermark can leap forward
+     * resulting in the sorter being left behind thus creating a pile of "lagging" packets. If this goes unattended,
+     * the AL can issue a bunch of out-dated responses that confuses leaders etc.
+     *
+     * This method allows an AL that has recovered via the installation of a checkpoint to clear out any "laggers" thus
+     * avoiding such confusion.
+     *
+     * @param aLowWatermark
+     */
+    void recoveredToCheckpoint(long aLowWatermark) {
+        synchronized(this) {
+            Iterator<Long> mySeqs = _packets.keySet().iterator();
+
+            while (mySeqs.hasNext()) {
+                if (mySeqs.next() <= aLowWatermark)
+                    mySeqs.remove();
+            }
+        }
+    }
+
     void clear() {
         synchronized(this) {
             _packets.clear();
