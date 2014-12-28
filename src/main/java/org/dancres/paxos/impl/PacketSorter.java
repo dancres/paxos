@@ -55,6 +55,8 @@ class PacketSorter {
             while(mySeqsAndPkts.hasNext()) {
                 Map.Entry<Long, List<Transport.Packet>> mySeqAndPkt = mySeqsAndPkts.next();
 
+                // Packets below aLowWatermark + 1 will be NEED's encountered during normal processing
+                //
                 if (mySeqAndPkt.getKey() <= (aLowWatermark + 1)) {
                     myConsumables.addAll(mySeqAndPkt.getValue());
                     mySeqsAndPkts.remove();
