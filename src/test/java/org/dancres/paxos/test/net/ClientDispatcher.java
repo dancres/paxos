@@ -39,14 +39,19 @@ public class ClientDispatcher implements Transport.Dispatcher {
 	 * @param aTimeout the time in milliseconds to wait for the outcome of a negative number indicating no wait
 	 */
 	public VoteOutcome getNext(long aTimeout) {
+		long myStartTime = System.currentTimeMillis();
+
 		synchronized(this) {
 			while (_queue.isEmpty()) {
 				try {
-					if (aTimeout >= 0)
-						wait(aTimeout);
-					else
+					long myCurrent = System.currentTimeMillis();
+
+					if ((aTimeout >= 0) && (myCurrent < myStartTime + aTimeout)) {
+							wait(myStartTime + aTimeout - myCurrent);
+					} else {
 						return null;
-				} catch (InterruptedException anIE) {					
+					}
+				} catch (InterruptedException anIE) {
 				}
 			}
 			
