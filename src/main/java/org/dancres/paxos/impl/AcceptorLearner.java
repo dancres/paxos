@@ -777,6 +777,8 @@ public class AcceptorLearner implements MessageProcessor {
                     _logger.debug(toString() + " Running streamer -> " + myNodeId);
 
                     new RemoteStreamer(aPacket.getSource(), myNeed).start();
+                } else {
+                    _logger.debug(toString() + " Can't serve need, behind the times -> " + myNodeId);
                 }
 
                 break;
@@ -868,7 +870,9 @@ public class AcceptorLearner implements MessageProcessor {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
-					aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
+                    _logger.warn(toString() + " Begin is trumped by more recently arrived collect " + mySeqNum +
+                            " [ " + myBegin.getRndNumber() + " ], ");
+                    aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
                             _leadershipState.getLeaderAddress(), _leadershipState.getLeaderRndNum()), myNodeId);
 				} else {
 					/*
@@ -1040,7 +1044,7 @@ public class AcceptorLearner implements MessageProcessor {
 			} else 
 				myState = new StateFinder(mySeqNum, myLow.getLogOffset()).getState();
 		} catch (Exception anE) {
-			_logger.error(toString() + "Failed to replay log", anE);
+			_logger.error(toString() + " Failed to replay log", anE);
 			throw new RuntimeException(toString() + "Failed to replay log", anE);
 		}
 		
@@ -1051,10 +1055,12 @@ public class AcceptorLearner implements MessageProcessor {
              * No state found. If we've gc'd and checkpointed, we can't provide an answer. In such a case,
              * the leader is out of date and we tell them. Otherwise, we're clean and give the leader a green light.
              */
-            if (mySeqNum <= myLow.getSeqNum())
+            if (mySeqNum <= myLow.getSeqNum()) {
+                _logger.warn(toString() + " Leader is behind the checkpoint and out of date - Old-round'ing them");
+
                 return new OldRound(myLow.getSeqNum(), _leadershipState.getLeaderAddress(),
                         _leadershipState.getLeaderRndNum());
-            else
+            } else
                 return new Last(mySeqNum, myLow.getSeqNum(),
                         Long.MIN_VALUE, Proposal.NO_VALUE);
         }
