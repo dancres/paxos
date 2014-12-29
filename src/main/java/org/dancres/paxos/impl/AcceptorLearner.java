@@ -509,9 +509,8 @@ public class AcceptorLearner implements MessageProcessor {
                      * to that node using a LiveSender and a ReplayWriter.
                      */
                     case PaxosMessage.Types.NEED: {
-                        _logger.debug(AcceptorLearner.this.toString() + "Serving NEED from recovery " + aPacket);
+                        serveNeedFromRecovery(aPacket);
 
-                        process(aPacket, new ReplayWriter(0), new LiveSender());
                         break;
                     }
                 }
@@ -526,9 +525,7 @@ public class AcceptorLearner implements MessageProcessor {
                      * to that node using a LiveSender and a ReplayWriter.
                      */
                     case PaxosMessage.Types.NEED : {
-                        _logger.debug(AcceptorLearner.this.toString() + "Serving NEED from recovery " + aPacket);
-
-                        process(aPacket, new ReplayWriter(0), new LiveSender());
+                        serveNeedFromRecovery(aPacket);
 
                         return;
                     }
@@ -658,6 +655,12 @@ public class AcceptorLearner implements MessageProcessor {
             unguard();
         }
 	}
+
+    private void serveNeedFromRecovery(Transport.Packet aPacket) {
+        _logger.debug(toString() + "Serving NEED from recovery " + aPacket);
+
+        process(aPacket, new ReplayWriter(0), new LiveSender());
+    }
 
     /* ********************************************************************************************
      *
