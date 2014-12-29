@@ -820,7 +820,7 @@ public class AcceptorLearner implements MessageProcessor {
                     aSender.send(constructLast(myCollect), myNodeId);
 
 				} else {
-                    _logger.warn(toString() + " Rejecting collect: " + myCollect + " against " +
+                    _logger.warn(toString() + " OLDROUND - REJCOLL: " + myCollect + " vs " +
                             _leadershipState.getLastCollect().getMessage());
 
 					// Another collect has already arrived with a higher priority, tell the proposer it has competition
@@ -871,7 +871,8 @@ public class AcceptorLearner implements MessageProcessor {
 					// New collect was received since the collect for this begin,
 					// tell the proposer it's got competition
 					//
-                    _logger.warn(toString() + " Begin is trumped by more recently arrived collect " + mySeqNum +
+                    _logger.warn(toString() + " OLDROUND - BEGTRMP " + mySeqNum +
+                            _leadershipState.getLastCollect().getMessage() +
                             " [ " + myBegin.getRndNumber() + " ], ");
                     aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
                             _leadershipState.getLeaderAddress(), _leadershipState.getLeaderRndNum()), myNodeId);
@@ -1057,7 +1058,7 @@ public class AcceptorLearner implements MessageProcessor {
              * the leader is out of date and we tell them. Otherwise, we're clean and give the leader a green light.
              */
             if (mySeqNum <= myLow.getSeqNum()) {
-                _logger.warn(toString() + " Leader is behind the checkpoint and out of date - Old-round'ing them");
+                _logger.warn(toString() + " OLDROUND - LDOUT " + mySeqNum + " vs " + myLow.getSeqNum());
 
                 return new OldRound(myLow.getSeqNum(), _leadershipState.getLeaderAddress(),
                         _leadershipState.getLeaderRndNum());
