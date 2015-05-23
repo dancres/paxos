@@ -76,7 +76,6 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     private final Set<Dispatcher> _dispatchers = new CopyOnWriteArraySet<>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
     private final PacketPickler _pickler = new PicklerImpl();
-    private final PipelineFactory _pipelineFactory;
 
     /**
      * Netty doesn't seem to like re-entrant behaviours so we need a thread pool
@@ -138,14 +137,14 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         if (aFactory == null)
             throw new IllegalArgumentException();
 
-        _pipelineFactory = aFactory;
+        PipelineFactory myFactory = aFactory;
         _fd = anFD;
 
         _mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
         _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
 
         _mcastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
-        _mcast = _mcastFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
+        _mcast = _mcastFactory.newChannel(myFactory.newPipeline(_pickler, this));
 
         _mcast.getConfig().setReuseAddress(true);
         _mcast.bind(new InetSocketAddress(BROADCAST_PORT)).await();
@@ -153,7 +152,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         _channels.add(_mcast);
 
         _unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
-        _unicast = _unicastFactory.newChannel(_pipelineFactory.newPipeline(_pickler, this));
+        _unicast = _unicastFactory.newChannel(myFactory.newPipeline(_pickler, this));
 
         _unicast.getConfig().setReuseAddress(true);
         _unicast.bind(aServerAddr).await();
