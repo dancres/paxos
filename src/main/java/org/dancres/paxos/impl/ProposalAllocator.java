@@ -160,12 +160,14 @@ class ProposalAllocator {
 
                 }
 
+                NextInstance myNext = new NextInstance((_amLeader) ? Leader.State.BEGIN : Leader.State.COLLECT,
+                        chooseNext(), _nextRnd);
+
                 if (_inflight.size() == 1)
                     for (Listener anL: _listeners)
                         anL.inFlight();
 
-                return new NextInstance((_amLeader) ? Leader.State.BEGIN : Leader.State.COLLECT,
-                        chooseNext(), _nextRnd);
+                return myNext;
             }
         }
     }
