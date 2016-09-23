@@ -63,7 +63,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         _logger.debug(toString() + " initialised");
 
         AcceptorLearner.LedgerPosition myState = _al.open(_handle);
-        _ld.init(new ProposalAllocator(myState.getSeqNum(), myState.getRndNum()));
+        _ld.resumeAt(myState.getSeqNum(), myState.getRndNum());
 
         _initd.set(true);
     }

@@ -24,7 +24,7 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     private static final Logger _logger = LoggerFactory.getLogger(LeaderFactory.class);
 
     private final Common _common;
-    private ProposalAllocator _stateFactory;
+    private final ProposalAllocator _stateFactory = new ProposalAllocator();
     private final boolean _disableHeartbeats;
     private final Map<Long, Leader> _activeLeaders = new ConcurrentHashMap<>();
 
@@ -39,8 +39,8 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
         _disableHeartbeats = isDisableHeartbeats;
     }
 
-    void init(ProposalAllocator aPropAllocator) {
-        _stateFactory = aPropAllocator;
+    void resumeAt(long aSeqNum, long aRndNum) {
+        _stateFactory.resumeAt(aSeqNum, aRndNum);
 
         if (! _disableHeartbeats)
             _stateFactory.add(this);
