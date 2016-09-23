@@ -118,7 +118,7 @@ public class ProposalAllocatorTest {
             Assert.assertEquals(i, myInstance.getSeqNum());
 
             myFactory.conclusion(myInstance,
-                    new VoteOutcome(VoteOutcome.Reason.OTHER_VALUE, myInstance.getSeqNum(), myInstance.getRound(),
+                    new VoteOutcome(VoteOutcome.Reason.VALUE, myInstance.getSeqNum(), myInstance.getRound(),
                             Proposal.NO_VALUE, null));
         }
     }

@@ -83,7 +83,6 @@ class ProposalAllocator {
                 return;
 
             switch (anOutcome.getResult()) {
-                case VoteOutcome.Reason.OTHER_VALUE :
                 case VoteOutcome.Reason.VALUE : {
                     _amLeader = true;
 
