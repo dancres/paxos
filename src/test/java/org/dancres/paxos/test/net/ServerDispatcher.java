@@ -25,28 +25,37 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
     private final Core _core;
     private final AtomicBoolean _initd = new AtomicBoolean(false);
+    private final Transport.Dispatcher _dispatcher;
     private Transport _tp;
-    private Transport.Dispatcher _dispatcher;
-
-    public ServerDispatcher() {
-        this(new MemoryLogStorage(), false);
-    }
 
     public ServerDispatcher(LogStorage aLogger) {
         this(aLogger, false);
     }
 
-    public ServerDispatcher(Core aCore, Transport.Dispatcher aDispatcher) {
-        _core = aCore;
-        _dispatcher = aDispatcher;
+    /**
+     * For testing only
+     */
+    public ServerDispatcher() {
+        this(new MemoryLogStorage(), false);
     }
 
+    /**
+     * For testing only
+     */
     public ServerDispatcher(LogStorage aLogger, boolean isDisableHeartbeats) {
-        _core = new Core(aLogger, CheckpointHandle.NO_CHECKPOINT, new Listener() {
+        this(new Core(aLogger, CheckpointHandle.NO_CHECKPOINT, new Listener() {
             public void transition(StateEvent anEvent) {
                 // Nothing to do
             }
-        }, isDisableHeartbeats);
+        }, isDisableHeartbeats), null);
+    }
+
+    /**
+     * For testing only
+     */
+    public ServerDispatcher(Core aCore, Transport.Dispatcher aDispatcher) {
+        _core = aCore;
+        _dispatcher = aDispatcher;
     }
 
 	public boolean messageReceived(Packet aPacket) {
@@ -84,6 +93,9 @@ public class ServerDispatcher implements Transport.Dispatcher {
 	public void init(Transport aTransport) throws Exception {
 		_tp = aTransport;
 
+        // Tests wishing to wrap core to capture happenings etc, set a dispatcher at construction time above
+        // No dispatcher means standard dispatch to _core
+        //
         if (_dispatcher == null) {
             _tp.routeTo(_core);
             _core.init(_tp);
