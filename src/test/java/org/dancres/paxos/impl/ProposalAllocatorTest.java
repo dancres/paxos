@@ -47,14 +47,21 @@ public class ProposalAllocatorTest {
 
         Instance myInstance = myFactory.nextInstance(1);
 
+        Assert.assertEquals(1, myListener.getInFlight());
+
         myFactory.conclusion(myInstance,
                 new VoteOutcome(VoteOutcome.Reason.VALUE, myInstance.getSeqNum(), myInstance.getRound(),
                         Proposal.NO_VALUE, null));
+
+        Assert.assertEquals(1, myListener.getAllConcluded());
 
         List<Instance> myInstances = new LinkedList<>();
 
         for (int i = 0; i < (myMaxInflight - 1); i++) {
             myInstances.add(myFactory.nextInstance(1));
+
+            if (i == 0)
+                Assert.assertEquals(2, myListener.getInFlight());
         }
 
         for (Instance myI : myInstances)
@@ -62,7 +69,6 @@ public class ProposalAllocatorTest {
                     new VoteOutcome(VoteOutcome.Reason.VALUE, myI.getSeqNum(), myI.getRound(),
                             Proposal.NO_VALUE, null));
 
-        Assert.assertEquals(2, myListener.getInFlight());
         Assert.assertEquals(2, myListener.getAllConcluded());
     }
 
