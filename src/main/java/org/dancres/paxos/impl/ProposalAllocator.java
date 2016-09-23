@@ -21,15 +21,20 @@ class ProposalAllocator {
     private final Set<Long> _inflight = new HashSet<>();
     private final Set<Listener> _listeners = new CopyOnWriteArraySet<>();
 
-    ProposalAllocator(long aCurrentSeq, long aCurrentRnd) {
-        this(aCurrentSeq, aCurrentRnd, Constants.DEFAULT_MAX_INFLIGHT);
+    ProposalAllocator() {
+        this(Constants.DEFAULT_MAX_INFLIGHT);
     }
 
-    ProposalAllocator(long aCurrentSeq, long aCurrentRnd, int aMaxInflight) {
-        _nextSeq = aCurrentSeq;
-        _nextRnd = aCurrentRnd + 1;
-        _amLeader = false;
+    ProposalAllocator(int aMaxInflight) {
         _maxInflight = aMaxInflight;
+        _amLeader = false;
+    }
+
+    ProposalAllocator resumeAt(long aSeqNum, long aRndNum) {
+        _nextSeq = aSeqNum;
+        _nextRnd = aRndNum + 1;
+
+        return this;
     }
 
     boolean amLeader() {

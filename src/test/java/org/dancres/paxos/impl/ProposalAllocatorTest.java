@@ -40,7 +40,7 @@ public class ProposalAllocatorTest {
     public void listener() {
         int myMaxInflight = 5;
 
-        ProposalAllocator myFactory = new ProposalAllocator(-1, 0, myMaxInflight);
+        ProposalAllocator myFactory = new ProposalAllocator(myMaxInflight).resumeAt(-1, 0);
         Listener myListener = new Listener();
 
         myFactory.add(myListener);
@@ -70,7 +70,7 @@ public class ProposalAllocatorTest {
     public void oneLeader() {
         int myMaxInflight = 5;
 
-        ProposalAllocator myFactory = new ProposalAllocator(-1, 0, myMaxInflight);
+        ProposalAllocator myFactory = new ProposalAllocator(myMaxInflight).resumeAt(-1, 0);
 
         // Not yet a leader, so max of one in-flight instance applies (or should)
         Instance myFirstInstance = myFactory.nextInstance(1);
@@ -94,7 +94,7 @@ public class ProposalAllocatorTest {
 
     @Test
     public void correctSequence() {
-        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator().resumeAt(-1, 0);;
 
         for (int i = 0; i < 10; i++) {
             Instance myInstance = myFactory.nextInstance(1);
@@ -119,7 +119,7 @@ public class ProposalAllocatorTest {
 
     @Test
     public void reuseSequenceOnFail() {
-        ProposalAllocator myFactory = new ProposalAllocator(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator().resumeAt(-1, 0);
         Instance myInstance = myFactory.nextInstance(1);
 
         Assert.assertNotNull(myInstance);
@@ -150,7 +150,7 @@ public class ProposalAllocatorTest {
         //
         int myMaxInflight = 5;
 
-        ProposalAllocator myFactory = new ProposalAllocator(-1, 0, myMaxInflight);
+        ProposalAllocator myFactory = new ProposalAllocator(myMaxInflight).resumeAt(-1, 0);
         Instance myInstance = myFactory.nextInstance(1);
 
         Assert.assertNotNull(myInstance);
