@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
@@ -197,6 +198,7 @@ public class AcceptorLearner implements MessageProcessor {
     }
 	
 	private final AtomicReference<ALCheckpointHandle> _lastCheckpoint = new AtomicReference<>();
+    private final List<Listener> _listeners = new CopyOnWriteArrayList<>();
 	
     /* ********************************************************************************************
      *
@@ -207,7 +209,16 @@ public class AcceptorLearner implements MessageProcessor {
     AcceptorLearner(LogStorage aStore, Common aCommon, Listener anInitialListener) {
         _storage = aStore;
         _common = aCommon;
-        _common.add(anInitialListener);
+        add(anInitialListener);
+    }
+
+    void add(Listener aListener) {
+        _listeners.add(aListener);
+    }
+
+    void signal(StateEvent aStatus) {
+        for (Listener myTarget : _listeners)
+            myTarget.transition(aStatus);
     }
 
     private boolean guard() {
@@ -444,7 +455,7 @@ public class AcceptorLearner implements MessageProcessor {
              * live packet processing.
              */
             _leadershipState.leaderAction();
-            _common.signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
+            signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
                     myHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
                     Proposal.NO_VALUE,
@@ -542,7 +553,7 @@ public class AcceptorLearner implements MessageProcessor {
 
                         // Signal with node that pronounced us out of date - likely user code will get ckpt from there.
                         //
-                        _common.signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
+                        signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
                                 _leadershipState.getLeaderRndNum(),
                                 new Proposal(),
                                 _common.getTransport().getFD().dataForNode(aPacket.getSource()),
@@ -808,7 +819,7 @@ public class AcceptorLearner implements MessageProcessor {
                     
                     aSender.send(constructLast(myCollect), myNodeId);
 
-                    _common.signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
+                    signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
                             _leadershipState.getLeaderRndNum(),
                             Proposal.NO_VALUE,
                             _common.getTransport().getFD().dataForNode(myNodeId),
@@ -972,7 +983,7 @@ public class AcceptorLearner implements MessageProcessor {
         } else {
             _logger.debug(toString() + " Learnt value: " + mySeqNum);
 
-            _common.signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
+            signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
                     _leadershipState.getLeaderRndNum(),
                     myBegin.getConsolidatedValue(),
                     _common.getTransport().getFD().dataForNode(aPacket.getSource()),
