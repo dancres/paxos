@@ -1,6 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.bus.Messages;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
@@ -20,13 +21,14 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @see Leader
  */
-class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
+class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessageProcessor {
     private static final Logger _logger = LoggerFactory.getLogger(LeaderFactory.class);
 
     private final Common _common;
-    private final ProposalAllocator _stateFactory = new ProposalAllocator();
+    private final ProposalAllocator _stateFactory;
     private final boolean _disableHeartbeats;
     private final Map<Long, Leader> _activeLeaders = new ConcurrentHashMap<>();
+    private Messages.Subscription _bus;
 
     /**
      * This alarm is used to ensure the leader sends regular heartbeats in the face of inactivity so as to extend
@@ -37,13 +39,14 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
     LeaderFactory(Common aCommon, boolean isDisableHeartbeats) {
         _common = aCommon;
         _disableHeartbeats = isDisableHeartbeats;
+        _stateFactory = new ProposalAllocator(_common.getBus());
     }
 
     void resumeAt(long aSeqNum, long aRndNum) {
         _stateFactory.resumeAt(aSeqNum, aRndNum);
 
         if (! _disableHeartbeats)
-            _stateFactory.add(this);
+            _bus = _common.getBus().subscribe("LeaderFactory", this);
     }
 
     /**
@@ -73,6 +76,16 @@ class LeaderFactory implements ProposalAllocator.Listener, MessageProcessor {
                 _activeLeaders.remove(aLeader.getSeqNum());
             }
         });
+    }
+
+    public void msg(Messages.Message<Constants.EVENTS> aMessage) {
+        switch(aMessage.getType()) {
+            case PROP_ALLOC_ALL_CONCLUDED : allConcluded(); break;
+            case PROP_ALLOC_INFLIGHT: inFlight(); break;
+        }
+    }
+
+    public void subscriberAttached(String aSubscriberName) {
     }
 
     private void killHeartbeats() {

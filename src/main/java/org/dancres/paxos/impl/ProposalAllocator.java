@@ -1,16 +1,12 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.VoteOutcome;
+import org.dancres.paxos.bus.Messages;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-class ProposalAllocator {
-
-    public interface Listener {
-        public void inFlight();
-        public void allConcluded();
-    }
+class ProposalAllocator implements Messages.Subscriber<Constants.EVENTS> {
 
     private final int _maxInflight;
 
@@ -19,15 +15,16 @@ class ProposalAllocator {
     private boolean _amLeader;
     private final SortedSet<Long> _recycling = new TreeSet<>();
     private final Set<Long> _inflight = new HashSet<>();
-    private final Set<Listener> _listeners = new CopyOnWriteArraySet<>();
+    private final Messages.Subscription<Constants.EVENTS> _bus;
 
-    ProposalAllocator() {
-        this(Constants.DEFAULT_MAX_INFLIGHT);
+    ProposalAllocator(Messages<Constants.EVENTS> aBus) {
+        this(aBus, Constants.DEFAULT_MAX_INFLIGHT);
     }
 
-    ProposalAllocator(int aMaxInflight) {
+    ProposalAllocator(Messages<Constants.EVENTS> aBus, int aMaxInflight) {
         _maxInflight = aMaxInflight;
         _amLeader = false;
+        _bus = aBus.subscribe("ProposalAllocator", this);
     }
 
     ProposalAllocator resumeAt(long aSeqNum, long aRndNum) {
@@ -41,14 +38,6 @@ class ProposalAllocator {
         synchronized (_inflight) {
             return _amLeader;
         }
-    }
-
-    void add(Listener aListener) {
-        _listeners.add(aListener);
-    }
-
-    void remove(Listener aListener) {
-        _listeners.remove(aListener);
     }
 
     private static class NextInstance implements Instance {
@@ -73,6 +62,12 @@ class ProposalAllocator {
         public long getSeqNum() {
             return _seqNum;
         }
+    }
+
+    public void msg(Messages.Message<Constants.EVENTS> aMessage) {
+    }
+
+    public void subscriberAttached(String aSubscriberName) {
     }
 
     void conclusion(Instance anInstance, VoteOutcome anOutcome) {
@@ -117,8 +112,7 @@ class ProposalAllocator {
             }
 
             if (_inflight.size() == 0)
-                for (Listener anL : _listeners)
-                    anL.allConcluded();
+                _bus.send(Constants.EVENTS.PROP_ALLOC_ALL_CONCLUDED, null);
         }
     }
 
@@ -140,8 +134,7 @@ class ProposalAllocator {
 
                 }
 
-                for (Listener anL: _listeners)
-                    anL.inFlight();
+                _bus.send(Constants.EVENTS.PROP_ALLOC_INFLIGHT, null);
 
                 return new NextInstance((_amLeader) ? Leader.State.BEGIN : Leader.State.COLLECT,
                         chooseNext(), _nextRnd);
@@ -163,8 +156,7 @@ class ProposalAllocator {
                         chooseNext(), _nextRnd);
 
                 if (_inflight.size() == 1)
-                    for (Listener anL: _listeners)
-                        anL.inFlight();
+                    _bus.send(Constants.EVENTS.PROP_ALLOC_INFLIGHT, null);
 
                 return myNext;
             }

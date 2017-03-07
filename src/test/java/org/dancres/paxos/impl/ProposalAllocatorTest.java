@@ -4,6 +4,8 @@ import junit.framework.Assert;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 
+import org.dancres.paxos.bus.Messages;
+import org.dancres.paxos.bus.MessagesImpl;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -11,7 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProposalAllocatorTest {
-    private class Listener implements ProposalAllocator.Listener {
+    private class Listener implements Messages.Subscriber<Constants.EVENTS> {
         private AtomicInteger _inflightCount = new AtomicInteger();
         private AtomicInteger _allConcludedCount = new AtomicInteger();
 
@@ -34,16 +36,29 @@ public class ProposalAllocatorTest {
         int getAllConcluded() {
             return _allConcludedCount.get();
         }
+
+        @Override
+        public void msg(Messages.Message<Constants.EVENTS> aMessage) {
+            switch(aMessage.getType()) {
+                case PROP_ALLOC_ALL_CONCLUDED : allConcluded(); break;
+                case PROP_ALLOC_INFLIGHT: inFlight(); break;
+            }
+        }
+
+        @Override
+        public void subscriberAttached(String aSubscriberName) {
+        }
     }
 
     @Test
     public void listener() {
+        Messages<Constants.EVENTS> myBus = new MessagesImpl<>();
         int myMaxInflight = 5;
 
-        ProposalAllocator myFactory = new ProposalAllocator(myMaxInflight).resumeAt(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator(myBus, myMaxInflight).resumeAt(-1, 0);
         Listener myListener = new Listener();
 
-        myFactory.add(myListener);
+        Messages.Subscription mySubs = myBus.subscribe("listener", myListener);
 
         Instance myInstance = myFactory.nextInstance(1);
 
@@ -74,9 +89,10 @@ public class ProposalAllocatorTest {
 
     @Test
     public void oneLeader() {
+        Messages<Constants.EVENTS> myBus = new MessagesImpl<>();
         int myMaxInflight = 5;
 
-        ProposalAllocator myFactory = new ProposalAllocator(myMaxInflight).resumeAt(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator(myBus, myMaxInflight).resumeAt(-1, 0);
 
         // Not yet a leader, so max of one in-flight instance applies (or should)
         Instance myFirstInstance = myFactory.nextInstance(1);
@@ -100,7 +116,8 @@ public class ProposalAllocatorTest {
 
     @Test
     public void correctSequence() {
-        ProposalAllocator myFactory = new ProposalAllocator().resumeAt(-1, 0);;
+        Messages<Constants.EVENTS> myBus = new MessagesImpl<>();
+        ProposalAllocator myFactory = new ProposalAllocator(myBus).resumeAt(-1, 0);;
 
         for (int i = 0; i < 10; i++) {
             Instance myInstance = myFactory.nextInstance(1);
@@ -125,7 +142,8 @@ public class ProposalAllocatorTest {
 
     @Test
     public void reuseSequenceOnFail() {
-        ProposalAllocator myFactory = new ProposalAllocator().resumeAt(-1, 0);
+        Messages<Constants.EVENTS> myBus = new MessagesImpl<>();
+        ProposalAllocator myFactory = new ProposalAllocator(myBus).resumeAt(-1, 0);
         Instance myInstance = myFactory.nextInstance(1);
 
         Assert.assertNotNull(myInstance);
@@ -152,11 +170,13 @@ public class ProposalAllocatorTest {
 
     @Test
     public void reuseSomeOnOtherLeader() {
+        Messages<Constants.EVENTS> myBus = new MessagesImpl<>();
+
         // This test can't run if inflight is too small
         //
         int myMaxInflight = 5;
 
-        ProposalAllocator myFactory = new ProposalAllocator(myMaxInflight).resumeAt(-1, 0);
+        ProposalAllocator myFactory = new ProposalAllocator(myBus, myMaxInflight).resumeAt(-1, 0);
         Instance myInstance = myFactory.nextInstance(1);
 
         Assert.assertNotNull(myInstance);
