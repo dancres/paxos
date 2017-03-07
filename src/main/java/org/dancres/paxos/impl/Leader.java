@@ -347,7 +347,7 @@ class Leader implements Instance {
     private void emit(PaxosMessage aMessage) {
         startInteraction();
 
-        _logger.debug(toString() + " : " + aMessage);
+        _logger.debug(toString() + " EMIT : " + aMessage);
 
         _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage),
                 _common.getTransport().getBroadcastAddress());
