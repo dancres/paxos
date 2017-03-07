@@ -1,6 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.bus.Messages;
 import org.dancres.paxos.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,7 @@ import java.util.concurrent.LinkedBlockingDeque;
  *
  * @author dan
  */
-class Leader implements Instance {
+class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
 
     static class LeaseDuration {
         private static final long DEFAULT_LEADER_LEASE = 30000;
@@ -47,7 +48,6 @@ class Leader implements Instance {
     private long _tries = 0;
 
     private Proposal _prop;
-    private Completion<Leader> _submitter;
 
     /**
      * This alarm is used to limit the amount of time the leader will wait for responses from all apparently live
@@ -69,6 +69,8 @@ class Leader implements Instance {
     private final Deque<VoteOutcome> _outcomes = new LinkedBlockingDeque<>();
 
     private final Map<InetSocketAddress, Transport.Packet> _messages = new HashMap<>();
+
+    private final Messages.Subscription<Constants.EVENTS> _bus;
 
     private class StateMachine {
         private Map<State, Set<State>> _acceptableTransitions;
@@ -115,6 +117,7 @@ class Leader implements Instance {
         _seqNum = anInstance.getSeqNum();
         _rndNumber = anInstance.getRound();
         _startState = anInstance.getState();
+        _bus = aCommon.getBus().subscribe("Leader-" + _seqNum, this);
     }
 
     void shutdown() {
@@ -142,22 +145,22 @@ class Leader implements Instance {
         }
     }
 
-    /**
-     * There is usually a single outcome, good or bad. However, there may be as yet uncompleted ballots and in such
-     * a case the leader will be expected to drive those to completion. When this happens, the value submitted in
-     * the current request may be superseded by another "hanging" from the uncompleted ballots. The fact that this
-     * has occurred is disclosed in the form of two outcomes. The first will be a report of an OTHER_VALUE, the second
-     * will be a report of VALUE. The former will be the value in the current request, the latter will be the
-     * "hanging" value from a previous ballot.
-     *
-     * @return the set of outcomes that occurred at this ballot
-     */
-    Deque<VoteOutcome> getOutcomes() {
+    public Deque<VoteOutcome> getOutcomes() {
         return _outcomes;
     }
 
     private void reportOutcome() {
-        _submitter.complete(this);
+        _bus.send(Constants.EVENTS.LD_OUTCOME, this);
+    }
+
+    @Override
+    public void msg(Messages.Message<Constants.EVENTS> aMessage) {
+
+    }
+
+    @Override
+    public void subscriberAttached(String aSubscriberName) {
+
     }
 
     /**
@@ -173,6 +176,8 @@ class Leader implements Instance {
                 if (_interactionAlarm != null)
                     cancelInteraction();
 
+                _bus.unsubscribe();
+
                 return;
             }
 
@@ -183,7 +188,8 @@ class Leader implements Instance {
                     cancelInteraction();
 
                 reportOutcome();
-                
+                _bus.unsubscribe();
+
                 return;
             }
 
@@ -191,6 +197,7 @@ class Leader implements Instance {
             	_logger.debug(toString() + " Exit: " + _outcomes);
 
                 reportOutcome();
+                _bus.unsubscribe();
 
                 return;
             }
@@ -416,17 +423,13 @@ class Leader implements Instance {
      *
      * @param aValue is the value to attempt to agree upon
      */
-    void submit(Proposal aValue, Completion<Leader> aSubmitter) {
+    void submit(Proposal aValue) {
         _logger.debug(toString() + " (" + Long.toHexString(_seqNum) + ", " + Long.toHexString(_rndNumber) + ")");
 
         synchronized (this) {
             if (_stateMachine.getCurrentState() != State.INITIAL)
                 throw new IllegalStateException("Submit already done, create another leader");
 
-            if (aSubmitter == null)
-                throw new IllegalArgumentException("Submitter cannot be null");
-
-            _submitter = aSubmitter;
             _prop = aValue;
 
             _tries = 0;

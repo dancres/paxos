@@ -28,6 +28,8 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
     private final ProposalAllocator _stateFactory;
     private final boolean _disableHeartbeats;
     private final Map<Long, Leader> _activeLeaders = new ConcurrentHashMap<>();
+    private final Map<Long, Completion<VoteOutcome>> _outstandingCompletions = new ConcurrentHashMap<>();
+    
     private Messages.Subscription _bus;
 
     /**
@@ -40,13 +42,11 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
         _common = aCommon;
         _disableHeartbeats = isDisableHeartbeats;
         _stateFactory = new ProposalAllocator(_common.getBus());
+        _bus = _common.getBus().subscribe("LeaderFactory", this);
     }
 
     void resumeAt(long aSeqNum, long aRndNum) {
         _stateFactory.resumeAt(aSeqNum, aRndNum);
-
-        if (! _disableHeartbeats)
-            _bus = _common.getBus().subscribe("LeaderFactory", this);
     }
 
     /**
@@ -69,19 +69,30 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
     }
 
     void submit(Proposal aValue, final Completion<VoteOutcome> aCompletion) throws InactiveException {
-        newLeader().submit(aValue, new Completion<Leader>() {
-            public void complete(Leader aLeader) {
-                _stateFactory.conclusion(aLeader, aLeader.getOutcomes().getLast());
-                aCompletion.complete(aLeader.getOutcomes().getFirst());
-                _activeLeaders.remove(aLeader.getSeqNum());
-            }
-        });
+        Leader myLeader = newLeader();
+        _outstandingCompletions.put(myLeader.getSeqNum(), aCompletion);
+        myLeader.submit(aValue);
     }
 
     public void msg(Messages.Message<Constants.EVENTS> aMessage) {
         switch(aMessage.getType()) {
             case PROP_ALLOC_ALL_CONCLUDED : allConcluded(); break;
-            case PROP_ALLOC_INFLIGHT: inFlight(); break;
+            case PROP_ALLOC_INFLIGHT : inFlight(); break;
+            case LD_OUTCOME : {
+                Instance myInstance = (Instance) aMessage.getMessage();
+                _stateFactory.conclusion(myInstance, myInstance.getOutcomes().getLast());
+
+                _logger.info("LD Outcome: " + myInstance.getSeqNum() + ", " + myInstance.getOutcomes());
+                Completion<VoteOutcome> myCompletion = _outstandingCompletions.remove(myInstance.getSeqNum());
+
+                _logger.info("Outcome instance: " + myCompletion);
+
+                myCompletion.complete(myInstance.getOutcomes().getFirst());
+                
+                _activeLeaders.remove(myInstance.getSeqNum());
+                
+                break;
+            }
         }
     }
 
@@ -89,6 +100,10 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
     }
 
     private void killHeartbeats() {
+
+        if (_disableHeartbeats)
+            return;
+
         TimerTask myTask = _heartbeatAlarm.getAndSet(null);
 
         if (myTask != null) {
@@ -113,7 +128,7 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
      * TODO: Increment round number via heartbeats every so often to avoid jittering collects
      */
     public void allConcluded() {
-        if (_stateFactory.amLeader()) {
+        if (_stateFactory.amLeader()  && !_disableHeartbeats) {
             // Still leader so heartbeat
             //
             TimerTask myTask =  new TimerTask() {

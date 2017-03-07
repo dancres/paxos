@@ -62,6 +62,11 @@ class ProposalAllocator implements Messages.Subscriber<Constants.EVENTS> {
         public long getSeqNum() {
             return _seqNum;
         }
+
+        @Override
+        public Deque<VoteOutcome> getOutcomes() {
+            throw new UnsupportedOperationException();
+        }
     }
 
     public void msg(Messages.Message<Constants.EVENTS> aMessage) {

@@ -5,6 +5,6 @@ public final class Constants {
     public static final int DEFAULT_MAX_INFLIGHT = 1;
 
     public static enum EVENTS {
-        PROP_ALLOC_INFLIGHT, PROP_ALLOC_ALL_CONCLUDED;
+        PROP_ALLOC_INFLIGHT, PROP_ALLOC_ALL_CONCLUDED, LD_OUTCOME;
     }
 }
