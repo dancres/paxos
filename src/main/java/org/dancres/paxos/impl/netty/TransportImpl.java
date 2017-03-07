@@ -236,6 +236,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     }
 
     public void terminate() {
+        _logger.debug("Terminate requested");
+        
 		_isStopping.set(true);
 
         if (_fd != null)
