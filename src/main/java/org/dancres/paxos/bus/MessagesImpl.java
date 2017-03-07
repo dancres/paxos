@@ -10,8 +10,6 @@ public class MessagesImpl<T extends Enum> implements Messages<T> {
     public Subscription<T> subscribe(String aName, Subscriber<T> aSubs) {
         Object result = _subscribers.putIfAbsent(aName, aSubs);
 
-        System.out.println("" + aSubs + ", " + result);
-
         if (result != null)
             throw new IllegalStateException("Already have a subscriber under the name: " + aName);
 
@@ -25,15 +23,18 @@ public class MessagesImpl<T extends Enum> implements Messages<T> {
             public void send(T aType) {
                 deliver(new MessageImpl<T>(aType, null, aName));
             }
+
+            @Override
+            public void unsubscribe() {
+                _subscribers.remove(aName);
+            }
         };
     }
 
     private void deliver(Message<T> aMsg) {
         for (Map.Entry<String, Subscriber<T>> aPair : _subscribers.entrySet()) {
-            if (! aPair.getKey().equals(aMsg.getSource())) {
-                System.out.println("Sending message to: " + aPair.getValue());
+            if (! aPair.getKey().equals(aMsg.getSource()))
                 aPair.getValue().msg(aMsg);
-            }
         }
     }
 

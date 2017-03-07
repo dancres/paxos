@@ -17,6 +17,7 @@ public interface Messages<T extends Enum> {
     interface Subscription<T> {
         void send(T aType, Object aBody);
         void send(T aType);
+        void unsubscribe();
     }
 
     Subscription<T> subscribe(String aName, Subscriber<T> aSubs);
