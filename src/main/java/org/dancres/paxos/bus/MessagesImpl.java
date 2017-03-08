@@ -2,9 +2,11 @@ package org.dancres.paxos.bus;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MessagesImpl<T extends Enum> implements Messages<T> {
     private final ConcurrentHashMap<String, Subscriber<T>> _subscribers = new ConcurrentHashMap<>();
+    private final AtomicLong _anonSubscript = new AtomicLong(0);
 
     @Override
     public Subscription<T> subscribe(String aName, Subscriber<T> aSubs) {
@@ -29,6 +31,11 @@ public class MessagesImpl<T extends Enum> implements Messages<T> {
                 _subscribers.remove(aName);
             }
         };
+    }
+
+    @Override
+    public Subscription<T> anonSubscrbe(Subscriber<T> aSubs) {
+        return subscribe("Anon:" + _anonSubscript.getAndIncrement(), aSubs);
     }
 
     private void deliver(Message<T> aMsg) {
