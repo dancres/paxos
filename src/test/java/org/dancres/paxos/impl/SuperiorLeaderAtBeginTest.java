@@ -93,20 +93,16 @@ public class SuperiorLeaderAtBeginTest {
         public boolean packetReceived(Packet aPacket) {
             PaxosMessage myMessage = aPacket.getMessage();
 
-            if (_core.getAcceptorLearner().accepts(aPacket)) {
-                if (myMessage.getType() == PaxosMessage.Types.BEGIN) {
-                    Begin myBegin = (Begin) myMessage;
+            if (myMessage.getType() == PaxosMessage.Types.BEGIN) {
+                Begin myBegin = (Begin) myMessage;
 
-                    _tp.send(
-                            _tp.getPickler().newPacket(new OldRound(myBegin.getSeqNum(), _tp.getLocalAddress(),
-                                    myBegin.getRndNumber() + 1)), aPacket.getSource());
+                _tp.send(
+                        _tp.getPickler().newPacket(new OldRound(myBegin.getSeqNum(), _tp.getLocalAddress(),
+                                myBegin.getRndNumber() + 1)), aPacket.getSource());
 
-                    return true;
-                } else
-                    return _core.packetReceived(aPacket);
-            } else {
+                return true;
+            } else
                 return _core.packetReceived(aPacket);
-            }
         }
     }
 }
