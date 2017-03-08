@@ -94,10 +94,7 @@ public class CheckpointHandleTest {
         TransportImpl myTransport = new TransportImpl(_nodeId, _broadcastId);
         Common myCommon = new Common(myTransport);
 
-        AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon, new Listener() {
-            public void transition(StateEvent anEvent) {
-            }
-        });
+        AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon);
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
 
         Assert.assertFalse(myCommon.getNodeState().test(NodeState.State.RECOVERING));

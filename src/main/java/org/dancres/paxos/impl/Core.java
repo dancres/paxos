@@ -37,7 +37,8 @@ public class Core implements Transport.Dispatcher, Paxos {
     public Core(LogStorage aLogger, CheckpointHandle aHandle,
                 Listener aListener, boolean isDisableLeaderHeartbeats) {
         _common = new Common();
-        _al = new AcceptorLearner(aLogger, _common, aListener);
+        _common.addStateEventListener(aListener);
+        _al = new AcceptorLearner(aLogger, _common);
         _ld = new LeaderFactory(_common, isDisableLeaderHeartbeats);
         _handle = aHandle;
         _msgProcs = Arrays.asList(_al, _ld);

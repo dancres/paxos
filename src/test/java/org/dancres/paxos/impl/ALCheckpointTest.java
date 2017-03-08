@@ -74,20 +74,14 @@ public class ALCheckpointTest {
         TransportImpl myTransport = new TransportImpl();
 
         AcceptorLearner myAl =
-                new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
-                    public void transition(StateEvent anEvent) {
-                    }
-                });
+                new AcceptorLearner(myLogger, new Common(myTransport));
 
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
         CheckpointHandle myHandle = myAl.newCheckpoint();
         myHandle.saved();
         myAl.close();
 
-        myAl = new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
-            public void transition(StateEvent anEvent) {
-            }
-        });
+        myAl = new AcceptorLearner(myLogger, new Common(myTransport));
 
         myAl.open(myHandle);
         myAl.close();
@@ -102,10 +96,7 @@ public class ALCheckpointTest {
         ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
         CheckpointHandle myRecoveredHandle = (CheckpointHandle) myOIS.readObject();
 
-        myAl = new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
-            public void transition(StateEvent anEvent) {
-            }
-        });
+        myAl = new AcceptorLearner(myLogger, new Common(myTransport));
 
         myAl.open(myRecoveredHandle);
         myAl.close();

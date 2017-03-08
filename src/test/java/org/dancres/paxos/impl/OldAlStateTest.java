@@ -91,11 +91,7 @@ public class OldAlStateTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		TransportImpl myTransport = new TransportImpl();
 		
-		AcceptorLearner myAl =
-                new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
-                    public void transition(StateEvent anEvent) {
-                    }
-                });
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common(myTransport));
 
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
 		

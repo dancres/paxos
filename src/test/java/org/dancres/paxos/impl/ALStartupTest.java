@@ -73,10 +73,7 @@ public class ALStartupTest {
 		TransportImpl myTransport = new TransportImpl();
 		
 		AcceptorLearner myAl =
-                new AcceptorLearner(myLogger, new Common(myTransport), new Listener() {
-                    public void transition(StateEvent anEvent) {
-                    }
-                });
+                new AcceptorLearner(myLogger, new Common(myTransport));
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
 		myAl.close();
 	}

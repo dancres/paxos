@@ -114,6 +114,8 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
     private final AtomicReference<Watermark> _lowWatermark =
             new AtomicReference<>(Watermark.INITIAL);
 
+    private final Messages.Subscription<Constants.EVENTS> _bus;
+
     static class ALCheckpointHandle extends CheckpointHandle {
         private static final long serialVersionUID = -7904255942396151132L;
 
@@ -199,7 +201,6 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
     }
 	
 	private final AtomicReference<ALCheckpointHandle> _lastCheckpoint = new AtomicReference<>();
-    private final Messages.Subscription<Constants.EVENTS> _bus;
 	
     /* ********************************************************************************************
      *
@@ -207,11 +208,10 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
      *
      ******************************************************************************************** */
 
-    AcceptorLearner(LogStorage aStore, Common aCommon, Listener anInitialListener) {
+    AcceptorLearner(LogStorage aStore, Common aCommon) {
         _storage = aStore;
         _common = aCommon;
         _bus = aCommon.getBus().subscribe("AcceptorLearner", this);
-        _common.addStateEventListener(anInitialListener);
     }
 
     @Override
