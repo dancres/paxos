@@ -30,78 +30,11 @@ public class CheckpointHandleTest {
         FileSystem.deleteDirectory(new File(DIRECTORY));
     }
 
-    private static class TransportImpl implements Transport {
-        private Transport.PacketPickler _pickler;
-
-        private List<PaxosMessage> _messages = new ArrayList<>();
-        private InetSocketAddress _nodeId;
-        private InetSocketAddress _broadcastId;
-        private MessageBasedFailureDetector _fd = new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN);
-
-        TransportImpl(InetSocketAddress aNodeId, InetSocketAddress aBroadcastId) {
-            _nodeId = aNodeId;
-            _broadcastId = aBroadcastId;
-            _pickler = new StandalonePickler(_nodeId);
-        }
-
-        public Transport.PacketPickler getPickler() {
-            return _pickler;
-        }
-
-        public FailureDetector getFD() {
-            return _fd;
-        }
-
-        public void routeTo(Dispatcher aDispatcher) {
-        }
-
-        @Override
-        public void filterRx(Filter aFilter) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void filterTx(Filter aFilter) {
-            throw new UnsupportedOperationException();
-        }
-
-        public void send(Packet aPacket, InetSocketAddress aNodeId) {
-            synchronized(_messages) {
-                _messages.add(aPacket.getMessage());
-                _messages.notifyAll();
-            }
-        }
-
-        PaxosMessage getNextMsg() {
-            synchronized(_messages) {
-                while (_messages.size() == 0) {
-                    try {
-                        _messages.wait();
-                    } catch (InterruptedException anIE) {
-                        // Ignore
-                    }
-                }
-
-                return _messages.remove(0);
-            }
-        }
-
-        public InetSocketAddress getLocalAddress() {
-            return _nodeId;
-        }
-
-        public InetSocketAddress getBroadcastAddress() {
-            return _broadcastId;
-        }
-
-        public void terminate() {
-        }
-    }
-
     @Test
     public void test() throws Exception {
         HowlLogger myLogger = new HowlLogger(DIRECTORY);
-        TransportImpl myTransport = new TransportImpl(_nodeId, _broadcastId);
+        ALTestTransportImpl myTransport = new ALTestTransportImpl(_nodeId, _broadcastId,
+                new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         Common myCommon = new Common(myTransport);
 
         AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon);

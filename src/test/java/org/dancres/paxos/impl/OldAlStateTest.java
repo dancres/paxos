@@ -37,69 +37,9 @@ public class OldAlStateTest {
     	FileSystem.deleteDirectory(new File(DIRECTORY));
 	}
 	
-	private class TransportImpl implements Transport {
-        private InetSocketAddress _broadcast = Utils.getTestAddress();
-        private Transport.PacketPickler _pickler = new StandalonePickler(_nodeId);
-        private MessageBasedFailureDetector _fd = new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN);
-
-		private List<PaxosMessage> _messages = new ArrayList<>();
-
-        public void routeTo(Dispatcher aDispatcher) {
-        }
-
-        public FailureDetector getFD() {
-            return _fd;
-        }
-
-		public void send(Packet aPacket, InetSocketAddress aNodeId) {
-			synchronized(_messages) {
-				_messages.add(aPacket.getMessage());
-				_messages.notifyAll();
-			}
-		}
-
-		@Override
-		public void filterRx(Filter aFilter) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void filterTx(Filter aFilter) {
-			throw new UnsupportedOperationException();
-		}
-		
-		PaxosMessage getNextMsg() {
-			synchronized(_messages) {
-				while (_messages.size() == 0) {
-					try {
-						_messages.wait();
-					} catch (InterruptedException anIE) {
-						// Ignore
-					}
-				}
-				
-				return _messages.remove(0);
-			}
-		}
-
-        public Transport.PacketPickler getPickler() {
-            return _pickler;
-        }
-
-        public InetSocketAddress getBroadcastAddress() {
-            return _broadcast;
-        }
-		public InetSocketAddress getLocalAddress() {
-			return _nodeId;
-		}
-
-		public void terminate() {
-		}
-	}
-	
 	@Test public void test() throws Exception {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
-		TransportImpl myTransport = new TransportImpl();
+		ALTestTransportImpl myTransport = new ALTestTransportImpl(_nodeId);
 		
 		AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common(myTransport));
 
