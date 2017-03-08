@@ -222,10 +222,6 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
     public void subscriberAttached(String aSubscriberName) {
     }
 
-    void add(Listener aListener) {
-        _common.addStateEventListener(aListener);
-    }
-
     void signal(StateEvent aStatus) {
         _bus.send(Constants.EVENTS.AL_TRANSITION, aStatus);
     }
