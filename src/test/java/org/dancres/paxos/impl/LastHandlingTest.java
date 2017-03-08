@@ -154,6 +154,11 @@ public class LastHandlingTest {
                 return _tp.getPickler();
             }
 
+            @Override
+            public void add(Filter aFilter) {
+                throw new UnsupportedOperationException();
+            }
+
             public FailureDetector getFD() {
                 return _tp.getFD();
             }

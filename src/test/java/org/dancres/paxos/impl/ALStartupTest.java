@@ -33,9 +33,14 @@ public class ALStartupTest {
 			synchronized(_messages) {
 				_messages.add(aPacket.getMessage());
 			}
-		}		
-		
-        public Transport.PacketPickler getPickler() {
+		}
+
+		@Override
+		public void add(Filter aFilter) {
+			throw new UnsupportedOperationException();
+		}
+
+		public Transport.PacketPickler getPickler() {
             return _pickler;
         }
 

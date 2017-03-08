@@ -98,6 +98,11 @@ public class ALRecoveryTransitionTest {
         public void routeTo(Dispatcher aDispatcher) {
         }
 
+		@Override
+		public void add(Filter aFilter) {
+			throw new UnsupportedOperationException();
+		}
+
 		public void send(Packet aPacket, InetSocketAddress aNodeId) {
 			synchronized(_messages) {
 				_messages.add(aPacket.getMessage());

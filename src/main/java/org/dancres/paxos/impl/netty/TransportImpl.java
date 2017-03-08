@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
@@ -76,6 +78,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     private final Set<Dispatcher> _dispatchers = new CopyOnWriteArraySet<>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
     private final PacketPickler _pickler = new PicklerImpl();
+    private final List<Filter> _rxFilters = new LinkedList<>();
 
     /**
      * Netty doesn't seem to like re-entrant behaviours so we need a thread pool
@@ -220,6 +223,11 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     	return _pickler;
     }
 
+    @Override
+    public void add(Filter aFilter) {
+        _rxFilters.add(aFilter);
+    }
+
     public FailureDetector getFD() {
         return _fd;
     }
@@ -299,7 +307,13 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 		if (_isStopping.get())
 			return;
 
-        final Packet myPacket = (Packet) anEvent.getMessage();
+        Packet myPacket = (Packet) anEvent.getMessage();
+
+        for (Filter myFilter : _rxFilters) {
+            myPacket = myFilter.filter(this, myPacket);
+            if (myPacket == null)
+                return;
+        }
 
         if ((_fd != null) && (_fd.accepts(myPacket))) {
             try {
@@ -311,10 +325,11 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
             return;
         }
 
+        final Packet myFiltered = myPacket;
         _packetDispatcher.execute(new Runnable() {
             public void run() {
                 for (Dispatcher d : _dispatchers) {
-                    if (d.packetReceived(myPacket))
+                    if (d.packetReceived(myFiltered))
                         break;
                 }
             }

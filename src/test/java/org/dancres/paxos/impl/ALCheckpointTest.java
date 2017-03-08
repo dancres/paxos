@@ -51,6 +51,11 @@ public class ALCheckpointTest {
             }
         }
 
+        @Override
+        public void add(Filter aFilter) {
+            throw new UnsupportedOperationException();
+        }
+
         public InetSocketAddress getLocalAddress() {
             return _nodeId;
         }

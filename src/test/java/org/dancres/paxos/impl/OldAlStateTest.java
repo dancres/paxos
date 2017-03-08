@@ -56,8 +56,13 @@ public class OldAlStateTest {
 				_messages.add(aPacket.getMessage());
 				_messages.notifyAll();
 			}
-		}		
-		
+		}
+
+		@Override
+		public void add(Filter aFilter) {
+			throw new UnsupportedOperationException();
+		}
+
 		PaxosMessage getNextMsg() {
 			synchronized(_messages) {
 				while (_messages.size() == 0) {

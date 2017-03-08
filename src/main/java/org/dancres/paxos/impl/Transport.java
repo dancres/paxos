@@ -10,6 +10,15 @@ import java.net.InetSocketAddress;
  * @author dan
  */
 public interface Transport {
+    public interface Filter {
+        /**
+         * @param aTransport
+         * @param aPacket
+         * @return A potentially altered packet upon which processing should continue or null to drop it.
+         */
+        public Packet filter(Transport aTransport, Packet aPacket);
+    }
+
 	public interface Packet {
 		public InetSocketAddress getSource();
 		public PaxosMessage getMessage();
@@ -25,6 +34,8 @@ public interface Transport {
 
     public PacketPickler getPickler();
 
+    public void add(Filter aFilter);
+    
     /**
      * Requests the transport route packets to a dispatcher.
      *

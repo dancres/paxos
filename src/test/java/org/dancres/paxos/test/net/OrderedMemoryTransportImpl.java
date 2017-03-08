@@ -49,6 +49,11 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         boolean receive(Packet aPacket);
     }
 
+    @Override
+    public void add(Filter aFilter) {
+        throw new UnsupportedOperationException();
+    }
+
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
                                       OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD,
                                       RoutingDecisions aDecisions) {
