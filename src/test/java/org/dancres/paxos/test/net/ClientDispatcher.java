@@ -14,7 +14,7 @@ public class ClientDispatcher implements Transport.Dispatcher {
 	private Transport _transport;
 	private List<VoteOutcome> _queue = new ArrayList<>();
 	
-	public boolean messageReceived(Packet aPacket) {
+	public boolean packetReceived(Packet aPacket) {
 		PaxosMessage myMessage = aPacket.getMessage();
 		
 		synchronized(this) {

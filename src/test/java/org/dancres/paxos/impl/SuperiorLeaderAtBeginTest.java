@@ -90,7 +90,7 @@ public class SuperiorLeaderAtBeginTest {
             _core.terminate();
         }
 
-        public boolean messageReceived(Packet aPacket) {
+        public boolean packetReceived(Packet aPacket) {
             PaxosMessage myMessage = aPacket.getMessage();
 
             if (_core.getAcceptorLearner().accepts(aPacket)) {
@@ -103,9 +103,9 @@ public class SuperiorLeaderAtBeginTest {
 
                     return true;
                 } else
-                    return _core.messageReceived(aPacket);
+                    return _core.packetReceived(aPacket);
             } else {
-                return _core.messageReceived(aPacket);
+                return _core.packetReceived(aPacket);
             }
         }
     }

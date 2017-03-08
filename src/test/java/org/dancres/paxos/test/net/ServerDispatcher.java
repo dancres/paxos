@@ -58,7 +58,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
         _dispatcher = aDispatcher;
     }
 
-	public boolean messageReceived(Packet aPacket) {
+	public boolean packetReceived(Packet aPacket) {
         if (! _initd.get())
             return false;
 

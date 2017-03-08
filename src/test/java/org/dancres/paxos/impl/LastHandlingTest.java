@@ -134,8 +134,8 @@ public class LastHandlingTest {
             _core.init(new LastTrapper(aTransport));
         }
 
-        public boolean messageReceived(Packet aPacket) {
-            return _core.messageReceived(aPacket);
+        public boolean packetReceived(Packet aPacket) {
+            return _core.packetReceived(aPacket);
         }
 
         public void terminate() {

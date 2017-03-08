@@ -135,7 +135,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
             synchronized(this) {
                 for(Dispatcher d : _dispatcher) {
-                    if (d.messageReceived(aPacket))
+                    if (d.packetReceived(aPacket))
                         break;
                 }
             }

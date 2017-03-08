@@ -314,7 +314,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         _packetDispatcher.execute(new Runnable() {
             public void run() {
                 for (Dispatcher d : _dispatchers) {
-                    if (d.messageReceived(myPacket))
+                    if (d.packetReceived(myPacket))
                         break;
                 }
             }

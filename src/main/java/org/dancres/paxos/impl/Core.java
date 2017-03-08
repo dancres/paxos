@@ -132,7 +132,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     	getCommon().addStateEventListener(aListener);
     }
     
-    public boolean messageReceived(Packet aPacket) {
+    public boolean packetReceived(Packet aPacket) {
         if (! _initd.get())
             return false;
 
