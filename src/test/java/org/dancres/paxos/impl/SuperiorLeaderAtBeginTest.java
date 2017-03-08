@@ -31,7 +31,7 @@ public class SuperiorLeaderAtBeginTest {
         _node1.init(_tport1);
 
         _tport2 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _tport2.add(new Dropping());
+        _tport2.filterRx(new Dropping());
         _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }

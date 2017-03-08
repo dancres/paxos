@@ -34,7 +34,9 @@ public interface Transport {
 
     public PacketPickler getPickler();
 
-    public void add(Filter aFilter);
+    public void filterRx(Filter aFilter);
+
+    public void filterTx(Filter aFilter);
     
     /**
      * Requests the transport route packets to a dispatcher.

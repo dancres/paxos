@@ -56,7 +56,12 @@ public class CheckpointHandleTest {
         }
 
         @Override
-        public void add(Filter aFilter) {
+        public void filterRx(Filter aFilter) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void filterTx(Filter aFilter) {
             throw new UnsupportedOperationException();
         }
 

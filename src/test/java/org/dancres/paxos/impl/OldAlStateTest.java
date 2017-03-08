@@ -59,10 +59,15 @@ public class OldAlStateTest {
 		}
 
 		@Override
-		public void add(Filter aFilter) {
+		public void filterRx(Filter aFilter) {
 			throw new UnsupportedOperationException();
 		}
 
+		@Override
+		public void filterTx(Filter aFilter) {
+			throw new UnsupportedOperationException();
+		}
+		
 		PaxosMessage getNextMsg() {
 			synchronized(_messages) {
 				while (_messages.size() == 0) {

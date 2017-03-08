@@ -35,22 +35,14 @@ public class LastHandlingTest {
     
     @Before public void init() throws Exception {
         _node1 = new ServerDispatcher();
-
-        Core myCore = new Core(new MemoryLogStorage(),
-                CheckpointHandle.NO_CHECKPOINT, new Listener() {
-            public void transition(StateEvent anEvent) {
-            }
-        });
-
-        LastListenerImpl myListener = new LastListenerImpl(myCore);
-
-        _node2 = new ServerDispatcher(myCore, myListener);
+        _node2 = new ServerDispatcher();
 
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _tport1.routeTo(_node1);
         _node1.init(_tport1);
 
         _tport2 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
+        _tport2.filterTx(new LastDropper());
         _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }
@@ -123,86 +115,27 @@ public class LastHandlingTest {
         Assert.assertTrue("Listener count should be 2 but is: " + myListener.getCount(), myListener.testCount(2));
     }
 
-    class LastListenerImpl implements Transport.Dispatcher {
-        private Core _core;
+    class LastDropper implements Transport.Filter {
+        private boolean _seenLast = false;
 
-        LastListenerImpl(Core aCore) {
-            _core = aCore;
-        }
+        @Override
+        public Packet filter(Transport aTransport, Packet aPacket) {
+            if (_seenLast)
+                return aPacket;
+            else {
+                if (aPacket.getMessage().getType() == PaxosMessage.Types.LAST) {
+                    ByteBuffer myBuffer = ByteBuffer.allocate(4);
+                    myBuffer.putInt(66);
 
-        public void init(Transport aTransport) throws Exception {
-            _core.init(new LastTrapper(aTransport));
-        }
+                    Last myOrig = (Last) aPacket.getMessage();
 
-        public boolean packetReceived(Packet aPacket) {
-            return _core.packetReceived(aPacket);
-        }
-
-        public void terminate() {
-        }
-
-        class LastTrapper implements Transport {
-            private boolean _seenLast = false;
-
-            private Transport _tp;
-
-            LastTrapper(Transport aTransport) {
-                _tp = aTransport;
-            }
-
-            public Transport.PacketPickler getPickler() {
-                return _tp.getPickler();
-            }
-
-            @Override
-            public void add(Filter aFilter) {
-                throw new UnsupportedOperationException();
-            }
-
-            public FailureDetector getFD() {
-                return _tp.getFD();
-            }
-
-            public void routeTo(Dispatcher aDispatcher) throws Exception {
-                _tp.routeTo(aDispatcher);
-            }
-
-            public InetSocketAddress getLocalAddress() {
-                return _tp.getLocalAddress();
-            }
-
-            public InetSocketAddress getBroadcastAddress() {
-                return _tp.getBroadcastAddress();
-            }
-
-            /*
-             * The repsonding AL will be starting from zero state and thus would normally generate a
-             * "permissive" LAST that permits the leader (also at zero state) to make a new proposal
-             * immediately. We want the leader to have to clear out a previous proposal prior to that. So
-             * we replace the "permissive" last, introducing a valid LAST that should cause the leader to
-             * deliver up the included value and then re-propose(non-Javadoc) the original value above.
-             */
-            public void send(Packet aPacket, InetSocketAddress anAddr) {
-                if (_seenLast)
-                    _tp.send(aPacket, anAddr);
-                else {
-                    if (aPacket.getMessage().getType() == PaxosMessage.Types.LAST) {
-                        ByteBuffer myBuffer = ByteBuffer.allocate(4);
-                        myBuffer.putInt(66);
-
-                        Last myOrig = (Last) aPacket.getMessage();
-
-                        _seenLast = true;
-                        _tp.send(_tp.getPickler().newPacket(new Last(myOrig.getSeqNum(), myOrig.getLowWatermark(),
-                                myOrig.getRndNumber() + 1,
-                                new Proposal("data", myBuffer.array()))), anAddr);
-                    } else {
-                        _tp.send(aPacket, anAddr);
-                    }
+                    _seenLast = true;
+                    return aTransport.getPickler().newPacket(new Last(myOrig.getSeqNum(), myOrig.getLowWatermark(),
+                            myOrig.getRndNumber() + 1,
+                            new Proposal("data", myBuffer.array())));
+                } else {
+                    return aPacket;
                 }
-            }
-
-            public void terminate() {
             }
         }
     }

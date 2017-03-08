@@ -79,6 +79,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
     private final PacketPickler _pickler = new PicklerImpl();
     private final List<Filter> _rxFilters = new LinkedList<>();
+    private final List<Filter> _txFilters = new LinkedList<>();
 
     /**
      * Netty doesn't seem to like re-entrant behaviours so we need a thread pool
@@ -224,8 +225,13 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     }
 
     @Override
-    public void add(Filter aFilter) {
+    public void filterRx(Filter aFilter) {
         _rxFilters.add(aFilter);
+    }
+
+    @Override
+    public void filterTx(Filter aFilter) {
+        _txFilters.add(aFilter);
     }
 
     public FailureDetector getFD() {
@@ -343,12 +349,19 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
 	
 	public void send(Packet aPacket, InetSocketAddress aNodeId) {
 		guard();
-		
+
+		Packet myPacket = aPacket;
+        for (Filter myFilter : _txFilters) {
+            myPacket = myFilter.filter(this, myPacket);
+            if (myPacket == null)
+                return;
+        }
+
 		try {
 			if (aNodeId.equals(_broadcastAddr))
-				_mcast.write(aPacket, _mcastAddr);
+				_mcast.write(myPacket, _mcastAddr);
 			else {
-				_unicast.write(aPacket, aNodeId);
+				_unicast.write(myPacket, aNodeId);
 			}
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
