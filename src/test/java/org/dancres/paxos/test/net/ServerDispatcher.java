@@ -25,7 +25,6 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
     private final Core _core;
     private final AtomicBoolean _initd = new AtomicBoolean(false);
-    private final Transport.Dispatcher _dispatcher;
     private Transport _tp;
 
     public ServerDispatcher(LogStorage aLogger) {
@@ -47,15 +46,11 @@ public class ServerDispatcher implements Transport.Dispatcher {
             public void transition(StateEvent anEvent) {
                 // Nothing to do
             }
-        }, isDisableHeartbeats), null);
+        }, isDisableHeartbeats));
     }
 
-    /**
-     * For testing only
-     */
-    public ServerDispatcher(Core aCore, Transport.Dispatcher aDispatcher) {
+    private ServerDispatcher(Core aCore) {
         _core = aCore;
-        _dispatcher = aDispatcher;
     }
 
 	public boolean packetReceived(Packet aPacket) {
@@ -92,18 +87,8 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
 	public void init(Transport aTransport) throws Exception {
 		_tp = aTransport;
-
-        // Tests wishing to wrap core to capture happenings etc, set a dispatcher at construction time above
-        // No dispatcher means standard dispatch to _core
-        //
-        if (_dispatcher == null) {
-            _tp.routeTo(_core);
-            _core.init(_tp);
-        } else {
-            _tp.routeTo(_dispatcher);
-            _dispatcher.init(_tp);
-        }
-
+        _tp.routeTo(_core);
+        _core.init(_tp);
         _initd.set(true);
 	}
 	
