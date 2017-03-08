@@ -1,6 +1,7 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.bus.Messages;
 import org.dancres.paxos.messages.*;
 import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
@@ -29,7 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author dan
  */
-public class AcceptorLearner implements MessageProcessor {
+public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Constants.EVENTS> {
     interface Stats {
         public long getHeartbeatCount();
         public long getIgnoredCollectsCount();
@@ -198,7 +199,7 @@ public class AcceptorLearner implements MessageProcessor {
     }
 	
 	private final AtomicReference<ALCheckpointHandle> _lastCheckpoint = new AtomicReference<>();
-    private final List<Listener> _listeners = new CopyOnWriteArrayList<>();
+    private final Messages.Subscription<Constants.EVENTS> _bus;
 	
     /* ********************************************************************************************
      *
@@ -209,16 +210,24 @@ public class AcceptorLearner implements MessageProcessor {
     AcceptorLearner(LogStorage aStore, Common aCommon, Listener anInitialListener) {
         _storage = aStore;
         _common = aCommon;
-        add(anInitialListener);
+        _bus = aCommon.getBus().subscribe("AcceptorLearner", this);
+        _common.addStateEventListener(anInitialListener);
+    }
+
+    @Override
+    public void msg(Messages.Message<Constants.EVENTS> aMessage) {
+    }
+
+    @Override
+    public void subscriberAttached(String aSubscriberName) {
     }
 
     void add(Listener aListener) {
-        _listeners.add(aListener);
+        _common.addStateEventListener(aListener);
     }
 
     void signal(StateEvent aStatus) {
-        for (Listener myTarget : _listeners)
-            myTarget.transition(aStatus);
+        _bus.send(Constants.EVENTS.AL_TRANSITION, aStatus);
     }
 
     private boolean guard() {

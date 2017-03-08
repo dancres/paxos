@@ -1,5 +1,7 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Listener;
+import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.bus.Messages;
 import org.dancres.paxos.bus.MessagesImpl;
 
@@ -45,5 +47,23 @@ class Common {
 
     NodeState getNodeState() {
         return _nodeState;
+    }
+
+    void addStateEventListener(Listener aListener) {
+        _bus.anonSubscrbe(new Messages.Subscriber<Constants.EVENTS>() {
+            @Override
+            public void msg(Messages.Message<Constants.EVENTS> aMessage) {
+                switch(aMessage.getType()) {
+                    case AL_TRANSITION : {
+                        aListener.transition((StateEvent) aMessage.getMessage());
+                        break;
+                    }
+                }
+            }
+
+            @Override
+            public void subscriberAttached(String aSubscriberName) {
+            }
+        });
     }
 }
