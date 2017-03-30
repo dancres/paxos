@@ -30,8 +30,6 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
     private final Map<Long, Leader> _activeLeaders = new ConcurrentHashMap<>();
     private final Map<Long, Completion<VoteOutcome>> _outstandingCompletions = new ConcurrentHashMap<>();
     
-    private Messages.Subscription _bus;
-
     /**
      * This alarm is used to ensure the leader sends regular heartbeats in the face of inactivity so as to extend
      * its lease with AcceptorLearners.
@@ -42,7 +40,7 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
         _common = aCommon;
         _disableHeartbeats = isDisableHeartbeats;
         _stateFactory = new ProposalAllocator(_common.getBus());
-        _bus = _common.getBus().subscribe("LeaderFactory", this);
+        _common.getBus().subscribe("LeaderFactory", this);
     }
 
     void resumeAt(long aSeqNum, long aRndNum) {
@@ -119,7 +117,7 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
         return myLeader;
     }
 
-    public void inFlight() {
+    private void inFlight() {
         killHeartbeats();
     }
 
@@ -127,7 +125,7 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
      *
      * TODO: Increment round number via heartbeats every so often to avoid jittering collects
      */
-    public void allConcluded() {
+    private void allConcluded() {
         if (_stateFactory.amLeader()  && !_disableHeartbeats) {
             // Still leader so heartbeat
             //
@@ -137,8 +135,7 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
 
                     try {
                         submit(new Proposal(AcceptorLearner.HEARTBEAT_KEY, "hearbeat".getBytes()),
-                                new Completion<VoteOutcome>() {
-                                    public void complete(VoteOutcome anOutcome) {}});
+                                (VoteOutcome anOutcome) -> {});
                     } catch (InactiveException anIE) {
                         // Nothing to worry about, just give up
                     }
@@ -156,13 +153,7 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
     boolean updateMembership(Collection<InetSocketAddress> aClusterMembers) throws InactiveException {
         final CompletionImpl<VoteOutcome> myResult = new CompletionImpl<>();
 
-        submit(new Proposal(AcceptorLearner.MEMBER_CHANGE_KEY, Codecs.flatten(aClusterMembers)),
-                new Completion<VoteOutcome>() {
-                    public void complete(VoteOutcome anOutcome) {
-                        myResult.complete(anOutcome);
-                    }
-                }
-        );
+        submit(new Proposal(AcceptorLearner.MEMBER_CHANGE_KEY, Codecs.flatten(aClusterMembers)), myResult);
 
         VoteOutcome myOutcome = myResult.await();
 
