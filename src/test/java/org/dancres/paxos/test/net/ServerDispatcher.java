@@ -24,7 +24,6 @@ public class ServerDispatcher implements Transport.Dispatcher {
     private static final Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     private Core _core;
-    private Transport _tp;
     private final Runnable _initialiser;
     private final AtomicBoolean _initd = new AtomicBoolean(false);
 
@@ -71,7 +70,8 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
                 _core.submit(myProposal, new Completion<VoteOutcome>() {
                     public void complete(VoteOutcome anOutcome) {
-                        _tp.send(_tp.getPickler().newPacket(new Event(anOutcome)), mySource);
+                        _core.getCommon().getTransport().send(
+                                _core.getCommon().getTransport().getPickler().newPacket(new Event(anOutcome)), mySource);
                     }
                 });
 
@@ -90,9 +90,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
 	public void init(Transport aTransport) throws Exception {
         _initialiser.run();
-		_tp = aTransport;
-        _tp.routeTo(_core);
-        _core.init(_tp);
+        _core.init(aTransport);
         _initd.set(true);
 	}
 	

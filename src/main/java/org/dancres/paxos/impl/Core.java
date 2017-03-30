@@ -19,9 +19,9 @@ public class Core implements Transport.Dispatcher, Paxos {
 
     private AcceptorLearner _al;
     private LeaderFactory _ld;
-    private Common _common;
     private CheckpointHandle _handle;
     private List<MessageProcessor> _msgProcs;
+    private final Common _common = new Common();
     private final AtomicBoolean _initd = new AtomicBoolean(false);
     private final Runnable _initialiser;
 
@@ -38,7 +38,6 @@ public class Core implements Transport.Dispatcher, Paxos {
     public Core(LogStorage aLogger, CheckpointHandle aHandle,
                 Listener aListener, boolean isDisableLeaderHeartbeats) {
         _initialiser = () -> {
-            _common = new Common();
             _common.addStateEventListener(aListener);
             _al = new AcceptorLearner(aLogger, _common);
             _ld = new LeaderFactory(_common, isDisableLeaderHeartbeats);
@@ -62,8 +61,9 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public void init(Transport aTransport) throws Exception {
-        _initialiser.run();
         _common.setTransport(aTransport);
+        aTransport.routeTo(this);
+        _initialiser.run();
 
         _logger.debug(toString() + " initialised");
 
@@ -128,7 +128,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         return _al;
     }
 
-    Common getCommon() {
+    public Common getCommon() {
         return _common;
     }
 

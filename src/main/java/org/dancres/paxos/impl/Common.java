@@ -7,7 +7,7 @@ import org.dancres.paxos.bus.MessagesImpl;
 
 import java.util.Timer;
 
-class Common {
+public class Common {
     private Transport _transport;
     private final Timer _watchdog = new Timer("Paxos timers");
     private final NodeState _nodeState = new NodeState();
@@ -26,7 +26,7 @@ class Common {
         return _watchdog;
     }
 
-    Transport getTransport() {
+    public Transport getTransport() {
         return _transport;
     }
 
