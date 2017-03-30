@@ -33,7 +33,7 @@ public class ALStartupTest {
 				new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
 		
 		AcceptorLearner myAl =
-                new AcceptorLearner(myLogger, new Common(myTransport));
+                new AcceptorLearner(myLogger, new Common().setTransport(myTransport));
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
 		myAl.close();
 	}

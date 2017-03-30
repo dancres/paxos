@@ -84,7 +84,7 @@ public class ALRecoveryTransitionTest {
 	@Test public void test() throws Exception {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		ALTestTransportImpl myTransport = new ALTestTransportImpl(_nodeId, _broadcastId, new FakeDetector());
-        Common myCommon = new Common(myTransport);
+        Common myCommon = new Common().setTransport(myTransport);
 
 		AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon);
 

@@ -41,7 +41,7 @@ public class OldAlStateTest {
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		ALTestTransportImpl myTransport = new ALTestTransportImpl(_nodeId);
 		
-		AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common(myTransport));
+		AcceptorLearner myAl = new AcceptorLearner(myLogger, new Common().setTransport(myTransport));
 
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
 		

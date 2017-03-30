@@ -35,14 +35,14 @@ public class ALCheckpointTest {
                 new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
 
         AcceptorLearner myAl =
-                new AcceptorLearner(myLogger, new Common(myTransport));
+                new AcceptorLearner(myLogger, new Common().setTransport(myTransport));
 
         myAl.open(CheckpointHandle.NO_CHECKPOINT);
         CheckpointHandle myHandle = myAl.newCheckpoint();
         myHandle.saved();
         myAl.close();
 
-        myAl = new AcceptorLearner(myLogger, new Common(myTransport));
+        myAl = new AcceptorLearner(myLogger, new Common().setTransport(myTransport));
 
         myAl.open(myHandle);
         myAl.close();
@@ -57,7 +57,7 @@ public class ALCheckpointTest {
         ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
         CheckpointHandle myRecoveredHandle = (CheckpointHandle) myOIS.readObject();
 
-        myAl = new AcceptorLearner(myLogger, new Common(myTransport));
+        myAl = new AcceptorLearner(myLogger, new Common().setTransport(myTransport));
 
         myAl.open(myRecoveredHandle);
         myAl.close();

@@ -35,7 +35,7 @@ public class CheckpointHandleTest {
         HowlLogger myLogger = new HowlLogger(DIRECTORY);
         ALTestTransportImpl myTransport = new ALTestTransportImpl(_nodeId, _broadcastId,
                 new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        Common myCommon = new Common(myTransport);
+        Common myCommon = new Common().setTransport(myTransport);
 
         AcceptorLearner myAl = new AcceptorLearner(myLogger, myCommon);
         myAl.open(CheckpointHandle.NO_CHECKPOINT);

@@ -13,20 +13,13 @@ class Common {
     private final NodeState _nodeState = new NodeState();
     private final Messages<Constants.EVENTS> _bus = new MessagesImpl<>();
 
-    Common(Transport aTransport) {
-        _transport = aTransport;
-    }
-
-    Common() {
-        this(null);
-    }
-
     Messages<Constants.EVENTS> getBus() {
         return _bus;
     }
-    
-    void setTransport(Transport aTransport) {
-    	_transport = aTransport;
+
+    Common setTransport(Transport aTransport) {
+        _transport = aTransport;
+        return this;
     }
     
     Timer getWatchdog() {
