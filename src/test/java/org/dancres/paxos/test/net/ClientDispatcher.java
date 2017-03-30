@@ -59,8 +59,9 @@ public class ClientDispatcher implements Transport.Dispatcher {
 		}
 	}
 	
-	public void init(Transport aTransport) {
+	public void init(Transport aTransport) throws Exception {
 		_transport = aTransport;
+		_transport.routeTo(this);
 	}
 
 	public void terminate() {

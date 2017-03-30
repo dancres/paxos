@@ -341,7 +341,6 @@ public class Main {
         ClientDispatcher myClient = new ClientDispatcher();
         OrderedMemoryNetwork.Factory.Constructed myResult =
                 _env.getFactory().newTransport(null, null, Utils.getTestAddress(), null);
-        myResult.getTransport().routeTo(myClient);
         myClient.init(myResult.getTransport());
 
         cycle(myClient, _env.getMaxCycles());

@@ -115,7 +115,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         _dispatcher.add(this);
 
         try {
-            _transport.routeTo(_dispatcher);
             _dispatcher.init(_transport);
         } catch (Exception anE) {
             throw new RuntimeException("Failed to add a dispatcher", anE);

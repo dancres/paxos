@@ -89,6 +89,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
 
 	public void init(Transport aTransport) throws Exception {
+        aTransport.routeTo(this);
         _initialiser.run();
         _core.init(aTransport);
         _initd.set(true);

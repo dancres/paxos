@@ -27,11 +27,9 @@ public class FDTest {
     	_node1 = new ServerDispatcher();
     	_node2 = new ServerDispatcher();
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000), "node1".getBytes());
-        _tport1.routeTo(_node1);
         _node1.init(_tport1);
 
         _tport2 = new TransportImpl(new FailureDetectorImpl(5000), "node2".getBytes());
-        _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }
 

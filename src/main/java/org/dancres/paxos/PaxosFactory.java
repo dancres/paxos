@@ -20,7 +20,6 @@ public class PaxosFactory {
                              LogStorage aLogger) throws Exception {
         Core myCore = new Core(aLogger, aHandle, aListener);
         Transport myTransport = new TransportImpl(new FailureDetectorImpl(aClusterSize, 5000), aClientId);
-        myTransport.routeTo(myCore);
         myCore.init(myTransport);
 
         return myCore;

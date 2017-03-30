@@ -28,11 +28,9 @@ public class LeaderConflictTest {
         _node1 = new ServerDispatcher();
         _node2 = new ServerDispatcher();
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _tport1.routeTo(_node1);
         _node1.init(_tport1);
 
         _tport2 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }
 
@@ -44,12 +42,10 @@ public class LeaderConflictTest {
     @Test public void post() throws Exception {
         ClientDispatcher myClient1 = new ClientDispatcher();
         TransportImpl myTransport1 = new TransportImpl(null);
-        myTransport1.routeTo(myClient1);
         myClient1.init(myTransport1);
 
         ClientDispatcher myClient2 = new ClientDispatcher();
         TransportImpl myTransport2 = new TransportImpl(null);
-        myTransport2.routeTo(myClient2);
         myClient2.init(myTransport2);
 
         FDUtil.ensureFD(_tport1.getFD());

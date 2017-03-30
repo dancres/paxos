@@ -25,11 +25,9 @@ public class SuccessfulSequenceTest {
     	_node1 = new ServerDispatcher();
     	_node2 = new ServerDispatcher();
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _tport1.routeTo(_node1);
         _node1.init(_tport1);
 
         _tport2 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _tport2.routeTo(_node2);
         _node2.init(_tport2);
     }
 
@@ -41,7 +39,6 @@ public class SuccessfulSequenceTest {
     @Test public void post() throws Exception {
     	ClientDispatcher myClient = new ClientDispatcher();
     	TransportImpl myTransport = new TransportImpl(null);
-        myTransport.routeTo(myClient);
         myClient.init(myTransport);
 
         FailureDetector myFd = _tport1.getFD();
