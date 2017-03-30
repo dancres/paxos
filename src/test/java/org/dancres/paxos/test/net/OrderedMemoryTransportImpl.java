@@ -144,10 +144,8 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
             }
 
             synchronized(this) {
-                for(Dispatcher d : _dispatcher) {
-                    if (d.packetReceived(aPacket))
-                        break;
-                }
+                for(Dispatcher d : _dispatcher)
+                    d.packetReceived(aPacket);
             }
         } else {
             _logger.warn("OT [ " + getLocalAddress() + " ] dropped on rxd: " + aPacket);

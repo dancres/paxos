@@ -136,24 +136,19 @@ public class Core implements Transport.Dispatcher, Paxos {
     	getCommon().addStateEventListener(aListener);
     }
     
-    public boolean packetReceived(Packet aPacket) {
+    public void packetReceived(Packet aPacket) {
         if (! _initd.get())
-            return false;
-
-        boolean didProcess = false;
+            return;
 
         for (MessageProcessor myMP : _msgProcs) {
             if (myMP.accepts(aPacket)) {
                 try {
                     myMP.processMessage(aPacket);
-                    didProcess = true;
                 } catch (Throwable anE) {
                     _logger.error(toString() + " Unexpected exception against " + aPacket, anE);
                 }
             }
         }
-
-        return didProcess;
     }
 
     /**

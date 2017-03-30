@@ -334,10 +334,8 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         final Packet myFiltered = myPacket;
         _packetDispatcher.execute(new Runnable() {
             public void run() {
-                for (Dispatcher d : _dispatchers) {
-                    if (d.packetReceived(myFiltered))
-                        break;
-                }
+                for (Dispatcher d : _dispatchers)
+                    d.packetReceived(myFiltered);
             }
         });
     }

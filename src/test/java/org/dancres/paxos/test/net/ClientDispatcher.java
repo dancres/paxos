@@ -14,7 +14,7 @@ public class ClientDispatcher implements Transport.Dispatcher {
 	private Transport _transport;
 	private final List<VoteOutcome> _queue = new ArrayList<>();
 	
-	public boolean packetReceived(Packet aPacket) {
+	public void packetReceived(Packet aPacket) {
 		PaxosMessage myMessage = aPacket.getMessage();
 		
 		synchronized(this) {
@@ -27,8 +27,6 @@ public class ClientDispatcher implements Transport.Dispatcher {
 	        	}
             }
         }
-
-        return true;
 	}
 
 	public void send(PaxosMessage aMessage, InetSocketAddress aTarget) {

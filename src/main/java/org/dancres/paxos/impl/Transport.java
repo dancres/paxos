@@ -65,10 +65,6 @@ public interface Transport {
     }
 
     public interface Dispatcher extends Lifecycle {
-        /**
-         * @return <code>true</code> to indicate that this packet has been processed and should not be given to
-         * other Dispatchers.
-         */
-        public boolean packetReceived(Packet aPacket);
+        public void packetReceived(Packet aPacket);
     }
 }

@@ -55,9 +55,9 @@ public class ServerDispatcher implements Transport.Dispatcher {
         };
     }
 
-	public boolean packetReceived(Packet aPacket) {
+	public void packetReceived(Packet aPacket) {
         if (! _initd.get())
-            return false;
+            return;
 
         PaxosMessage myMessage = aPacket.getMessage();
 		
@@ -74,16 +74,11 @@ public class ServerDispatcher implements Transport.Dispatcher {
                                 _core.getCommon().getTransport().getPickler().newPacket(new Event(anOutcome)), mySource);
                     }
                 });
-
-                return true;
             } else {
-
                 _logger.trace("Unrecognised message:" + myMessage);
-                return false;
             }
         } catch (Throwable anE) {
         	_logger.error("Unexpected exception", anE);
-            return false;
         }
     }
 
