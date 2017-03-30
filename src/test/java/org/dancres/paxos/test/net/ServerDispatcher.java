@@ -23,9 +23,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ServerDispatcher implements Transport.Dispatcher {
     private static final Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
-    private final Core _core;
-    private final AtomicBoolean _initd = new AtomicBoolean(false);
+    private Core _core;
     private Transport _tp;
+    private final Runnable _initialiser;
+    private final AtomicBoolean _initd = new AtomicBoolean(false);
 
     public ServerDispatcher(LogStorage aLogger) {
         this(aLogger, false);
@@ -50,7 +51,9 @@ public class ServerDispatcher implements Transport.Dispatcher {
     }
 
     private ServerDispatcher(Core aCore) {
-        _core = aCore;
+        _initialiser = () -> {
+            _core = aCore;
+        };
     }
 
 	public boolean packetReceived(Packet aPacket) {
@@ -86,6 +89,7 @@ public class ServerDispatcher implements Transport.Dispatcher {
 
 
 	public void init(Transport aTransport) throws Exception {
+        _initialiser.run();
 		_tp = aTransport;
         _tp.routeTo(_core);
         _core.init(_tp);

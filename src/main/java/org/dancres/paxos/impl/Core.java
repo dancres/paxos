@@ -17,12 +17,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Core implements Transport.Dispatcher, Paxos {
     private static final Logger _logger = LoggerFactory.getLogger(Core.class);
 
-    private final AcceptorLearner _al;
-    private final LeaderFactory _ld;
-    private final Common _common;
-    private final CheckpointHandle _handle;
+    private AcceptorLearner _al;
+    private LeaderFactory _ld;
+    private Common _common;
+    private CheckpointHandle _handle;
+    private List<MessageProcessor> _msgProcs;
     private final AtomicBoolean _initd = new AtomicBoolean(false);
-    private final List<MessageProcessor> _msgProcs;
+    private final Runnable _initialiser;
 
     /**
      * @param aLogger is the storage implementation to use for recording paxos transitions.
@@ -36,12 +37,14 @@ public class Core implements Transport.Dispatcher, Paxos {
 
     public Core(LogStorage aLogger, CheckpointHandle aHandle,
                 Listener aListener, boolean isDisableLeaderHeartbeats) {
-        _common = new Common();
-        _common.addStateEventListener(aListener);
-        _al = new AcceptorLearner(aLogger, _common);
-        _ld = new LeaderFactory(_common, isDisableLeaderHeartbeats);
-        _handle = aHandle;
-        _msgProcs = Arrays.asList(_al, _ld);
+        _initialiser = () -> {
+            _common = new Common();
+            _common.addStateEventListener(aListener);
+            _al = new AcceptorLearner(aLogger, _common);
+            _ld = new LeaderFactory(_common, isDisableLeaderHeartbeats);
+            _handle = aHandle;
+            _msgProcs = Arrays.asList(_al, _ld);
+        };
     }
 
     public void close() {
@@ -59,6 +62,7 @@ public class Core implements Transport.Dispatcher, Paxos {
     }
 
     public void init(Transport aTransport) throws Exception {
+        _initialiser.run();
         _common.setTransport(aTransport);
 
         _logger.debug(toString() + " initialised");
