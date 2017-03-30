@@ -23,12 +23,7 @@ public class MemoryLogStorage implements LogStorage {
 	}
 
 	public void mark(long key, boolean force) throws Exception {
-        Iterator<Long> myKeys = _log.keySet().iterator();
-        while (myKeys.hasNext()) {
-            Long myKey = myKeys.next();
-            if (myKey < key)
-                myKeys.remove();
-        }
+		_log.keySet().removeIf((Long aKey) -> aKey < key);
 	}
 
 	public void open() throws Exception {

@@ -124,12 +124,7 @@ class PacketSorter {
      */
     void recoveredToCheckpoint(long aLowWatermark) {
         synchronized(this) {
-            Iterator<Long> mySeqs = _packets.keySet().iterator();
-
-            while (mySeqs.hasNext()) {
-                if (mySeqs.next() <= aLowWatermark)
-                    mySeqs.remove();
-            }
+            _packets.keySet().removeIf((Long mySeq) -> mySeq <= aLowWatermark);
         }
     }
 

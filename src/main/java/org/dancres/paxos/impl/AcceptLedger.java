@@ -43,13 +43,8 @@ class AcceptLedger {
      */
     void purge(Begin aBegin) {
         synchronized (this) {
-            Iterator<Transport.Packet> myAccs = _ledger.iterator();
-
-            while (myAccs.hasNext()) {
-                Transport.Packet myAcc = myAccs.next();
-                if (((Accept) myAcc.getMessage()).getRndNumber() != aBegin.getRndNumber())
-                    myAccs.remove();
-            }
+            _ledger.removeIf((Transport.Packet aPacket) ->
+                    ((Accept) aPacket.getMessage()).getRndNumber() != aBegin.getRndNumber());
         }
     }
 
