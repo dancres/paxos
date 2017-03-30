@@ -141,14 +141,13 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         if (aFactory == null)
             throw new IllegalArgumentException();
 
-        PipelineFactory myFactory = aFactory;
         _fd = anFD;
 
         _mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
         _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
 
         _mcastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
-        _mcast = _mcastFactory.newChannel(myFactory.newPipeline(_pickler, this));
+        _mcast = _mcastFactory.newChannel(aFactory.newPipeline(_pickler, this));
 
         _mcast.getConfig().setReuseAddress(true);
         _mcast.bind(new InetSocketAddress(BROADCAST_PORT)).await();
@@ -156,7 +155,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         _channels.add(_mcast);
 
         _unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
-        _unicast = _unicastFactory.newChannel(myFactory.newPipeline(_pickler, this));
+        _unicast = _unicastFactory.newChannel(aFactory.newPipeline(_pickler, this));
 
         _unicast.getConfig().setReuseAddress(true);
         _unicast.bind(aServerAddr).await();
