@@ -13,7 +13,6 @@ import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
@@ -32,10 +31,10 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Constants.EVENTS> {
     interface Stats {
-        public long getHeartbeatCount();
-        public long getIgnoredCollectsCount();
-        public long getActiveAccepts();
-        public long getRecoveryCycles();
+        long getHeartbeatCount();
+        long getIgnoredCollectsCount();
+        long getActiveAccepts();
+        long getRecoveryCycles();
     }
 
     private static class StatsImpl implements Stats {
@@ -78,8 +77,8 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
         }
     }
 
-    public static final String HEARTBEAT_KEY = "org.dancres.paxos.Hbt";
-    public static final String MEMBER_CHANGE_KEY = "org.dancres.paxos.MemChg";
+    static final String HEARTBEAT_KEY = "org.dancres.paxos.Hbt";
+    static final String MEMBER_CHANGE_KEY = "org.dancres.paxos.MemChg";
 
     private static final long DEFAULT_RECOVERY_GRACE_PERIOD = 5 * 1000;
 
@@ -222,7 +221,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
     public void subscriberAttached(String aSubscriberName) {
     }
 
-    void signal(StateEvent aStatus) {
+    private void signal(StateEvent aStatus) {
         _bus.send(Constants.EVENTS.AL_TRANSITION, aStatus);
     }
 
@@ -487,7 +486,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
 
     public long getLastSeq() { return _lowWatermark.get().getSeqNum(); }
 
-    public long getLeaderRndNum() {
+    long getLeaderRndNum() {
         return _leadershipState.getLeaderRndNum();
     }
 
@@ -1088,7 +1087,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
 	}
 
     interface Sender {
-        public void send(PaxosMessage aMessage, InetSocketAddress aNodeId);
+        void send(PaxosMessage aMessage, InetSocketAddress aNodeId);
     }
     
     class LiveSender implements Sender {
@@ -1119,7 +1118,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
      ******************************************************************************************** */
 
     interface Writer {
-        public long write(Transport.Packet aPacket, boolean aForceRequired);
+        long write(Transport.Packet aPacket, boolean aForceRequired);
     }
 
     static class ReplayWriter implements Writer {
