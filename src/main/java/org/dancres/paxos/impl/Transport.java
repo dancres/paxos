@@ -61,11 +61,6 @@ public interface Transport {
     public void terminate();
 
     public interface Lifecycle {
-        /**
-         * @param aTransport
-         * @throws Exception
-         */
-        public void init(Transport aTransport) throws Exception;
         public void terminate() throws Exception;
     }
 
