@@ -199,7 +199,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
             if (_futures.size() != 0) {
 
                 Assembly myAssembly =
-                        new MembershipImpl(new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats));
+                        new MembershipImpl(new HashMap<>(_lastHeartbeats));
 
                 for (FutureImpl myFuture : _futures)
                     myFuture.offer(myAssembly);
@@ -266,7 +266,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     public Assembly getMembers() {
-        return new MembershipImpl(new HashMap<InetSocketAddress, MetaData>(_lastHeartbeats));
+        return new MembershipImpl(new HashMap<>(_lastHeartbeats));
     }
 
     public byte[] dataForNode(InetSocketAddress anAddress) {

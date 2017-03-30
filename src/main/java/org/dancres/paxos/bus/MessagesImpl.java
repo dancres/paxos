@@ -18,12 +18,12 @@ public class MessagesImpl<T extends Enum> implements Messages<T> {
         return new Subscription<T>() {
             @Override
             public void send(T aType, Object aBody) {
-                deliver(new MessageImpl<T>(aType, aBody, aName));
+                deliver(new MessageImpl<>(aType, aBody, aName));
             }
 
             @Override
             public void send(T aType) {
-                deliver(new MessageImpl<T>(aType, null, aName));
+                deliver(new MessageImpl<>(aType, null, aName));
             }
 
             @Override

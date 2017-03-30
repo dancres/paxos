@@ -85,7 +85,7 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
             myAccTrans.put(State.SUCCESS, new HashSet<>(Arrays.asList(State.ABORT, State.EXIT)));
             myAccTrans.put(State.EXIT, new HashSet<>(Arrays.asList(State.SHUTDOWN)));
             myAccTrans.put(State.ABORT, new HashSet<>(Arrays.asList(State.SHUTDOWN)));
-            myAccTrans.put(State.SHUTDOWN, new HashSet<State>());
+            myAccTrans.put(State.SHUTDOWN, new HashSet<>());
 
             _acceptableTransitions = Collections.unmodifiableMap(myAccTrans);
         }

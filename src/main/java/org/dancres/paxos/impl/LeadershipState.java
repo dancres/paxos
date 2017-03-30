@@ -55,7 +55,7 @@ class LeadershipState {
     }
 
     private final AtomicReference<Transport.Packet> _lastCollect =
-            new AtomicReference<Transport.Packet>(new FakePacket(Collect.INITIAL));
+            new AtomicReference<>(new FakePacket(Collect.INITIAL));
     private AtomicLong _lastLeaderActionTime = new AtomicLong(0);
     private final LeaderUtils _leaderUtils = new LeaderUtils();
 

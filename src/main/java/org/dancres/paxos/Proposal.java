@@ -108,7 +108,7 @@ public class Proposal {
 	}
 	
 	public String toString() {
-		StringBuffer mySummary = new StringBuffer("Proposal (");
+		StringBuilder mySummary = new StringBuilder("Proposal (");
 		
 		for (String k: _values.keySet()) {
 			mySummary.append(" ").append(k);
