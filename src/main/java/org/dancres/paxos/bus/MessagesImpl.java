@@ -50,19 +50,19 @@ public class MessagesImpl<T extends Enum> implements Messages<T> {
         return _subscribers;
     }
 
-    private class MessageImpl<T> implements Messages.Message<T> {
-        private final T _type;
+    private class MessageImpl<U> implements Messages.Message<U> {
+        private final U _type;
         private final Object _msg;
         private final String _source;
 
-        MessageImpl(T aType, Object aMessage, String aSource) {
+        MessageImpl(U aType, Object aMessage, String aSource) {
             _type = aType;
             _msg = aMessage;
             _source = aSource;
         }
 
         @Override
-        public T getType() {
+        public U getType() {
             return _type;
         }
 

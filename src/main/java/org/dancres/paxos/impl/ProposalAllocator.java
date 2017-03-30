@@ -4,7 +4,6 @@ import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.bus.Messages;
 
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 class ProposalAllocator implements Messages.Subscriber<Constants.EVENTS> {
 

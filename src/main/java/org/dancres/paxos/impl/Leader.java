@@ -61,7 +61,7 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
     private Assembly _assembly;
 
     private final State _startState;
-    private StateMachine _stateMachine = new StateMachine();
+    private final StateMachine _stateMachine = new StateMachine();
 
     /**
      * In cases of ABORT, indicates the reason
@@ -73,7 +73,7 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
     private final Messages.Subscription<Constants.EVENTS> _bus;
 
     private class StateMachine {
-        private Map<State, Set<State>> _acceptableTransitions;
+        private final Map<State, Set<State>> _acceptableTransitions;
 
         private StateMachine() {
             Map<State, Set<State>> myAccTrans = new HashMap<>();

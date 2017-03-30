@@ -14,7 +14,7 @@ class PacketSorter {
         this(Constants.DEFAULT_MAX_INFLIGHT);
     }
 
-    PacketSorter(int aMaxInflight) {
+    private PacketSorter(int aMaxInflight) {
         _maxInflight = aMaxInflight;
     }
 

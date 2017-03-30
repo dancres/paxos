@@ -2,12 +2,11 @@ package org.dancres.paxos.storage;
 
 import org.dancres.paxos.LogStorage;
 
-import java.util.Iterator;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MemoryLogStorage implements LogStorage {
-    private AtomicLong _nextKey = new AtomicLong(0);
+    private final AtomicLong _nextKey = new AtomicLong(0);
     private final ConcurrentSkipListMap<Long, byte[]> _log = new ConcurrentSkipListMap<>();
 
     private boolean isClosed = false;

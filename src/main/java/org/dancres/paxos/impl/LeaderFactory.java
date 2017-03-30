@@ -34,7 +34,7 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
      * This alarm is used to ensure the leader sends regular heartbeats in the face of inactivity so as to extend
      * its lease with AcceptorLearners.
      */
-    private AtomicReference<TimerTask> _heartbeatAlarm = new AtomicReference<>();
+    private final AtomicReference<TimerTask> _heartbeatAlarm = new AtomicReference<>();
 
     LeaderFactory(Common aCommon, boolean isDisableHeartbeats) {
         _common = aCommon;

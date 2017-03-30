@@ -145,10 +145,6 @@ public class Utils {
         return _workableInterface.getInterfaceAddresses().get(0).getBroadcast();
     }
 
-    public static int getAddressSize() {
-        return 4;
-    }
-    
     public static byte[] marshall(InetSocketAddress anAddr) throws Exception {
     	ByteArrayOutputStream myBAOS = new ByteArrayOutputStream();
     	ObjectOutputStream myOOS = new ObjectOutputStream(myBAOS);

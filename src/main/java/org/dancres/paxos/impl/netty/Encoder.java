@@ -8,7 +8,7 @@ import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
 import java.nio.ByteBuffer;
 
 class Encoder extends OneToOneEncoder {
-    private Transport.PacketPickler _pickler;
+    private final Transport.PacketPickler _pickler;
 
     public Encoder(Transport.PacketPickler aPickler) {
         _pickler = aPickler;
