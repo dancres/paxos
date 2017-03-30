@@ -175,8 +175,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
              * Paxos state such that it becomes disruptive. So we don't enable heartbeating until the FD is
              * properly initialised (pinned) with a membership.
              */
-            _fd.addListener(new FailureDetector.StateListener() {
-                                public void change(FailureDetector aDetector, FailureDetector.State aState) {
+            _fd.addListener((FailureDetector aDetector, FailureDetector.State aState) -> {
                                     switch(aState) {
                                         case PINNED : {
                                             if (_hb == null) {
@@ -204,8 +203,7 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
                                             break;
                                         }
                                     }
-                                }
-                            });
+                                });             
         }
 
         _logger.debug("Transport bound on: " + _unicastAddr);
@@ -331,12 +329,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         }
 
         final Packet myFiltered = myPacket;
-        _packetDispatcher.execute(new Runnable() {
-            public void run() {
+        _packetDispatcher.execute(() -> {
                 for (Dispatcher d : _dispatchers)
                     d.packetReceived(myFiltered);
-            }
-        });
+            });
     }
 
     public void exceptionCaught(ChannelHandlerContext aContext, ExceptionEvent anEvent) {
