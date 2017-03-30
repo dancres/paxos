@@ -42,17 +42,11 @@ public class ServerDispatcher implements Transport.Dispatcher {
      * For testing only
      */
     public ServerDispatcher(LogStorage aLogger, boolean isDisableHeartbeats) {
-        this(new Core(aLogger, CheckpointHandle.NO_CHECKPOINT, new Listener() {
-            public void transition(StateEvent anEvent) {
-                // Nothing to do
-            }
-        }, isDisableHeartbeats));
+        this(new Core(aLogger, CheckpointHandle.NO_CHECKPOINT,  (StateEvent anEvent) -> {}, isDisableHeartbeats));
     }
 
     private ServerDispatcher(Core aCore) {
-        _initialiser = () -> {
-            _core = aCore;
-        };
+        _initialiser = () -> _core = aCore;
     }
 
 	public void packetReceived(Packet aPacket) {
@@ -68,12 +62,10 @@ public class ServerDispatcher implements Transport.Dispatcher {
                 Envelope myEnvelope = (Envelope) myMessage;
                 Proposal myProposal = myEnvelope.getValue();
 
-                _core.submit(myProposal, new Completion<VoteOutcome>() {
-                    public void complete(VoteOutcome anOutcome) {
+                _core.submit(myProposal, (VoteOutcome anOutcome) ->
                         _core.getCommon().getTransport().send(
-                                _core.getCommon().getTransport().getPickler().newPacket(new Event(anOutcome)), mySource);
-                    }
-                });
+                                _core.getCommon().getTransport().getPickler().newPacket(new Event(anOutcome)),
+                                mySource));
             } else {
                 _logger.trace("Unrecognised message:" + myMessage);
             }
