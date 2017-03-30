@@ -77,6 +77,8 @@ public class DirectoryCheckpointStorage implements CheckpointStorage {
     private File[] getFiles() {
         File[] myFiles = _dir.listFiles((File file, String s) -> s.startsWith("ckpt"));
 
+        assert (myFiles != null);
+
         Arrays.sort(myFiles, new Comparator<File>() {
             public int compare(File file, File file1) {
                 long fMod = file.lastModified();
