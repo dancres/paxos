@@ -12,13 +12,13 @@ public interface Assembly {
     /**
      * @return the current size of the membership
      */
-    public int getSize();
+    int getSize();
 
-    public boolean couldComplete();
+    boolean couldComplete();
 
-    public boolean isMajority(Collection<InetSocketAddress> aListOfAddresses);
+    boolean isMajority(Collection<InetSocketAddress> aListOfAddresses);
 
-    public Map<InetSocketAddress, FailureDetector.MetaData> getMembers();
+    Map<InetSocketAddress, FailureDetector.MetaData> getMembers();
 
-    public byte[] dataForNode(InetSocketAddress anAddress);
+    byte[] dataForNode(InetSocketAddress anAddress);
 }

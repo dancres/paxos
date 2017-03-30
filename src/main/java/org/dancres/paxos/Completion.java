@@ -9,5 +9,5 @@ public interface Completion<T> {
     /**
      * @param aValue for the completion
      */
-    public void complete(T aValue);
+    void complete(T aValue);
 }

@@ -13,13 +13,13 @@ import java.util.concurrent.Future;
 public interface FailureDetector {
     enum State {PINNED, OPEN, STOPPED}
 
-    public interface StateListener {
-        public void change(FailureDetector aDetector, State aState);
+    interface StateListener {
+        void change(FailureDetector aDetector, State aState);
     }
 
-    public interface MetaData {
-        public byte[] getData();
-        public long getTimestamp();
+    interface MetaData {
+        byte[] getData();
+        long getTimestamp();
     }
 
     /**
@@ -28,36 +28,36 @@ public interface FailureDetector {
      * @return a random member that the FD believes is live, excluding the local address specified or <code>null</code>
      * if there are no suitable candidates.
      */
-    public InetSocketAddress getRandomMember(InetSocketAddress aLocal);
+    InetSocketAddress getRandomMember(InetSocketAddress aLocal);
 
-    public boolean isMember(InetSocketAddress anAddress);
+    boolean isMember(InetSocketAddress anAddress);
 
-    public Assembly getMembers();
+    Assembly getMembers();
 
     /**
      * @param anAddress is the Paxos node leader address
      * @return the userdata associated with the passed address, if it is known (FD membership is volatile and an entry
      * may be lost between getting the Paxos node leader address and the request for associated data).
      */
-    public byte[] dataForNode(InetSocketAddress anAddress);
+    byte[] dataForNode(InetSocketAddress anAddress);
 
     /**
      * @return the size of membership required for a majority
      */
-    public int getMajority();
+    int getMajority();
 
     /**
      * @return A <code>Future</code> that will return a <code>Membership</code> snapshot when the
      * majority is achieved.
      */
-    public Future<Assembly> barrier();
+    Future<Assembly> barrier();
 
     /**
      * @param aRequired is the number of members required
      * @return A <code>Future</code> that will return a <code>Membership</code> snapshot when the
      * specified size is achieved.
      */
-    public Future<Assembly> barrier(int aRequired);
+    Future<Assembly> barrier(int aRequired);
 
     /**
      * Restrict membership to the specified set of members
@@ -67,7 +67,7 @@ public interface FailureDetector {
      *                 membership is required to guarantee integrity although in some situations that constraint
      *                 might be relaxed.
      */
-    public void pin(Collection<InetSocketAddress> aMembers);
+    void pin(Collection<InetSocketAddress> aMembers);
 
-    public void addListener(StateListener aListener);
+    void addListener(StateListener aListener);
 }

@@ -6,5 +6,5 @@ public interface LeaderSelection {
      *
      * @return Whether or not the implementor should be applied to this Paxos instance.
      */
-    public boolean routeable(Instance anInstance);
+    boolean routeable(Instance anInstance);
 }

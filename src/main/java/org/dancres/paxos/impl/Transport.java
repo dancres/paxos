@@ -10,33 +10,33 @@ import java.net.InetSocketAddress;
  * @author dan
  */
 public interface Transport {
-    public interface Filter {
+    interface Filter {
         /**
          * @param aTransport
          * @param aPacket
          * @return A potentially altered packet upon which processing should continue or null to drop it.
          */
-        public Packet filter(Transport aTransport, Packet aPacket);
+        Packet filter(Transport aTransport, Packet aPacket);
     }
 
-	public interface Packet {
-		public InetSocketAddress getSource();
-		public PaxosMessage getMessage();
+	interface Packet {
+		InetSocketAddress getSource();
+		PaxosMessage getMessage();
 	}
 	
-    public interface PacketPickler extends java.io.Serializable {
-        public Packet newPacket(PaxosMessage aMessage);
-        public byte[] pickle(Packet aPacket);
-        public Packet unpickle(byte[] aBytes);
+    interface PacketPickler extends java.io.Serializable {
+        Packet newPacket(PaxosMessage aMessage);
+        byte[] pickle(Packet aPacket);
+        Packet unpickle(byte[] aBytes);
     }
 
-    public FailureDetector getFD();
+    FailureDetector getFD();
 
-    public PacketPickler getPickler();
+    PacketPickler getPickler();
 
-    public void filterRx(Filter aFilter);
+    void filterRx(Filter aFilter);
 
-    public void filterTx(Filter aFilter);
+    void filterTx(Filter aFilter);
     
     /**
      * Requests the transport route packets to a dispatcher.
@@ -44,11 +44,11 @@ public interface Transport {
      * @param aDispatcher
      * @throws Exception
      */
-    public void routeTo(Dispatcher aDispatcher) throws Exception;
+    void routeTo(Dispatcher aDispatcher) throws Exception;
 
-	public InetSocketAddress getLocalAddress();
+	InetSocketAddress getLocalAddress();
 
-    public InetSocketAddress getBroadcastAddress();
+    InetSocketAddress getBroadcastAddress();
 	
     /**
      * One shot, unreliable send
@@ -56,15 +56,15 @@ public interface Transport {
      * @param aPacket to send
      * @param anAddr is the address of the target for the message which might be <code>Address.BROADCAST</code>.
      */
-    public void send(Packet aPacket, InetSocketAddress anAddr);
+    void send(Packet aPacket, InetSocketAddress anAddr);
 
-    public void terminate();
+    void terminate();
 
-    public interface Lifecycle {
-        public void terminate() throws Exception;
+    interface Lifecycle {
+        void terminate() throws Exception;
     }
 
-    public interface Dispatcher extends Lifecycle {
-        public void packetReceived(Packet aPacket);
+    interface Dispatcher extends Lifecycle {
+        void packetReceived(Packet aPacket);
     }
 }

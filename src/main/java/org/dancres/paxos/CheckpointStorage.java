@@ -9,16 +9,16 @@ import java.io.OutputStream;
  * ones as new ones are generated and atomic generation of checkpoints.
  */
 public interface CheckpointStorage {
-    public interface WriteCheckpoint {
-        public void saved();
-        public OutputStream getStream() throws IOException;
+    interface WriteCheckpoint {
+        void saved();
+        OutputStream getStream() throws IOException;
     }
 
-    public interface ReadCheckpoint {
-        public InputStream getStream() throws IOException;
+    interface ReadCheckpoint {
+        InputStream getStream() throws IOException;
     }
 
-    public int numFiles();
-    public ReadCheckpoint getLastCheckpoint();
-    public WriteCheckpoint newCheckpoint();
+    int numFiles();
+    ReadCheckpoint getLastCheckpoint();
+    WriteCheckpoint newCheckpoint();
 }

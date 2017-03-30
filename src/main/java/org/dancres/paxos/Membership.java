@@ -5,12 +5,12 @@ import java.util.Collection;
 import java.util.Map;
 
 public interface Membership {
-    public interface MetaData {
-        public byte[] getData();
-        public long getTimestamp();
+    interface MetaData {
+        byte[] getData();
+        long getTimestamp();
     }
 
-    public Map<InetSocketAddress, MetaData> getMembers();
-    public byte[] dataForNode(InetSocketAddress anAddress);
-    public boolean updateMembership(Collection<InetSocketAddress> aMembers) throws InactiveException;
+    Map<InetSocketAddress, MetaData> getMembers();
+    byte[] dataForNode(InetSocketAddress anAddress);
+    boolean updateMembership(Collection<InetSocketAddress> aMembers) throws InactiveException;
 }

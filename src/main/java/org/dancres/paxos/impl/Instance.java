@@ -26,15 +26,15 @@ public interface Instance {
      *
      * In SHUTDOWN, we do a little cleanup and halt, processing no messages etc.
      */
-    public enum State {
+    enum State {
         INITIAL, SUBMITTED, COLLECT, BEGIN, SUCCESS, EXIT, ABORT, SHUTDOWN
     }
 
-    public State getState();
+    State getState();
 
-    public long getRound();
+    long getRound();
 
-    public long getSeqNum();
+    long getSeqNum();
 
     /**
      * There is usually a single outcome, good or bad. However, there may be as yet uncompleted ballots and in such
@@ -46,5 +46,5 @@ public interface Instance {
      *
      * @return the set of outcomes that occurred at this ballot
      */
-    public Deque<VoteOutcome> getOutcomes();
+    Deque<VoteOutcome> getOutcomes();
 }

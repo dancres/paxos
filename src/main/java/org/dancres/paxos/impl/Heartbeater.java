@@ -1,7 +1,7 @@
 package org.dancres.paxos.impl;
 
 public interface Heartbeater {
-    public void halt();	
-    public void join() throws InterruptedException;
-    public void start();
+    void halt();
+    void join() throws InterruptedException;
+    void start();
 }
