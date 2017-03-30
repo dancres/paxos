@@ -297,11 +297,9 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
             }
 
             try {
-                new LogRangeProducer(myStartSeqNum, Long.MAX_VALUE, new Consumer() {
-                    public void process(Transport.Packet aPacket, long aLogOffset) {
-                        AcceptorLearner.this.process(aPacket, new ReplayWriter(aLogOffset), new RecoverySender());
-                    }
-                }, _storage, _common.getTransport().getPickler()).produce(0);
+                new LogRangeProducer(myStartSeqNum, Long.MAX_VALUE, (Transport.Packet aPacket, long aLogOffset) ->
+                        AcceptorLearner.this.process(aPacket, new ReplayWriter(aLogOffset), new RecoverySender()),
+                        _storage, _common.getTransport().getPickler()).produce(0);
             } catch (Exception anE) {
                 _logger.error(toString() + " Failed to replay log", anE);
             }

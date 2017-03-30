@@ -75,11 +75,7 @@ public class DirectoryCheckpointStorage implements CheckpointStorage {
     }
 
     private File[] getFiles() {
-        File[] myFiles = _dir.listFiles(new FilenameFilter() {
-            public boolean accept(File file, String s) {
-                return s.startsWith("ckpt");
-            }
-        });
+        File[] myFiles = _dir.listFiles((File file, String s) -> s.startsWith("ckpt"));
 
         Arrays.sort(myFiles, new Comparator<File>() {
             public int compare(File file, File file1) {
