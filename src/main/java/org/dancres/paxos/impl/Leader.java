@@ -76,13 +76,13 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
         private final Map<State, Set<State>> _acceptableTransitions;
 
         private StateMachine() {
-            _acceptableTransitions = Map.of(State.INITIAL, new HashSet<>(Arrays.asList(State.SUBMITTED, State.SHUTDOWN)),
-                    State.SUBMITTED, new HashSet<>(Arrays.asList(State.BEGIN, State.COLLECT, State.ABORT)),
-                    State.COLLECT, new HashSet<>(Arrays.asList(State.BEGIN)),
-                    State.BEGIN, new HashSet<>(Arrays.asList(State.SUCCESS, State.ABORT)),
-                    State.SUCCESS, new HashSet<>(Arrays.asList(State.ABORT, State.EXIT)),
-                    State.EXIT, new HashSet<>(Arrays.asList(State.SHUTDOWN)),
-                    State.ABORT, new HashSet<>(Arrays.asList(State.SHUTDOWN)),
+            _acceptableTransitions = Map.of(State.INITIAL, new HashSet<>(List.of(State.SUBMITTED, State.SHUTDOWN)),
+                    State.SUBMITTED, new HashSet<>(List.of(State.BEGIN, State.COLLECT, State.ABORT)),
+                    State.COLLECT, new HashSet<>(List.of(State.BEGIN)),
+                    State.BEGIN, new HashSet<>(List.of(State.SUCCESS, State.ABORT)),
+                    State.SUCCESS, new HashSet<>(List.of(State.ABORT, State.EXIT)),
+                    State.EXIT, new HashSet<>(List.of(State.SHUTDOWN)),
+                    State.ABORT, new HashSet<>(List.of(State.SHUTDOWN)),
                     State.SHUTDOWN, new HashSet<>());
         }
 
