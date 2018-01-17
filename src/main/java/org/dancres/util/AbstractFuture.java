@@ -7,7 +7,7 @@ public abstract class AbstractFuture<T> implements Future<T> {
     private final Sync _sync = new Sync();
 
     public boolean cancel(boolean canInterrupt) {
-        return _sync.cancel(canInterrupt);
+        return _sync.cancel();
     }
 
     public boolean isCancelled() {
@@ -35,7 +35,6 @@ public abstract class AbstractFuture<T> implements Future<T> {
     private final class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = -7828117401763700385L;
 
-        private static final int ACTIVE = 0;
         private static final int DONE = 1;
         private static final int CANCELLED = 2;
 
@@ -108,25 +107,7 @@ public abstract class AbstractFuture<T> implements Future<T> {
             }
         }
 
-        void setException(Throwable aT) {
-            while(true)  {
-                int myState = getState();
-                if (myState == DONE)
-                    return;
-                if (myState == CANCELLED) {
-                    releaseShared(0);
-                    return;
-                }
-                if (compareAndSetState(myState, DONE)) {
-                    _exception = aT;
-                    releaseShared(0);
-                    done();
-                    return;
-                }
-            }
-        }
-
-        boolean cancel(boolean canInterrupt) {
+        boolean cancel() {
             while(true)  {
                 int s = getState();
                 if (doneOrCancelled(s))
