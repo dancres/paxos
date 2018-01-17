@@ -12,7 +12,7 @@ public class MemoryLogStorage implements LogStorage {
     private boolean isClosed = false;
     private boolean isOpened = false;
 
-	public void close() throws Exception {
+	public void close() {
 		synchronized(this) {
 			assert (isOpened);
 			assert (!isClosed);
@@ -21,11 +21,11 @@ public class MemoryLogStorage implements LogStorage {
 		}
 	}
 
-	public void mark(long key, boolean force) throws Exception {
+	public void mark(long key, boolean force) {
 		_log.keySet().removeIf((Long aKey) -> aKey < key);
 	}
 
-	public void open() throws Exception {
+	public void open() {
 		synchronized(this) {
 			assert (!isOpened);
 			assert (!isClosed);
@@ -34,7 +34,7 @@ public class MemoryLogStorage implements LogStorage {
 		}
 	}
 
-	public long put(byte[] data, boolean sync) throws Exception {
+	public long put(byte[] data, boolean sync) {
 		synchronized(this) {
 			assert (isOpened);
 			assert (!isClosed);
@@ -47,7 +47,7 @@ public class MemoryLogStorage implements LogStorage {
         return myKey;
 	}
 
-	public byte[] get(long position) throws Exception {
+	public byte[] get(long position) {
 		synchronized(this) {
 			assert (isOpened);
 			assert (!isClosed);
@@ -56,7 +56,7 @@ public class MemoryLogStorage implements LogStorage {
         return _log.get(position);
 	}
 
-	public void replay(RecordListener listener, long mark) throws Exception {
+	public void replay(RecordListener listener, long mark) {
 		synchronized(this) {
 			assert (isOpened);
 			assert (!isClosed);
