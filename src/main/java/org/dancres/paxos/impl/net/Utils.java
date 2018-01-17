@@ -10,8 +10,8 @@ import java.util.*;
 public class Utils {
     private static final Logger _logger = LoggerFactory.getLogger(Utils.class);
 
-    private static NetworkInterface _workableInterface = null;
-    private static InetAddress _workableAddress = null;
+    private static final NetworkInterface _workableInterface;
+    private static final InetAddress _workableAddress;
 
     /*
      * Iterate interfaces and look for one that's multicast capable and not a 127 or 169 based address
