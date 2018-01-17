@@ -10,19 +10,17 @@ import java.util.*;
 
 public class Codecs {
     private static final Map<Integer, Codec> CODECS =
-            Collections.unmodifiableMap(new HashMap<Integer, Codec>() {{
-                put(PaxosMessage.Types.HEARTBEAT, new HeartbeatCodec());
-                put(PaxosMessage.Types.OUTOFDATE, new OutOfDateCodec());
-                put(PaxosMessage.Types.ENVELOPE, new EnvelopeCodec());
-                put(PaxosMessage.Types.COLLECT, new CollectCodec());
-                put(PaxosMessage.Types.LAST, new LastCodec());
-                put(PaxosMessage.Types.BEGIN, new BeginCodec());
-                put(PaxosMessage.Types.ACCEPT, new AcceptCodec());
-                put(PaxosMessage.Types.LEARNED, new SuccessCodec());
-                put(PaxosMessage.Types.OLDROUND, new OldRoundCodec());
-                put(PaxosMessage.Types.NEED, new NeedCodec());
-                put(PaxosMessage.Types.EVENT, new EventCodec());
-            }});
+            Map.ofEntries(Map.entry(PaxosMessage.Types.HEARTBEAT, new HeartbeatCodec()),
+                    Map.entry(PaxosMessage.Types.OUTOFDATE, new OutOfDateCodec()),
+                    Map.entry(PaxosMessage.Types.ENVELOPE, new EnvelopeCodec()),
+                    Map.entry(PaxosMessage.Types.COLLECT, new CollectCodec()),
+                    Map.entry(PaxosMessage.Types.LAST, new LastCodec()),
+                    Map.entry(PaxosMessage.Types.BEGIN, new BeginCodec()),
+                    Map.entry(PaxosMessage.Types.ACCEPT, new AcceptCodec()),
+                    Map.entry(PaxosMessage.Types.LEARNED, new SuccessCodec()),
+                    Map.entry(PaxosMessage.Types.OLDROUND, new OldRoundCodec()),
+                    Map.entry(PaxosMessage.Types.NEED, new NeedCodec()),
+                    Map.entry(PaxosMessage.Types.EVENT, new EventCodec()));
 
     public static byte[] encode(PaxosMessage aMessage) {
         return CODECS.get(aMessage.getType()).encode(aMessage).array();

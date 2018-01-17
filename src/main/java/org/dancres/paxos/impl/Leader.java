@@ -76,18 +76,14 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
         private final Map<State, Set<State>> _acceptableTransitions;
 
         private StateMachine() {
-            Map<State, Set<State>> myAccTrans = new HashMap<>();
-
-            myAccTrans.put(State.INITIAL, new HashSet<>(Arrays.asList(State.SUBMITTED, State.SHUTDOWN)));
-            myAccTrans.put(State.SUBMITTED, new HashSet<>(Arrays.asList(State.BEGIN, State.COLLECT, State.ABORT)));
-            myAccTrans.put(State.COLLECT, new HashSet<>(Arrays.asList(State.BEGIN)));
-            myAccTrans.put(State.BEGIN, new HashSet<>(Arrays.asList(State.SUCCESS, State.ABORT)));
-            myAccTrans.put(State.SUCCESS, new HashSet<>(Arrays.asList(State.ABORT, State.EXIT)));
-            myAccTrans.put(State.EXIT, new HashSet<>(Arrays.asList(State.SHUTDOWN)));
-            myAccTrans.put(State.ABORT, new HashSet<>(Arrays.asList(State.SHUTDOWN)));
-            myAccTrans.put(State.SHUTDOWN, new HashSet<>());
-
-            _acceptableTransitions = Collections.unmodifiableMap(myAccTrans);
+            _acceptableTransitions = Map.of(State.INITIAL, new HashSet<>(Arrays.asList(State.SUBMITTED, State.SHUTDOWN)),
+                    State.SUBMITTED, new HashSet<>(Arrays.asList(State.BEGIN, State.COLLECT, State.ABORT)),
+                    State.COLLECT, new HashSet<>(Arrays.asList(State.BEGIN)),
+                    State.BEGIN, new HashSet<>(Arrays.asList(State.SUCCESS, State.ABORT)),
+                    State.SUCCESS, new HashSet<>(Arrays.asList(State.ABORT, State.EXIT)),
+                    State.EXIT, new HashSet<>(Arrays.asList(State.SHUTDOWN)),
+                    State.ABORT, new HashSet<>(Arrays.asList(State.SHUTDOWN)),
+                    State.SHUTDOWN, new HashSet<>());
         }
 
         private State _currentState = State.INITIAL;
