@@ -15,7 +15,7 @@ public class MessagesImpl<T extends Enum> implements Messages<T> {
         if (result != null)
             throw new IllegalStateException("Already have a subscriber under the name: " + aName);
 
-        return new Subscription<T>() {
+        return new Subscription<>() {
             @Override
             public void send(T aType, Object aBody) {
                 deliver(new MessageImpl<>(aType, aBody, aName));

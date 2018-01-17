@@ -43,7 +43,7 @@ public class Common {
     }
 
     void addStateEventListener(Listener aListener) {
-        _bus.anonSubscrbe(new Messages.Subscriber<Constants.EVENTS>() {
+        _bus.anonSubscrbe(new Messages.Subscriber<>() {
             @Override
             public void msg(Messages.Message<Constants.EVENTS> aMessage) {
                 switch(aMessage.getType()) {

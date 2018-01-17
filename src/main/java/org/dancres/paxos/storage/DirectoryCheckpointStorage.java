@@ -79,7 +79,7 @@ public class DirectoryCheckpointStorage implements CheckpointStorage {
 
         assert (myFiles != null);
 
-        Arrays.sort(myFiles, new Comparator<File>() {
+        Arrays.sort(myFiles, new Comparator<>() {
             public int compare(File file, File file1) {
                 long fMod = file.lastModified();
                 long f1Mod = file1.lastModified();
