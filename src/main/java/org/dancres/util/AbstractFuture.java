@@ -26,7 +26,7 @@ public abstract class AbstractFuture<T> implements Future<T> {
         return _sync.get(aUnit.toNanos(aTimeout));
     }
 
-    public void set(T aT) {
+    protected void set(T aT) {
         _sync.set(aT);
     }
 

@@ -45,7 +45,7 @@ public class VoteOutcome {
         private static final String[] _names = {"Value", "Other Leader", "Vote Timeout", "Bad Membership",
         	"Other Value", "Not Member"};
         
-        public static String nameFor(int aCode) {
+        static String nameFor(int aCode) {
         	if (aCode < 0 || aCode > _names.length - 1)
         		throw new IllegalArgumentException("Code not known:" + aCode);
         	
