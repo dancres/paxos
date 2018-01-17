@@ -277,7 +277,7 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
                 if (aMessages.size() >= _common.getTransport().getFD().getMajority()) {
                     // AL's monitor each other's accepts so auto-commit for themselves, no need to send a confirmation
                     //
-                    successful(VoteOutcome.Reason.VALUE);
+                    successful();
                 } else {
                     // Need another try, didn't get enough accepts but didn't get leader conflict
                     //
@@ -330,9 +330,9 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
         process(NO_MESSAGES);
     }
 
-    private void successful(int aReason) {
+    private void successful() {
         _stateMachine.transition(State.EXIT);
-        _outcomes.add(new VoteOutcome(aReason, _seqNum, _rndNumber, _prop,
+        _outcomes.add(new VoteOutcome(VoteOutcome.Reason.VALUE, _seqNum, _rndNumber, _prop,
                 _common.getTransport().getLocalAddress()));
 
         process(NO_MESSAGES);
