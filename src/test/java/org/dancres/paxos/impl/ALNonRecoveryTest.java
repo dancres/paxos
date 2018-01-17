@@ -1,5 +1,7 @@
 package org.dancres.paxos.impl;
 
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.socket.DatagramPacket;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
@@ -11,8 +13,6 @@ import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.test.utils.FileSystem;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -154,11 +154,14 @@ public class ALNonRecoveryTest {
             super(anFD);
         }
 
-        public void messageReceived(ChannelHandlerContext aContext, MessageEvent anEvent) {
-            Packet myPacket = (Packet) anEvent.getMessage();
+        public void channelRead0(ChannelHandlerContext aContext, final DatagramPacket aPacket) {
+            byte[] myBytes = new byte[aPacket.content().readableBytes()];
+
+            aPacket.content().getBytes(0, myBytes);
+            Packet myPacket = getPickler().unpickle(myBytes);
 
             if (myPacket.getMessage().getType() != PaxosMessage.Types.NEED) {
-                super.messageReceived(aContext, anEvent);
+                super.channelRead0(aContext, aPacket);
                 return;
             }
 
