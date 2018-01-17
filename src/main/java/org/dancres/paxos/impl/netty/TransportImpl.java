@@ -232,7 +232,7 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
 			throw new IllegalStateException("Transport is stopped");
 	}
 	
-    public void routeTo(Dispatcher aDispatcher) throws Exception {
+    public void routeTo(Dispatcher aDispatcher) {
     	guard();
 
         _dispatchers.add(aDispatcher);
@@ -281,11 +281,11 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
 		return _internalAllNodesAddr;
     }
     
-	public void channelActive(ChannelHandlerContext aContext) throws Exception {
+	public void channelActive(ChannelHandlerContext aContext) {
 		_logger.debug("Connected: " + aContext);
 	}
 
-    public void channelInactive(ChannelHandlerContext aContext) throws Exception {
+    public void channelInactive(ChannelHandlerContext aContext) {
         _logger.debug("Disconnected: " + aContext);
     }
 
