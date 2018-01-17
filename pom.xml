@@ -157,8 +157,8 @@
               <version>3.1</version>
               <configuration>
                   <compilerArgument>-Xlint:deprecation,unchecked</compilerArgument>
-                  <source>1.8</source>
-                  <target>1.8</target>
+                  <source>9</source>
+                  <target>9</target>
               </configuration>
             </plugin>
 
