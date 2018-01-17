@@ -107,18 +107,10 @@ public class Core implements Transport.Dispatcher, Paxos {
             public byte[] getData() {
                 return _metaData.getData();
             }
-
-            public long getTimestamp() {
-                return _metaData.getTimestamp();
-            }
         }
 
         public byte[] dataForNode(InetSocketAddress anAddress) {
             return _assembly.dataForNode(anAddress);
-        }
-
-        public boolean updateMembership(Collection<InetSocketAddress> aMembers) throws InactiveException {
-            return Core.this.updateMembership(aMembers);
         }
     }
 
