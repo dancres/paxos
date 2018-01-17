@@ -19,12 +19,7 @@ class PacketSorter {
     }
 
     int numPackets() {
-        int myTotal = 0;
-
-        for (List<Transport.Packet> myPs : _packets.values())
-            myTotal += myPs.size();
-
-        return myTotal;
+        return _packets.values().stream().mapToInt((List::size)).sum();
     }
 
     void add(Transport.Packet aPacket) {
