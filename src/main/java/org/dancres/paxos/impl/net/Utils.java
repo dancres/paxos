@@ -76,7 +76,7 @@ public class Utils {
             if (myAddr.getAddress().length != 4)
                 continue;
 
-            boolean isReachable = false;
+            boolean isReachable;
 
             if (myAddr.isLoopbackAddress())
                 continue;
