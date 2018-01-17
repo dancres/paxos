@@ -7,7 +7,7 @@
       <p>This failure detector implementation can be used with any comms stack so long as it can provide an instance of
       <code>org.dancres.paxos.Transport</code> to use.</p>
       <p>Create a <code>FailureDetectorImpl</code> and <code>Heartbeater</code> pair per node in the cluster and route
-      all received <code></code>Heartbeat</code> instances to the local <code>FailureDetectorImpl</code>. Addressing
+      all received <code>Heartbeat</code> instances to the local <code>FailureDetectorImpl</code>. Addressing
       information or other meta-data may be passed via the Heartbeats and used for e.g. locating the current leader
       which would be achieved by arranging for each node's metadata to be the "public facing" address used by clients.
       When the paxos implementation flags other leader, the included nodeId would be used to obtain the metadata
