@@ -178,13 +178,13 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
          * Paxos state such that it becomes disruptive. So we don't enable heartbeating until the FD is
          * properly initialised (pinned) with a membership.
          */
-        _fd.addListener((FailureDetector aDetector, FailureDetector.State aState) -> {
+        anFD.addListener((FailureDetector aDetector, FailureDetector.State aState) -> {
             switch(aState) {
                 case PINNED : {
                     if (_hb == null) {
                         _logger.debug("Activating Heartbeater");
 
-                        _hb = _fd.newHeartbeater(TransportImpl.this, _meta);
+                        _hb = anFD.newHeartbeater(TransportImpl.this, _meta);
                         _hb.start();
                     }
 
