@@ -81,15 +81,7 @@ public class DirectoryCheckpointStorage implements CheckpointStorage {
 
         Arrays.sort(myFiles, new Comparator<>() {
             public int compare(File file, File file1) {
-                long fMod = file.lastModified();
-                long f1Mod = file1.lastModified();
-                
-                if (fMod < f1Mod)
-                    return -1;
-                else if (fMod > f1Mod)
-                    return 1;
-                else
-                    return 0;
+                return Long.compare(file.lastModified(), file1.lastModified());
             }
 
             public boolean equals(Object o) {

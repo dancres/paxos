@@ -41,12 +41,7 @@ class Watermark implements Comparable<Watermark> {
     }
 
     public int compareTo(Watermark aWatermark) {
-        if (aWatermark.getSeqNum() == _seqNum)
-            return 0;
-        else if (aWatermark.getSeqNum() < _seqNum)
-            return 1;
-        else
-            return -1;
+        return Long.compare(_seqNum, aWatermark.getSeqNum());
     }
 
     public String toString() {
