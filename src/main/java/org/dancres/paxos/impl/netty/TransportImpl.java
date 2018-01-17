@@ -1,5 +1,14 @@
 package org.dancres.paxos.impl.netty;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.DatagramPacket;
+import io.netty.channel.socket.InternetProtocolFamily;
+import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.channel.*;
+
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.Heartbeater;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
@@ -7,12 +16,6 @@ import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.codec.Codecs;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.channel.group.ChannelGroup;
-import org.jboss.netty.channel.group.DefaultChannelGroup;
-import org.jboss.netty.channel.socket.DatagramChannel;
-import org.jboss.netty.channel.socket.DatagramChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,10 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -54,7 +54,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * based on the responses from it's local leader and acceptorlearner.</li>
  * </ul>
  */
-public class TransportImpl extends SimpleChannelHandler implements Transport {
+@ChannelHandler.Sharable
+public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> implements Transport {
 	private static final Logger _logger = LoggerFactory
 			.getLogger(TransportImpl.class);
 
@@ -63,17 +64,22 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     private volatile Heartbeater _hb;
     private final MessageBasedFailureDetector _fd;
     private final byte[] _meta;
+
+    /**
+     * Used by those requesting a senc that the message be given to all nodes.
+     * This is effected by use of multicast over <code>_mcastAddr</code>
+     */
+    private final InetSocketAddress _internalAllNodesAddr =
+            new InetSocketAddress(Utils.getBroadcastAddress(), 255);
+
     private final InetSocketAddress _unicastAddr;
-    private final InetSocketAddress _broadcastAddr;
 	private final InetSocketAddress _mcastAddr;
 
-	private final DatagramChannelFactory _mcastFactory;
-    private final DatagramChannelFactory _unicastFactory;
+	private final NioEventLoopGroup _multicastChannelLoop = new NioEventLoopGroup();
+    private final NioEventLoopGroup _unicastChannelLoop = new NioEventLoopGroup();
 
-	private final DatagramChannel _mcast;
-	private final DatagramChannel _unicast;
-
-    private final ChannelGroup _channels = new DefaultChannelGroup();
+	private final NioDatagramChannel _multicastChannel;
+	private final NioDatagramChannel _unicastChannel;
 
     private final Set<Dispatcher> _dispatchers = new CopyOnWriteArraySet<>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
@@ -87,15 +93,6 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
      * TODO: Ought to be able to run this multi-threaded but AL is not ready for that yet
      */
     private final ExecutorService _packetDispatcher = Executors.newSingleThreadExecutor();
-
-    private static class Factory implements ThreadFactory {
-		public Thread newThread(Runnable aRunnable) {
-			Thread myThread = new Thread(aRunnable);
-
-			myThread.setDaemon(true);
-			return myThread;
-		}
-    }
 
     private class PicklerImpl implements PacketPickler {
         public Packet newPacket(PaxosMessage aMessage) {
@@ -128,40 +125,39 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         }
     }
 
-    static {
-    	System.runFinalizersOnExit(true);
+    public TransportImpl(MessageBasedFailureDetector anFD) throws Exception {
+        this(anFD, null);
     }
 
-    private TransportImpl(PipelineFactory aFactory, MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
-        this(aFactory, new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 0), anFD, aMeta);
+    public TransportImpl(MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
+        this(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 0), anFD, aMeta);
     }
 
-    private TransportImpl(PipelineFactory aFactory, InetSocketAddress aServerAddr,
+    private TransportImpl(InetSocketAddress aServerAddr,
                          MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
-        if (aFactory == null)
-            throw new IllegalArgumentException();
-
         _fd = anFD;
 
         _mcastAddr = new InetSocketAddress("224.0.0.1", BROADCAST_PORT);
-        _broadcastAddr = new InetSocketAddress(Utils.getBroadcastAddress(), 255);
 
-        _mcastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
-        _mcast = _mcastFactory.newChannel(aFactory.newPipeline(_pickler, this));
+        Bootstrap b = new Bootstrap()
+                .group(_multicastChannelLoop)
+                .channelFactory(() -> new NioDatagramChannel(InternetProtocolFamily.IPv4))
+                .localAddress(aServerAddr.getAddress(), _mcastAddr.getPort())
+                .option(ChannelOption.IP_MULTICAST_IF, Utils.getWorkableInterface())
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .handler(this);
 
-        _mcast.getConfig().setReuseAddress(true);
-        _mcast.bind(new InetSocketAddress(BROADCAST_PORT)).await();
-        _mcast.joinGroup(_mcastAddr, Utils.getWorkableInterface()).await();
-        _channels.add(_mcast);
+        _multicastChannel = (NioDatagramChannel) b.bind(_mcastAddr.getPort()).sync().channel();
+        _multicastChannel.joinGroup(_mcastAddr, Utils.getWorkableInterface()).sync();
 
-        _unicastFactory = new NioDatagramChannelFactory(Executors.newCachedThreadPool(new Factory()));
-        _unicast = _unicastFactory.newChannel(aFactory.newPipeline(_pickler, this));
+        b = new Bootstrap()
+                .group(_unicastChannelLoop)
+                .channelFactory(() -> new NioDatagramChannel(InternetProtocolFamily.IPv4))
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .handler(this);
 
-        _unicast.getConfig().setReuseAddress(true);
-        _unicast.bind(aServerAddr).await();
-        _channels.add(_unicast);
-
-        _unicastAddr = _unicast.getLocalAddress();
+        _unicastChannel = (NioDatagramChannel) b.bind(aServerAddr).sync().channel();
+        _unicastAddr = _unicastChannel.localAddress();
 
         if (aMeta == null)
             _meta = _unicastAddr.toString().getBytes();
@@ -169,52 +165,48 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
             _meta = aMeta;
 
         if (_fd != null) {
-            /*
-             * Activation of a heartbeater causes this transport to become visible to other cluster members
-             * and clients. The result is it can "attract attention" before the node is fully initialised with
-             * Paxos state such that it becomes disruptive. So we don't enable heartbeating until the FD is
-             * properly initialised (pinned) with a membership.
-             */
-            _fd.addListener((FailureDetector aDetector, FailureDetector.State aState) -> {
-                                    switch(aState) {
-                                        case PINNED : {
-                                            if (_hb == null) {
-                                                _logger.debug("Activating Heartbeater");
-
-                                                _hb = _fd.newHeartbeater(TransportImpl.this, _meta);
-                                                _hb.start();
-                                            }
-
-                                            break;
-                                        }
-
-                                        case STOPPED : {
-                                            if (_hb != null) {
-                                                _logger.debug("Deactivating Heartbeater");
-
-                                                _hb.halt();
-
-                                                try {
-                                                    _hb.join();
-                                                } catch (InterruptedException anIE) {
-                                                }
-                                            }
-
-                                            break;
-                                        }
-                                    }
-                                });             
+            setupFailureDetector(_fd);
         }
 
         _logger.debug("Transport bound on: " + _unicastAddr);
     }
 
-    public TransportImpl(MessageBasedFailureDetector anFD, byte[] aMeta) throws Exception {
-        this(new DefaultPipelineFactory(), anFD, aMeta);
-    }
+    private void setupFailureDetector(MessageBasedFailureDetector anFD) {
+        /*
+         * Activation of a heartbeater causes this transport to become visible to other cluster members
+         * and clients. The result is it can "attract attention" before the node is fully initialised with
+         * Paxos state such that it becomes disruptive. So we don't enable heartbeating until the FD is
+         * properly initialised (pinned) with a membership.
+         */
+        _fd.addListener((FailureDetector aDetector, FailureDetector.State aState) -> {
+            switch(aState) {
+                case PINNED : {
+                    if (_hb == null) {
+                        _logger.debug("Activating Heartbeater");
 
-	public TransportImpl(MessageBasedFailureDetector anFD) throws Exception {
-        this(new DefaultPipelineFactory(), anFD, null);
+                        _hb = _fd.newHeartbeater(TransportImpl.this, _meta);
+                        _hb.start();
+                    }
+
+                    break;
+                }
+
+                case STOPPED : {
+                    if (_hb != null) {
+                        _logger.debug("Deactivating Heartbeater");
+
+                        _hb.halt();
+
+                        try {
+                            _hb.join();
+                        } catch (InterruptedException anIE) {
+                        }
+                    }
+
+                    break;
+                }
+            }
+        });
     }
 
     public PacketPickler getPickler() {
@@ -264,26 +256,19 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
                     _logger.warn("Dispatcher didn't terminate cleanly", anE);
                 }
 
-			_channels.close().await();
-			
 			_logger.debug("Stop mcast factory");
-			_mcastFactory.releaseExternalResources();
+			_multicastChannelLoop.shutdownGracefully(500,
+                    500, TimeUnit.MILLISECONDS).sync();
 
 			_logger.debug("Stop unicast factory");
-			_unicastFactory.releaseExternalResources();
+			_unicastChannelLoop.shutdownGracefully(500,
+                    500, TimeUnit.MILLISECONDS).sync();
 
-			_logger.debug("Shutdown complete");
+            _logger.debug("Shutdown complete");
 		} catch (Exception anE) {
 			_logger.error("Failed to shutdown cleanly", anE);
 		}
 
-	}
-	
-	protected void finalize() throws Throwable {
-        super.finalize();
-
-		if (! _isStopping.get())
-			_logger.warn("Failed to close transport before JVM exit");
 	}
 	
 	public InetSocketAddress getLocalAddress() {
@@ -293,24 +278,25 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
     public InetSocketAddress getBroadcastAddress() {
 		guard();
 
-		return _broadcastAddr;
+		return _internalAllNodesAddr;
     }
     
-	public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-		_logger.debug("Connected: " + ctx + ", " + e);
-		_channels.add(e.getChannel());
+	public void channelActive(ChannelHandlerContext aContext) throws Exception {
+		_logger.debug("Connected: " + aContext);
 	}
-	
-	public void childChannelOpen(ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception {
-		_logger.debug("Stream open: " + ctx + ", " + e);
-		_channels.add(e.getChannel());
-	}
-	
-    public void messageReceived(ChannelHandlerContext aContext, final MessageEvent anEvent) {
+
+    public void channelInactive(ChannelHandlerContext aContext) throws Exception {
+        _logger.debug("Disconnected: " + aContext);
+    }
+
+    public void channelRead0(ChannelHandlerContext aContext, final DatagramPacket aPacket) {
 		if (_isStopping.get())
 			return;
 
-        Packet myPacket = (Packet) anEvent.getMessage();
+		byte[] myBytes = new byte[aPacket.content().readableBytes()];
+
+        aPacket.content().getBytes(0, myBytes);
+        Packet myPacket = _pickler.unpickle(myBytes);
 
         for (Filter myFilter : _rxFilters) {
             myPacket = myFilter.filter(this, myPacket);
@@ -335,9 +321,10 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
             });
     }
 
-    public void exceptionCaught(ChannelHandlerContext aContext, ExceptionEvent anEvent) {
-        _logger.error("Problem in transport", anEvent.getCause());
-        // anEvent.getChannel().close();
+    public void exceptionCaught(ChannelHandlerContext aContext, Throwable aThrowable) {
+        _logger.error("Problem in transport", aThrowable.getCause());
+        aThrowable.printStackTrace(System.err);
+        aContext.close();
     }		
 	
 	public void send(Packet aPacket, InetSocketAddress aNodeId) {
@@ -351,10 +338,12 @@ public class TransportImpl extends SimpleChannelHandler implements Transport {
         }
 
 		try {
-			if (aNodeId.equals(_broadcastAddr))
-				_mcast.write(myPacket, _mcastAddr);
+            ByteBuf myBytes = Unpooled.copiedBuffer(_pickler.pickle(myPacket));
+
+			if (aNodeId.equals(_internalAllNodesAddr))
+				_multicastChannel.writeAndFlush(new DatagramPacket(myBytes, _mcastAddr));
 			else {
-				_unicast.write(myPacket, aNodeId);
+				_unicastChannel.writeAndFlush(new DatagramPacket(myBytes, aNodeId));
 			}
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
