@@ -1,7 +1,6 @@
 package org.dancres.paxos;
 
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.Map;
 
 public interface Membership {
