@@ -1,6 +1,5 @@
 package org.dancres.paxos.bus;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -39,10 +38,8 @@ public class MessagesImpl<T extends Enum> implements Messages<T> {
     }
 
     private void deliver(Message<T> aMsg) {
-        for (Map.Entry<String, Subscriber<T>> aPair : _subscribers.entrySet()) {
-            if (! aPair.getKey().equals(aMsg.getSource()))
-                aPair.getValue().msg(aMsg);
-        }
+        _subscribers.entrySet().stream().filter(aPair ->
+                !aPair.getKey().equals(aMsg.getSource())).forEach(aPair -> aPair.getValue().msg(aMsg));
     }
 
     private class MessageImpl<U> implements Messages.Message<U> {
