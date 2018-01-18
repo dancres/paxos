@@ -9,8 +9,8 @@ public class ConsolidatedValueTest {
 		Proposal myVal2 = new Proposal("def", "abc".getBytes());
 		myVal2.put("abc", "def".getBytes());
 		
-		Assert.assertTrue(myVal1 == myVal1);
-		Assert.assertTrue(myVal2 == myVal2);
-		Assert.assertTrue(myVal1 != myVal2);
+		Assert.assertTrue(myVal1.equals(myVal1));
+		Assert.assertTrue(myVal2.equals(myVal2));
+		Assert.assertTrue(!myVal1.equals(myVal2));
 	}
 }
