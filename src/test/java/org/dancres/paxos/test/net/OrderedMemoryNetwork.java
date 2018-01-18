@@ -21,11 +21,11 @@ public class OrderedMemoryNetwork implements Runnable {
     private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryNetwork.class);
 
     public interface OrderedMemoryTransport extends Transport {
-        public void distribute(Transport.Packet aPacket);
+        void distribute(Transport.Packet aPacket);
     }
 
     public interface Factory {
-        public class Constructed {
+        class Constructed {
             private final OrderedMemoryTransport _tp;
             private final Object _add;
 
@@ -43,9 +43,9 @@ public class OrderedMemoryNetwork implements Runnable {
             }
         }
 
-        public Constructed newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
-                                                   OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD,
-                                                   Object aContext);
+        Constructed newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
+                                 OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD,
+                                 Object aContext);
     }
 
     private class PacketWrapper {
@@ -81,7 +81,7 @@ public class OrderedMemoryNetwork implements Runnable {
     private Map<InetSocketAddress, OrderedMemoryTransport> _transports =
             new ConcurrentHashMap<>();
 
-    public OrderedMemoryNetwork() throws Exception {
+    public OrderedMemoryNetwork() {
         _broadcastAddr = new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getBroadcastAddress(), 255);
 
         Thread myDispatcher = new Thread(this);
