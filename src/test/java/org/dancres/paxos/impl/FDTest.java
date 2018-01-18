@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class FDTest {
     private ServerDispatcher _node1;
@@ -145,8 +146,14 @@ public class FDTest {
         Assert.assertTrue(_tport1.getFD().getMembers().getMembers().size() == 2);
         Assert.assertTrue(_tport2.getFD().getMembers().getMembers().size() == 2);
 
-        Assert.assertFalse(_tport1.getFD().getMembers().getMembers().containsValue("node3"));
-        Assert.assertFalse(_tport2.getFD().getMembers().getMembers().containsValue("node3"));
+        for (FailureDetector.MetaData c : _tport1.getFD().getMembers().getMembers().values()) {
+            System.err.println("FD Meta: " + new String(c.getData()));
+        }
+        
+        Assert.assertFalse(_tport1.getFD().getMembers().getMembers().values().stream().map(m ->
+                new String(m.getData())).collect(Collectors.toSet()).contains("node3"));
+        Assert.assertFalse(_tport2.getFD().getMembers().getMembers().values().stream().map(m ->
+                new String(m.getData())).collect(Collectors.toSet()).contains("node3"));
 
         myTport.terminate();
     }
