@@ -4,22 +4,13 @@ import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.Option;
 
 import org.dancres.paxos.*;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
-import org.dancres.paxos.impl.Transport;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.Envelope;
-import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Need a statistical failure model with varying probabilities for each thing within a tolerance / order

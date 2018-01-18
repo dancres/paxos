@@ -2,8 +2,6 @@ package org.dancres.paxos.impl;
 
 import java.io.File;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;

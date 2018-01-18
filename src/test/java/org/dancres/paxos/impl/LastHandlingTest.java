@@ -1,13 +1,11 @@
 package org.dancres.paxos.impl;
 
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 import org.dancres.paxos.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.storage.MemoryLogStorage;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
 import org.dancres.paxos.test.net.ServerDispatcher;

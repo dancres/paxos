@@ -2,7 +2,6 @@ package org.dancres.paxos.test.longterm;
 
 import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
-import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
@@ -15,7 +14,6 @@ import java.net.InetSocketAddress;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Random;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 

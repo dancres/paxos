@@ -5,7 +5,6 @@ import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 
 import java.net.InetSocketAddress;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.Random;
 
 public interface Environment {

@@ -2,9 +2,7 @@ package org.dancres.paxos.impl;
 
 import java.io.File;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.Future;
 
 import org.dancres.paxos.*;

@@ -1,21 +1,15 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.Listener;
-import org.dancres.paxos.StateEvent;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
-import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.dancres.paxos.test.net.Utils;
-import org.dancres.paxos.test.net.StandalonePickler;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.*;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ALCheckpointTest {
     private static final String DIRECTORY = "howllogs";
