@@ -116,7 +116,7 @@ class RandomFailureDecider implements Decider {
     }
 
     private void considerKill() {
-        for (NodeAdmin myAdmin: _env.getNodes()) {
+        for (NodeAdmin myAdmin: _env.getKillableNodes()) {
             if ((myAdmin.getRngByName("PermDeath").nextInt(101) < 1) &&
                     (_killCount.compareAndSet(0, 1))) {
 
@@ -130,7 +130,7 @@ class RandomFailureDecider implements Decider {
      * @todo Update to allow temp death of more than one node in parallel.
      */
     private void considerTempDeath(InetSocketAddress aSource) {
-        for (NodeAdmin myAdmin: _env.getNodes()) {
+        for (NodeAdmin myAdmin: _env.getKillableNodes()) {
             if ((myAdmin.getRngByName("TmpDeath").nextInt(101) < 1) &&
                     (! myAdmin.getTransport().getLocalAddress().equals(aSource)) &&
                     (_deadCount.compareAndSet(0, 1))) {

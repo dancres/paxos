@@ -11,7 +11,7 @@ import java.util.Random;
 public interface Environment {
     Random getRng();
 
-    Deque<NodeAdmin> getNodes();
+    Deque<NodeAdmin> getKillableNodes();
 
     NodeAdmin.Memento killSpecific(NodeAdmin anAdmin);
 
