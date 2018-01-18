@@ -43,14 +43,11 @@ public class Common {
     }
 
     void addStateEventListener(Listener aListener) {
-        _bus.anonSubscrbe(new Messages.Subscriber<>() {
-            @Override
-            public void msg(Messages.Message<Constants.EVENTS> aMessage) {
-                switch(aMessage.getType()) {
-                    case AL_TRANSITION : {
-                        aListener.transition((StateEvent) aMessage.getMessage());
-                        break;
-                    }
+        _bus.anonSubscrbe((aMessage) -> {
+            switch(aMessage.getType()) {
+                case AL_TRANSITION : {
+                    aListener.transition((StateEvent) aMessage.getMessage());
+                    break;
                 }
             }
         });
