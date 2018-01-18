@@ -27,13 +27,13 @@ public class CheckpointStorageTest {
 
         WriteCheckpoint myCkpt = myStorage.newCheckpoint();
         ObjectOutputStream myOOS = new ObjectOutputStream(myCkpt.getStream());
-        myOOS.writeObject(new Integer(55));
+        myOOS.writeObject(55);
         myOOS.close();
         myCkpt.saved();
 
         ReadCheckpoint myRestore = myStorage.getLastCheckpoint();
         ObjectInputStream myOIS = new ObjectInputStream(myRestore.getStream());
-        Assert.assertTrue(new Integer(55).equals(myOIS.readObject()));
+        Assert.assertTrue(Integer.valueOf(55).equals(myOIS.readObject()));
         myOIS.close();
     }
 }
