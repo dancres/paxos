@@ -12,4 +12,4 @@ interface Decider extends OrderedMemoryTransportImpl.RoutingDecisions {
     long getTempDeathCount();
 
     void settle();
-};
+}

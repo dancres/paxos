@@ -162,7 +162,6 @@ public class ALNonRecoveryTest {
 
             if (myPacket.getMessage().getType() != PaxosMessage.Types.NEED) {
                 super.channelRead0(aContext, aPacket);
-                return;
             }
 
             // Ignore need requests to cause _node3 to timeout

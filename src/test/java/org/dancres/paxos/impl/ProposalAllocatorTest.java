@@ -113,7 +113,7 @@ public class ProposalAllocatorTest {
     @Test
     public void correctSequence() {
         Messages<Constants.EVENTS> myBus = new MessagesImpl<>();
-        ProposalAllocator myFactory = new ProposalAllocator(myBus).resumeAt(-1, 0);;
+        ProposalAllocator myFactory = new ProposalAllocator(myBus).resumeAt(-1, 0);
 
         for (int i = 0; i < 10; i++) {
             Instance myInstance = myFactory.nextInstance(1);
