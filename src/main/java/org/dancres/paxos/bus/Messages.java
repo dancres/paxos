@@ -1,7 +1,5 @@
 package org.dancres.paxos.bus;
 
-import java.util.Map;
-
 public interface Messages<T extends Enum> {
     interface Subscriber<T> {
         void msg(Message<T> aMessage);
