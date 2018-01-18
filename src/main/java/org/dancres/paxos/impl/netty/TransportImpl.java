@@ -322,8 +322,7 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
     }
 
     public void exceptionCaught(ChannelHandlerContext aContext, Throwable aThrowable) {
-        _logger.error("Problem in transport", aThrowable.getCause());
-        aThrowable.printStackTrace(System.err);
+        _logger.error("Problem in transport", aThrowable);
         aContext.close();
     }		
 	
