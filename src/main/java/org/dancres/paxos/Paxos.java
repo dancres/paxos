@@ -1,5 +1,10 @@
 package org.dancres.paxos;
 
+import org.dancres.paxos.impl.Core;
+import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.impl.netty.TransportImpl;
+
 /**
  * Service implementation notes:
  *
@@ -87,4 +92,13 @@ public interface Paxos {
     void add(Listener aListener);
     boolean bringUpToDate(CheckpointHandle aHandle) throws Exception;
     Membership getMembership();
+
+    static Paxos init(int aClusterSize, Listener aListener, CheckpointHandle aHandle, byte[] aClientId,
+                             LogStorage aLogger) throws Exception {
+        Core myCore = new Core(aLogger, aHandle, aListener);
+        Transport myTransport = new TransportImpl(new FailureDetectorImpl(aClusterSize, 5000), aClientId);
+        myCore.init(myTransport);
+
+        return myCore;
+    }
 }

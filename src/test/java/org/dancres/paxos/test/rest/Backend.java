@@ -212,7 +212,7 @@ public class Backend {
             myOIS.close();
         }
         
-        _paxos = PaxosFactory.init(_clusterSize, new ListenerImpl(), myHandle,
+        _paxos = Paxos.init(_clusterSize, new ListenerImpl(), myHandle,
                 Utils.marshall(_serverAddr), _txnLogger);
     }
 
