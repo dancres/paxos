@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 class ALTestTransportImpl implements Transport {
-    private List<PaxosMessage> _messages = new ArrayList<>();
+    private final List<PaxosMessage> _messages = new ArrayList<>();
     private final InetSocketAddress _nodeId;
     private final Transport.PacketPickler _pickler;
     private final InetSocketAddress _broadcast;
