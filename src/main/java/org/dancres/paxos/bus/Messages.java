@@ -5,7 +5,6 @@ import java.util.Map;
 public interface Messages<T extends Enum> {
     interface Subscriber<T> {
         void msg(Message<T> aMessage);
-        void subscriberAttached(String aSubscriberName);
     }
 
     interface Message<T> {
@@ -22,5 +21,4 @@ public interface Messages<T extends Enum> {
 
     Subscription<T> subscribe(String aName, Subscriber<T> aSubs);
     Subscription<T> anonSubscrbe(Subscriber<T> aSubs);
-    Map<String, Subscriber<T>> getSubscribers();
 }

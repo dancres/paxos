@@ -151,12 +151,6 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
 
     @Override
     public void msg(Messages.Message<Constants.EVENTS> aMessage) {
-
-    }
-
-    @Override
-    public void subscriberAttached(String aSubscriberName) {
-
     }
 
     /**

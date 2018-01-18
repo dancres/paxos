@@ -71,9 +71,6 @@ class ProposalAllocator implements Messages.Subscriber<Constants.EVENTS> {
     public void msg(Messages.Message<Constants.EVENTS> aMessage) {
     }
 
-    public void subscriberAttached(String aSubscriberName) {
-    }
-
     void conclusion(Instance anInstance, VoteOutcome anOutcome) {
         synchronized (_inflight) {
             // Is this instance invalidated due to other happenings?

@@ -44,10 +44,6 @@ public class ProposalAllocatorTest {
                 case PROP_ALLOC_INFLIGHT: inFlight(); break;
             }
         }
-
-        @Override
-        public void subscriberAttached(String aSubscriberName) {
-        }
     }
 
     @Test

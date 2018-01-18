@@ -94,9 +94,6 @@ class LeaderFactory implements Messages.Subscriber<Constants.EVENTS>, MessagePro
         }
     }
 
-    public void subscriberAttached(String aSubscriberName) {
-    }
-
     private void killHeartbeats() {
 
         if (_disableHeartbeats)

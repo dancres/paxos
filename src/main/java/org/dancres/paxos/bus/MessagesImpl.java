@@ -45,11 +45,6 @@ public class MessagesImpl<T extends Enum> implements Messages<T> {
         }
     }
 
-    @Override
-    public Map<String, Subscriber<T>> getSubscribers() {
-        return _subscribers;
-    }
-
     private class MessageImpl<U> implements Messages.Message<U> {
         private final U _type;
         private final Object _msg;

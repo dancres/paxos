@@ -217,10 +217,6 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
     public void msg(Messages.Message<Constants.EVENTS> aMessage) {
     }
 
-    @Override
-    public void subscriberAttached(String aSubscriberName) {
-    }
-
     private void signal(StateEvent aStatus) {
         _bus.send(Constants.EVENTS.AL_TRANSITION, aStatus);
     }

@@ -53,10 +53,6 @@ public class Common {
                     }
                 }
             }
-
-            @Override
-            public void subscriberAttached(String aSubscriberName) {
-            }
         });
     }
 }
