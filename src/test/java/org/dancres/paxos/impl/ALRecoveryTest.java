@@ -114,7 +114,7 @@ public class ALRecoveryTest {
         
         myClient.send(new Envelope(myProp2), _tport2.getLocalAddress());
 
-        myMsg = myClient.getNext(10000);
+        myClient.getNext(10000);
         
         System.err.println("Wait for settle");
         

@@ -136,7 +136,7 @@ public class ClusterMemberIntroTest {
         //
         myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 
-        myMsg = myClient.getNext(10000);
+        myClient.getNext(10000);
 
         Thread.sleep(2000);
 
@@ -165,7 +165,7 @@ public class ClusterMemberIntroTest {
         //
         myClient.send(new Envelope(myProp), _tport2.getLocalAddress());
 
-        myMsg = myClient.getNext(10000);
+        myClient.getNext(10000);
 
         Thread.sleep(2000);
 
