@@ -20,8 +20,6 @@ public class SuccessfulSequenceTest {
     private TransportImpl _tport2;
 
     @Before public void init() throws Exception {
-        Runtime.getRuntime().runFinalizersOnExit(true);
-
     	_node1 = new ServerDispatcher();
     	_node2 = new ServerDispatcher();
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));

@@ -32,8 +32,6 @@ public class HowlSequenceTest {
     	FileSystem.deleteDirectory(new File(_node1Log));
     	FileSystem.deleteDirectory(new File(_node2Log));
     	
-        Runtime.getRuntime().runFinalizersOnExit(true);
-
         _node1 = new ServerDispatcher(new HowlLogger(_node1Log));
         _node2 = new ServerDispatcher(new HowlLogger(_node2Log));
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));

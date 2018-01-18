@@ -37,8 +37,6 @@ public class OutOfDateLeaderTest {
         FileSystem.deleteDirectory(new File(_node2Log));
         FileSystem.deleteDirectory(new File(_node3Log));
 
-        Runtime.getRuntime().runFinalizersOnExit(true);
-
         Leader.LeaseDuration.set(10000);
 
         _node1 = new ServerDispatcher(new HowlLogger(_node1Log), true);
