@@ -130,10 +130,7 @@ public class ALOutOfDateTest {
         boolean isInactive = false;
         
         try {
-            _node3.getCore().submit(myProp, new Completion<VoteOutcome>() {
-                public void complete(VoteOutcome anOutcome) {
-                }
-            });
+            _node3.getCore().submit(myProp, anOutcome -> {});
         } catch (InactiveException anIE) {
             isInactive = true;
         }
