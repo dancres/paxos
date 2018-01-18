@@ -41,10 +41,9 @@ public class Backend {
     private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
     private final InetSocketAddress _serverAddr;
     private final int _clusterSize;
-
+    
     private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<>();
-
-
+    
     public static void main(String[] anArgs) throws Exception {
         new Backend(Integer.valueOf(anArgs[0]), Integer.valueOf(anArgs[1])).start(anArgs[2]);
     }
@@ -79,6 +78,8 @@ public class Backend {
                     ObjectInputStream myOIS = new ObjectInputStream(myStream);
 
                     CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+
+                    @SuppressWarnings("unchecked")
                     ConcurrentHashMap<String, String> myState = (ConcurrentHashMap<String, String>) myOIS.readObject();
                     
                     ByteArrayOutputStream myBAOS = new ByteArrayOutputStream();
@@ -206,8 +207,10 @@ public class Backend {
             ObjectInputStream myOIS = new ObjectInputStream(myStream);
 
             myHandle = (CheckpointHandle) myOIS.readObject();
-            
-            _keyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
+
+            @SuppressWarnings("unchecked")
+            ConcurrentHashMap<String, String> myTempKeyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
+            _keyValues = myTempKeyValues;
             
             myOIS.close();
         }
@@ -298,7 +301,11 @@ public class Backend {
                             ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
 
                             CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
-                            _keyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
+
+                            @SuppressWarnings("unchecked")
+                            ConcurrentHashMap<String, String> myTempKeyValues =
+                                    (ConcurrentHashMap<String, String>) myOIS.readObject();
+                            _keyValues = myTempKeyValues;
 
                             writeCheckpoint(myHandle);
 

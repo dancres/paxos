@@ -21,7 +21,8 @@ class Jackson {
         myMapper.writeValue(myBAOS, myTable);
 
         ByteArrayInputStream myBAIS = new ByteArrayInputStream(myBAOS.toByteArray());
-        
+
+        @SuppressWarnings("unchecked")
         Map<String, Object> myRead = myMapper.readValue(myBAIS, Map.class);
         
         for (Map.Entry e: myRead.entrySet())
