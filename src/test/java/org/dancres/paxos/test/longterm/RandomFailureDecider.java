@@ -13,6 +13,9 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.math3.random.RandomGenerator;
+import org.apache.commons.math3.random.Well44497b;
+
 /**
  * TODO: This should schedule the recovery of a dead machine based on a certain
  * number of iterations of the protocol so we can fence it to within the bounds
@@ -52,7 +55,7 @@ class RandomFailureDecider implements Decider {
     }
 
     private final Environment _env;
-    private final Random _rng;
+    private final RandomGenerator _rng;
 
     private final AtomicLong _killCount = new AtomicLong(0);
     private final AtomicLong _deadCount = new AtomicLong(0);
@@ -65,8 +68,7 @@ class RandomFailureDecider implements Decider {
 
     RandomFailureDecider(Environment anEnv) {
         _env = anEnv;
-        _rng = new Random(_env.getRng().nextLong());
-
+        _rng = new Well44497b(_env.getRng().nextLong());
     }
 
     public boolean sendUnreliable(Transport.Packet aPacket) {
