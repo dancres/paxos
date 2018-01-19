@@ -107,21 +107,17 @@ public class PermuterTest {
         OneShot myPoss = new OneShot();
 
         myPermuter.add(myPoss);
-
         myPermuter.tick();
 
-        Assert.assertTrue(myPoss.wasFired());
-
+        // At the 100th tick the restoration should occur
+        //
         for (int myCycle = 0; myCycle < 100; myCycle++) {
+            Assert.assertTrue(myPermuter.numOutstanding() == 1);
             myPermuter.tick();
-            System.err.println("Permuter outstanding: " + myPermuter.numOutstanding());
-
-            // Assert.assertTrue(myPermuter.numOutstanding() == 1);
         }
 
-        System.err.println("Permuter: " + myPermuter);
-        System.err.println("Permuter outstanding: " + myPermuter.numOutstanding());
-
+        // Effect of the last tick in the loop is checked here
+        //
         Assert.assertTrue(myPermuter.numOutstanding() == 0);
     }
 }
