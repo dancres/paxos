@@ -102,6 +102,20 @@ public class PermuterTest {
     }
 
     @Test
+    public void firesOnlyOnTick() {
+        Permuter myPermuter = new Permuter();
+        OneShot myPoss = new OneShot();
+
+        myPermuter.add(myPoss);
+
+        Assert.assertFalse(myPoss.wasFired());
+
+        myPermuter.tick();
+
+        Assert.assertTrue(myPoss.wasFired());
+    }
+
+    @Test
     public void oneShot() {
         Permuter myPermuter = new Permuter();
         OneShot myPoss = new OneShot();
