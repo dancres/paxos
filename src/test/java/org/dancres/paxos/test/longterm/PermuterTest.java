@@ -21,11 +21,38 @@ public class PermuterTest {
         }
 
         @Override
-        public Permuter.Restoration apply(Object aContext, RandomGenerator anRNG) {
+        public Permuter.Restoration<Object> apply(Object aContext, RandomGenerator anRNG) {
             throw new IllegalStateException("Should never happen");
         }
     }
 
+    class RestoreAll implements Permuter.Possibility<Object> {
+        private boolean _wasRestored = false;
+        private List<Permuter.Precondition<Object>> _preconditions = List.of(o -> true);
+
+        @Override
+        public List<Permuter.Precondition<Object>> getPreconditions() {
+            return _preconditions;
+        }
+
+        @Override
+        public int getChance() {
+            return 100;
+        }
+
+        @Override
+        public Permuter.Restoration<Object> apply(Object aContext, RandomGenerator anRNG) {
+            return (c) -> {
+                _wasRestored = true;
+                return true;
+            };
+        }
+
+        boolean wasRestored() {
+            return _wasRestored;
+        }
+
+    }
     class ZeroChance implements Permuter.Possibility<Object> {
         private List<Permuter.Precondition<Object>> _preconditions = List.of(o -> true);
 
@@ -40,7 +67,7 @@ public class PermuterTest {
         }
 
         @Override
-        public Permuter.Restoration apply(Object aContext, RandomGenerator aGen) {
+        public Permuter.Restoration<Object> apply(Object aContext, RandomGenerator aGen) {
             throw new IllegalStateException("Should never happen");
         }
     }
@@ -60,14 +87,14 @@ public class PermuterTest {
         }
 
         @Override
-        public Permuter.Restoration apply(Object aContext, RandomGenerator anRNG) {
+        public Permuter.Restoration<Object> apply(Object aContext, RandomGenerator anRNG) {
             _actionFired = true;
 
-            return new Permuter.Restoration() {
+            return new Permuter.Restoration<>() {
                 private int _ticks = 0;
 
                 @Override
-                public boolean tick() {
+                public boolean tick(Object aContext) {
                     ++_ticks;
 
                     return _ticks == 100;
@@ -133,6 +160,24 @@ public class PermuterTest {
 
         // Effect of the last tick in the loop is checked here
         //
+        Assert.assertTrue(myPermuter.numOutstanding() == 0);
+    }
+
+    @Test
+    public void restoreAll() {
+        Permuter<Object> myPermuter = new Permuter<>();
+        RestoreAll myR1 = new RestoreAll();
+        RestoreAll myR2 = new RestoreAll();
+
+
+        myPermuter.add(myR1).add(myR2);
+        myPermuter.tick(new Object());
+
+        myPermuter.restoreOutstanding(new Object());
+
+        Assert.assertTrue(myR1.wasRestored());
+        Assert.assertTrue(myR2.wasRestored());
+        
         Assert.assertTrue(myPermuter.numOutstanding() == 0);
     }
 }

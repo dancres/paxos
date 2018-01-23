@@ -9,9 +9,9 @@ import java.util.List;
 
 public class Permuter<Context> {
     private final RandomGenerator _rng;
-    private final List<Restoration> _outstandingRestorations = new LinkedList<>();
+    private final List<Restoration<Context>> _outstandingRestorations = new LinkedList<>();
     private final List<Possibility<Context>> _possibilities = new LinkedList<>();
-    
+
     public Permuter(long aSeed) {
          _rng = new SynchronizedRandomGenerator(new Well44497b(aSeed));
     }
@@ -19,13 +19,14 @@ public class Permuter<Context> {
     public Permuter() {
         _rng = new SynchronizedRandomGenerator(new Well44497b());
     }
-    
-    public void add(Possibility<Context> aPoss) {
+
+    public Permuter<Context> add(Possibility<Context> aPoss) {
         _possibilities.add(aPoss);
+        return this;
     }
 
     public void tick(Context aContext) {
-        _outstandingRestorations.removeIf(Restoration::tick);
+        _outstandingRestorations.removeIf(r -> r.tick(aContext));
 
         for (Possibility<Context> myPoss : _possibilities) {
             List<Precondition<Context>> myPreconditions = myPoss.getPreconditions();
@@ -47,11 +48,16 @@ public class Permuter<Context> {
 
         int getChance();
 
-        Restoration apply(Context aContext, RandomGenerator aGen);
+        Restoration<Context> apply(Context aContext, RandomGenerator aGen);
     }
 
-    public interface Restoration {
-        boolean tick();
+    public void restoreOutstanding(Context aContext) {
+        while(_outstandingRestorations.size() > 0)
+            _outstandingRestorations.removeIf(r -> r.tick(aContext));
+    }
+
+    public interface Restoration<Context> {
+        boolean tick(Context aContext);
     }
 
     public interface Precondition<Context> {
