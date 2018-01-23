@@ -1,30 +1,39 @@
 package org.dancres.paxos.test.longterm;
 
 import org.apache.commons.math3.random.RandomGenerator;
+import org.apache.commons.math3.random.SynchronizedRandomGenerator;
 import org.apache.commons.math3.random.Well44497b;
 
 import java.util.LinkedList;
 import java.util.List;
 
-class Permuter {
-    private final RandomGenerator _rng = new Well44497b();
+public class Permuter<Context> {
+    private final RandomGenerator _rng;
     private final List<Restoration> _outstandingRestorations = new LinkedList<>();
-    private final List<Possibility> _possibilities = new LinkedList<>();
+    private final List<Possibility<Context>> _possibilities = new LinkedList<>();
+    
+    public Permuter(long aSeed) {
+         _rng = new SynchronizedRandomGenerator(new Well44497b(aSeed));
+    }
 
-    void add(Possibility aPoss) {
+    public Permuter() {
+        _rng = new SynchronizedRandomGenerator(new Well44497b());
+    }
+    
+    public void add(Possibility<Context> aPoss) {
         _possibilities.add(aPoss);
     }
 
-    void tick() {
+    public void tick(Context aContext) {
         _outstandingRestorations.removeIf(Restoration::tick);
 
-        for (Possibility myPoss : _possibilities) {
-            List<Precondition> myPreconditions = myPoss.getPreconditions();
+        for (Possibility<Context> myPoss : _possibilities) {
+            List<Precondition<Context>> myPreconditions = myPoss.getPreconditions();
 
-            if (myPreconditions.stream().allMatch(Precondition::isSatisfied) &&
+            if (myPreconditions.stream().allMatch(p -> p.isSatisfied(aContext)) &&
                     (_rng.nextInt(100) < myPoss.getChance())) {
 
-                _outstandingRestorations.add(myPoss.apply());
+                _outstandingRestorations.add(myPoss.apply(aContext, _rng));
             }
         }
     }
@@ -33,19 +42,19 @@ class Permuter {
         return _outstandingRestorations.size();
     }
 
-    interface Possibility {
-        List<Precondition> getPreconditions();
+    public interface Possibility<Context> {
+        List<Precondition<Context>> getPreconditions();
 
         int getChance();
 
-        Restoration apply();
+        Restoration apply(Context aContext, RandomGenerator aGen);
     }
 
-    interface Restoration {
+    public interface Restoration {
         boolean tick();
     }
 
-    interface Precondition {
-        boolean isSatisfied();
+    public interface Precondition<Context> {
+        boolean isSatisfied(Context aContext);
     }
 }
