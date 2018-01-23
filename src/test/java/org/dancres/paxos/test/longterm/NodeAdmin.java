@@ -8,6 +8,8 @@ import java.util.Random;
 
 public interface NodeAdmin {
 
+    void settle();
+
     interface Memento {
         Object getContext();
         InetSocketAddress getAddress();

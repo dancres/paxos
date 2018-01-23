@@ -5,6 +5,8 @@ import org.dancres.paxos.impl.Heartbeater;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 
+import org.dancres.paxos.test.longterm.Environment;
+import org.dancres.paxos.test.longterm.Permuter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,15 +18,28 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedMemoryTransport {
-	private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
+	static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
+
+	static class Context {
+	    final Packet _packet;
+	    final OrderedMemoryTransportImpl _transport;
+
+	    Context(Packet aPacket, OrderedMemoryTransportImpl aTransport) {
+	        _packet = aPacket;
+	        _transport = aTransport;
+        }
+    }
 
 	private final OrderedMemoryNetwork _parent;
 	private final PacketPickler _pickler;
 	private final Set<Dispatcher> _dispatcher = new HashSet<>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
+    private final AtomicBoolean _drop = new AtomicBoolean((false));
 	private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
+    private final Permuter<Context> _permuter;
     private final RoutingDecisions _decisions;
+    private final Environment _environment;
     private MessageBasedFailureDetector _fd;
     private Heartbeater _hb;
 
@@ -59,15 +74,32 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         throw new UnsupportedOperationException();
     }
 
+    /*
+     Instantiate a Permuter with a context class defined to contain an instance of OrderedMemoryTransportImpl
+     and Transport.Packet
+
+     Add a Possibility innstance with a precondition that checks packet in context is not of type CLIENT
+     If it isn't, assuming the RNG decides appropriately, the instance of OrderMemoryTransport in context is called
+     to set an atomic boolean to drop next packet.
+
+     Permuter::tick is called for each packet pass into send() or distribute() and, the flag is checked
+     and reset to determine if packet is actually to be dropped and then acts accordingly.
+     See the _decisions calls below for locations of that code.
+     */
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
                                       OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD,
-                                      RoutingDecisions aDecisions) {
+                                      RoutingDecisions aDecisions, Environment anEnv) {
         _unicastAddr = aLocalAddr;
         _broadcastAddr = aBroadAddr;
         _parent = aParent;
         _decisions = aDecisions;
         _pickler = new StandalonePickler(_unicastAddr);
         _fd = anFD;
+        _environment = anEnv;
+        _permuter = new Permuter<>(anEnv.getRng().nextLong());
+
+        if (_environment.isLive())
+            _permuter.add(new PacketDrop()).add(new MachineBlip());
 
         if (_fd != null) {
             _hb = _fd.newHeartbeater(this, _unicastAddr.toString().getBytes());
@@ -76,7 +108,8 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
-                                      OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD) {
+                                      OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD,
+                                      Environment anEnv) {
         this(aLocalAddr, aBroadAddr, aParent, anFD, new RoutingDecisions() {
             public boolean sendUnreliable(Packet aPacket) {
                 return true;
@@ -85,7 +118,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
             public boolean receive(Packet aPacket) {
                 return true;
             }
-        });
+        }, anEnv);
     }
 
     public PacketPickler getPickler() {
@@ -109,6 +142,14 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         }
     }
 
+    Environment getEnv() {
+        return _environment;
+    }
+
+    void setDrop() {
+        _drop.set(true);
+    }
+
 	public InetSocketAddress getLocalAddress() {
 		return _unicastAddr;
 	}
@@ -121,7 +162,9 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 		guard();
 		
 		try {
-            if (_decisions.sendUnreliable(aPacket))
+		    _permuter.tick(new Context(aPacket, this));
+
+		    if (! _drop.compareAndSet(true, false))
 			    _parent.enqueue(aPacket, anAddr);
             else {
                 _logger.warn("OT [ " + getLocalAddress() + " ] dropped on txd: " + aPacket);
@@ -132,7 +175,9 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public void distribute(Transport.Packet aPacket) {
-        if (_decisions.receive(aPacket)) {
+        _permuter.tick(new Context(aPacket, this));
+
+        if (! _drop.compareAndSet(true, false)) {
             if ((_fd != null) && (_fd.accepts(aPacket))) {
                 try {
                     _fd.processMessage(aPacket);
@@ -179,5 +224,9 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
                     _logger.warn("Dispatcher didn't terminate cleanly", anE);
                 }
         }
-    }	
+    }
+
+    public void settle() {
+        _permuter.restoreOutstanding(new Context(null, this));
+    }
 }

@@ -99,7 +99,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
                   Environment anEnv) {
         _config = aConfig;
         _env = anEnv;
-        _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _env.getDecisionMaker());
+        _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _env);
 
         _dispatcher = new ServerDispatcher(_config._loggerFactory.getLogger());
         _dispatcher.add(this);
@@ -165,6 +165,11 @@ class NodeAdminImpl implements NodeAdmin, Listener {
                 return "Memento: " + _cf + ", " + _ad;
             }
         };
+    }
+
+    @Override
+    public void settle() {
+        _transport.settle();
     }
 
     public OrderedMemoryNetwork.OrderedMemoryTransport getTransport() {

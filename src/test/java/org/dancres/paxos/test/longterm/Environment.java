@@ -22,8 +22,6 @@ public interface Environment {
 
     OrderedMemoryNetwork getFactory();
 
-    OrderedMemoryTransportImpl.RoutingDecisions getDecisionMaker();
-
     long getMaxCycles();
 
     boolean isLive();
@@ -31,14 +29,6 @@ public interface Environment {
     void settle();
 
     void terminate();
-
-    long getDropCount();
-
-    long getRxCount();
-
-    long getTxCount();
-
-    long getTempDeathCount();
 
     boolean validate();
 

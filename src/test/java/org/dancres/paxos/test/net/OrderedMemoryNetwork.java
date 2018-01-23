@@ -3,6 +3,7 @@ package org.dancres.paxos.test.net;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 
+import org.dancres.paxos.test.longterm.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +71,8 @@ public class OrderedMemoryNetwork implements Runnable {
         public Constructed newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
                                                    OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD,
                                                    Object aContext) {
-            return new Constructed(new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD), null);
+            return new Constructed(new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD,
+                    _env), null);
         }
     }
 
@@ -80,8 +82,10 @@ public class OrderedMemoryNetwork implements Runnable {
     private InetSocketAddress  _broadcastAddr;
     private Map<InetSocketAddress, OrderedMemoryTransport> _transports =
             new ConcurrentHashMap<>();
+    private final Environment _env;
 
-    public OrderedMemoryNetwork() {
+    public OrderedMemoryNetwork(Environment anEnv) {
+        _env = anEnv;
         _broadcastAddr = new InetSocketAddress(org.dancres.paxos.impl.net.Utils.getBroadcastAddress(), 255);
 
         Thread myDispatcher = new Thread(this);

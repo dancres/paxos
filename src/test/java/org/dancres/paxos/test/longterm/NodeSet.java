@@ -84,4 +84,8 @@ class NodeSet {
     Collection<FailureDetector> getFDs() {
         return _nodes.stream().map(n -> n.getTransport().getFD()).collect(Collectors.toList());
     }
+
+    public void settle() {
+        _nodes.forEach(NodeAdmin::settle);
+    }
 }

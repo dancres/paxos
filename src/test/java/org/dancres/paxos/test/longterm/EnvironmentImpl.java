@@ -5,7 +5,6 @@ import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
-import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 import org.dancres.paxos.test.net.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +29,6 @@ class EnvironmentImpl implements Environment {
     private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
     private final AtomicLong _opCount = new AtomicLong(0);
     private final AtomicBoolean _isSettling = new AtomicBoolean(false);
-    private final Decider _decisionMaker;
     private final NodeSet _nodeSet;
 
     EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
@@ -38,9 +36,7 @@ class EnvironmentImpl implements Environment {
         _isLive = ! doCalibrate;
         _maxCycles = aCycles;
         _baseRng = new Random(aSeed);
-        _factory = new OrderedMemoryNetwork();
-
-        _decisionMaker = (_isLive) ? new RandomFailureDecider(this) : new PassiveDecider();
+        _factory = new OrderedMemoryNetwork(this);
 
         _nodeFactory = (InetSocketAddress aLocalAddr,
                 InetSocketAddress aBroadcastAddr,
@@ -81,10 +77,6 @@ class EnvironmentImpl implements Environment {
         _nodeSet.install((NodeAdmin) myResult.getAdditional());
     }
 
-    public OrderedMemoryTransportImpl.RoutingDecisions getDecisionMaker() {
-        return _decisionMaker;
-    }
-
     public long getSettleCycles() {
         return 100;
     }
@@ -120,27 +112,13 @@ class EnvironmentImpl implements Environment {
         return _nodeSet.getCurrentLeader();
     }
 
-    public long getDropCount() {
-        return _decisionMaker.getDropCount();
-    }
-
-    public long getTxCount() {
-        return _decisionMaker.getTxPacketCount();
-    }
-
-    public long getRxCount() {
-        return _decisionMaker.getRxPacketCount();
-    }
-
-    public long getTempDeathCount() { return _decisionMaker.getTempDeathCount(); }
-
     public boolean isSettling() {
         return _isSettling.get();
     }
 
     public void settle() {
         _isSettling.set(true);
-        _decisionMaker.settle();
+        _nodeSet.settle();
         stabilise();
     }
 
