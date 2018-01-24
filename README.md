@@ -15,3 +15,7 @@ the javadoc for `org.dancres.paxos.Paxos`
  Note: Not to be used for high-reliability systems until the LongTerm (see 'LongTerm.java')
  failure-simulation test is fully implemented and has run successfully across a substantial 
  set of sequences.
+
+mvn clean compile
+mvn -Dmdep.outputFile=cp.txt dependency:build-classpath
+java -classpath $(cat cp.txt):target/classes:target/test-classes  -Djava.util.logging.config.file=target/test-classes/logging.properties  org.dancres.paxos.test.longterm.Main --calibrate --memory --cycles=100000
