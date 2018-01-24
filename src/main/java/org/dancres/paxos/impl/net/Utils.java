@@ -32,7 +32,8 @@ public class Utils {
                     continue;
 
                 if ((! myInterface.getName().startsWith("en")) &&
-                        (! myInterface.getName().startsWith("eth")))
+                        (! myInterface.getName().startsWith("eth")) &&
+                        (! myInterface.getName().startsWith("lo0")))
                     continue;
 
                 if (hasValidAddress(myInterface))
@@ -78,9 +79,6 @@ public class Utils {
 
             boolean isReachable;
 
-            if (myAddr.isLoopbackAddress())
-                continue;
-
             try {
                 isReachable = myAddr.isReachable(500);
             } catch (Exception anE) {
@@ -105,7 +103,7 @@ public class Utils {
 
     private static boolean isMulticastCapable(NetworkInterface anIn) {
         try {
-            InetAddress myMcast = InetAddress.getByName("224.0.1.85");
+            InetAddress myMcast = InetAddress.getByName("224.0.0.1");
 
             MulticastSocket mySocket = new MulticastSocket(4159);
 
