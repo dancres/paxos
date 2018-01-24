@@ -27,22 +27,22 @@ public class ServerDispatcher implements Transport.Dispatcher {
     private final Runnable _initialiser;
     private final AtomicBoolean _initd = new AtomicBoolean(false);
 
-    public ServerDispatcher(LogStorage aLogger) {
-        this(aLogger, false);
+    public ServerDispatcher(LogStorage aLogger, Listener aListener) {
+        this(aLogger, aListener, false);
     }
 
     /**
      * For testing only
      */
-    public ServerDispatcher() {
-        this(new MemoryLogStorage(), false);
+    public ServerDispatcher(Listener aListener) {
+        this(new MemoryLogStorage(), aListener, false);
     }
 
     /**
      * For testing only
      */
-    public ServerDispatcher(LogStorage aLogger, boolean isDisableHeartbeats) {
-        this(new Core(aLogger, CheckpointHandle.NO_CHECKPOINT,  (StateEvent anEvent) -> {}, isDisableHeartbeats));
+    public ServerDispatcher(LogStorage aLogger, Listener aListener, boolean isDisableHeartbeats) {
+        this(new Core(aLogger, CheckpointHandle.NO_CHECKPOINT,  aListener, isDisableHeartbeats));
     }
 
     private ServerDispatcher(Core aCore) {
@@ -86,11 +86,11 @@ public class ServerDispatcher implements Transport.Dispatcher {
     }
 
     public void add(Listener aListener) {
-    	_core.add(aListener);
+        _core.add(aListener);
     }
     
     public AcceptorLearner getAcceptorLearner() {
-		return _core.getAcceptorLearner();
+        return _core.getAcceptorLearner();
 	}
     
     public Core getCore() {
