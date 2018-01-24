@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Listener;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.test.junit.FDUtil;
@@ -22,8 +23,8 @@ public class SimpleMembershipChangeTest {
 
     @Before
     public void init() throws Exception {
-        _node1 = new ServerDispatcher();
-        _node2 = new ServerDispatcher();
+        _node1 = new ServerDispatcher(Listener.NULL_LISTENER);
+        _node2 = new ServerDispatcher(Listener.NULL_LISTENER);
         _fd1 = new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN);
         _tport1 = new TransportImpl(_fd1);
         _node1.init(_tport1);

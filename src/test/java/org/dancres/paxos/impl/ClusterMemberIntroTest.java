@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Listener;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
@@ -40,8 +41,8 @@ public class ClusterMemberIntroTest {
         FileSystem.deleteDirectory(new File(_node2Log));
         FileSystem.deleteDirectory(new File(_node3Log));
 
-        _node1 = new ServerDispatcher(new HowlLogger(_node1Log));
-        _node2 = new ServerDispatcher(new HowlLogger(_node2Log));
+        _node1 = new ServerDispatcher(new HowlLogger(_node1Log), Listener.NULL_LISTENER);
+        _node2 = new ServerDispatcher(new HowlLogger(_node2Log), Listener.NULL_LISTENER);
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _node1.init(_tport1);
 
@@ -94,7 +95,7 @@ public class ClusterMemberIntroTest {
         //
         Thread.sleep(2000);
 
-        _node3 = new ServerDispatcher(new HowlLogger(_node3Log));
+        _node3 = new ServerDispatcher(new HowlLogger(_node3Log), Listener.NULL_LISTENER);
         _tport3 = new TransportImpl(new FailureDetectorImpl(5000));
         _node3.init(_tport3);
         _node3.getAcceptorLearner().setRecoveryGracePeriod(1000);

@@ -3,6 +3,7 @@ package org.dancres.paxos.impl;
 import java.io.File;
 import java.nio.ByteBuffer;
 
+import org.dancres.paxos.Listener;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
@@ -32,8 +33,8 @@ public class HowlSequenceTest {
     	FileSystem.deleteDirectory(new File(_node1Log));
     	FileSystem.deleteDirectory(new File(_node2Log));
     	
-        _node1 = new ServerDispatcher(new HowlLogger(_node1Log));
-        _node2 = new ServerDispatcher(new HowlLogger(_node2Log));
+        _node1 = new ServerDispatcher(new HowlLogger(_node1Log), Listener.NULL_LISTENER);
+        _node2 = new ServerDispatcher(new HowlLogger(_node2Log), Listener.NULL_LISTENER);
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _node1.init(_tport1);
 

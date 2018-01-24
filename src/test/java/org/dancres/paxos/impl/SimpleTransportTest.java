@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Listener;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
@@ -15,8 +16,8 @@ public class SimpleTransportTest {
     private TransportImpl _tport2;
 
     @Before public void init() throws Exception {
-        _node1 = new ServerDispatcher();
-        _node2 = new ServerDispatcher();
+        _node1 = new ServerDispatcher(Listener.NULL_LISTENER);
+        _node2 = new ServerDispatcher(Listener.NULL_LISTENER);
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _node1.init(_tport1);
 

@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Listener;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
@@ -39,8 +40,8 @@ public class OutOfDateLeaderTest {
 
         Leader.LeaseDuration.set(10000);
 
-        _node1 = new ServerDispatcher(new HowlLogger(_node1Log), true);
-        _node2 = new ServerDispatcher(new HowlLogger(_node2Log), true);
+        _node1 = new ServerDispatcher(new HowlLogger(_node1Log), Listener.NULL_LISTENER, true);
+        _node2 = new ServerDispatcher(new HowlLogger(_node2Log), Listener.NULL_LISTENER, true);
         _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _node1.init(_tport1);
 
@@ -92,7 +93,7 @@ public class OutOfDateLeaderTest {
 
         System.err.println("Start node3");
 
-        _node3 = new ServerDispatcher(new HowlLogger(_node3Log), true);
+        _node3 = new ServerDispatcher(new HowlLogger(_node3Log), Listener.NULL_LISTENER, true);
         _tport3 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _node3.init(_tport3);
         _node3.getAcceptorLearner().setRecoveryGracePeriod(1000);
