@@ -16,6 +16,12 @@ the javadoc for `org.dancres.paxos.Paxos`
  failure-simulation test is fully implemented and has run successfully across a substantial 
  set of sequences.
 
+To run the long-term test:
+
 mvn clean compile
 mvn -Dmdep.outputFile=cp.txt dependency:build-classpath
 java -classpath $(cat cp.txt):target/classes:target/test-classes  -Djava.util.logging.config.file=target/test-classes/logging.properties  org.dancres.paxos.test.longterm.Main --calibrate --memory --cycles=100000
+
+If you're on a Mac and running without a network connection, you may need to add a multicast route"
+
+sudo route add -net 224.0.0.1/32 -interface lo0
