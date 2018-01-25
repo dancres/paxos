@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 class MachineBlip implements Permuter.Possibility<OrderedMemoryTransportImpl.Context> {
     private AtomicLong _deadCount = new AtomicLong(0);
-    private final Deque<Grave> _graves = new ConcurrentLinkedDeque<>();
 
     static class Grave implements Permuter.Restoration<OrderedMemoryTransportImpl.Context> {
         private AtomicReference<NodeAdmin.Memento> _dna = new AtomicReference<>(null);
@@ -36,7 +35,7 @@ class MachineBlip implements Permuter.Possibility<OrderedMemoryTransportImpl.Con
             _deadCycles.set(aDeadCycles);
         }
 
-        void awaken(Environment anEnv) {
+        private void awaken(Environment anEnv) {
             OrderedMemoryTransportImpl._logger.info("Awaking from grave: " + _dna.get());
 
             NodeAdmin.Memento myDna = _dna.getAndSet(null);
@@ -84,9 +83,7 @@ class MachineBlip implements Permuter.Possibility<OrderedMemoryTransportImpl.Con
                 if (myMemento != null) {
                     OrderedMemoryTransportImpl._logger.info("Grave dug for " + myMemento + " with return after " + myRebirthTicks +
                             " and we're " + (_deadCount.get()) + " nodes down");
-
                     Grave myGrave = new Grave(myMemento, myRebirthTicks);
-                    _graves.add(myGrave);
                     
                     return myGrave;
                 } else {
