@@ -11,7 +11,8 @@ class PacketDrop implements Permuter.Possibility<OrderedMemoryTransportImpl.Cont
     public List<Permuter.Precondition<OrderedMemoryTransportImpl.Context>> getPreconditions() {
         return List.of(c ->
                         !c._packet.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT),
-                c -> !c._transport.getEnv().isSettling());
+                c -> !c._transport.getEnv().isSettling(),
+                c -> c._transport.getEnv().isReady());
     }
 
     @Override

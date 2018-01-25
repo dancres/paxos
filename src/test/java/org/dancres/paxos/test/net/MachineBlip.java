@@ -58,7 +58,8 @@ class MachineBlip implements Permuter.Possibility<OrderedMemoryTransportImpl.Con
     @Override
     public List<Permuter.Precondition<OrderedMemoryTransportImpl.Context>> getPreconditions() {
         return List.of(c -> _deadCount.get() == 0,
-                c -> !c._transport.getEnv().isSettling());
+                c -> !c._transport.getEnv().isSettling(),
+                c -> c._transport.getEnv().isReady());
     }
 
     @Override
