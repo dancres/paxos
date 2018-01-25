@@ -10,3 +10,6 @@ reports
 scripts
 ckptdir
 target
+.classpath
+.project
+.settings
