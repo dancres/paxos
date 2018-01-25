@@ -28,15 +28,11 @@ public class Utils {
 
                 _logger.debug("Checking interface: " + myInterface.getDisplayName());
 
-                if (! isMulticastCapable(myInterface))
-                    continue;
-
-                if ((! myInterface.getName().startsWith("en")) &&
-                        (! myInterface.getName().startsWith("eth")) &&
-                        (! myInterface.getName().startsWith("lo0")))
-                    continue;
-
-                if (hasValidAddress(myInterface))
+                if ((isMulticastCapable(myInterface)) &&
+                        ((myInterface.getName().startsWith("en")) ||
+                                (myInterface.getName().startsWith("eth")) ||
+                                (myInterface.getName().startsWith("lo0"))) &&
+                        (hasValidAddress(myInterface)))
                     myWorkableInterfaces.add(myInterface);
             }
 
@@ -74,24 +70,22 @@ public class Utils {
             InetAddress myAddr = myAddrs.nextElement();
 
             // If it's not IPv4, forget it
-            if (myAddr.getAddress().length != 4)
-                continue;
-
-            boolean isReachable;
-
-            try {
-                isReachable = myAddr.isReachable(500);
-            } catch (Exception anE) {
-                _logger.debug("Not reachable: " + myAddr, anE);
-                continue;
-            }
-
-            if (!isReachable)
-                continue;
-
-            // Found one address on this interface that makes sense
             //
-            return myAddr;
+            if (myAddr.getAddress().length == 4) {
+                boolean isReachable;
+
+                try {
+                    isReachable = myAddr.isReachable(500);
+                } catch (Exception anE) {
+                    _logger.debug("Not reachable: " + myAddr, anE);
+                    continue;
+                }
+
+                if (isReachable)
+                    // Found one address on this interface that makes sense
+                    //
+                    return myAddr;
+            }
         }
 
         return null;
@@ -125,10 +119,6 @@ public class Utils {
             _logger.debug("No mcast: " + anIn, anE);
             return false;
         }
-    }
-
-    public static String getNetworkInterface() {
-    	return _workableInterface.getName();
     }
 
     public static NetworkInterface getWorkableInterface() {
