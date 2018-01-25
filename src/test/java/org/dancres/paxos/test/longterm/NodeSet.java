@@ -12,10 +12,12 @@ import java.util.stream.Collectors;
 
 class NodeSet {
     private final Deque<NodeAdmin> _nodes = new ConcurrentLinkedDeque<>();
-
     private NodeAdmin _currentLeader;
 
-    NodeSet(Deque<NodeAdmin> aNodes) {
+    NodeSet() {
+    }
+
+    void init(Deque<NodeAdmin> aNodes) {
         _currentLeader = aNodes.getFirst();
         _nodes.addAll(aNodes);
     }

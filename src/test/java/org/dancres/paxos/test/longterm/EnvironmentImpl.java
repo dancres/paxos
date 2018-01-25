@@ -29,7 +29,7 @@ class EnvironmentImpl implements Environment {
     private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
     private final AtomicLong _opCount = new AtomicLong(0);
     private final AtomicBoolean _isSettling = new AtomicBoolean(false);
-    private final NodeSet _nodeSet;
+    private final NodeSet _nodeSet = new NodeSet();
 
     EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
         _ckptCycle = aCkptCycle;
@@ -63,7 +63,7 @@ class EnvironmentImpl implements Environment {
             myNodes.add((NodeAdmin) myResult.getAdditional());
         }
 
-        _nodeSet = new NodeSet(myNodes);
+        _nodeSet.init(myNodes);
     }
 
     private OrderedMemoryNetwork.Factory.Constructed addNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
