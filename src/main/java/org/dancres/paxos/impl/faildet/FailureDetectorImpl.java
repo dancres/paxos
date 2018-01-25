@@ -318,8 +318,8 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
         }
 
         public boolean isMajority(Collection<InetSocketAddress> aListOfAddresses) {
-            return ((_members.keySet().containsAll(aListOfAddresses)) &&
-                    aListOfAddresses.size() >= _majority);
+            return ((aListOfAddresses.containsAll(_members.keySet())) &&
+                    _members.size() >= _majority);
         }
 
         public byte[] dataForNode(InetSocketAddress anAddress) {
