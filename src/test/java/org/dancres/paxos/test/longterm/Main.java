@@ -52,12 +52,16 @@ public class Main {
 
         @Option
         boolean isMemory();
+
+        @Option
+        boolean isAllowformation();
     }
+
     private final Environment _env;
 
     private Main(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
-                 boolean isMemory) throws Exception {
-        _env = new EnvironmentImpl(aSeed, aCycles, doCalibrate, aCkptCycle, isMemory);
+                 boolean isMemory, boolean allowFormation) throws Exception {
+        _env = new EnvironmentImpl(aSeed, aCycles, doCalibrate, aCkptCycle, isMemory, allowFormation);
     }
 
     long getSettleCycles() {
@@ -143,7 +147,8 @@ public class Main {
 
             Main myLT =
                     new Main(myArgs.getSeed() + myIterations, myArgs.getCycles(),
-                            myArgs.isCalibrate(), myArgs.getCkptCycle(), myArgs.isMemory());
+                            myArgs.isCalibrate(), myArgs.getCkptCycle(), myArgs.isMemory(),
+                            myArgs.isAllowformation());
 
             long myStart = System.currentTimeMillis();
 

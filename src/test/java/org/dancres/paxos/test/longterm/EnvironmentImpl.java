@@ -31,7 +31,8 @@ class EnvironmentImpl implements Environment {
     private final AtomicBoolean _isSettling = new AtomicBoolean(false);
     private final NodeSet _nodeSet = new NodeSet();
 
-    EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle, boolean inMemory) throws Exception {
+    EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
+                    boolean inMemory, boolean allowClusterFormation) throws Exception {
         _ckptCycle = aCkptCycle;
         _isLive = ! doCalibrate;
         _maxCycles = aCycles;
@@ -64,6 +65,13 @@ class EnvironmentImpl implements Environment {
         }
 
         _nodeSet.init(myNodes);
+
+        if (allowClusterFormation) {
+            for (NodeAdmin myN : myNodes) {
+                _logger.info("EnsureFD: " + myN.getTransport().getLocalAddress());
+                FDUtil.testFD(myN.getTransport().getFD(), 20000, 5);
+            }
+        }
     }
 
     private OrderedMemoryNetwork.Factory.Constructed addNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
