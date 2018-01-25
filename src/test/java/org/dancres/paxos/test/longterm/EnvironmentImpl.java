@@ -31,6 +31,16 @@ class EnvironmentImpl implements Environment {
     private final AtomicBoolean _isSettling = new AtomicBoolean(false);
     private final NodeSet _nodeSet = new NodeSet();
 
+    /**
+     * @TODO The option for awaiting cluster formation needs to disable Permuter
+     * @param aSeed
+     * @param aCycles
+     * @param doCalibrate
+     * @param aCkptCycle
+     * @param inMemory
+     * @param allowClusterFormation
+     * @throws Exception
+     */
     EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
                     boolean inMemory, boolean allowClusterFormation) throws Exception {
         _ckptCycle = aCkptCycle;
