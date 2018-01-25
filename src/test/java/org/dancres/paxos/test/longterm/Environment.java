@@ -24,6 +24,8 @@ public interface Environment {
 
     long getMaxCycles();
 
+    boolean isReady();
+
     boolean isLive();
 
     void settle();

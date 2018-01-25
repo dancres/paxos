@@ -29,6 +29,7 @@ class EnvironmentImpl implements Environment {
     private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
     private final AtomicLong _opCount = new AtomicLong(0);
     private final AtomicBoolean _isSettling = new AtomicBoolean(false);
+    private final AtomicBoolean _isReady = new AtomicBoolean(false);    
     private final NodeSet _nodeSet = new NodeSet();
 
     /**
@@ -82,6 +83,8 @@ class EnvironmentImpl implements Environment {
                 FDUtil.testFD(myN.getTransport().getFD(), 20000, 5);
             }
         }
+
+        _isReady.set(true);
     }
 
     private OrderedMemoryNetwork.Factory.Constructed addNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
@@ -105,6 +108,10 @@ class EnvironmentImpl implements Environment {
 
     public long getMaxCycles() {
         return _maxCycles;
+    }
+
+    public boolean isReady() {
+        return _isReady.get();
     }
 
     public boolean isLive() {
