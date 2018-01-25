@@ -24,4 +24,14 @@ public class FDUtil {
 
         return false;
     }
+
+    public static boolean testFD(FailureDetector anFD, long aTimeout, int aMin) throws Exception {
+        try {
+            if (anFD.barrier(aMin).get(aTimeout, TimeUnit.MILLISECONDS) != null)
+                return true;
+        } catch (TimeoutException aTE) {
+        }
+
+        return false;
+    }
 }
