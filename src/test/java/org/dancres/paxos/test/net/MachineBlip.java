@@ -22,10 +22,10 @@ import java.util.concurrent.atomic.AtomicReference;
     }
  */
 public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Context> {
-    private AtomicLong _deadCount = new AtomicLong(0);
+    private final AtomicLong _deadCount = new AtomicLong(0);
+    private final AtomicLong _graveIdGen = new AtomicLong(0);
 
-    static class Grave implements Permuter.Restoration<OrderedMemoryNetwork.Context> {
-        private static final AtomicLong _graveIdGen = new AtomicLong(0);
+    class Grave implements Permuter.Restoration<OrderedMemoryNetwork.Context> {
         private final AtomicReference<NodeAdmin.Memento> _dna = new AtomicReference<>(null);
         private final AtomicLong _deadCycles = new AtomicLong(0);
         private final long _id = _graveIdGen.incrementAndGet();
@@ -43,6 +43,8 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Co
 
             if (myDna != null)
                 anEnv.addNodeAdmin(myDna);
+
+            _deadCount.decrementAndGet();
         }
 
         public boolean tick(OrderedMemoryNetwork.Context aContext) {
