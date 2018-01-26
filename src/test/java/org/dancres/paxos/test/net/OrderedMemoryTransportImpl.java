@@ -30,30 +30,8 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     private final AtomicBoolean _dropTx = new AtomicBoolean((false));
 	private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
-    private final RoutingDecisions _decisions;
     private MessageBasedFailureDetector _fd;
     private Heartbeater _hb;
-
-    /**
-     * A RoutingDecisions instance determines whether a network action should take place.
-     * This is typically used for failure testing etc.
-     */
-    public interface RoutingDecisions {
-
-        /**
-         * Acceptable to send an unreliable packet?
-         *
-         * @return
-         */
-        boolean sendUnreliable(Packet aPacket);
-
-        /**
-         * Acceptable to receive a packet?
-         *
-         * @return
-         */
-        boolean receive(Packet aPacket);
-    }
 
     @Override
     public void filterRx(Filter aFilter) {
@@ -79,11 +57,10 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
      */
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
                                       OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD,
-                                      RoutingDecisions aDecisions, Environment anEnv) {
+                                      Environment anEnv) {
         _unicastAddr = aLocalAddr;
         _broadcastAddr = aBroadAddr;
         _parent = aParent;
-        _decisions = aDecisions;
         _pickler = new StandalonePickler(_unicastAddr);
         _fd = anFD;
 
@@ -91,20 +68,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
             _hb = _fd.newHeartbeater(this, _unicastAddr.toString().getBytes());
             _hb.start();
         }
-    }
-
-    public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
-                                      OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD,
-                                      Environment anEnv) {
-        this(aLocalAddr, aBroadAddr, aParent, anFD, new RoutingDecisions() {
-            public boolean sendUnreliable(Packet aPacket) {
-                return true;
-            }
-
-            public boolean receive(Packet aPacket) {
-                return true;
-            }
-        }, anEnv);
     }
 
     public PacketPickler getPickler() {
