@@ -172,7 +172,7 @@ public class ALOutOfDateTest {
     static class Listener implements org.dancres.paxos.Listener {
         private volatile boolean _receivedOOD = false;
 
-        public boolean didOOD() {
+        boolean didOOD() {
             return _receivedOOD;
         }
 

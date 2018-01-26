@@ -59,11 +59,11 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             assert(_ckptStorage.numFiles() == 1);
         }
 
-        public CheckpointStorage.ReadCheckpoint getLastCheckpoint() {
+        CheckpointStorage.ReadCheckpoint getLastCheckpoint() {
             return _ckptStorage.getLastCheckpoint();
         }
 
-        public long lastCheckpointTime() {
+        long lastCheckpointTime() {
             return _checkpointTime.get();
         }
     }

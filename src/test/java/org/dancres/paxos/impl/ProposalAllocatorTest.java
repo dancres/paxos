@@ -17,13 +17,13 @@ public class ProposalAllocatorTest {
         private AtomicInteger _inflightCount = new AtomicInteger();
         private AtomicInteger _allConcludedCount = new AtomicInteger();
 
-        public void inFlight() {
+        void inFlight() {
             int myCurrent = _inflightCount.incrementAndGet();
 
             Assert.assertTrue(myCurrent > _allConcludedCount.get());
         }
 
-        public void allConcluded() {
+        void allConcluded() {
             int myCurrent = _allConcludedCount.incrementAndGet();
 
             Assert.assertTrue(myCurrent == _inflightCount.get());

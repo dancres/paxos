@@ -2,6 +2,6 @@ package org.dancres.paxos.test.longterm;
 
 import org.dancres.paxos.LogStorage;
 
-public interface LogStorageFactory {
+interface LogStorageFactory {
     LogStorage getLogger();
 }

@@ -17,7 +17,7 @@ public class PacketDrop implements Permuter.Possibility<OrderedMemoryNetwork.Con
         private final OrderedMemoryTransportImpl _transport;
         private final Consumer<OrderedMemoryTransportImpl> _restorer;
 
-        public Interruption(OrderedMemoryTransportImpl aTransport,
+        Interruption(OrderedMemoryTransportImpl aTransport,
                             RandomGenerator aGen) {
             _transport = aTransport;
             _deadCycles = new AtomicLong(aGen.nextInt(16) + 20);

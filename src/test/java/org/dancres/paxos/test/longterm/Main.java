@@ -31,7 +31,7 @@ import java.nio.ByteBuffer;
  *
  * TODO Implement failure model (might affect design for OUT_OF_DATE handling).
  */
-public class Main {
+class Main {
     private static final Logger _logger = LoggerFactory.getLogger(Main.class);
 
     interface Args {
@@ -64,7 +64,7 @@ public class Main {
         _env = new EnvironmentImpl(aSeed, aCycles, doCalibrate, aCkptCycle, isMemory, allowFormation);
     }
 
-    long getSettleCycles() {
+    private long getSettleCycles() {
         return _env.getSettleCycles();
     }
 

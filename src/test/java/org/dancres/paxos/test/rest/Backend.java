@@ -218,11 +218,11 @@ public class Backend {
                 Utils.marshall(_serverAddr), myTxnLogger);
     }
 
-    String toHttp(byte[] aMarshalledAddress) throws Exception {
+    private String toHttp(byte[] aMarshalledAddress) throws Exception {
         return "http:/" + Utils.unmarshallInetSocketAddress(aMarshalledAddress).toString();
     }
     
-    InetSocketAddress toInetAddress(byte[] aMarshalledAddress) throws Exception {
+    private InetSocketAddress toInetAddress(byte[] aMarshalledAddress) throws Exception {
         return Utils.unmarshallInetSocketAddress(aMarshalledAddress);
     }
     
@@ -356,7 +356,7 @@ public class Backend {
         }
     }
     
-    void writeCheckpoint(CheckpointHandle aHandle) throws Exception {
+    private void writeCheckpoint(CheckpointHandle aHandle) throws Exception {
         WriteCheckpoint myCkpt = _storage.newCheckpoint();
 
         OutputStream myOutput = myCkpt.getStream();
