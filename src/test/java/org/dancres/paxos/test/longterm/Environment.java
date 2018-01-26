@@ -41,7 +41,5 @@ public interface Environment {
 
     long getDoneOps();
 
-    long getNextCkptOp();
-
     boolean isSettling();
 }

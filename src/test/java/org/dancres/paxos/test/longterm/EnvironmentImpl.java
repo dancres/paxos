@@ -172,10 +172,6 @@ class EnvironmentImpl implements Environment {
         _nodeSet.updateLeader(anAddr);
     }
 
-    public long getNextCkptOp() {
-        return _opCount.get() - _opsSinceCkpt.get() + _ckptCycle;
-    }
-
     public long getDoneOps() {
         return _opCount.get();
     }
