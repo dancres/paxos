@@ -149,7 +149,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 		    if (! _drop.compareAndSet(true, false))
 			    _parent.enqueue(aPacket, anAddr);
             else {
-                _logger.warn("OT [ " + getLocalAddress() + " ] dropped on txd: " + aPacket);
+                _logger.warn("!!!!!!! OT [ " + getLocalAddress() + " ] DROPPED ON TXD: " + aPacket + " !!!!!!!");
             }
 		} catch (Exception anE) {
 			_logger.error("Failed to write message", anE);
@@ -175,7 +175,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
                     d.packetReceived(aPacket);
             }
         } else {
-            _logger.warn("OT [ " + getLocalAddress() + " ] dropped on rxd: " + aPacket);
+            _logger.warn("!!!!!!! OT [ " + getLocalAddress() + " ] DROPPED ON RXD: " + aPacket + " !!!!!!!");
         }
     }
 

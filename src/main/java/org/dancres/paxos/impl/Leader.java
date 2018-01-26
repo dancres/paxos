@@ -372,7 +372,7 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
 
     private void expired() {
         synchronized(this) {
-            _logger.debug(toString() + " Watchdog requested abort: ");
+            _logger.debug(toString() + " Watchdog requested interrupt: ");
 
             switch (_stateMachine.getCurrentState()) {
                 case SUCCESS : {
