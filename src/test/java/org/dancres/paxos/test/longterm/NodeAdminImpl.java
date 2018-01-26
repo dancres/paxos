@@ -24,8 +24,8 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     private static final Logger _logger = LoggerFactory.getLogger(NodeAdminImpl.class);
 
     static class CheckpointHandling {
-        private CheckpointStorage _ckptStorage = new MemoryCheckpointStorage();
-        private AtomicLong _checkpointTime = new AtomicLong(0);
+        private final CheckpointStorage _ckptStorage = new MemoryCheckpointStorage();
+        private final AtomicLong _checkpointTime = new AtomicLong(0);
 
         boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt, ServerDispatcher aDispatcher) {
             try {
@@ -70,7 +70,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
 
 
     static class Config {
-        private LogStorageFactory _loggerFactory;
+        private final LogStorageFactory _loggerFactory;
 
         Config(LogStorageFactory aLoggerFactory) {
             _loggerFactory = aLoggerFactory;

@@ -45,7 +45,7 @@ public class PacketDrop implements Permuter.Possibility<OrderedMemoryNetwork.Con
         }
     }
 
-    private ConcurrentMap<InetSocketAddress, Interruption> _currentInterruptions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<InetSocketAddress, Interruption> _currentInterruptions = new ConcurrentHashMap<>();
 
     @Override
     public List<Permuter.Precondition<OrderedMemoryNetwork.Context>> getPreconditions() {

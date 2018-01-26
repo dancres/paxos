@@ -8,7 +8,7 @@ import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.messages.PaxosMessage;
 
 public class StandalonePickler implements Transport.PacketPickler {
-    private InetSocketAddress _source;
+    private final InetSocketAddress _source;
 
     public StandalonePickler(InetSocketAddress aSource) {
         _source = aSource;
@@ -44,8 +44,8 @@ public class StandalonePickler implements Transport.PacketPickler {
     }
 
     class PacketImpl implements Transport.Packet {
-        private PaxosMessage _msg;
-        private InetSocketAddress _source;
+        private final PaxosMessage _msg;
+        private final InetSocketAddress _source;
         
         PacketImpl(PaxosMessage aMsg, InetSocketAddress aSource) {
             _msg = aMsg;

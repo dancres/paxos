@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedMemoryTransport {
-	static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
+	static final Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
 
 	private final OrderedMemoryNetwork _parent;
 	private final PacketPickler _pickler;
@@ -30,7 +30,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     private final AtomicBoolean _dropTx = new AtomicBoolean((false));
 	private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
-    private MessageBasedFailureDetector _fd;
+    private final MessageBasedFailureDetector _fd;
     private Heartbeater _hb;
 
     @Override
