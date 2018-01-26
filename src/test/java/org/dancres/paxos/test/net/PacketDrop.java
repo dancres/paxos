@@ -29,7 +29,7 @@ public class PacketDrop implements Permuter.Possibility<OrderedMemoryNetwork.Con
             _restorer = _transport.getRestorers().get(myIndex);
         }
 
-        private void awaken(OrderedMemoryNetwork.Context aContext) {
+        private void awaken() {
             _restorer.accept(_transport);
             _currentInterruptions.remove(_transport.getLocalAddress());
         }
@@ -37,7 +37,7 @@ public class PacketDrop implements Permuter.Possibility<OrderedMemoryNetwork.Con
         @Override
         public boolean tick(OrderedMemoryNetwork.Context aContext) {
             if (_deadCycles.decrementAndGet() == 0) {
-                awaken(aContext);
+                awaken();
                 return true;
             }
 
