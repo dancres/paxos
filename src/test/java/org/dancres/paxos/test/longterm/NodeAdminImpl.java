@@ -97,7 +97,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
                   Environment anEnv) {
         _config = aConfig;
         _env = anEnv;
-        _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD, _env);
+        _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD);
 
         _dispatcher = new ServerDispatcher(_config._loggerFactory.getLogger(), this);
 

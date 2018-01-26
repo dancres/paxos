@@ -56,8 +56,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
      See the _decisions calls below for locations of that code.
      */
     public OrderedMemoryTransportImpl(InetSocketAddress aLocalAddr, InetSocketAddress aBroadAddr,
-                                      OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD,
-                                      Environment anEnv) {
+                                      OrderedMemoryNetwork aParent, MessageBasedFailureDetector anFD) {
         _unicastAddr = aLocalAddr;
         _broadcastAddr = aBroadAddr;
         _parent = aParent;

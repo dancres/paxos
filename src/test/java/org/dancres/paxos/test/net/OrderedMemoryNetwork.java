@@ -85,8 +85,7 @@ public class OrderedMemoryNetwork implements Runnable {
         public Constructed newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
                                                    OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD,
                                                    Object aContext) {
-            return new Constructed(new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD,
-                    _env), null);
+            return new Constructed(new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD), null);
         }
     }
 
