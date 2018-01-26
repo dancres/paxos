@@ -82,10 +82,7 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Co
             if ((! myAdmin.getTransport().getLocalAddress().equals(aContext._packet.getSource())) &&
                     (_deadCount.compareAndSet(0, 1))) {
 
-                int myRebirthTicks;
-
-                while ((myRebirthTicks = aGen.nextInt(500)) == 0);
-
+                int myRebirthTicks = aGen.nextInt(501) + 500;
                 NodeAdmin.Memento myMemento = myEnv.killSpecific(myAdmin);
 
                 if (myMemento != null) {
