@@ -5,9 +5,7 @@ import org.dancres.paxos.test.longterm.Environment;
 import org.dancres.paxos.test.longterm.NodeAdmin;
 import org.dancres.paxos.test.longterm.Permuter;
 
-import java.util.Deque;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,11 +22,11 @@ import java.util.concurrent.atomic.AtomicReference;
         }
     }
  */
-public class MachineBlip implements Permuter.Possibility<OrderedMemoryTransportImpl.Context> {
+public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Context> {
     private AtomicLong _deadCount = new AtomicLong(0);
     private AtomicBoolean _doneDead = new AtomicBoolean(false);
 
-    static class Grave implements Permuter.Restoration<OrderedMemoryTransportImpl.Context> {
+    static class Grave implements Permuter.Restoration<OrderedMemoryNetwork.Context> {
         private AtomicReference<NodeAdmin.Memento> _dna = new AtomicReference<>(null);
         private AtomicLong _deadCycles = new AtomicLong(0);
 
@@ -46,7 +44,7 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryTransportI
                 anEnv.addNodeAdmin(myDna);
         }
 
-        public boolean tick(OrderedMemoryTransportImpl.Context aContext) {
+        public boolean tick(OrderedMemoryNetwork.Context aContext) {
             if (_deadCycles.decrementAndGet() == 0) {
                 awaken(aContext._transport.getEnv());
 
@@ -58,7 +56,7 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryTransportI
     }
 
     @Override
-    public List<Permuter.Precondition<OrderedMemoryTransportImpl.Context>> getPreconditions() {
+    public List<Permuter.Precondition<OrderedMemoryNetwork.Context>> getPreconditions() {
         return List.of(c -> _deadCount.get() == 0,
                 c -> !c._transport.getEnv().isSettling(),
                 c -> c._transport.getEnv().isReady(),
@@ -71,7 +69,7 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryTransportI
     }
 
     @Override
-    public Permuter.Restoration<OrderedMemoryTransportImpl.Context> apply(OrderedMemoryTransportImpl.Context aContext, RandomGenerator aGen) {
+    public Permuter.Restoration<OrderedMemoryNetwork.Context> apply(OrderedMemoryNetwork.Context aContext, RandomGenerator aGen) {
         Environment myEnv = aContext._transport.getEnv();
 
         for (NodeAdmin myAdmin: myEnv.getKillableNodes()) {

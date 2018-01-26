@@ -4,6 +4,7 @@ import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 
 import org.dancres.paxos.test.longterm.Environment;
+import org.dancres.paxos.test.longterm.Permuter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,16 @@ public class OrderedMemoryNetwork implements Runnable {
 
     public interface OrderedMemoryTransport extends Transport {
         void distribute(Transport.Packet aPacket);
+    }
+
+    public static class Context {
+        final Transport.Packet _packet;
+        final OrderedMemoryTransportImpl _transport;
+
+        Context(Transport.Packet aPacket, OrderedMemoryTransportImpl aTransport) {
+            _packet = aPacket;
+            _transport = aTransport;
+        }
     }
 
     public interface Factory {
@@ -83,6 +94,7 @@ public class OrderedMemoryNetwork implements Runnable {
     private Map<InetSocketAddress, OrderedMemoryTransport> _transports =
             new ConcurrentHashMap<>();
     private final Environment _env;
+    private final Permuter<Context> _permuter;
 
     public OrderedMemoryNetwork(Environment anEnv) {
         _env = anEnv;
@@ -92,6 +104,12 @@ public class OrderedMemoryNetwork implements Runnable {
 
         myDispatcher.setDaemon(true);
         myDispatcher.start();
+
+        _permuter = new Permuter<>(_env.getRng().nextLong());
+
+        if (_env.isLive())
+            _permuter.add(new MachineBlip());
+        // _permuter.add(new PacketDrop()).add(new MachineBlip());
     }
 
     public void stop() {
@@ -120,6 +138,14 @@ public class OrderedMemoryNetwork implements Runnable {
                 _logger.error("Failed to dispatch queue", anE);
             }
         }
+    }
+
+    Environment getEnv() {
+        return _env;
+    }
+
+    Permuter<Context> getPermuter() {
+        return _permuter;
     }
 
     private void dispatch(PacketWrapper aPayload) {

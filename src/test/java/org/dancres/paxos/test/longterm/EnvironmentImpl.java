@@ -4,9 +4,7 @@ import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
-import org.dancres.paxos.test.net.MachineBlip;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
-import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 import org.dancres.paxos.test.net.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +31,6 @@ class EnvironmentImpl implements Environment {
     private final AtomicBoolean _isSettling = new AtomicBoolean(false);
     private final AtomicBoolean _isReady = new AtomicBoolean(false);    
     private final NodeSet _nodeSet = new NodeSet();
-    private final Permuter<OrderedMemoryTransportImpl.Context> _permuter;
 
     /**
      * @TODO The option for awaiting cluster formation needs to disable Permuter
@@ -52,12 +49,6 @@ class EnvironmentImpl implements Environment {
         _maxCycles = aCycles;
         _baseRng = new Random(aSeed);
         _factory = new OrderedMemoryNetwork(this);
-
-        _permuter = new Permuter<>(getRng().nextLong());
-
-        if (isLive())
-            _permuter.add(new MachineBlip());
-        // _permuter.add(new PacketDrop()).add(new MachineBlip());
 
         _nodeFactory = (InetSocketAddress aLocalAddr,
                 InetSocketAddress aBroadcastAddr,
@@ -133,10 +124,6 @@ class EnvironmentImpl implements Environment {
         return _isLive;
     }
 
-    public Permuter<OrderedMemoryTransportImpl.Context> getPermuter() {
-        return _permuter;
-    }
-    
     public Random getRng() {
         return _baseRng;
     }

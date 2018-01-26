@@ -1,7 +1,6 @@
 package org.dancres.paxos.test.longterm;
 
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
-import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 
 import java.net.InetSocketAddress;
 import java.util.Deque;
@@ -45,6 +44,4 @@ public interface Environment {
     long getNextCkptOp();
 
     boolean isSettling();
-
-    Permuter<OrderedMemoryTransportImpl.Context> getPermuter();
 }

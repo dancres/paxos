@@ -6,7 +6,6 @@ import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 
 import org.dancres.paxos.test.longterm.Environment;
-import org.dancres.paxos.test.longterm.Permuter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,16 +19,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedMemoryTransport {
 	static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
 
-	public static class Context {
-	    final Packet _packet;
-	    final OrderedMemoryTransportImpl _transport;
-
-	    Context(Packet aPacket, OrderedMemoryTransportImpl aTransport) {
-	        _packet = aPacket;
-	        _transport = aTransport;
-        }
-    }
-
 	private final OrderedMemoryNetwork _parent;
 	private final PacketPickler _pickler;
 	private final Set<Dispatcher> _dispatcher = new HashSet<>();
@@ -38,7 +27,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 	private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
     private final RoutingDecisions _decisions;
-    private final Environment _environment;
     private MessageBasedFailureDetector _fd;
     private Heartbeater _hb;
 
@@ -94,7 +82,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         _decisions = aDecisions;
         _pickler = new StandalonePickler(_unicastAddr);
         _fd = anFD;
-        _environment = anEnv;
 
         if (_fd != null) {
             _hb = _fd.newHeartbeater(this, _unicastAddr.toString().getBytes());
@@ -138,7 +125,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     Environment getEnv() {
-        return _environment;
+        return _parent.getEnv();
     }
 
     void setDrop() {
@@ -157,7 +144,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 		guard();
 		
 		try {
-		    _environment.getPermuter().tick(new Context(aPacket, this));
+		    _parent.getPermuter().tick(new OrderedMemoryNetwork.Context(aPacket, this));
 
 		    if (! _drop.compareAndSet(true, false))
 			    _parent.enqueue(aPacket, anAddr);
@@ -170,7 +157,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public void distribute(Transport.Packet aPacket) {
-        _environment.getPermuter().tick(new Context(aPacket, this));
+        _parent.getPermuter().tick(new OrderedMemoryNetwork.Context(aPacket, this));
 
         if (! _drop.compareAndSet(true, false)) {
             if ((_fd != null) && (_fd.accepts(aPacket))) {
@@ -222,6 +209,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public void settle() {
-        _environment.getPermuter().restoreOutstanding(new Context(null, this));
+        _parent.getPermuter().restoreOutstanding(new OrderedMemoryNetwork.Context(null, this));
     }
 }
