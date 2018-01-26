@@ -16,7 +16,7 @@ public class PermuterTest {
         }
 
         @Override
-        public int getChance() {
+        public double getChance() {
             throw new IllegalStateException("Should never happen");
         }
 
@@ -36,8 +36,8 @@ public class PermuterTest {
         }
 
         @Override
-        public int getChance() {
-            return 100;
+        public double getChance() {
+            return 100.0;
         }
 
         @Override
@@ -62,8 +62,8 @@ public class PermuterTest {
         }
 
         @Override
-        public int getChance() {
-            return 0;
+        public double getChance() {
+            return 0.0;
         }
 
         @Override
@@ -82,8 +82,8 @@ public class PermuterTest {
         }
 
         @Override
-        public int getChance() {
-            return 100;
+        public double getChance() {
+            return 100.0;
         }
 
         @Override

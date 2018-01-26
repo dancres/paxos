@@ -45,7 +45,7 @@ public class Permuter<Context> {
             List<Precondition<Context>> myPreconditions = myPoss.getPreconditions();
 
             if (myPreconditions.stream().allMatch(p -> p.isSatisfied(aContext)) &&
-                    (_rng.nextInt(100) < myPoss.getChance())) {
+                    ((_rng.nextDouble() * 100) < myPoss.getChance())) {
 
                 Restoration<Context> myRestoration = myPoss.apply(aContext, _rng);
 
@@ -65,7 +65,7 @@ public class Permuter<Context> {
     public interface Possibility<Context> {
         List<Precondition<Context>> getPreconditions();
 
-        int getChance();
+        double getChance();
 
         Restoration<Context> apply(Context aContext, RandomGenerator aGen);
     }
