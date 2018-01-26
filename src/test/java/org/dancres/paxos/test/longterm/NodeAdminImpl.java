@@ -70,16 +70,14 @@ class NodeAdminImpl implements NodeAdmin, Listener {
 
 
     static class Config {
-        private int _nodeNum;
         private LogStorageFactory _loggerFactory;
 
-        Config(int aNodeNum, LogStorageFactory aLoggerFactory) {
-            _nodeNum = aNodeNum;
+        Config(LogStorageFactory aLoggerFactory) {
             _loggerFactory = aLoggerFactory;
         }
 
         public String toString() {
-            return "Cfg -  NN: " + _nodeNum + ", ST: " + _loggerFactory.toString();
+            return "Cfg -  ST: " + _loggerFactory.toString();
         }
     }
 
@@ -161,7 +159,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             }
 
             public String toString() {
-                return "Memento: " + _cf + ", " + _ad;
+                return "Memento: " + _ad;
             }
         };
     }

@@ -80,7 +80,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
                 // No heartbeat since myMinTime means we assume dead
                 //
                 if (myTimeout < myMinTime) {
-                    _logger.debug("Dead node: " + myAddress);
+                    _logger.debug("!x!x!x!x!x DEAD NODE: " + myAddress + " !x!x!x!x!x");
 
                     myProcesses.remove();
                 }
@@ -183,7 +183,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
                 if (myLast == null) {
                     if (_lastHeartbeats.putIfAbsent(myNodeId,
                             new MetaDataImpl(System.currentTimeMillis(), myHeartbeat.getMetaData())) == null) {
-                        _logger.debug("Live node: " + myNodeId);
+                        _logger.debug("!x!x!x!x!x LIVE NODE: " + myNodeId + " !x!x!x!x!x");
 
                         break;
                     }
@@ -311,7 +311,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
         public boolean couldComplete() {
             if (_members.size() < _majority) {
-                _logger.warn("No majority: " + _members);
+                _logger.warn("!x!x!x!x!x No majority: " + _members + " !x!x!x!x!x");
             }
 
             return (_members.size() >= _majority);

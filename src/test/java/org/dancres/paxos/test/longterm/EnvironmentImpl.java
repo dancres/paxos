@@ -70,7 +70,7 @@ class EnvironmentImpl implements Environment {
                     new MemoryLoggerFactory();
 
             OrderedMemoryNetwork.Factory.Constructed myResult =
-                    addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(i, myFactory));
+                    addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(myFactory));
 
             myNodes.add((NodeAdmin) myResult.getAdditional());
         }
