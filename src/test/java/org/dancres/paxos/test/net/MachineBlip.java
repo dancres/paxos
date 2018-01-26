@@ -6,7 +6,6 @@ import org.dancres.paxos.test.longterm.NodeAdmin;
 import org.dancres.paxos.test.longterm.Permuter;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -24,11 +23,12 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Context> {
     private AtomicLong _deadCount = new AtomicLong(0);
-    private AtomicBoolean _doneDead = new AtomicBoolean(false);
 
     static class Grave implements Permuter.Restoration<OrderedMemoryNetwork.Context> {
-        private AtomicReference<NodeAdmin.Memento> _dna = new AtomicReference<>(null);
-        private AtomicLong _deadCycles = new AtomicLong(0);
+        private static final AtomicLong _graveIdGen = new AtomicLong(0);
+        private final AtomicReference<NodeAdmin.Memento> _dna = new AtomicReference<>(null);
+        private final AtomicLong _deadCycles = new AtomicLong(0);
+        private final long _id = _graveIdGen.incrementAndGet();
 
         Grave(NodeAdmin.Memento aDna, long aDeadCycles) {
             _dna.set(aDna);
@@ -36,7 +36,8 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Co
         }
 
         private void awaken(Environment anEnv) {
-            OrderedMemoryTransportImpl._logger.info("!!!!!!!! AWAKING FROM GRAVE: " + _dna.get());
+            OrderedMemoryTransportImpl._logger.info("!!!!!!!! AWAKING FROM GRAVE ID: " +
+                    _id + ", " + _dna.get() + " !!!!!!!!");
 
             NodeAdmin.Memento myDna = _dna.getAndSet(null);
 
@@ -53,14 +54,17 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Co
 
             return false;
         }
+
+        long getId() {
+            return _id;
+        }
     }
 
     @Override
     public List<Permuter.Precondition<OrderedMemoryNetwork.Context>> getPreconditions() {
         return List.of(c -> _deadCount.get() == 0,
                 c -> !c._transport.getEnv().isSettling(),
-                c -> c._transport.getEnv().isReady(),
-                c -> !_doneDead.get());
+                c -> c._transport.getEnv().isReady());
     }
 
     @Override
@@ -74,8 +78,7 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Co
 
         for (NodeAdmin myAdmin: myEnv.getKillableNodes()) {
             if ((! myAdmin.getTransport().getLocalAddress().equals(aContext._packet.getSource())) &&
-                    (_deadCount.compareAndSet(0, 1)) &&
-                    (_doneDead.compareAndSet(false, true))) {
+                    (_deadCount.compareAndSet(0, 1))) {
 
                 int myRebirthTicks;
 
@@ -84,10 +87,10 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Co
                 NodeAdmin.Memento myMemento = myEnv.killSpecific(myAdmin);
 
                 if (myMemento != null) {
-                    OrderedMemoryTransportImpl._logger.info("!!!!!!!! GRAVE DUG FOR " + myMemento + " with return after " + myRebirthTicks +
-                            " and we're " + (_deadCount.get()) + " nodes down");
                     Grave myGrave = new Grave(myMemento, myRebirthTicks);
-                    
+                    OrderedMemoryTransportImpl._logger.info("!!!!!!!! GRAVE ID: " + myGrave.getId() + " DUG FOR " + myMemento + " with return after " + myRebirthTicks +
+                            " (" + (_deadCount.get()) + " nodes down) !!!!!!!!");
+
                     return myGrave;
                 } else {
                     _deadCount.decrementAndGet();
