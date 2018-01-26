@@ -79,8 +79,8 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
             _acceptableTransitions = Map.of(State.INITIAL, new HashSet<>(List.of(State.SUBMITTED, State.SHUTDOWN)),
                     State.SUBMITTED, new HashSet<>(List.of(State.BEGIN, State.COLLECT, State.ABORT)),
                     State.COLLECT, new HashSet<>(List.of(State.BEGIN)),
-                    State.BEGIN, new HashSet<>(List.of(State.SUCCESS, State.ABORT)),
-                    State.SUCCESS, new HashSet<>(List.of(State.ABORT, State.EXIT)),
+                    State.BEGIN, new HashSet<>(List.of(State.VOTING, State.ABORT)),
+                    State.VOTING, new HashSet<>(List.of(State.ABORT, State.EXIT)),
                     State.EXIT, new HashSet<>(List.of(State.SHUTDOWN)),
                     State.ABORT, new HashSet<>(List.of(State.SHUTDOWN)),
                     State.SHUTDOWN, new HashSet<>());
@@ -255,12 +255,12 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
                 }
 
                 emit(new Begin(_seqNum, _rndNumber, _prop));
-                _stateMachine.transition(State.SUCCESS);
+                _stateMachine.transition(State.VOTING);
 
                 break;
             }
 
-            case SUCCESS : {
+            case VOTING: {
                 if (goneBad(aMessages))
                     return;
 
@@ -372,10 +372,10 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
 
     private void expired() {
         synchronized(this) {
-            _logger.debug(toString() + " Watchdog requested interrupt: ");
+            _logger.warn(toString() + " Watchdog requested interrupt: ");
 
             switch (_stateMachine.getCurrentState()) {
-                case SUCCESS : {
+                case VOTING: {
                     ++_tries;
 
                     if (_tries < MAX_TRIES) {

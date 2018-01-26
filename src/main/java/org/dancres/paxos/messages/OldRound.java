@@ -57,7 +57,7 @@ public class OldRound implements PaxosMessage, LeaderSelection {
     public boolean routeable(Instance anInstance) {
         return ((_lastRound >= anInstance.getRound()) &&
                 ((anInstance.getState().equals(Instance.State.BEGIN)) ||
-                 (anInstance.getState().equals(Instance.State.SUCCESS))));
+                 (anInstance.getState().equals(Instance.State.VOTING))));
     }
 
     public int hashCode() {

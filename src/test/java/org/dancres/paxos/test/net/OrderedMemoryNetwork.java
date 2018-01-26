@@ -108,7 +108,7 @@ public class OrderedMemoryNetwork implements Runnable {
         _permuter = new Permuter<>(_env.getRng().nextLong());
 
         if (_env.isLive())
-            _permuter.add(new MachineBlip());
+            _permuter.add(new PacketDrop());
         // _permuter.add(new PacketDrop()).add(new MachineBlip());
     }
 
