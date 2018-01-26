@@ -15,8 +15,6 @@ import org.slf4j.LoggerFactory;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -87,7 +85,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     private final CheckpointHandling _checkpointer = new CheckpointHandling();
     private final Environment _env;
     private final Config _config;
-    private final ConcurrentHashMap<String, Random> _rngs = new ConcurrentHashMap<>();
 
     NodeAdminImpl(InetSocketAddress aLocalAddr,
                   InetSocketAddress aBroadcastAddr,
@@ -111,21 +108,6 @@ class NodeAdminImpl implements NodeAdmin, Listener {
 
     public long getLastSeq() {
         return _dispatcher.getAcceptorLearner().getLastSeq();
-    }
-
-    public Random getRngByName(String aName) {
-        Random myRng = _rngs.get(aName);
-
-        if (myRng == null) {
-            myRng = new Random(_env.getRng().nextLong());
-
-            Random myTmpRng = _rngs.putIfAbsent(aName, myRng);
-
-            if (myTmpRng != null)
-                myRng = myTmpRng;
-        }
-
-        return myRng;
     }
 
     /*
