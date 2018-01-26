@@ -5,6 +5,7 @@ import org.dancres.paxos.impl.Heartbeater;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 
+import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.longterm.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,9 +13,11 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedMemoryTransport {
 	static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
@@ -23,7 +26,8 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 	private final PacketPickler _pickler;
 	private final Set<Dispatcher> _dispatcher = new HashSet<>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
-    private final AtomicBoolean _drop = new AtomicBoolean((false));
+    private final AtomicBoolean _dropRx = new AtomicBoolean((false));
+    private final AtomicBoolean _dropTx = new AtomicBoolean((false));
 	private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
     private final RoutingDecisions _decisions;
@@ -111,6 +115,26 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         return _fd;
     }
 
+    List<Consumer<OrderedMemoryTransportImpl>> getDroppers() {
+        return List.of(
+                (t) -> t._dropRx.set(true),
+                (t) -> t._dropTx.set(true),
+                (t) -> {
+                    t._dropRx.set(true);
+                    t._dropTx.set(true);
+                });
+    }
+
+    List<Consumer<OrderedMemoryTransportImpl>> getRestorers() {
+        return List.of(
+                (t) -> t._dropRx.set(false),
+                (t) -> t._dropTx.set(false),
+                (t) -> {
+                    t._dropRx.set(false);
+                    t._dropTx.set(false);
+                });
+    }
+
 	private void guard() {
 		if (_isStopping.get())
 			throw new IllegalStateException("Transport is stopped");
@@ -128,10 +152,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         return _parent.getEnv();
     }
 
-    void setDrop() {
-        _drop.set(true);
-    }
-
 	public InetSocketAddress getLocalAddress() {
 		return _unicastAddr;
 	}
@@ -146,7 +166,8 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 		try {
 		    _parent.getPermuter().tick(new OrderedMemoryNetwork.Context(aPacket, this));
 
-		    if (! _drop.compareAndSet(true, false))
+		    if ((aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT)) ||
+                    (! _dropTx.get()))
 			    _parent.enqueue(aPacket, anAddr);
             else {
                 _logger.warn("!!!!!!! OT [ " + getLocalAddress() + " ] DROPPED ON TXD: " + aPacket + " !!!!!!!");
@@ -159,7 +180,8 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     public void distribute(Transport.Packet aPacket) {
         _parent.getPermuter().tick(new OrderedMemoryNetwork.Context(aPacket, this));
 
-        if (! _drop.compareAndSet(true, false)) {
+        if ((aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT)) ||
+                ! _dropRx.get()) {
             if ((_fd != null) && (_fd.accepts(aPacket))) {
                 try {
                     _fd.processMessage(aPacket);

@@ -169,7 +169,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         _transport.settle();
     }
 
-    public OrderedMemoryNetwork.OrderedMemoryTransport getTransport() {
+    public OrderedMemoryTransportImpl getTransport() {
         return _transport;
     }
 

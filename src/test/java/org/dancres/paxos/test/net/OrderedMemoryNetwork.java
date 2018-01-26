@@ -10,6 +10,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import java.util.concurrent.TimeUnit;
@@ -38,15 +41,15 @@ public class OrderedMemoryNetwork implements Runnable {
 
     public interface Factory {
         class Constructed {
-            private final OrderedMemoryTransport _tp;
+            private final OrderedMemoryTransportImpl _tp;
             private final Object _add;
 
-            public Constructed(OrderedMemoryTransport aTransport, Object anAdditional) {
+            public Constructed(OrderedMemoryTransportImpl aTransport, Object anAdditional) {
                 _tp = aTransport;
                 _add = anAdditional;
             }
 
-            public OrderedMemoryTransport getTransport() {
+            public OrderedMemoryTransportImpl getTransport() {
                 return _tp;
             }
 
@@ -91,7 +94,7 @@ public class OrderedMemoryNetwork implements Runnable {
     private BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<>();
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
     private InetSocketAddress  _broadcastAddr;
-    private Map<InetSocketAddress, OrderedMemoryTransport> _transports =
+    private Map<InetSocketAddress, OrderedMemoryTransportImpl> _transports =
             new ConcurrentHashMap<>();
     private final Environment _env;
     private final Permuter<Context> _permuter;
@@ -145,6 +148,10 @@ public class OrderedMemoryNetwork implements Runnable {
 
     Permuter<Context> getPermuter() {
         return _permuter;
+    }
+
+    Map<InetSocketAddress, OrderedMemoryTransportImpl> getTransports() {
+        return new HashMap<>(_transports);
     }
 
     private void dispatch(PacketWrapper aPayload) {

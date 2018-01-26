@@ -2,6 +2,7 @@ package org.dancres.paxos.test.longterm;
 
 import org.dancres.paxos.CheckpointStorage;
 import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 
 import java.net.InetSocketAddress;
 import java.util.Random;
@@ -15,7 +16,7 @@ public interface NodeAdmin {
         InetSocketAddress getAddress();
     }
 
-    Transport getTransport();
+    OrderedMemoryTransportImpl getTransport();
     void checkpoint() throws Exception;
     CheckpointStorage.ReadCheckpoint getLastCheckpoint();
     long lastCheckpointTime();
