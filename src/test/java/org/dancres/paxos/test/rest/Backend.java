@@ -33,7 +33,6 @@ public class Backend {
     private static final Logger _logger = LoggerFactory.getLogger(Backend.class);
 
     private Paxos _paxos;
-    private HowlLogger _txnLogger;
     private CheckpointStorage _storage;
 
     private final AtomicLong _opCounter = new AtomicLong(0);
@@ -55,7 +54,7 @@ public class Backend {
     
     private void start(String aCheckpointDir) throws Exception {
         _storage = new DirectoryCheckpointStorage(new File(aCheckpointDir));
-        _txnLogger = new HowlLogger(aCheckpointDir);
+        HowlLogger myTxnLogger = new HowlLogger(aCheckpointDir);
         
         setPort(_serverAddr.getPort());
 
@@ -216,7 +215,7 @@ public class Backend {
         }
         
         _paxos = Paxos.init(_clusterSize, new ListenerImpl(), myHandle,
-                Utils.marshall(_serverAddr), _txnLogger);
+                Utils.marshall(_serverAddr), myTxnLogger);
     }
 
     String toHttp(byte[] aMarshalledAddress) throws Exception {
