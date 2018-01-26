@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedMemoryTransport {
 	static Logger _logger = LoggerFactory.getLogger(OrderedMemoryTransportImpl.class);
 
-	static class Context {
+	public static class Context {
 	    final Packet _packet;
 	    final OrderedMemoryTransportImpl _transport;
 
@@ -37,7 +37,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     private final AtomicBoolean _drop = new AtomicBoolean((false));
 	private final InetSocketAddress _unicastAddr;
     private final InetSocketAddress _broadcastAddr;
-    private final Permuter<Context> _permuter;
     private final RoutingDecisions _decisions;
     private final Environment _environment;
     private MessageBasedFailureDetector _fd;
@@ -96,10 +95,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         _pickler = new StandalonePickler(_unicastAddr);
         _fd = anFD;
         _environment = anEnv;
-        _permuter = new Permuter<>(anEnv.getRng().nextLong());
-
-        if (_environment.isLive())
-            _permuter.add(new PacketDrop()).add(new MachineBlip());
 
         if (_fd != null) {
             _hb = _fd.newHeartbeater(this, _unicastAddr.toString().getBytes());
@@ -162,7 +157,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 		guard();
 		
 		try {
-		    _permuter.tick(new Context(aPacket, this));
+		    _environment.getPermuter().tick(new Context(aPacket, this));
 
 		    if (! _drop.compareAndSet(true, false))
 			    _parent.enqueue(aPacket, anAddr);
@@ -175,7 +170,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public void distribute(Transport.Packet aPacket) {
-        _permuter.tick(new Context(aPacket, this));
+        _environment.getPermuter().tick(new Context(aPacket, this));
 
         if (! _drop.compareAndSet(true, false)) {
             if ((_fd != null) && (_fd.accepts(aPacket))) {
@@ -227,6 +222,6 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
     }
 
     public void settle() {
-        _permuter.restoreOutstanding(new Context(null, this));
+        _environment.getPermuter().restoreOutstanding(new Context(null, this));
     }
 }

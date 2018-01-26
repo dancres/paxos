@@ -6,7 +6,7 @@ import org.dancres.paxos.test.longterm.Permuter;
 
 import java.util.List;
 
-class PacketDrop implements Permuter.Possibility<OrderedMemoryTransportImpl.Context> {
+public class PacketDrop implements Permuter.Possibility<OrderedMemoryTransportImpl.Context> {
     @Override
     public List<Permuter.Precondition<OrderedMemoryTransportImpl.Context>> getPreconditions() {
         return List.of(c ->

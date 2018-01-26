@@ -45,4 +45,6 @@ public interface Environment {
     long getNextCkptOp();
 
     boolean isSettling();
+
+    Permuter<OrderedMemoryTransportImpl.Context> getPermuter();
 }
