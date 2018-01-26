@@ -7,6 +7,17 @@ import org.apache.commons.math3.random.Well44497b;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * <p>Intended use is to construct the Permuter, add <b>ALL</b> possibilities and then apply ticks.
+ * If various possibilities are to be activated only at particular moments do this via additional
+ * <code>Preconditions</code>.</p>
+ *
+ * <p>With the above in mind, <code>add</code> is <b>NOT</b> thread-safe whilst
+ * <code>tick</code> <b>IS</b>.</p>
+ * 
+ * @param <Context> - information that might be required for operation of <code>Restoration</code>
+ *                 and <code>Possibility</code> implementations.
+ */
 public class Permuter<Context> {
     private final RandomGenerator _rng;
     private final List<Restoration<Context>> _outstandingRestorations = new LinkedList<>();
@@ -26,7 +37,9 @@ public class Permuter<Context> {
     }
 
     public void tick(Context aContext) {
-        _outstandingRestorations.removeIf(r -> r.tick(aContext));
+        synchronized (_outstandingRestorations) {
+            _outstandingRestorations.removeIf(r -> r.tick(aContext));
+        }
 
         for (Possibility<Context> myPoss : _possibilities) {
             List<Precondition<Context>> myPreconditions = myPoss.getPreconditions();
@@ -34,13 +47,19 @@ public class Permuter<Context> {
             if (myPreconditions.stream().allMatch(p -> p.isSatisfied(aContext)) &&
                     (_rng.nextInt(100) < myPoss.getChance())) {
 
-                _outstandingRestorations.add(myPoss.apply(aContext, _rng));
+                Restoration<Context> myRestoration = myPoss.apply(aContext, _rng);
+
+                synchronized (_outstandingRestorations) {
+                    _outstandingRestorations.add(myRestoration);
+                }
             }
         }
     }
 
     public int numOutstanding() {
-        return _outstandingRestorations.size();
+        synchronized (_outstandingRestorations) {
+            return _outstandingRestorations.size();
+        }
     }
 
     public interface Possibility<Context> {
@@ -52,8 +71,10 @@ public class Permuter<Context> {
     }
 
     public void restoreOutstanding(Context aContext) {
-        while(_outstandingRestorations.size() > 0)
-            _outstandingRestorations.removeIf(r -> r.tick(aContext));
+        synchronized (this) {
+            while (_outstandingRestorations.size() > 0)
+                _outstandingRestorations.removeIf(r -> r.tick(aContext));
+        }
     }
 
     public interface Restoration<Context> {
