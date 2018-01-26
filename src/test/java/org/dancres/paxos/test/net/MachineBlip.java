@@ -70,8 +70,8 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Co
     }
 
     @Override
-    public int getChance() {
-        return 1;
+    public double getChance() {
+        return 0.5;
     }
 
     @Override

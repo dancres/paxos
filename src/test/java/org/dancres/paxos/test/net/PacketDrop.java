@@ -16,8 +16,8 @@ public class PacketDrop implements Permuter.Possibility<OrderedMemoryNetwork.Con
     }
 
     @Override
-    public int getChance() {
-        return 2;
+    public double getChance() {
+        return 1.0;
     }
 
     @Override
