@@ -69,10 +69,7 @@ class EnvironmentImpl implements Environment {
             LogStorageFactory myFactory = (! inMemory) ? new HowlLoggerFactory(BASEDIR, i) :
                     new MemoryLoggerFactory();
 
-            OrderedMemoryNetwork.Factory.Constructed myResult =
-                    newNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(myFactory));
-
-            myNodes.add((NodeAdmin) myResult.getAdditional());
+            myNodes.add((NodeAdmin) newNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(myFactory)).getAdditional());
         }
 
         _nodeSet.init(myNodes);
