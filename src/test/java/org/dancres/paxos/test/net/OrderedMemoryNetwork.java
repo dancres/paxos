@@ -39,7 +39,8 @@ public class OrderedMemoryNetwork implements Runnable {
     }
 
     public interface TransportIntegrator extends
-            BiFunction<OrderedMemoryTransportImpl, Object, Constructed>;
+            BiFunction<OrderedMemoryTransportImpl, Object, Constructed> {
+    }
     
     public static class Constructed {
         private final OrderedMemoryTransportImpl _tp;
