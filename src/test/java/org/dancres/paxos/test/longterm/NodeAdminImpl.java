@@ -185,7 +185,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             case OUT_OF_DATE : {
                 // Seek an instant resolution and if it fails, flag it for later recovery
                 //
-                if (! _env.makeCurrent(this))
+                if (! _env.getNodes().makeCurrent(this))
                     _outOfDate.set(true);
 
                 break;

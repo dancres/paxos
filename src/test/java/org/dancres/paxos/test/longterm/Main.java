@@ -100,7 +100,7 @@ class Main {
             if (! (mySuccesses > myProgressTarget))
                 throw new Exception("Failed to settle successfully");
 
-            if (! _env.validate())
+            if (! _env.getNodes().validate())
                 throw new IllegalStateException("Paxos is not consistent");
         }
     }
@@ -128,7 +128,7 @@ class Main {
             VoteOutcome myEv = aClient.getNext(10000);
 
             if (myEv.getResult() == VoteOutcome.Reason.OTHER_LEADER) {
-                _env.updateLeader(myEv.getLeader());
+                _env.getNodes().updateLeader(myEv.getLeader());
             } else if (myEv.getResult() == VoteOutcome.Reason.VALUE) {
                 mySuccessCount++;
             }

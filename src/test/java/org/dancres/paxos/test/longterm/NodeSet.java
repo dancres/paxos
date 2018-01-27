@@ -10,7 +10,7 @@ import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
-class NodeSet {
+public class NodeSet {
     private final Deque<NodeAdmin> _nodes = new ConcurrentLinkedDeque<>();
     private NodeAdmin _currentLeader;
 
@@ -29,7 +29,7 @@ class NodeSet {
     /**
      * TODO: Allow killing of current leader
      */
-    Deque<NodeAdmin> getKillableNodes() {
+    public Deque<NodeAdmin> getKillableNodes() {
         Deque<NodeAdmin> myNodes = new LinkedList<>(_nodes);
         myNodes.remove(_currentLeader);
 
@@ -65,7 +65,7 @@ class NodeSet {
         return _currentLeader;
     }
 
-    NodeAdmin.Memento terminate(NodeAdmin anAdmin) {
+    public NodeAdmin.Memento terminate(NodeAdmin anAdmin) {
         _nodes.remove(anAdmin);
         return anAdmin.terminate();
     }

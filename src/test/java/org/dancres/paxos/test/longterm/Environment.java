@@ -2,18 +2,10 @@ package org.dancres.paxos.test.longterm;
 
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
 
-import java.net.InetSocketAddress;
-import java.util.Deque;
 import java.util.Random;
 
 public interface Environment {
     Random getRng();
-
-    Deque<NodeAdmin> getKillableNodes();
-
-    NodeAdmin.Memento killSpecific(NodeAdmin anAdmin);
-
-    boolean makeCurrent(NodeAdmin anAdmin);
 
     void addNodeAdmin(NodeAdmin.Memento aMemento);
 
@@ -31,11 +23,9 @@ public interface Environment {
 
     void terminate();
 
-    boolean validate();
+    NodeSet getNodes();
 
     NodeAdmin getCurrentLeader();
-
-    void updateLeader(InetSocketAddress anAddress);
 
     void doneOp();
 

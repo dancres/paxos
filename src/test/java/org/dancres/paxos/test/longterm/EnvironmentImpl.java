@@ -121,19 +121,12 @@ class EnvironmentImpl implements Environment {
         return _isLive;
     }
 
+    public NodeSet getNodes() {
+        return _nodeSet;
+    }
+
     public Random getRng() {
         return _baseRng;
-    }
-
-    /**
-     * TODO: Allow killing of current leader
-     */
-    public Deque<NodeAdmin> getKillableNodes() {
-        return _nodeSet.getKillableNodes();
-    }
-
-    public boolean validate() {
-        return _nodeSet.validate();
     }
 
     public NodeAdmin getCurrentLeader() {
@@ -150,23 +143,9 @@ class EnvironmentImpl implements Environment {
         stabilise();
     }
 
-    public NodeAdmin.Memento killSpecific(NodeAdmin anAdmin) {
-        _logger.info("Killing: " + anAdmin);
-
-        return _nodeSet.terminate(anAdmin);
-    }
-
     public void terminate() {
         _nodeSet.shutdown();
         _factory.stop();
-    }
-
-    public boolean makeCurrent(NodeAdmin anAdmin) {
-        return _nodeSet.makeCurrent(anAdmin);
-    }
-    
-    public void updateLeader(InetSocketAddress anAddr) {
-        _nodeSet.updateLeader(anAddr);
     }
 
     public long getDoneOps() {

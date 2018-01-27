@@ -78,12 +78,12 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Co
     public Permuter.Restoration<OrderedMemoryNetwork.Context> apply(OrderedMemoryNetwork.Context aContext, RandomGenerator aGen) {
         Environment myEnv = aContext._transport.getEnv();
 
-        for (NodeAdmin myAdmin: myEnv.getKillableNodes()) {
+        for (NodeAdmin myAdmin: myEnv.getNodes().getKillableNodes()) {
             if ((! myAdmin.getTransport().getLocalAddress().equals(aContext._packet.getSource())) &&
                     (_deadCount.compareAndSet(0, 1))) {
 
                 int myRebirthTicks = aGen.nextInt(501) + 500;
-                NodeAdmin.Memento myMemento = myEnv.killSpecific(myAdmin);
+                NodeAdmin.Memento myMemento = myEnv.getNodes().terminate(myAdmin);
 
                 if (myMemento != null) {
                     Grave myGrave = new Grave(myMemento, myRebirthTicks);
