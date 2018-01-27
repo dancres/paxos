@@ -38,32 +38,25 @@ public class OrderedMemoryNetwork implements Runnable {
         }
     }
 
-    /**
-     * @todo This is a TransportConsumer (maybe a function.Producer?) that takes a transport, does some stuff and returns
-     * a result which will be embedded in the Constructed as the _add
-     */
-    public interface TransportFactory {
-        class Constructed {
-            private final OrderedMemoryTransportImpl _tp;
-            private final Object _add;
+    public interface TransportIntegrator extends
+            BiFunction<OrderedMemoryTransportImpl, Object, Constructed>;
+    
+    public static class Constructed {
+        private final OrderedMemoryTransportImpl _tp;
+        private final Object _add;
 
-            public Constructed(OrderedMemoryTransportImpl aTransport, Object anAdditional) {
-                _tp = aTransport;
-                _add = anAdditional;
-            }
-
-            public OrderedMemoryTransportImpl getTransport() {
-                return _tp;
-            }
-
-            public Object getAdditional() {
-                return _add;
-            }
+        public Constructed(OrderedMemoryTransportImpl aTransport, Object anAdditional) {
+            _tp = aTransport;
+            _add = anAdditional;
         }
 
-        Constructed newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
-                                 OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD,
-                                 Object aContext);
+        public OrderedMemoryTransportImpl getTransport() {
+            return _tp;
+        }
+
+        public Object getAdditional() {
+            return _add;
+        }
     }
 
     private class PacketWrapper {
@@ -156,13 +149,13 @@ public class OrderedMemoryNetwork implements Runnable {
             _logger.warn("Couldn't distribute packet to target: " + aPayload.getTarget());
     }
 
-    public TransportFactory.Constructed newTransport(BiFunction<OrderedMemoryTransportImpl, Object, TransportFactory.Constructed> aFunction,
+    public Constructed newTransport(TransportIntegrator aFunction,
                                                      MessageBasedFailureDetector anFD, InetSocketAddress anAddr,
                                                      Object aContext) {
         OrderedMemoryTransportImpl myTransport =
                 new OrderedMemoryTransportImpl(anAddr, _broadcastAddr, this, anFD);
 
-        TransportFactory.Constructed myResult = aFunction.apply(myTransport, aContext);
+        Constructed myResult = aFunction.apply(myTransport, aContext);
 
         _transports.put(anAddr, myResult.getTransport());
 

@@ -75,7 +75,7 @@ class Main {
         long mySuccesses = 0;
 
         ClientDispatcher myClient = new ClientDispatcher();
-        OrderedMemoryNetwork.TransportFactory.Constructed myResult =
+        OrderedMemoryNetwork.Constructed myResult =
                 _env.getFactory().newTransport((t, o) -> {
                     try {
                         myClient.init(t);
@@ -83,7 +83,7 @@ class Main {
                         _logger.warn("Couldn't init ClientDispatcher", aT);
                     }
 
-                    return new OrderedMemoryNetwork.TransportFactory.Constructed(t, myClient);
+                    return new OrderedMemoryNetwork.Constructed(t, myClient);
                 }, null, Utils.getTestAddress(), null);
 
         cycle(myClient, _env.getMaxCycles());

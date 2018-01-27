@@ -4,7 +4,6 @@ import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
-import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 import org.dancres.paxos.test.net.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +14,6 @@ import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiFunction;
 
 class EnvironmentImpl implements Environment {
     private static final Logger _logger = LoggerFactory.getLogger(Main.class);
@@ -26,7 +24,7 @@ class EnvironmentImpl implements Environment {
     private final long _ckptCycle;
     private final Random _baseRng;
     private final OrderedMemoryNetwork _transportFactory;
-    private final BiFunction<OrderedMemoryTransportImpl, Object, OrderedMemoryNetwork.TransportFactory.Constructed> _nodeFactory;
+    private final OrderedMemoryNetwork.TransportIntegrator _nodeFactory;
     private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
     private final AtomicLong _opCount = new AtomicLong(0);
     private final AtomicBoolean _isSettling = new AtomicBoolean(false);
@@ -54,7 +52,7 @@ class EnvironmentImpl implements Environment {
         _nodeFactory = (t, o) -> {
                     NodeAdminImpl myNode = new NodeAdminImpl(t, (NodeAdminImpl.Config) o, EnvironmentImpl.this);
 
-                    return new OrderedMemoryNetwork.TransportFactory.Constructed(t, myNode);
+                    return new OrderedMemoryNetwork.Constructed(t, myNode);
                 };
 
         Deque<NodeAdmin> myNodes = new LinkedList<>();
@@ -81,13 +79,13 @@ class EnvironmentImpl implements Environment {
         _isReady.set(true);
     }
 
-    private OrderedMemoryNetwork.TransportFactory.Constructed newNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
+    private OrderedMemoryNetwork.Constructed newNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
         return _transportFactory.newTransport(_nodeFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
                 anAddress, aConfig);
     }
 
     public void addNodeAdmin(NodeAdmin.Memento aMemento) {
-        OrderedMemoryNetwork.TransportFactory.Constructed myResult =
+        OrderedMemoryNetwork.Constructed myResult =
                 newNodeAdmin(aMemento.getAddress(), (NodeAdminImpl.Config) aMemento.getContext());
         _nodeSet.install((NodeAdmin) myResult.getAdditional());
     }
