@@ -13,21 +13,11 @@ public interface Environment {
 
     OrderedMemoryNetwork getFactory();
 
-    long getMaxCycles();
-
     boolean isReady();
 
     boolean isLive();
 
-    void settle();
-
-    void shutdown();
-
     NodeSet getNodes();
-
-    void doneOp();
-
-    long getDoneOps();
 
     boolean isSettling();
 }

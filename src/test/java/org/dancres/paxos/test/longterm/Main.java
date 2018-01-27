@@ -57,7 +57,7 @@ class Main {
         boolean isAllowformation();
     }
 
-    private final Environment _env;
+    private final EnvironmentImpl _env;
 
     private Main(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
                  boolean isMemory, boolean allowFormation) throws Exception {

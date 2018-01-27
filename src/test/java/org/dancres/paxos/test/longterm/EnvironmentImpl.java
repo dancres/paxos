@@ -70,7 +70,7 @@ class EnvironmentImpl implements Environment {
                     new MemoryLoggerFactory();
 
             OrderedMemoryNetwork.Factory.Constructed myResult =
-                    addNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(myFactory));
+                    newNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(myFactory));
 
             myNodes.add((NodeAdmin) myResult.getAdditional());
         }
@@ -90,14 +90,14 @@ class EnvironmentImpl implements Environment {
         _isReady.set(true);
     }
 
-    private OrderedMemoryNetwork.Factory.Constructed addNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
+    private OrderedMemoryNetwork.Factory.Constructed newNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
         return _factory.newTransport(_nodeFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
                 anAddress, aConfig);
     }
 
     public void addNodeAdmin(NodeAdmin.Memento aMemento) {
         OrderedMemoryNetwork.Factory.Constructed myResult =
-                addNodeAdmin(aMemento.getAddress(), (NodeAdminImpl.Config) aMemento.getContext());
+                newNodeAdmin(aMemento.getAddress(), (NodeAdminImpl.Config) aMemento.getContext());
         _nodeSet.install((NodeAdmin) myResult.getAdditional());
     }
 
@@ -109,7 +109,7 @@ class EnvironmentImpl implements Environment {
         return _factory;
     }
 
-    public long getMaxCycles() {
+    long getMaxCycles() {
         return _maxCycles;
     }
 
@@ -133,22 +133,22 @@ class EnvironmentImpl implements Environment {
         return _isSettling.get();
     }
 
-    public void settle() {
+    void settle() {
         _isSettling.set(true);
         _nodeSet.settle();
         stabilise();
     }
 
-    public void shutdown() {
+    void shutdown() {
         _nodeSet.shutdown();
         _factory.stop();
     }
 
-    public long getDoneOps() {
+    long getDoneOps() {
         return _opCount.get();
     }
 
-    public void doneOp() {
+    void doneOp() {
         _opCount.incrementAndGet();
 
         long myCount = _opsSinceCkpt.incrementAndGet();
