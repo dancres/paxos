@@ -117,7 +117,7 @@ class EnvironmentImpl implements Environment {
         return _isReady.get();
     }
 
-    public boolean isLive() {
+    public boolean isSimulating() {
         return _isLive;
     }
 

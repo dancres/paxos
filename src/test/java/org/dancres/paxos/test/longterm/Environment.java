@@ -15,7 +15,7 @@ public interface Environment {
 
     boolean isReady();
 
-    boolean isLive();
+    boolean isSimulating();
 
     NodeSet getNodes();
 

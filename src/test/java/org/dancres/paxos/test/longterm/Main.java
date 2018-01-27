@@ -81,7 +81,7 @@ class Main {
 
         cycle(myClient, _env.getMaxCycles());
 
-        if (_env.isLive()) {
+        if (_env.isSimulating()) {
             _logger.info("********** Transition to Settling **********");
 
             _env.settle();
@@ -93,7 +93,7 @@ class Main {
 
         _env.shutdown();
 
-        if (_env.isLive()) {
+        if (_env.isSimulating()) {
             _logger.info("Required success cycles in settle was " + myProgressTarget +
                     " actual was " + mySuccesses);
 
