@@ -24,7 +24,7 @@ class EnvironmentImpl implements Environment {
     private final long _maxCycles;
     private final long _ckptCycle;
     private final Random _baseRng;
-    private final OrderedMemoryNetwork _factory;
+    private final OrderedMemoryNetwork _transportFactory;
     private final OrderedMemoryNetwork.Factory _nodeFactory;
     private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
     private final AtomicLong _opCount = new AtomicLong(0);
@@ -48,7 +48,7 @@ class EnvironmentImpl implements Environment {
         _isLive = ! doCalibrate;
         _maxCycles = aCycles;
         _baseRng = new Random(aSeed);
-        _factory = new OrderedMemoryNetwork(this);
+        _transportFactory = new OrderedMemoryNetwork(this);
 
         _nodeFactory = (InetSocketAddress aLocalAddr,
                 InetSocketAddress aBroadcastAddr,
@@ -91,7 +91,7 @@ class EnvironmentImpl implements Environment {
     }
 
     private OrderedMemoryNetwork.Factory.Constructed newNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
-        return _factory.newTransport(_nodeFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
+        return _transportFactory.newTransport(_nodeFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
                 anAddress, aConfig);
     }
 
@@ -106,7 +106,7 @@ class EnvironmentImpl implements Environment {
     }
 
     public OrderedMemoryNetwork getFactory() {
-        return _factory;
+        return _transportFactory;
     }
 
     long getMaxCycles() {
@@ -141,7 +141,7 @@ class EnvironmentImpl implements Environment {
 
     void shutdown() {
         _nodeSet.shutdown();
-        _factory.stop();
+        _transportFactory.stop();
     }
 
     long getDoneOps() {
