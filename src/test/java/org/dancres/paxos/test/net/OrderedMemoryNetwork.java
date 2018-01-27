@@ -19,6 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 
 public class OrderedMemoryNetwork implements Runnable {
     private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryNetwork.class);
@@ -37,6 +38,10 @@ public class OrderedMemoryNetwork implements Runnable {
         }
     }
 
+    /**
+     * @todo This is a TransportConsumer (maybe a function.Producer?) that takes a transport, does some stuff and returns
+     * a result which will be embedded in the Constructed as the _add
+     */
     public interface TransportFactory {
         class Constructed {
             private final OrderedMemoryTransportImpl _tp;
@@ -151,10 +156,13 @@ public class OrderedMemoryNetwork implements Runnable {
             _logger.warn("Couldn't distribute packet to target: " + aPayload.getTarget());
     }
 
-    public TransportFactory.Constructed newTransport(TransportFactory aFactory, MessageBasedFailureDetector anFD, InetSocketAddress anAddr,
+    public TransportFactory.Constructed newTransport(BiFunction<OrderedMemoryTransportImpl, Object, TransportFactory.Constructed> aFunction,
+                                                     MessageBasedFailureDetector anFD, InetSocketAddress anAddr,
                                                      Object aContext) {
-        TransportFactory.Constructed myResult =
-                aFactory.newTransport(anAddr, _broadcastAddr, this, anFD, aContext);
+        OrderedMemoryTransportImpl myTransport =
+                new OrderedMemoryTransportImpl(anAddr, _broadcastAddr, this, anFD);
+
+        TransportFactory.Constructed myResult = aFunction.apply(myTransport, aContext);
 
         _transports.put(anAddr, myResult.getTransport());
 

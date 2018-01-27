@@ -1,10 +1,10 @@
 package org.dancres.paxos.test.longterm;
 
 import org.dancres.paxos.impl.FailureDetector;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
+import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 import org.dancres.paxos.test.net.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
 
 class EnvironmentImpl implements Environment {
     private static final Logger _logger = LoggerFactory.getLogger(Main.class);
@@ -25,7 +26,7 @@ class EnvironmentImpl implements Environment {
     private final long _ckptCycle;
     private final Random _baseRng;
     private final OrderedMemoryNetwork _transportFactory;
-    private final OrderedMemoryNetwork.TransportFactory _nodeFactory;
+    private final BiFunction<OrderedMemoryTransportImpl, Object, OrderedMemoryNetwork.TransportFactory.Constructed> _nodeFactory;
     private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
     private final AtomicLong _opCount = new AtomicLong(0);
     private final AtomicBoolean _isSettling = new AtomicBoolean(false);
@@ -50,18 +51,11 @@ class EnvironmentImpl implements Environment {
         _baseRng = new Random(aSeed);
         _transportFactory = new OrderedMemoryNetwork(this);
 
-        _nodeFactory = (InetSocketAddress aLocalAddr,
-                InetSocketAddress aBroadcastAddr,
-                OrderedMemoryNetwork aNetwork,
-                MessageBasedFailureDetector anFD,
-                Object aContext) -> {
+        _nodeFactory = (t, o) -> {
+                    NodeAdminImpl myNode = new NodeAdminImpl(t, (NodeAdminImpl.Config) o, EnvironmentImpl.this);
 
-            NodeAdminImpl myNode = new NodeAdminImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD,
-                    (NodeAdminImpl.Config) aContext,
-                    EnvironmentImpl.this);
-
-            return new OrderedMemoryNetwork.TransportFactory.Constructed(myNode.getTransport(), myNode);
-        };
+                    return new OrderedMemoryNetwork.TransportFactory.Constructed(t, myNode);
+                };
 
         Deque<NodeAdmin> myNodes = new LinkedList<>();
 

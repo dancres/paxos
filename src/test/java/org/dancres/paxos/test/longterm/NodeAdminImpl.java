@@ -4,8 +4,6 @@ import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.CheckpointStorage;
 import org.dancres.paxos.Listener;
 import org.dancres.paxos.StateEvent;
-import org.dancres.paxos.impl.MessageBasedFailureDetector;
-import org.dancres.paxos.test.net.OrderedMemoryNetwork;
 import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
@@ -65,8 +63,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             return _checkpointTime.get();
         }
     }
-
-
+    
     static class Config {
         private final LogStorageFactory _loggerFactory;
 
@@ -86,15 +83,12 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     private final Environment _env;
     private final Config _config;
 
-    NodeAdminImpl(InetSocketAddress aLocalAddr,
-                  InetSocketAddress aBroadcastAddr,
-                  OrderedMemoryNetwork aNetwork,
-                  MessageBasedFailureDetector anFD,
+    NodeAdminImpl(OrderedMemoryTransportImpl aTransport,
                   Config aConfig,
                   Environment anEnv) {
         _config = aConfig;
         _env = anEnv;
-        _transport = new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD);
+        _transport = aTransport;
 
         _dispatcher = new ServerDispatcher(_config._loggerFactory.getLogger(), this);
 
