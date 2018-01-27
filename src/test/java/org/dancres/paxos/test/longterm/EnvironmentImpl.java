@@ -139,7 +139,7 @@ class EnvironmentImpl implements Environment {
         stabilise();
     }
 
-    public void terminate() {
+    public void shutdown() {
         _nodeSet.shutdown();
         _factory.stop();
     }

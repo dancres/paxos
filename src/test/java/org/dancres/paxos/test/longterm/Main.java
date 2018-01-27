@@ -91,7 +91,7 @@ class Main {
 
         myResult.getTransport().terminate();
 
-        _env.terminate();
+        _env.shutdown();
 
         if (_env.isLive()) {
             _logger.info("Required success cycles in settle was " + myProgressTarget +

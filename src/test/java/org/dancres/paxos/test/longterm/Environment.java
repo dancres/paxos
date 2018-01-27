@@ -21,7 +21,7 @@ public interface Environment {
 
     void settle();
 
-    void terminate();
+    void shutdown();
 
     NodeSet getNodes();
 
