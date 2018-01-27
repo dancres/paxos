@@ -9,8 +9,6 @@ public interface Environment {
 
     void addNodeAdmin(NodeAdmin.Memento aMemento);
 
-    long getSettleCycles();
-
     OrderedMemoryNetwork getFactory();
 
     boolean isReady();

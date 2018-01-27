@@ -11,7 +11,7 @@ public class FDUtil {
         testFD(anFD);
     }
 
-    public static void testFD(FailureDetector anFD) throws Exception {
+    private static void testFD(FailureDetector anFD) throws Exception {
         Assert.assertTrue("Membership not achieved", testFD(anFD, 20000));
     }
 

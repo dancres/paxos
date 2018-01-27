@@ -42,9 +42,8 @@ public interface Transport {
      * Requests the transport route packets to a dispatcher.
      *
      * @param aDispatcher
-     * @throws Exception
      */
-    void routeTo(Dispatcher aDispatcher) throws Exception;
+    void routeTo(Dispatcher aDispatcher);
 
 	InetSocketAddress getLocalAddress();
 

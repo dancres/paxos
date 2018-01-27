@@ -42,7 +42,7 @@ class EnvironmentImpl implements Environment {
      * @throws Exception
      */
     EnvironmentImpl(long aSeed, long aCycles, boolean doCalibrate, long aCkptCycle,
-                    boolean inMemory, boolean allowClusterFormation) throws Exception {
+                    boolean inMemory, boolean allowClusterFormation) {
         _ckptCycle = aCkptCycle;
         _isLive = ! doCalibrate;
         _maxCycles = aCycles;
