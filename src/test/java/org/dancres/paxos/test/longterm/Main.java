@@ -4,12 +4,14 @@ import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.Option;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.test.net.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 /**
@@ -76,7 +78,14 @@ class Main {
 
         ClientDispatcher myClient = new ClientDispatcher();
         OrderedMemoryNetwork.TransportFactory.Constructed myResult =
-                _env.getFactory().newTransport(new OrderedMemoryNetwork.DefaultFactory(), null, Utils.getTestAddress(), null);
+                _env.getFactory().newTransport((InetSocketAddress aLocalAddr,
+                                                InetSocketAddress aBroadcastAddr,
+                                                OrderedMemoryNetwork aNetwork,
+                                                MessageBasedFailureDetector anFD,
+                                                Object aContext) ->
+                                new OrderedMemoryNetwork.TransportFactory.Constructed(
+                                        new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD), null),
+                null, Utils.getTestAddress(), null);
         myClient.init(myResult.getTransport());
 
         cycle(myClient, _env.getMaxCycles());

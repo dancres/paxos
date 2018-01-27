@@ -79,14 +79,6 @@ public class OrderedMemoryNetwork implements Runnable {
         }
     }
 
-    public static class DefaultFactory implements TransportFactory {
-        public Constructed newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
-                                                   OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD,
-                                                   Object aContext) {
-            return new Constructed(new OrderedMemoryTransportImpl(aLocalAddr, aBroadcastAddr, aNetwork, anFD), null);
-        }
-    }
-
     private BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<>();
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
     private InetSocketAddress  _broadcastAddr;
