@@ -37,7 +37,7 @@ public class OrderedMemoryNetwork implements Runnable {
         }
     }
 
-    public interface Factory {
+    public interface TransportFactory {
         class Constructed {
             private final OrderedMemoryTransportImpl _tp;
             private final Object _add;
@@ -79,7 +79,7 @@ public class OrderedMemoryNetwork implements Runnable {
         }
     }
 
-    private class DefaultFactory implements Factory {
+    public static class DefaultFactory implements TransportFactory {
         public Constructed newTransport(InetSocketAddress aLocalAddr, InetSocketAddress aBroadcastAddr,
                                                    OrderedMemoryNetwork aNetwork, MessageBasedFailureDetector anFD,
                                                    Object aContext) {
@@ -87,7 +87,6 @@ public class OrderedMemoryNetwork implements Runnable {
         }
     }
 
-    private Factory _factory = new DefaultFactory();
     private BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<>();
     private AtomicBoolean _isStopping = new AtomicBoolean(false);
     private InetSocketAddress  _broadcastAddr;
@@ -160,10 +159,9 @@ public class OrderedMemoryNetwork implements Runnable {
             _logger.warn("Couldn't distribute packet to target: " + aPayload.getTarget());
     }
 
-    public Factory.Constructed newTransport(Factory aFactory, MessageBasedFailureDetector anFD, InetSocketAddress anAddr,
-                                  Object aContext) {
-        Factory.Constructed myResult = (aFactory == null) ?
-                _factory.newTransport(anAddr, _broadcastAddr, this, anFD, aContext) :
+    public TransportFactory.Constructed newTransport(TransportFactory aFactory, MessageBasedFailureDetector anFD, InetSocketAddress anAddr,
+                                                     Object aContext) {
+        TransportFactory.Constructed myResult =
                 aFactory.newTransport(anAddr, _broadcastAddr, this, anFD, aContext);
 
         _transports.put(anAddr, myResult.getTransport());

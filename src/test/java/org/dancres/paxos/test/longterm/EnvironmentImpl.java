@@ -25,7 +25,7 @@ class EnvironmentImpl implements Environment {
     private final long _ckptCycle;
     private final Random _baseRng;
     private final OrderedMemoryNetwork _transportFactory;
-    private final OrderedMemoryNetwork.Factory _nodeFactory;
+    private final OrderedMemoryNetwork.TransportFactory _nodeFactory;
     private final AtomicLong _opsSinceCkpt = new AtomicLong(0);
     private final AtomicLong _opCount = new AtomicLong(0);
     private final AtomicBoolean _isSettling = new AtomicBoolean(false);
@@ -60,7 +60,7 @@ class EnvironmentImpl implements Environment {
                     (NodeAdminImpl.Config) aContext,
                     EnvironmentImpl.this);
 
-            return new OrderedMemoryNetwork.Factory.Constructed(myNode.getTransport(), myNode);
+            return new OrderedMemoryNetwork.TransportFactory.Constructed(myNode.getTransport(), myNode);
         };
 
         Deque<NodeAdmin> myNodes = new LinkedList<>();
@@ -87,13 +87,13 @@ class EnvironmentImpl implements Environment {
         _isReady.set(true);
     }
 
-    private OrderedMemoryNetwork.Factory.Constructed newNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
+    private OrderedMemoryNetwork.TransportFactory.Constructed newNodeAdmin(InetSocketAddress anAddress, NodeAdminImpl.Config aConfig) {
         return _transportFactory.newTransport(_nodeFactory, new FailureDetectorImpl(5, 5000, FailureDetectorImpl.OPEN_PIN),
                 anAddress, aConfig);
     }
 
     public void addNodeAdmin(NodeAdmin.Memento aMemento) {
-        OrderedMemoryNetwork.Factory.Constructed myResult =
+        OrderedMemoryNetwork.TransportFactory.Constructed myResult =
                 newNodeAdmin(aMemento.getAddress(), (NodeAdminImpl.Config) aMemento.getContext());
         _nodeSet.install((NodeAdmin) myResult.getAdditional());
     }
