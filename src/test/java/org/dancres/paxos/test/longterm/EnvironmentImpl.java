@@ -82,10 +82,7 @@ class EnvironmentImpl implements Environment {
         if (allowClusterFormation) {
             _logger.info("******* AWAITING CLUSTER FORMATION ********");
 
-            for (NodeAdmin myN : myNodes) {
-                _logger.debug("EnsureFD: " + myN.getTransport().getLocalAddress());
-                FDUtil.testFD(myN.getTransport().getFD(), 20000, 5);
-            }
+            stabilise();
         }
 
         _logger.info("******* COMMENCING RUN ********");
@@ -195,7 +192,7 @@ class EnvironmentImpl implements Environment {
             _logger.info("Stabilising on FD for: " + anFD);
 
             try {
-                FDUtil.testFD(anFD);
+                FDUtil.testFD(anFD, 20000, 5);
             } catch (Exception anE) {
                 _logger.info("Failed to stabilise: ", anE);
                 throw new IllegalStateException("No stability");
