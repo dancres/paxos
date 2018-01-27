@@ -26,6 +26,7 @@ public class OrderedMemoryNetwork implements Runnable {
 
     public interface OrderedMemoryTransport extends Transport {
         void distribute(Transport.Packet aPacket);
+        void settle();
     }
 
     public static class Context {

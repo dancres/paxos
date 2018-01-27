@@ -4,6 +4,8 @@ import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.CheckpointStorage;
 import org.dancres.paxos.Listener;
 import org.dancres.paxos.StateEvent;
+import org.dancres.paxos.test.net.OrderedMemoryNetwork;
+import org.dancres.paxos.test.net.OrderedMemoryNetwork.OrderedMemoryTransport;
 import org.dancres.paxos.test.net.OrderedMemoryTransportImpl;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
@@ -76,14 +78,14 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         }
     }
 
-    private final OrderedMemoryTransportImpl _transport;
+    private final OrderedMemoryTransport _transport;
     private final ServerDispatcher _dispatcher;
     private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
     private final CheckpointHandling _checkpointer = new CheckpointHandling();
     private final Environment _env;
     private final Config _config;
 
-    NodeAdminImpl(OrderedMemoryTransportImpl aTransport,
+    NodeAdminImpl(OrderedMemoryTransport aTransport,
                   Config aConfig,
                   Environment anEnv) {
         _config = aConfig;
@@ -145,7 +147,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         _transport.settle();
     }
 
-    public OrderedMemoryTransportImpl getTransport() {
+    public OrderedMemoryTransport getTransport() {
         return _transport;
     }
 
