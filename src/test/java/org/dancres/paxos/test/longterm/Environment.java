@@ -25,8 +25,6 @@ public interface Environment {
 
     NodeSet getNodes();
 
-    NodeAdmin getCurrentLeader();
-
     void doneOp();
 
     long getDoneOps();

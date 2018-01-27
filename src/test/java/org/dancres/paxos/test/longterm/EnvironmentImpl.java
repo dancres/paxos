@@ -129,10 +129,6 @@ class EnvironmentImpl implements Environment {
         return _baseRng;
     }
 
-    public NodeAdmin getCurrentLeader() {
-        return _nodeSet.getCurrentLeader();
-    }
-
     public boolean isSettling() {
         return _isSettling.get();
     }

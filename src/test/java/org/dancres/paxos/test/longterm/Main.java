@@ -123,7 +123,7 @@ class Main {
             Proposal myProposal = new Proposal("data", myBuffer.array());
 
             aClient.send(new Envelope(myProposal),
-                    _env.getCurrentLeader().getTransport().getLocalAddress());
+                    _env.getNodes().getCurrentLeader().getTransport().getLocalAddress());
 
             VoteOutcome myEv = aClient.getNext(10000);
 
