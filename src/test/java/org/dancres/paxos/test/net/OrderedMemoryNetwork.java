@@ -40,19 +40,19 @@ public class OrderedMemoryNetwork implements Runnable {
     }
 
     public interface TransportIntegrator extends
-            BiFunction<OrderedMemoryTransportImpl, Object, Constructed> {
+            BiFunction<OrderedMemoryTransport, Object, Constructed> {
     }
     
     public static class Constructed {
-        private final OrderedMemoryTransportImpl _tp;
+        private final OrderedMemoryTransport _tp;
         private final Object _add;
 
-        public Constructed(OrderedMemoryTransportImpl aTransport, Object anAdditional) {
+        public Constructed(OrderedMemoryTransport aTransport, Object anAdditional) {
             _tp = aTransport;
             _add = anAdditional;
         }
 
-        public OrderedMemoryTransportImpl getTransport() {
+        public OrderedMemoryTransport getTransport() {
             return _tp;
         }
 
@@ -159,7 +159,7 @@ public class OrderedMemoryNetwork implements Runnable {
 
         Constructed myResult = aFunction.apply(myTransport, aContext);
 
-        _transports.put(anAddr, myResult.getTransport());
+        _transports.put(anAddr, myTransport);
 
         return myResult;
     }
