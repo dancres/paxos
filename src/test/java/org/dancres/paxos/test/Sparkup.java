@@ -7,7 +7,7 @@ class Sparkup {
 
     public static void main(String[] args) {
 
-        get(new Route("/hello") {
+        get("/hello", new Route() {
             @Override
             public Object handle(Request request, Response response) {
                 return "Hello World!";
