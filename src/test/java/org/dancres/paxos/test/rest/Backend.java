@@ -71,22 +71,29 @@ public class Backend {
         
         CheckpointHandle myHandle = CheckpointHandle.NO_CHECKPOINT;
         ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
+
         if (myCkpt != null) {
             InputStream myStream = myCkpt.getStream();
 
-            ObjectInputStream myOIS = new ObjectInputStream(myStream);
-
-            myHandle = (CheckpointHandle) myOIS.readObject();
-
-            @SuppressWarnings("unchecked")
-            ConcurrentHashMap<String, String> myTempKeyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
-            _keyValues = myTempKeyValues;
-            
-            myOIS.close();
+            myHandle = installCheckpoint(myStream);
         }
         
         _paxos = Paxos.init(_clusterSize, new ListenerImpl(), myHandle,
                 Utils.marshall(_serverAddr), myTxnLogger);
+    }
+
+    private CheckpointHandle installCheckpoint(InputStream anInputStream) throws IOException, ClassNotFoundException {
+        ObjectInputStream myOIS = new ObjectInputStream(anInputStream);
+
+        CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+
+        @SuppressWarnings("unchecked")
+        ConcurrentHashMap<String, String> myTempKeyValues = (ConcurrentHashMap<String, String>) myOIS.readObject();
+        _keyValues = myTempKeyValues;
+
+        myOIS.close();
+
+        return myHandle;
     }
 
     private String toHttp(byte[] aMarshalledAddress) throws Exception {
@@ -168,17 +175,8 @@ public class Backend {
 
                             myConn.getInputStream().close();
 
-                            ObjectInputStream myOIS = new ObjectInputStream(myBAIS);
-
-                            CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
-
-                            @SuppressWarnings("unchecked")
-                            ConcurrentHashMap<String, String> myTempKeyValues =
-                                    (ConcurrentHashMap<String, String>) myOIS.readObject();
-                            _keyValues = myTempKeyValues;
-
-                            writeCheckpoint(myHandle);
-
+                            CheckpointHandle myHandle = installCheckpoint(myBAIS);
+                            
                             if (_paxos.bringUpToDate(myHandle)) {
                                 Backend.this._outOfDate.compareAndSet(true, false);
                                 return;
