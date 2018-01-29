@@ -9,8 +9,11 @@ import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.impl.net.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import spark.Request;
+import spark.Response;
+import spark.Route;
+
 import static spark.Spark.*;
-import spark.*;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -56,147 +59,15 @@ public class Backend {
         _storage = new DirectoryCheckpointStorage(new File(aCheckpointDir));
         HowlLogger myTxnLogger = new HowlLogger(aCheckpointDir);
         
-        setPort(_serverAddr.getPort());
+        port(_serverAddr.getPort());
 
-        get(new Route("/checkpoint") {
-            public Object handle(Request request, Response response) {
-                if (_outOfDate.get()) {
-                    response.status(503);
-                    return "";
-                }
+        get("/checkpoint", new Checkpoint());
 
-                ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
-
-                if (myCkpt == null) {
-                    response.status(404);
-                    return "";
-                }
-                
-                try {
-                    InputStream myStream = myCkpt.getStream();
-                    ObjectInputStream myOIS = new ObjectInputStream(myStream);
-
-                    CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
-
-                    @SuppressWarnings("unchecked")
-                    ConcurrentHashMap<String, String> myState = (ConcurrentHashMap<String, String>) myOIS.readObject();
-                    
-                    ByteArrayOutputStream myBAOS = new ByteArrayOutputStream();
-                    ObjectOutputStream myOOS = new ObjectOutputStream(myBAOS);
-                    
-                    myOOS.writeObject(myHandle);
-                    myOOS.writeObject(myState);
-                    myOOS.flush();
-                    myOOS.close();
-
-                    ObjectMapper myMapper = new ObjectMapper();
-
-                    response.status(200);
-                    return myMapper.writeValueAsString(myBAOS.toByteArray());
-                    
-                } catch (Exception anE) {
-                    _logger.error("Couldn't recover checkpoint", anE);
-                }
-                
-                response.status(500);
-                return "";
-            }
-        });
-
-        get(new Route("/members") {
-            public Object handle(Request request, Response response) {
-                ObjectMapper myMapper = new ObjectMapper();
-                
-                Map<InetSocketAddress, Membership.MetaData> myMembers = _paxos.getMembership().getMembers();
-                
-                Map<String, String> myMemberData = new HashMap<>();
-                
-                try {
-                    for (Map.Entry<InetSocketAddress, Membership.MetaData> myDetails : myMembers.entrySet()) {
-                        myMemberData.put(myDetails.getKey().toString(), toHttp(myDetails.getValue().getData()));
-                    }
-
-                    return myMapper.writeValueAsString(myMemberData);
-                } catch (Exception anE) {
-                    _logger.error("Couldn't recover metadata", anE);
-                }
-                
-                response.status(500);
-
-                return "";
-            }
-        });
-
-        get(new Route("/values") {
-            public Object handle(Request request, Response response) {
-                if (_outOfDate.get()) {
-                    response.status(503);
-                    return "";
-                }
-
-                ObjectMapper myMapper = new ObjectMapper();
-
-                try {
-                    return myMapper.writeValueAsString(_keyValues);
-                } catch (Exception anE) {
-                    _logger.error("Couldn't recover values", anE);
-                    response.status(500);
-
-                    return "";
-                }
-            }
-        });
+        get("/members", new Members());
         
-        put(new Route("/map/:key") {
-            public Object handle(Request request, Response response) {
-                if (_outOfDate.get()) {
-                    response.status(503);
-
-                    return "";
-                }
-                    
-                final CompletionImpl<VoteOutcome> myResult = new CompletionImpl<>();
-
-                Proposal myProp = new Proposal();
-                myProp.put("KEY", request.params(":key").getBytes());
-                myProp.put("VALUE", request.body().getBytes());
-
-                try {
-                    _paxos.submit(myProp, myResult);
-
-                    VoteOutcome myOutcome = myResult.await();
-
-                    switch (myOutcome.getResult()) {
-                        case VoteOutcome.Reason.VALUE: {
-                            response.status(200);
-                            
-                            return request.body();
-                        }
-
-                        case VoteOutcome.Reason.OTHER_LEADER : {
-                            response.status(301);
-                            
-                            response.header("Location",
-                                    toHttp(_paxos.getMembership().dataForNode(myOutcome.getLeader())));
-
-                            return "";
-                        }
-
-                        default: {
-                            _logger.error("Unhandled outcome: " + myOutcome.getResult());
-                            response.status(500);
-
-                            return "";
-                        }
-                    }
-                } catch (Exception anE) {
-                    _logger.error("Couldn't run Paxos", anE);
-                    response.status(500);
-
-                    return "";
-                }
-            }
-        });
+        get("/values", new Values());
+        
+        put("/map/:key", new WriteKey());
         
         CheckpointHandle myHandle = CheckpointHandle.NO_CHECKPOINT;
         ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
@@ -368,5 +239,145 @@ public class Backend {
         myOOS.flush();
         myOOS.close();
         myCkpt.saved();
+    }
+
+    class Checkpoint implements Route {
+        public Object handle(Request request, Response response) {
+            if (_outOfDate.get()) {
+                response.status(503);
+                return "";
+            }
+
+            ReadCheckpoint myCkpt = _storage.getLastCheckpoint();
+
+            if (myCkpt == null) {
+                response.status(404);
+                return "";
+            }
+
+            try {
+                InputStream myStream = myCkpt.getStream();
+                ObjectInputStream myOIS = new ObjectInputStream(myStream);
+
+                CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+
+                @SuppressWarnings("unchecked")
+                ConcurrentHashMap<String, String> myState = (ConcurrentHashMap<String, String>) myOIS.readObject();
+
+                ByteArrayOutputStream myBAOS = new ByteArrayOutputStream();
+                ObjectOutputStream myOOS = new ObjectOutputStream(myBAOS);
+
+                myOOS.writeObject(myHandle);
+                myOOS.writeObject(myState);
+                myOOS.flush();
+                myOOS.close();
+
+                ObjectMapper myMapper = new ObjectMapper();
+
+                response.status(200);
+                return myMapper.writeValueAsString(myBAOS.toByteArray());
+
+            } catch (Exception anE) {
+                _logger.error("Couldn't recover checkpoint", anE);
+            }
+
+            response.status(500);
+            return "";
+        }
+    }
+
+    class Values implements Route {
+        public Object handle(Request request, Response response) {
+            if (_outOfDate.get()) {
+                response.status(503);
+                return "";
+            }
+
+            ObjectMapper myMapper = new ObjectMapper();
+
+            try {
+                return myMapper.writeValueAsString(_keyValues);
+            } catch (Exception anE) {
+                _logger.error("Couldn't recover values", anE);
+                response.status(500);
+
+                return "";
+            }
+        }
+    }
+
+    class WriteKey implements Route {
+        public Object handle(Request request, Response response) {
+            if (_outOfDate.get()) {
+                response.status(503);
+
+                return "";
+            }
+
+            final CompletionImpl<VoteOutcome> myResult = new CompletionImpl<>();
+
+            Proposal myProp = new Proposal();
+            myProp.put("KEY", request.params(":key").getBytes());
+            myProp.put("VALUE", request.body().getBytes());
+
+            try {
+                _paxos.submit(myProp, myResult);
+
+                VoteOutcome myOutcome = myResult.await();
+
+                switch (myOutcome.getResult()) {
+                    case VoteOutcome.Reason.VALUE: {
+                        response.status(200);
+
+                        return request.body();
+                    }
+
+                    case VoteOutcome.Reason.OTHER_LEADER : {
+                        response.status(301);
+
+                        response.header("Location",
+                                toHttp(_paxos.getMembership().dataForNode(myOutcome.getLeader())));
+
+                        return "";
+                    }
+
+                    default: {
+                        _logger.error("Unhandled outcome: " + myOutcome.getResult());
+                        response.status(500);
+
+                        return "";
+                    }
+                }
+            } catch (Exception anE) {
+                _logger.error("Couldn't run Paxos", anE);
+                response.status(500);
+
+                return "";
+            }
+        }
+    }
+
+    class Members implements Route {
+        public Object handle(Request request, Response response) {
+            ObjectMapper myMapper = new ObjectMapper();
+
+            Map<InetSocketAddress, Membership.MetaData> myMembers = _paxos.getMembership().getMembers();
+
+            Map<String, String> myMemberData = new HashMap<>();
+
+            try {
+                for (Map.Entry<InetSocketAddress, Membership.MetaData> myDetails : myMembers.entrySet()) {
+                    myMemberData.put(myDetails.getKey().toString(), toHttp(myDetails.getValue().getData()));
+                }
+
+                return myMapper.writeValueAsString(myMemberData);
+            } catch (Exception anE) {
+                _logger.error("Couldn't recover metadata", anE);
+            }
+
+            response.status(500);
+
+            return "";
+        }
     }
 }
