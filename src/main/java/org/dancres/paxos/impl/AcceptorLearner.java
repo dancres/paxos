@@ -350,15 +350,12 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
-        if (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)) {
-            unguard();
-
-            throw new IllegalStateException("Instance is out of date");
-        }
-
-        // Low watermark will always lag collect so no need for atomicity here
-        //
         try {
+            if (_common.getNodeState().test(NodeState.State.OUT_OF_DATE))
+                throw new IllegalStateException("Instance is out of date");
+
+            // Low watermark will always lag collect so no need for atomicity here
+            //
             return new ALCheckpointHandle(_lowWatermark.get(),
                     _leadershipState.getLastCollect(), this, _common.getTransport().getPickler());
         } finally {
