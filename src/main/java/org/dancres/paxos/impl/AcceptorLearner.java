@@ -456,9 +456,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
             signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
                     myHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
-                    Proposal.NO_VALUE,
-                    _common.getTransport().getFD().dataForNode(myHandle.getLastCollect().getSource()),
-                    myHandle.getLastCollect().getSource()));
+                    Proposal.NO_VALUE));
 
             _recoveryWindow.set(null);
             _cachedBegins.clear();
@@ -553,9 +551,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
                         //
                         signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
                                 _leadershipState.getLeaderRndNum(),
-                                new Proposal(),
-                                _common.getTransport().getFD().dataForNode(aPacket.getSource()),
-                                aPacket.getSource()));
+                                Proposal.NO_VALUE));
                         return;
                     }
                 }
@@ -819,9 +815,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
 
                     signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
                             _leadershipState.getLeaderRndNum(),
-                            Proposal.NO_VALUE,
-                            _common.getTransport().getFD().dataForNode(myNodeId),
-                            myNodeId));
+                            Proposal.NO_VALUE));
 
 					/*
 					 * If the collect comes from the current leader (has same rnd
@@ -983,9 +977,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
 
             signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
                     _leadershipState.getLeaderRndNum(),
-                    myBegin.getConsolidatedValue(),
-                    _common.getTransport().getFD().dataForNode(aPacket.getSource()),
-                    aPacket.getSource()));
+                    myBegin.getConsolidatedValue()));
         }
     }
 
