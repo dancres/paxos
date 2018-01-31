@@ -124,12 +124,13 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             @Override
             public CheckpointConsumer getConsumer() {
                 return (ch) -> {
-                    if ((ch == null) || (ch == _handle) || (ch.equals(CheckpointHandle.NO_CHECKPOINT)))
+                    if ((ch == null) || (ch == _handle) || (ch.equals(CheckpointHandle.NO_CHECKPOINT)) ||
+                            (! (ch instanceof CheckpointHandleImpl)))
                         throw new IllegalArgumentException(
                                 "Not an acceptable - can't be null, NO_CHECKPOINT or the handled provided from forRecovery");
 
                     try {
-                        return bringUpToDate(ch);
+                        return bringUpToDate((CheckpointHandleImpl) ch);
                     } catch (Exception anE) {
                         _logger.error("Serious storage problem: ", anE);
 
@@ -344,7 +345,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
      * @param aHandle obtained from the remote checkpoint.
      * @throws Exception
      */
-    private boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
+    private boolean bringUpToDate(CheckpointHandleImpl aHandle) throws Exception {
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
@@ -352,12 +353,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             if (! _common.getNodeState().test(NodeState.State.OUT_OF_DATE))
                 throw new IllegalStateException("Not out of date");
 
-            if (! (aHandle instanceof CheckpointHandleImpl))
-                throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
-
-            CheckpointHandleImpl myHandle = (CheckpointHandleImpl) aHandle;
-
-            if (! testAndSetCheckpoint(myHandle))
+            if (! testAndSetCheckpoint(aHandle))
                 return false;
 
             /*
@@ -369,11 +365,11 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             if (_common.getNodeState().testAndSet(NodeState.State.OUT_OF_DATE, NodeState.State.ACTIVE)) {
                 _logger.debug(this + " restored to active");
 
-                installCheckpoint(myHandle);
+                installCheckpoint(aHandle);
 
                 // Write collect from our new checkpoint to log and use that as the starting point for replay.
                 //
-                _storage.mark(new LiveWriter().write(myHandle.getLastCollect(), false), true);
+                _storage.mark(new LiveWriter().write(aHandle.getLastCollect(), false), true);
             }
 
             /*
@@ -383,8 +379,8 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
              */
             _leadershipState.leaderAction();
             signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
-                    myHandle.getLastCollect().getMessage().getSeqNum(),
-                    ((Collect) myHandle.getLastCollect().getMessage()).getRndNumber(),
+                    aHandle.getLastCollect().getMessage().getSeqNum(),
+                    ((Collect) aHandle.getLastCollect().getMessage()).getRndNumber(),
                     Proposal.NO_VALUE));
 
             _recoveryWindow.set(null);
