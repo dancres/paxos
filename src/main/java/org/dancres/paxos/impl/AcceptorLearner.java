@@ -116,78 +116,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
     private final Messages.Subscription<Constants.EVENTS> _bus;
 
-    static class ALCheckpointHandle extends CheckpointHandle {
-        private static final long serialVersionUID = -7904255942396151132L;
-
-        private transient Watermark _lowWatermark;
-        private transient Transport.Packet _lastCollect;
-        private transient Transport.PacketPickler _pr;
-
-        ALCheckpointHandle(Watermark aLowWatermark, Transport.Packet aCollect, Transport.PacketPickler aPickler) {
-            _lowWatermark = aLowWatermark;
-            _lastCollect = aCollect;
-            _pr = aPickler;
-        }
-
-        private void readObject(ObjectInputStream aStream) throws IOException, ClassNotFoundException {
-            aStream.defaultReadObject();
-            _lowWatermark = new Watermark(aStream.readLong(), aStream.readLong());
-            _pr = (Transport.PacketPickler) aStream.readObject();
-
-            byte[] myBytes = new byte[aStream.readInt()];
-            aStream.readFully(myBytes);
-            _lastCollect = _pr.unpickle(myBytes);
-        }
-
-        private void writeObject(ObjectOutputStream aStream) throws IOException {
-            aStream.defaultWriteObject();
-            aStream.writeLong(_lowWatermark.getSeqNum());
-            aStream.writeLong(_lowWatermark.getLogOffset());
-            aStream.writeObject(_pr);
-
-            byte[] myCollect = _pr.pickle(_lastCollect);
-            aStream.writeInt(myCollect.length);
-            aStream.write(myCollect);
-        }
-
-        public boolean isNewerThan(CheckpointHandle aHandle) {
-            if (aHandle.equals(CheckpointHandle.NO_CHECKPOINT))
-                return true;
-            else if (aHandle instanceof ALCheckpointHandle) {
-                ALCheckpointHandle myOther = (ALCheckpointHandle) aHandle;
-
-                return (_lowWatermark.getSeqNum() > myOther._lowWatermark.getSeqNum());
-            } else {
-                throw new IllegalArgumentException("Where did you get this checkpoint from?");
-            }
-        }
-
-        public long getTimestamp() {
-            return _lowWatermark.getSeqNum();
-        }
-
-        Watermark getLowWatermark() {
-            return _lowWatermark;
-        }
-
-        Transport.Packet getLastCollect() {
-            return _lastCollect;
-        }
-        
-        public boolean equals(Object anObject) {
-        	if (anObject instanceof ALCheckpointHandle) {
-        		ALCheckpointHandle myOther = (ALCheckpointHandle) anObject;
-        		
-        		return ((_lowWatermark.equals(myOther._lowWatermark)) && 
-                    (_lastCollect.getSource().equals(myOther._lastCollect.getSource())) &&
-                    (_lastCollect.getMessage().equals(myOther._lastCollect.getMessage())));
-        	}
-        	
-        	return false;
-        }
-    }
-	
-	private final AtomicReference<ALCheckpointHandle> _lastCheckpoint = new AtomicReference<>();
+	private final AtomicReference<CheckpointHandleImpl> _lastCheckpoint = new AtomicReference<>();
 	
     /* ********************************************************************************************
      *
@@ -322,7 +251,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
      */
     public LedgerPosition open(CheckpointHandle aHandle) throws Exception {
         _lastCheckpoint.set(
-                new ALCheckpointHandle(Watermark.INITIAL, _leadershipState.getLastCollect(),
+                new CheckpointHandleImpl(Watermark.INITIAL, _leadershipState.getLastCollect(),
                         _common.getTransport().getPickler()));
 
         _storage.open();
@@ -333,9 +262,9 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             long myStartSeqNum = -1;
             
             if (! aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
-                if (aHandle instanceof ALCheckpointHandle) {
-                    testAndSetCheckpoint((ALCheckpointHandle) aHandle);
-                    myStartSeqNum = installCheckpoint((ALCheckpointHandle) aHandle);
+                if (aHandle instanceof CheckpointHandleImpl) {
+                    testAndSetCheckpoint((CheckpointHandleImpl) aHandle);
+                    myStartSeqNum = installCheckpoint((CheckpointHandleImpl) aHandle);
                 } else
                     throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
             }
@@ -401,7 +330,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         try {
             // Low watermark will always lag collect so no need for atomicity here
             //
-            return new ALCheckpointHandle(_lowWatermark.get(),
+            return new CheckpointHandleImpl(_lowWatermark.get(),
                     _leadershipState.getLastCollect(), _common.getTransport().getPickler());
         } finally {
             unguard();
@@ -409,14 +338,14 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     }
 
     private boolean saved(CheckpointHandle aHandle) throws Exception {
-        if (! (aHandle instanceof ALCheckpointHandle))
+        if (! (aHandle instanceof CheckpointHandleImpl))
             throw new IllegalArgumentException("Where did you get this handle?");
 
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
         try {
-            ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
+            CheckpointHandleImpl myHandle = (CheckpointHandleImpl) aHandle;
 
             if (testAndSetCheckpoint(myHandle)) {
                 _storage.mark(myHandle.getLowWatermark().getLogOffset(), true);
@@ -428,10 +357,10 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         }
     }
 
-    private boolean testAndSetCheckpoint(ALCheckpointHandle aHandle) {
+    private boolean testAndSetCheckpoint(CheckpointHandleImpl aHandle) {
         // If the checkpoint we're installing is newer...
         //
-        ALCheckpointHandle myCurrent;
+        CheckpointHandleImpl myCurrent;
         do {
             myCurrent = _lastCheckpoint.get();
 
@@ -446,7 +375,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         return true;
     }
 
-    private long installCheckpoint(ALCheckpointHandle aHandle) {
+    private long installCheckpoint(CheckpointHandleImpl aHandle) {
         _leadershipState.setLastCollect(aHandle.getLastCollect());
 
         _logger.info(toString() + " Checkpoint installed: " + aHandle.getLastCollect() + " @ " +
@@ -473,10 +402,10 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             if (! _common.getNodeState().test(NodeState.State.OUT_OF_DATE))
                 throw new IllegalStateException("Not out of date");
 
-            if (! (aHandle instanceof ALCheckpointHandle))
+            if (! (aHandle instanceof CheckpointHandleImpl))
                 throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
 
-            ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
+            CheckpointHandleImpl myHandle = (CheckpointHandleImpl) aHandle;
 
             if (! testAndSetCheckpoint(myHandle))
                 return false;

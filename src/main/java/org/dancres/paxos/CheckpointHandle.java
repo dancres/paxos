@@ -19,8 +19,8 @@ import java.io.Serializable;
  * The framework can manage without these log files and recover online so long as the checkpoint state is sufficiently
  * recent.
  */
-public abstract class CheckpointHandle implements Serializable {
-    public static final CheckpointHandle NO_CHECKPOINT =
+public interface CheckpointHandle extends Serializable {
+    CheckpointHandle NO_CHECKPOINT =
             new CheckpointHandle() {
                 public boolean isNewerThan(CheckpointHandle aHandle) {
                     // We're not newer than anything
@@ -33,7 +33,7 @@ public abstract class CheckpointHandle implements Serializable {
                 }
             };
 
-    public abstract boolean isNewerThan(CheckpointHandle aHandle);
+    boolean isNewerThan(CheckpointHandle aHandle);
 
-    public abstract long getTimestamp();
+    long getTimestamp();
 }
