@@ -31,13 +31,6 @@ import java.util.function.Function;
  * @author dan
  */
 public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcessor, Messages.Subscriber<Constants.EVENTS> {
-    interface Stats {
-        long getHeartbeatCount();
-        long getIgnoredCollectsCount();
-        long getActiveAccepts();
-        long getRecoveryCycles();
-    }
-
     private static class StatsImpl implements Stats {
         /**
          * Statistic that tracks the number of Collects this AcceptorLearner ignored
