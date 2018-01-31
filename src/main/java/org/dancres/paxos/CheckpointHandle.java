@@ -22,8 +22,6 @@ import java.io.Serializable;
 public abstract class CheckpointHandle implements Serializable {
     public static final CheckpointHandle NO_CHECKPOINT =
             new CheckpointHandle() {
-                public void saved() {}
-
                 public boolean isNewerThan(CheckpointHandle aHandle) {
                     // We're not newer than anything
                     //
@@ -35,8 +33,6 @@ public abstract class CheckpointHandle implements Serializable {
                 }
             };
 
-    public abstract void saved() throws Exception;
-    
     public abstract boolean isNewerThan(CheckpointHandle aHandle);
 
     public abstract long getTimestamp();

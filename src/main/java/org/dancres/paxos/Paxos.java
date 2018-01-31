@@ -5,6 +5,8 @@ import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.netty.TransportImpl;
 
+import java.util.function.Function;
+
 /**
  * Service implementation notes:
  *
@@ -78,8 +80,19 @@ import org.dancres.paxos.impl.netty.TransportImpl;
  */
 public interface Paxos {
 
+    interface Checkpoint {
+        CheckpointHandle getHandle();
+        Function<CheckpointHandle, Boolean> getConsumer();
+    }
+
+    interface CheckpointFactory {
+        Checkpoint forSaving();
+        Checkpoint forRecovery();
+    }
+
+    CheckpointFactory checkpoint();
+
     void close();
-    CheckpointHandle newCheckpoint();
 
     /**
      * @param aValue
@@ -90,7 +103,6 @@ public interface Paxos {
      */
     void submit(Proposal aValue, Completion<VoteOutcome> aCompletion) throws InactiveException;
     void add(Listener aListener);
-    boolean bringUpToDate(CheckpointHandle aHandle) throws Exception;
     Membership getMembership();
 
     static Paxos init(int aClusterSize, Listener aListener, CheckpointHandle aHandle, byte[] aClientId,
