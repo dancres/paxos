@@ -223,8 +223,12 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
             }
 
             case BEGIN : {
-                if (goneBad(aMessages))
+                OldRound myBad;
+
+                if ((myBad = goneBad(aMessages)) != null) {
+                    oldRound(myBad);
                     return;
+                }
 
                 Transport.Packet myLast = null;
 
@@ -261,8 +265,12 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
             }
 
             case VOTING: {
-                if (goneBad(aMessages))
-                    return;
+                OldRound myBad;
+
+                if ((myBad = goneBad(aMessages)) != null) {
+                     oldRound(myBad);
+                     return;
+                }
 
                 if (aMessages.size() >= _common.getTransport().getFD().getMajority()) {
                     // AL's monitor each other's accepts so auto-commit for themselves, no need to send a confirmation
@@ -281,7 +289,7 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
         }
     }
 
-    private boolean goneBad(Collection<Transport.Packet> aMessages) {
+    private OldRound goneBad(Collection<Transport.Packet> aMessages) {
         OldRound myOld = null;
 
         for (Transport.Packet aPacket : aMessages) {
@@ -295,27 +303,21 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
             }
         }
 
-        if (myOld != null) {
-            oldRound(myOld);
-            return true;
-        } else
-            return false;
+        return myOld;
     }
 
     /**
      * @param aMessage is an OldRound message received from some other node
      */
-    private void oldRound(PaxosMessage aMessage) {
-        OldRound myOldRound = (OldRound) aMessage;
-
-        InetSocketAddress myCompetingNodeId = myOldRound.getLeaderNodeId();
+    private void oldRound(OldRound aMessage) {
+        InetSocketAddress myCompetingNodeId = aMessage.getLeaderNodeId();
 
         _logger.warn(toString() + " Other leader active, backing down: " + myCompetingNodeId + " (" +
-                Long.toHexString(myOldRound.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
+                Long.toHexString(aMessage.getLastRound()) + ", " + Long.toHexString(_rndNumber) + ")");
 
         _stateMachine.transition(State.ABORT);
-        _outcomes.add(new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, myOldRound.getSeqNum(),
-                myOldRound.getLastRound(), _prop, myCompetingNodeId));
+        _outcomes.add(new VoteOutcome(VoteOutcome.Reason.OTHER_LEADER, aMessage.getSeqNum(),
+                aMessage.getLastRound(), _prop, myCompetingNodeId));
 
         process(NO_MESSAGES);
     }
