@@ -466,7 +466,7 @@ class Leader implements Instance, Messages.Subscriber<Constants.EVENTS> {
                 if (((LeaderSelection) myMessage).routeable(this)) {
                     _messages.put(aPacket.getSource(), aPacket);
 
-                    if (_assembly.isMajority(_messages.keySet())) {
+                    if (_assembly.isMajority(_messages.keySet()) || (goneBad(_messages.values()) != null)) {
                         cancelInteraction();
 
                         _tries = 0;
