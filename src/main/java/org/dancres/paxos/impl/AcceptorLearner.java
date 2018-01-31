@@ -31,46 +31,6 @@ import java.util.function.Function;
  * @author dan
  */
 public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcessor, Messages.Subscriber<Constants.EVENTS> {
-    private static class StatsImpl implements Stats {
-        /**
-         * Statistic that tracks the number of Collects this AcceptorLearner ignored
-         * from competing leaders within DEFAULT_LEASE ms of activity from the
-         * current leader.
-         */
-        private final AtomicLong _ignoredCollects = new AtomicLong();
-
-        /**
-         * Statistic that tracks the number of leader heartbeats received.
-         */
-        private final AtomicLong _receivedHeartbeats = new AtomicLong();
-
-        /**
-         * Statistic that tracks the number of recoveries executed for this instance.
-         */
-        private final AtomicLong _recoveryCycles = new AtomicLong();
-
-        /**
-         * Statistic that tracks the number of active (non-recovery and as a member) votes for this instance.
-         */
-        private final AtomicLong _activeAccepts = new AtomicLong();
-
-        public long getHeartbeatCount() {
-            return _receivedHeartbeats.longValue();
-        }
-
-        public long getIgnoredCollectsCount() {
-            return _ignoredCollects.longValue();
-        }
-
-        public long getActiveAccepts() {
-            return _activeAccepts.longValue();
-        }
-
-        public long getRecoveryCycles() {
-            return _recoveryCycles.longValue();
-        }
-    }
-
     static final String HEARTBEAT_KEY = "org.dancres.paxos.Hbt";
     static final String MEMBER_CHANGE_KEY = "org.dancres.paxos.MemChg";
 
@@ -563,7 +523,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
                                 if (myResult) {
                                     _recoveryWindow.set(aNeed);
-                                    _stats._recoveryCycles.incrementAndGet();
+                                    _stats.incrementRecoveries();;
 
                                     /*
                                      * Both cachedBegins and acceptLedger run ahead of the low watermark thus if we're
@@ -769,7 +729,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 				Collect myCollect = (Collect) myMessage;
 
 				if (!_leadershipState.amAccepting(aPacket)) {
-					_stats._ignoredCollects.incrementAndGet();
+					_stats.incrementCollects();
 
 					_logger.warn(toString() + " Not accepting: " + myCollect + ", "
 							+ _stats.getIgnoredCollectsCount());
@@ -930,7 +890,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         _lowWatermark.set(new Watermark(mySeqNum, myLogOffset));
 
         if (myBegin.getConsolidatedValue().get(HEARTBEAT_KEY) != null) {
-            _stats._receivedHeartbeats.incrementAndGet();
+            _stats.incrementHeartbeats();
 
             _logger.trace(toString() + " discarded heartbeat: "
                     + System.currentTimeMillis() + ", "
@@ -1056,7 +1016,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 return;
 
             if (aMessage.getType() == PaxosMessage.Types.ACCEPT)
-                _stats._activeAccepts.incrementAndGet();
+                _stats.incrementAccepts();
 
             _logger.debug(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + aNodeId);
             _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), aNodeId);
