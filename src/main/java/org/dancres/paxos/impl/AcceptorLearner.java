@@ -100,7 +100,10 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             public CheckpointConsumer getConsumer() {
                 return (ch) -> {
                     try {
-                        return saved(ch);
+                        if (! (ch instanceof CheckpointHandleImpl))
+                            throw new IllegalArgumentException("Where did you get this handle?");
+
+                        return saved((CheckpointHandleImpl) ch);
                     } catch (Exception anE) {
                         _logger.error("Serious storage problem: ", anE);
                         
@@ -288,18 +291,13 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         }
     }
 
-    private boolean saved(CheckpointHandle aHandle) throws Exception {
-        if (! (aHandle instanceof CheckpointHandleImpl))
-            throw new IllegalArgumentException("Where did you get this handle?");
-
+    private boolean saved(CheckpointHandleImpl aHandle) throws Exception {
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
         try {
-            CheckpointHandleImpl myHandle = (CheckpointHandleImpl) aHandle;
-
-            if (testAndSetCheckpoint(myHandle)) {
-                _storage.mark(myHandle.getLowWatermark().getLogOffset(), true);
+            if (testAndSetCheckpoint(aHandle)) {
+                _storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
                 return true;
             } else
                 return false;
