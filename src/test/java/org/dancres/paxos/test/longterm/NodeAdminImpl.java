@@ -1,9 +1,6 @@
 package org.dancres.paxos.test.longterm;
 
-import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.CheckpointStorage;
-import org.dancres.paxos.Listener;
-import org.dancres.paxos.StateEvent;
+import org.dancres.paxos.*;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork.OrderedMemoryTransport;
 import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
@@ -29,7 +26,8 @@ class NodeAdminImpl implements NodeAdmin, Listener {
                 CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
 
                 try {
-                    return aDispatcher.getCore().bringUpToDate(myHandle);
+                    Paxos.Checkpoint myCheckpoint = aDispatcher.getCore().checkpoint().forRecovery();
+                    return myCheckpoint.getConsumer().apply(myHandle);
                 } catch (Exception anE) {
                     _logger.warn("Exception at bring up to date", anE);
                 }
@@ -41,16 +39,16 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         }
 
         void checkpoint(ServerDispatcher aDispatcher) throws Exception {
-            CheckpointHandle myHandle = aDispatcher.getCore().newCheckpoint();
+            Paxos.Checkpoint myCheckpoint = aDispatcher.getCore().checkpoint().forSaving();
             CheckpointStorage.WriteCheckpoint myCkpt = _ckptStorage.newCheckpoint();
             ObjectOutputStream myStream = new ObjectOutputStream(myCkpt.getStream());
-            myStream.writeObject(myHandle);
+            myStream.writeObject(myCheckpoint.getHandle());
             myStream.close();
 
             myCkpt.saved();
-            myHandle.saved();
+            myCheckpoint.getConsumer().apply(myCheckpoint.getHandle());
 
-            _checkpointTime.set(myHandle.getTimestamp());
+            _checkpointTime.set(myCheckpoint.getHandle().getTimestamp());
 
             assert(_ckptStorage.numFiles() == 1);
         }

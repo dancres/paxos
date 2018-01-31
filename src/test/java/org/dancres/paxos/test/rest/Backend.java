@@ -3,7 +3,6 @@ package org.dancres.paxos.test.rest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.dancres.paxos.*;
 import static org.dancres.paxos.CheckpointStorage.*;
-
 import org.dancres.paxos.storage.DirectoryCheckpointStorage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.impl.net.Utils;
@@ -176,8 +175,10 @@ public class Backend {
                             myConn.getInputStream().close();
 
                             CheckpointHandle myHandle = installCheckpoint(myBAIS);
-                            
-                            if (_paxos.bringUpToDate(myHandle)) {
+
+                            Paxos.Checkpoint myCheckpoint = _paxos.checkpoint().forRecovery();
+
+                            if (myCheckpoint.getConsumer().apply(myHandle)) {
                                 Backend.this._outOfDate.compareAndSet(true, false);
                                 return;
                             }
@@ -210,10 +211,10 @@ public class Backend {
     private class Checkpointer extends Thread {
         public void run() {
             try {
-                CheckpointHandle myHandle = _paxos.newCheckpoint();
+                Paxos.Checkpoint myCheckpoint = _paxos.checkpoint().forSaving();
 
-                writeCheckpoint(myHandle);
-                myHandle.saved();
+                writeCheckpoint(myCheckpoint.getHandle());
+                myCheckpoint.getConsumer().apply(myCheckpoint.getHandle());
 
             } catch (Exception anE) {
                 _logger.error("Serious checkpointing problem", anE);

@@ -73,12 +73,8 @@ public class Core implements Transport.Dispatcher, Paxos {
         _initd.set(true);
     }
 
-    public CheckpointHandle newCheckpoint() {
-        return _al.newCheckpoint();
-    }
-
-    public boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
-        return _al.bringUpToDate(aHandle);
+    public Paxos.CheckpointFactory checkpoint() {
+        return _al;
     }
 
     private class MembershipImpl implements Membership {

@@ -140,7 +140,7 @@ public class ALOutOfDateTest {
         boolean stateChecked = false;
 
         try {
-            _node3.getCore().newCheckpoint();
+            _node3.getCore().checkpoint().forSaving();
         } catch (IllegalStateException anISE) {
             stateChecked = true;
         }

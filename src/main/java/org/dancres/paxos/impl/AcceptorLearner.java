@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 /**
  * Implements the Acceptor/Learner state machine. Note that the instance running
@@ -29,7 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author dan
  */
-public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Constants.EVENTS> {
+public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcessor, Messages.Subscriber<Constants.EVENTS> {
     interface Stats {
         long getHeartbeatCount();
         long getIgnoredCollectsCount();
@@ -120,14 +121,11 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
 
         private transient Watermark _lowWatermark;
         private transient Transport.Packet _lastCollect;
-        private final transient AtomicReference<AcceptorLearner> _al = new AtomicReference<>(null);
         private transient Transport.PacketPickler _pr;
 
-        ALCheckpointHandle(Watermark aLowWatermark, Transport.Packet aCollect, AcceptorLearner anAl,
-                           Transport.PacketPickler aPickler) {
+        ALCheckpointHandle(Watermark aLowWatermark, Transport.Packet aCollect, Transport.PacketPickler aPickler) {
             _lowWatermark = aLowWatermark;
             _lastCollect = aCollect;
-            _al.set(anAl);
             _pr = aPickler;
         }
 
@@ -150,16 +148,6 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
             byte[] myCollect = _pr.pickle(_lastCollect);
             aStream.writeInt(myCollect.length);
             aStream.write(myCollect);
-        }
-
-        public void saved() throws Exception {
-            AcceptorLearner myAL = _al.get();
-            
-            if (myAL == null)
-                throw new IOException("Checkpoint already saved");
-
-            if (_al.compareAndSet(myAL, null))
-                myAL.saved(this);
         }
 
         public boolean isNewerThan(CheckpointHandle aHandle) {
@@ -211,6 +199,66 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
         _storage = aStore;
         _common = aCommon;
         _bus = aCommon.getBus().subscribe("AcceptorLearner", this);
+    }
+
+    interface CheckpointConsumer extends Function<CheckpointHandle, Boolean> {
+    }
+
+    @Override
+    public Paxos.Checkpoint forSaving() {
+        if (_common.getNodeState().test(NodeState.State.OUT_OF_DATE))
+            throw new IllegalStateException("Instance is out of date");
+        
+        return new Paxos.Checkpoint() {
+            private final CheckpointHandle _handle = newCheckpoint();
+
+            @Override
+            public CheckpointHandle getHandle() {
+                return _handle;
+            }
+
+            @Override
+            public CheckpointConsumer getConsumer() {
+                return (ch) -> {
+                    try {
+                        return saved(ch);
+                    } catch (Exception anE) {
+                        _logger.error("Serious storage problem: ", anE);
+                        
+                        throw new Error("Serious storage problem");
+                    }
+                };
+            }
+        };
+    }
+
+    @Override
+    public Paxos.Checkpoint forRecovery() {
+        return new Paxos.Checkpoint() {
+            private final CheckpointHandle _handle = newCheckpoint();
+
+            @Override
+            public CheckpointHandle getHandle() {
+                return _handle;
+            }
+
+            @Override
+            public CheckpointConsumer getConsumer() {
+                return (ch) -> {
+                    if ((ch == null) || (ch == _handle) || (ch.equals(CheckpointHandle.NO_CHECKPOINT)))
+                        throw new IllegalArgumentException(
+                                "Not an acceptable - can't be null, NO_CHECKPOINT or the handled provided from forRecovery");
+
+                    try {
+                        return bringUpToDate(ch);
+                    } catch (Exception anE) {
+                        _logger.error("Serious storage problem: ", anE);
+
+                        throw new Error("Serious storage problem");
+                    }
+                };
+            }
+        };
     }
 
     @Override
@@ -275,7 +323,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
     public LedgerPosition open(CheckpointHandle aHandle) throws Exception {
         _lastCheckpoint.set(
                 new ALCheckpointHandle(Watermark.INITIAL, _leadershipState.getLastCollect(),
-                        null, _common.getTransport().getPickler()));
+                        _common.getTransport().getPickler()));
 
         _storage.open();
 
@@ -346,30 +394,35 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
         }
     }
 
-    public CheckpointHandle newCheckpoint() {
+    CheckpointHandle newCheckpoint() {
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
         try {
-            if (_common.getNodeState().test(NodeState.State.OUT_OF_DATE))
-                throw new IllegalStateException("Instance is out of date");
-
             // Low watermark will always lag collect so no need for atomicity here
             //
             return new ALCheckpointHandle(_lowWatermark.get(),
-                    _leadershipState.getLastCollect(), this, _common.getTransport().getPickler());
+                    _leadershipState.getLastCollect(), _common.getTransport().getPickler());
         } finally {
             unguard();
         }
     }
 
-    private void saved(ALCheckpointHandle aHandle) throws Exception {
+    private boolean saved(CheckpointHandle aHandle) throws Exception {
+        if (! (aHandle instanceof ALCheckpointHandle))
+            throw new IllegalArgumentException("Where did you get this handle?");
+
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
         try {
-            if (testAndSetCheckpoint(aHandle))
-                _storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
+            ALCheckpointHandle myHandle = (ALCheckpointHandle) aHandle;
+
+            if (testAndSetCheckpoint(myHandle)) {
+                _storage.mark(myHandle.getLowWatermark().getLogOffset(), true);
+                return true;
+            } else
+                return false;
         } finally {
             unguard();
         }
@@ -412,7 +465,7 @@ public class AcceptorLearner implements MessageProcessor, Messages.Subscriber<Co
      * @param aHandle obtained from the remote checkpoint.
      * @throws Exception
      */
-    boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
+    private boolean bringUpToDate(CheckpointHandle aHandle) throws Exception {
         if (guard())
             throw new IllegalStateException("Instance is shutdown");
 
