@@ -151,6 +151,11 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         _bus.send(Constants.EVENTS.AL_TRANSITION, aStatus);
     }
 
+    private void guardWithException() {
+        if (guard())
+            throw new IllegalStateException("Instance is shutdown");
+    }
+
     private boolean guard() {
         _guardLock.lock();
 
@@ -275,8 +280,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     }
 
     CheckpointHandle newCheckpoint() {
-        if (guard())
-            throw new IllegalStateException("Instance is shutdown");
+        guardWithException();
 
         try {
             // Low watermark will always lag collect so no need for atomicity here
@@ -289,8 +293,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     }
 
     private boolean saved(CheckpointHandleImpl aHandle) throws Exception {
-        if (guard())
-            throw new IllegalStateException("Instance is shutdown");
+        guardWithException();
 
         try {
             if (testAndSetLast(aHandle)) {
@@ -344,8 +347,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
      * @throws Exception
      */
     private boolean bringUpToDate(CheckpointHandleImpl aHandle) throws Exception {
-        if (guard())
-            throw new IllegalStateException("Instance is shutdown");
+        guardWithException();
 
         try {
             if (! _common.getNodeState().test(NodeState.State.OUT_OF_DATE))
@@ -640,8 +642,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     }
 
     void setRecoveryGracePeriod(long aPeriod) {
-        if (guard())
-            throw new IllegalStateException("Instance is shutdown");
+        guardWithException();
 
         try {
             _gracePeriod.set(aPeriod);
