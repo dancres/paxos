@@ -130,11 +130,7 @@ public class Core implements Transport.Dispatcher, Paxos {
 
         for (MessageProcessor myMP : _msgProcs) {
             if (myMP.accepts(aPacket)) {
-                try {
-                    myMP.processMessage(aPacket);
-                } catch (Throwable anE) {
-                    _logger.error(toString() + " Unexpected exception against " + aPacket, anE);
-                }
+                myMP.processMessage(aPacket);
             }
         }
     }
