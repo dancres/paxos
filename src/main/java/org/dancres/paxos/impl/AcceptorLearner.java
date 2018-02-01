@@ -60,14 +60,13 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     private int _activeCount;
 
     private final LeadershipState _leadershipState = new LeadershipState();
-    
+
+    private final AtomicLong _rockBottom = new AtomicLong(Watermark.INITIAL.getSeqNum());
     private final AtomicReference<Watermark> _lowWatermark =
             new AtomicReference<>(Watermark.INITIAL);
 
     private final Messages.Subscription<Constants.EVENTS> _bus;
 
-	private final AtomicLong _needLimit = new AtomicLong();
-	
     /* ********************************************************************************************
      *
      * Lifecycle, checkpointing and open/close
@@ -204,7 +203,6 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
      * @throws Exception
      */
     public LedgerPosition open(CheckpointHandle aHandle) throws Exception {
-        _needLimit.set(Watermark.INITIAL.getSeqNum());
         _storage.open();
 
         try {
@@ -312,7 +310,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         //
         long myCurrentNeedLimit;
         do {
-            myCurrentNeedLimit = _needLimit.get();
+            myCurrentNeedLimit = _rockBottom.get();
 
             if (myProposedNeedLimit <= myCurrentNeedLimit) {
                 _logger.info(this + " proposed need limit is not new enough: " + myCurrentNeedLimit +
@@ -321,7 +319,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 return false;
             }
 
-        } while (! _needLimit.compareAndSet(myCurrentNeedLimit, myProposedNeedLimit));
+        } while (! _rockBottom.compareAndSet(myCurrentNeedLimit, myProposedNeedLimit));
 
         return true;
     }
@@ -703,7 +701,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                  * date. Since Paxos will tend to keep replica's mostly in sync there's no need to see if other
                  * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
                  */
-                if (myNeed.getMinSeq() < _needLimit.get()) {
+                if (myNeed.getMinSeq() < _rockBottom.get()) {
                     _logger.warn("Need is too old: " + myNeed + " from: " + myNodeId);
 
                     _common.getTransport().send(_common.getTransport().getPickler().newPacket(new OutOfDate()),
