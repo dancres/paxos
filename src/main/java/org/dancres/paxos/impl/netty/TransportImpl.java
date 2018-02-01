@@ -241,7 +241,8 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
     public void terminate() {
         _logger.debug("Terminate requested");
         
-		_isStopping.set(true);
+		if (! _isStopping.compareAndSet(false,true))
+		    return;
 
         if (_fd != null)
             _fd.stop();
@@ -317,7 +318,12 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
         final Packet myFiltered = myPacket;
         _packetDispatcher.execute(() -> {
                 for (Dispatcher d : _dispatchers)
-                    d.packetReceived(myFiltered);
+                    try {
+                        d.packetReceived(myFiltered);
+                    } catch (Error anE) {
+                        _logger.error("0!0!0!0!0!0! FATAL ISSUE - TERMINATING 0!0!0!0!0!0!", anE);
+                        terminate();
+                    }
             });
     }
 
