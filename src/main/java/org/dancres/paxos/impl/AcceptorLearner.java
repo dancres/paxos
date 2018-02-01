@@ -217,8 +217,9 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             
             if (! aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
                 if (aHandle instanceof CheckpointHandleImpl) {
-                    testAndSetCheckpoint((CheckpointHandleImpl) aHandle);
-                    myStartSeqNum = installCheckpoint((CheckpointHandleImpl) aHandle);
+                    CheckpointHandleImpl myHandle = (CheckpointHandleImpl) aHandle;
+                    testAndSetCheckpoint(myHandle);
+                    myStartSeqNum = installCheckpoint(myHandle);
                 } else
                     throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
             }
@@ -231,7 +232,8 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 _logger.error(toString() + " Failed to replay log", anE);
             }
         } finally {
-            _common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE);
+            if (!_common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE))
+                throw new Error("Serious state issue at open");
         }
 
         return new LedgerPosition(_lowWatermark.get().getSeqNum(), _leadershipState.getLeaderRndNum());
