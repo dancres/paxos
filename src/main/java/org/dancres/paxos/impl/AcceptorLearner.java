@@ -472,7 +472,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                             _common.getNodeState().set(NodeState.State.OUT_OF_DATE);
                         }
 
-                        // Signal with node that pronounced us out of date - likely user code will get ckpt from there.
+                        // @todo Signal with node that pronounced us out of date - likely user code will get ckpt from there.
                         //
                         signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
                                 _leadershipState.getLeaderRndNum(),
