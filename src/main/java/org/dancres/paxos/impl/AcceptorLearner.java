@@ -66,7 +66,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
     private final Messages.Subscription<Constants.EVENTS> _bus;
 
-	private final AtomicReference<CheckpointHandleImpl> _needLimit = new AtomicReference<>();
+	private final AtomicLong _needLimit = new AtomicLong();
 	
     /* ********************************************************************************************
      *
@@ -204,16 +204,13 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
      * @throws Exception
      */
     public LedgerPosition open(CheckpointHandle aHandle) throws Exception {
-        _needLimit.set(
-                new CheckpointHandleImpl(Watermark.INITIAL, _leadershipState.getLastCollect(),
-                        _common.getTransport().getPickler()));
-
+        _needLimit.set(Watermark.INITIAL.getSeqNum());
         _storage.open();
 
         try {
             _common.getNodeState().set(NodeState.State.RECOVERING);
 
-            long myStartSeqNum = -1;
+            long myStartSeqNum = Watermark.INITIAL.getSeqNum();
             
             if (! aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
                 if (aHandle instanceof CheckpointHandleImpl) {
@@ -309,19 +306,22 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     }
 
     private boolean testAndSetLast(CheckpointHandleImpl aHandle) {
+        long myProposedNeedLimit = aHandle.getLowWatermark().getSeqNum();
+
         // If the checkpoint we're installing is newer...
         //
-        CheckpointHandleImpl myCurrent;
+        long myCurrentNeedLimit;
         do {
-            myCurrent = _needLimit.get();
+            myCurrentNeedLimit = _needLimit.get();
 
-            if (! aHandle.isNewerThan(myCurrent)) {
-                _logger.info(this + " checkpoint suggested is not new enough");
+            if (myProposedNeedLimit <= myCurrentNeedLimit) {
+                _logger.info(this + " proposed need limit is not new enough: " + myCurrentNeedLimit +
+                        " vs " + myProposedNeedLimit);
 
                 return false;
             }
 
-        } while (! _needLimit.compareAndSet(myCurrent, aHandle));
+        } while (! _needLimit.compareAndSet(myCurrentNeedLimit, myProposedNeedLimit));
 
         return true;
     }
@@ -701,7 +701,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                  * date. Since Paxos will tend to keep replica's mostly in sync there's no need to see if other
                  * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
                  */
-                if (myNeed.getMinSeq() < _needLimit.get().getLowWatermark().getSeqNum()) {
+                if (myNeed.getMinSeq() < _needLimit.get()) {
                     _logger.warn("Need is too old: " + myNeed + " from: " + myNodeId);
 
                     _common.getTransport().send(_common.getTransport().getPickler().newPacket(new OutOfDate()),
