@@ -356,21 +356,23 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             if (! testAndSetLast(aHandle))
                 return false;
 
+            install(aHandle);
+
+            // Write collect from our new checkpoint to log and use that as the starting point for replay.
+            //
+            _storage.mark(new LiveWriter().write(aHandle.getLastCollect(), false), true);
+
             /*
              * If we're out of date, there will be no active timers and no activity on the log.
              * We should install the checkpoint and clear out all state associated with known instances
              * of Paxos. Additional state will be obtained from another AL via the lightweight recovery protocol.
              * Out of date means that the existing log has no useful data within it implying it can be discarded.
              */
-            if (_common.getNodeState().testAndSet(NodeState.State.OUT_OF_DATE, NodeState.State.ACTIVE)) {
-                _logger.debug(this + " restored to active");
+            if (! _common.getNodeState().testAndSet(NodeState.State.OUT_OF_DATE, NodeState.State.ACTIVE))
+                throw new Error("Serious recovery state issue - this shouldn't happen");
 
-                install(aHandle);
 
-                // Write collect from our new checkpoint to log and use that as the starting point for replay.
-                //
-                _storage.mark(new LiveWriter().write(aHandle.getLastCollect(), false), true);
-            }
+            _logger.info(this + " restored to active");
 
             /*
              * We do not want to allow a leader to immediately over-rule current, make it work a bit,
