@@ -66,7 +66,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
     private final Messages.Subscription<Constants.EVENTS> _bus;
 
-	private final AtomicReference<CheckpointHandleImpl> _lastCheckpoint = new AtomicReference<>();
+	private final AtomicReference<CheckpointHandleImpl> _needLimit = new AtomicReference<>();
 	
     /* ********************************************************************************************
      *
@@ -204,7 +204,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
      * @throws Exception
      */
     public LedgerPosition open(CheckpointHandle aHandle) throws Exception {
-        _lastCheckpoint.set(
+        _needLimit.set(
                 new CheckpointHandleImpl(Watermark.INITIAL, _leadershipState.getLastCollect(),
                         _common.getTransport().getPickler()));
 
@@ -218,8 +218,8 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             if (! aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
                 if (aHandle instanceof CheckpointHandleImpl) {
                     CheckpointHandleImpl myHandle = (CheckpointHandleImpl) aHandle;
-                    testAndSetCheckpoint(myHandle);
-                    myStartSeqNum = installCheckpoint(myHandle);
+                    testAndSetLast(myHandle);
+                    myStartSeqNum = install(myHandle);
                 } else
                     throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
             }
@@ -298,7 +298,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             throw new IllegalStateException("Instance is shutdown");
 
         try {
-            if (testAndSetCheckpoint(aHandle)) {
+            if (testAndSetLast(aHandle)) {
                 _storage.mark(aHandle.getLowWatermark().getLogOffset(), true);
                 return true;
             } else
@@ -308,12 +308,12 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         }
     }
 
-    private boolean testAndSetCheckpoint(CheckpointHandleImpl aHandle) {
+    private boolean testAndSetLast(CheckpointHandleImpl aHandle) {
         // If the checkpoint we're installing is newer...
         //
         CheckpointHandleImpl myCurrent;
         do {
-            myCurrent = _lastCheckpoint.get();
+            myCurrent = _needLimit.get();
 
             if (! aHandle.isNewerThan(myCurrent)) {
                 _logger.info(this + " checkpoint suggested is not new enough");
@@ -321,12 +321,12 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 return false;
             }
 
-        } while (! _lastCheckpoint.compareAndSet(myCurrent, aHandle));
+        } while (! _needLimit.compareAndSet(myCurrent, aHandle));
 
         return true;
     }
 
-    private long installCheckpoint(CheckpointHandleImpl aHandle) {
+    private long install(CheckpointHandleImpl aHandle) {
         _leadershipState.setLastCollect(aHandle.getLastCollect());
 
         _logger.info(toString() + " Checkpoint installed: " + aHandle.getLastCollect() + " @ " +
@@ -353,7 +353,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             if (! _common.getNodeState().test(NodeState.State.OUT_OF_DATE))
                 throw new IllegalStateException("Not out of date");
 
-            if (! testAndSetCheckpoint(aHandle))
+            if (! testAndSetLast(aHandle))
                 return false;
 
             /*
@@ -365,7 +365,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             if (_common.getNodeState().testAndSet(NodeState.State.OUT_OF_DATE, NodeState.State.ACTIVE)) {
                 _logger.debug(this + " restored to active");
 
-                installCheckpoint(aHandle);
+                install(aHandle);
 
                 // Write collect from our new checkpoint to log and use that as the starting point for replay.
                 //
@@ -701,7 +701,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                  * date. Since Paxos will tend to keep replica's mostly in sync there's no need to see if other
                  * nodes pronounce out of date as likely they will, eventually (allowing for network instabilities).
                  */
-                if (myNeed.getMinSeq() < _lastCheckpoint.get().getLowWatermark().getSeqNum()) {
+                if (myNeed.getMinSeq() < _needLimit.get().getLowWatermark().getSeqNum()) {
                     _logger.warn("Need is too old: " + myNeed + " from: " + myNodeId);
 
                     _common.getTransport().send(_common.getTransport().getPickler().newPacket(new OutOfDate()),
