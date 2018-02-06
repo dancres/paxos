@@ -857,8 +857,8 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 			}
 
 			default:
-				throw new RuntimeException("Unexpected message" + ", " + _common.getTransport().getLocalAddress());
-		}
+                throw new Error("Unexpected message of type " + myMessage.getType() + ", " +
+                        _common.getTransport().getLocalAddress());		}
 	}
 
     /**
