@@ -707,13 +707,11 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
                     _common.getTransport().send(_common.getTransport().getPickler().newPacket(new OutOfDate()),
                             aPacket.getSource());
-
-                } else if (myNeed.getMaxSeq() <= _lowWatermark.get().getSeqNum()) {
-                    _logger.debug(toString() + " Running streamer -> " + myNodeId);
+                } else {
+                    _logger.debug(toString() + " Running streamer -> " + myNodeId + " partial coverage: " +
+                        (myNeed.getMaxSeq() > _lowWatermark.get().getSeqNum()));
 
                     new RemoteStreamer(aPacket.getSource(), myNeed).start();
-                } else {
-                    _logger.debug(toString() + " Can't serve need, behind the times -> " + myNodeId);
                 }
 
                 break;
