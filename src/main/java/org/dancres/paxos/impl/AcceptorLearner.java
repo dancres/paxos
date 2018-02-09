@@ -55,7 +55,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
      * for values and ensures that any value is logged only once (because it doesn't appear in any other messages).
      */
     private final Map<Long, Begin> _cachedBegins = new ConcurrentHashMap<>();
-    private final Map<Long, AcceptLedger> _acceptLedgers = new ConcurrentHashMap<>();
+    private final AcceptLedger _acceptLedgers;
 
     private final Lock _guardLock = new ReentrantLock();
     private final Condition _notActive = _guardLock.newCondition();
@@ -118,6 +118,8 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             _logger.debug(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + anAddress);
             _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), anAddress);
         };
+
+        _acceptLedgers = new AcceptLedger(toString());
     }
 
     interface CheckpointConsumer extends Function<CheckpointHandle, Boolean> {
@@ -823,11 +825,12 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                         aSender.accept(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
                                 _common.getTransport().getBroadcastAddress());
 
-                        purgeAcceptLedger(myBegin);
+                        _acceptLedgers.purgeAcceptLedger(myBegin);
 
-                        Transport.Packet myLearned = tallyAccepts(myBegin);
+                        Learned myLearned = _acceptLedgers.tallyAccepts(myBegin,
+                                _common.getTransport().getFD().getMajority());
                         if (myLearned != null)
-                            learned(myLearned, aWriter);
+                            learned(_common.getTransport().getPickler().newPacket(myLearned), aWriter);
                     }
 
 				} else if (_leadershipState.precedes(aPacket)) {
@@ -859,14 +862,15 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 if (myAccept.getSeqNum() <= _lowWatermark.get().getSeqNum())
                     return;
 
-                startLedger(myAccept).add(aPacket);
+                _acceptLedgers.extendLedger(aPacket);
 
                 Begin myCachedBegin = _cachedBegins.get(myAccept.getSeqNum());
 
                 if (myCachedBegin != null) {
-                    Transport.Packet myLearned = tallyAccepts(myCachedBegin);
+                    Learned myLearned = _acceptLedgers.tallyAccepts(myCachedBegin,
+                            _common.getTransport().getFD().getMajority());
                     if (myLearned != null)
-                        learned(myLearned, aWriter);
+                        learned(_common.getTransport().getPickler().newPacket(myLearned), aWriter);
                 }
 
                 break;
@@ -936,64 +940,6 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                     _leadershipState.getLeaderRndNum(),
                     myBegin.getConsolidatedValue()));
         }
-    }
-
-    /**
-     * Utility method to manage the lifecycle of creating an accept ledger.
-     *
-     * @param anAccept
-     * @return the newly or previously created ledger for the specified sequence number.
-     */
-    private AcceptLedger startLedger(Accept anAccept) {
-        return getAcceptLedger(anAccept.getSeqNum(), true);
-    }
-
-    private AcceptLedger getAcceptLedger(Long aSeqNum, boolean doCreate) {
-        AcceptLedger myAccepts = _acceptLedgers.get(aSeqNum);
-
-        if (myAccepts == null && doCreate) {
-            AcceptLedger myInitial = new AcceptLedger(toString(), aSeqNum);
-            AcceptLedger myResult = _acceptLedgers.put(aSeqNum, myInitial);
-
-            myAccepts = ((myResult == null) ? myInitial : myResult);
-        }
-
-        return myAccepts;
-    }
-
-    /**
-     * Remove any accepts in the ledger not appropriate for the passed begin. We must tally only those accepts
-     * that match the round and sequence number of this begin. All others should be flushed.
-     *
-     * @param aBegin
-     */
-    private void purgeAcceptLedger(Begin aBegin) {
-        AcceptLedger myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
-
-        if (myAccepts != null)
-            myAccepts.purge(aBegin);
-    }
-
-    /**
-     * Determines whether a sufficient number of accepts can be tallied against the specified begin.
-     *
-     * @param aBegin
-     * @return A Learned packet to be logged if there are sufficient accepts, <code>null</code> otherwise.
-     */
-    private Transport.Packet tallyAccepts(Begin aBegin) {
-        AcceptLedger myAccepts = _acceptLedgers.get(aBegin.getSeqNum());
-
-        if (myAccepts != null) {
-            Learned myLearned = myAccepts.tally(aBegin, _common.getTransport().getFD().getMajority());
-
-            if (myLearned != null) {
-                _logger.trace(toString() + " *** Speculative COMMIT possible ***");
-
-                return _common.getTransport().getPickler().newPacket(myLearned);
-            }
-        }
-
-        return null;
     }
 
 	private PaxosMessage constructLast(Collect aCollect) {
