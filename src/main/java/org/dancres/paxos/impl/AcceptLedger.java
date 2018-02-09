@@ -31,6 +31,10 @@ class AcceptLedger {
 
             return false;
         }
+
+        public int hashCode() {
+            return _acc.hashCode() ^ _addr.hashCode();
+        }
     }
 
     private final Set<Slip> _ledger = new HashSet<>();
