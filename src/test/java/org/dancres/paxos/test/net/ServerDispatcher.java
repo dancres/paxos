@@ -42,7 +42,11 @@ public class ServerDispatcher implements Transport.Dispatcher {
      * For testing only
      */
     public ServerDispatcher(LogStorage aLogger, Listener aListener, boolean isDisableHeartbeats) {
-        this(new Core(aLogger, CheckpointHandle.NO_CHECKPOINT,  aListener, isDisableHeartbeats));
+        this(aLogger, CheckpointHandle.NO_CHECKPOINT,  aListener, isDisableHeartbeats);
+    }
+
+    public ServerDispatcher(LogStorage aLogger, CheckpointHandle aHandle, Listener aListener, boolean isDisableHeartbeats) {
+        this(new Core(aLogger, aHandle,  aListener, isDisableHeartbeats));
     }
 
     private ServerDispatcher(Core aCore) {
