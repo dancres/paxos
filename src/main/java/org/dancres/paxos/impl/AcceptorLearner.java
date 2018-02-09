@@ -859,7 +859,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 if (myAccept.getSeqNum() <= _lowWatermark.get().getSeqNum())
                     return;
 
-                getAndCreateAcceptLedger(myAccept).add(aPacket);
+                startLedger(myAccept).add(aPacket);
 
                 Begin myCachedBegin = _cachedBegins.get(myAccept.getSeqNum());
 
@@ -944,13 +944,16 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
      * @param anAccept
      * @return the newly or previously created ledger for the specified sequence number.
      */
-    private AcceptLedger getAndCreateAcceptLedger(Accept anAccept) {
-        Long mySeqNum = anAccept.getSeqNum();
-        AcceptLedger myAccepts = _acceptLedgers.get(mySeqNum);
+    private AcceptLedger startLedger(Accept anAccept) {
+        return getAcceptLedger(anAccept.getSeqNum(), true);
+    }
 
-        if (myAccepts == null) {
-            AcceptLedger myInitial = new AcceptLedger(toString(), mySeqNum);
-            AcceptLedger myResult = _acceptLedgers.put(mySeqNum, myInitial);
+    private AcceptLedger getAcceptLedger(Long aSeqNum, boolean doCreate) {
+        AcceptLedger myAccepts = _acceptLedgers.get(aSeqNum);
+
+        if (myAccepts == null && doCreate) {
+            AcceptLedger myInitial = new AcceptLedger(toString(), aSeqNum);
+            AcceptLedger myResult = _acceptLedgers.put(aSeqNum, myInitial);
 
             myAccepts = ((myResult == null) ? myInitial : myResult);
         }
