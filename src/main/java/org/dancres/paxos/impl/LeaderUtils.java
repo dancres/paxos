@@ -22,7 +22,7 @@ class LeaderUtils {
 		Collect myCurrent = (Collect) aCurrent.getMessage();
 
 		return ((myProspective.getSeqNum() >= myCurrent.getSeqNum()) &&
-                (myProspective.getRndNumber() >= myCurrent.getRndNumber()) &&
+                (myProspective.getRndNumber() > myCurrent.getRndNumber()) &&
 			    (aProspective.getSource().equals(aCurrent.getSource())));
 	}
 

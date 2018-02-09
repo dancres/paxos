@@ -730,34 +730,25 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
 				// If the collect supercedes our previous collect save it, return last proposal etc
 				//
-				if (_leadershipState.supercedes(aPacket)) {
+                if (_leadershipState.supercedes(aPacket)) {
                     _logger.trace(toString() + " Accepting collect: " + myCollect);
 
-					aWriter.write(aPacket, true);
-                    
+                    aWriter.write(aPacket, true);
+
                     aSender.send(constructLast(myCollect), myNodeId);
 
                     signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
                             _leadershipState.getLeaderRndNum(),
                             Proposal.NO_VALUE));
-
-					/*
-					 * If the collect comes from the current leader (has same rnd
-					 * and node), we apply the multi-paxos optimisation, no need to
-					 * save to disk, just respond with last proposal etc
-					 */
-				} else if (_leadershipState.sameLeader(aPacket)) {
-                    aSender.send(constructLast(myCollect), myNodeId);
-
-				} else {
+                } else {
                     _logger.warn(toString() + " OLDROUND - REJCOLL: " + myCollect + " vs " +
                             _leadershipState.getLastCollect().getMessage());
 
-					// Another collect has already arrived with a higher priority, tell the proposer it has competition
-					//
+                    // Another collect has already arrived with a higher priority, tell the proposer it has competition
+                    //
                     aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
                             _leadershipState.getLeaderAddress(), _leadershipState.getLeaderRndNum()), myNodeId);
-				}
+                }
 				
 				break;
 			}
