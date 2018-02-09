@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -79,6 +80,11 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
     private final Writer _liveWriter;
 
+    interface Sender extends BiConsumer<PaxosMessage, InetSocketAddress> {
+    }
+
+    private final Sender _recoverySender = (aMessage, anAddress) -> {};
+    private final Sender _liveSender;
 
     /* ********************************************************************************************
      *
@@ -90,6 +96,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         _storage = aStore;
         _common = aCommon;
         _bus = aCommon.getBus().subscribe("AcceptorLearner", this);
+
         _liveWriter = (aPacket, aForce) -> {
             try {
                 return _storage.put(_common.getTransport().getPickler().pickle(aPacket), aForce);
@@ -97,6 +104,19 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 _logger.error(AcceptorLearner.this.toString() + " cannot log: " + System.currentTimeMillis(), anE);
                 throw new RuntimeException(anE);
             }
+        };
+
+        _liveSender = (aMessage, anAddress) -> {
+            // Go silent if we're shutting down - shutdown process can be brutal, we don't want to send out lies
+            //
+            if (_common.getNodeState().test(NodeState.State.SHUTDOWN))
+                return;
+
+            if (aMessage.getType() == PaxosMessage.Types.ACCEPT)
+                _stats.incrementAccepts();
+
+            _logger.debug(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + anAddress);
+            _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), anAddress);
         };
     }
 
@@ -249,7 +269,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 new LogRangeProducer(myStartSeqNum, Long.MAX_VALUE, (Transport.Packet aPacket, long aLogOffset) ->
                         AcceptorLearner.this.process(aPacket,
                                 (aReplayPacket, aSender) -> aLogOffset,
-                                new RecoverySender()),
+                                _recoverySender),
                         _storage, _common.getTransport().getPickler()).produce(0);
             } catch (Exception anE) {
                 _logger.error(toString() + " Failed to replay log", anE);
@@ -520,7 +540,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                             public void consume(Transport.Packet aPacket) {
                                 boolean myRecoveryInProgress = _common.getNodeState().test(NodeState.State.RECOVERING);
                                 Sender mySender = ((myRecoveryInProgress) || (! _common.amMember())) ?
-                                        new RecoverySender() : new LiveSender();
+                                        _recoverySender : _liveSender;
 
                                 process(aPacket, _liveWriter, mySender);
 
@@ -591,9 +611,9 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                                      * membership).
                                      */
                                     if (myNeedTarget != null)
-                                        new LiveSender().send(aNeed, myNeedTarget);
+                                        _liveSender.accept(aNeed, myNeedTarget);
                                     else
-                                        new LiveSender().send(aNeed, aSourceAddr);
+                                        _liveSender.accept(aNeed, aSourceAddr);
 
                                     // Startup recovery watchdog
                                     //
@@ -613,7 +633,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     private void serveNeedFromRecovery(Transport.Packet aPacket) {
         _logger.debug(toString() + "Serving NEED from recovery " + aPacket);
 
-        process(aPacket, (aReplayPacket, aForce) -> 0L, new LiveSender());
+        process(aPacket, (aReplayPacket, aForce) -> 0L, _liveSender);
     }
 
     /* ********************************************************************************************
@@ -757,7 +777,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
                     aWriter.apply(aPacket, true);
 
-                    aSender.send(constructLast(myCollect), myNodeId);
+                    aSender.accept(constructLast(myCollect), myNodeId);
 
                     signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
                             _leadershipState.getLeaderRndNum(),
@@ -768,7 +788,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
                     // Another collect has already arrived with a higher priority, tell the proposer it has competition
                     //
-                    aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
+                    aSender.accept(new OldRound(_lowWatermark.get().getSeqNum(),
                             _leadershipState.getLeaderAddress(), _leadershipState.getLeaderRndNum()), myNodeId);
                 }
 				
@@ -792,7 +812,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                     if (mySeqNum <= _lowWatermark.get().getSeqNum()) {
                         _logger.warn(toString() + " Leader is resync'ing with Ledger " + myBegin);
 
-                        aSender.send(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
+                        aSender.accept(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
                                 _common.getTransport().getBroadcastAddress());
 
                     } else {
@@ -800,7 +820,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
                         aWriter.apply(aPacket, true);
 
-                        aSender.send(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
+                        aSender.accept(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
                                 _common.getTransport().getBroadcastAddress());
 
                         purgeAcceptLedger(myBegin);
@@ -817,7 +837,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                     _logger.warn(toString() + " OLDROUND - BEGTRMP " + mySeqNum +
                             _leadershipState.getLastCollect().getMessage() +
                             " [ " + myBegin.getRndNumber() + " ], ");
-                    aSender.send(new OldRound(_lowWatermark.get().getSeqNum(),
+                    aSender.accept(new OldRound(_lowWatermark.get().getSeqNum(),
                             _leadershipState.getLeaderAddress(), _leadershipState.getLeaderRndNum()), myNodeId);
 				} else {
 					/*
@@ -1009,31 +1029,6 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         }
 	}
 
-    interface Sender {
-        void send(PaxosMessage aMessage, InetSocketAddress aNodeId);
-    }
-    
-    class LiveSender implements Sender {
-        public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
-            // Go silent if we're shutting down - shutdown process can be brutal, we don't want to send out lies
-            //
-            if (_common.getNodeState().test(NodeState.State.SHUTDOWN))
-                return;
-
-            if (aMessage.getType() == PaxosMessage.Types.ACCEPT)
-                _stats.incrementAccepts();
-
-            _logger.debug(AcceptorLearner.this.toString() + " sending " + aMessage + " to " + aNodeId);
-            _common.getTransport().send(_common.getTransport().getPickler().newPacket(aMessage), aNodeId);
-        }        
-    }
-    
-    static class RecoverySender implements Sender {
-        public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
-            // Drop silently
-        }
-    }
-    
     /**
      * Used to locate the recorded state of a specified instance of Paxos.
      */
