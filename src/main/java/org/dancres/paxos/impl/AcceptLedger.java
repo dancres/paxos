@@ -3,16 +3,37 @@ package org.dancres.paxos.impl;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Learned;
+import org.dancres.paxos.messages.PaxosMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
 
 class AcceptLedger {
     private static final Logger _logger = LoggerFactory.getLogger(AcceptLedger.class);
 
-    private final Set<Transport.Packet> _ledger = new HashSet<>();
+    class Slip {
+        final InetSocketAddress _addr;
+        final Accept _acc;
+
+        Slip(Transport.Packet aPacket) {
+            _acc = (Accept) aPacket.getMessage();
+            _addr = aPacket.getSource();
+        }
+
+        public boolean equals(Object anObject) {
+            if (anObject instanceof Slip) {
+                Slip mySlip = (Slip) anObject;
+                return ((mySlip._addr.equals(_addr)) && (mySlip._acc.equals(_acc)));
+            }
+
+            return false;
+        }
+    }
+
+    private final Set<Slip> _ledger = new HashSet<>();
     private final long _seqNum;
     private final String _alId;
 
@@ -30,7 +51,7 @@ class AcceptLedger {
                 throw new IllegalArgumentException("Packet doesn't have correct sequence number " + _seqNum + " vs" +
                     aPacket.getMessage().getSeqNum());
 
-            _ledger.add(aPacket);
+            _ledger.add(new Slip(aPacket));
         }
     }
 
@@ -42,8 +63,8 @@ class AcceptLedger {
      */
     void purge(Begin aBegin) {
         synchronized (this) {
-            _ledger.removeIf((Transport.Packet aPacket) ->
-                    ((Accept) aPacket.getMessage()).getRndNumber() != aBegin.getRndNumber());
+            _ledger.removeIf((aSlip) ->
+                    aSlip._acc.getRndNumber() != aBegin.getRndNumber());
         }
     }
 
@@ -60,8 +81,8 @@ class AcceptLedger {
             if (_ledger.size() < aMajority)
                 return null;
 
-            for (Transport.Packet myAcc : _ledger)
-                if (((Accept) myAcc.getMessage()).getRndNumber() == aBegin.getRndNumber())
+            for (Slip mySlip : _ledger)
+                if (mySlip._acc.getRndNumber() == aBegin.getRndNumber())
                     ++myAcceptTally;
 
             if (myAcceptTally >= aMajority) {
