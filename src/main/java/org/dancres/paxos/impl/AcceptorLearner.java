@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -69,6 +70,18 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
     /* ********************************************************************************************
      *
+     * Operation log handling
+     *
+     ******************************************************************************************** */
+
+    interface Writer extends BiFunction<Transport.Packet, Boolean, Long> {
+    }
+
+    private final Writer _liveWriter;
+
+
+    /* ********************************************************************************************
+     *
      * Lifecycle, checkpointing and open/close
      *
      ******************************************************************************************** */
@@ -77,6 +90,14 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         _storage = aStore;
         _common = aCommon;
         _bus = aCommon.getBus().subscribe("AcceptorLearner", this);
+        _liveWriter = (aPacket, aForce) -> {
+            try {
+                return _storage.put(_common.getTransport().getPickler().pickle(aPacket), aForce);
+            } catch (Exception anE) {
+                _logger.error(AcceptorLearner.this.toString() + " cannot log: " + System.currentTimeMillis(), anE);
+                throw new RuntimeException(anE);
+            }
+        };
     }
 
     interface CheckpointConsumer extends Function<CheckpointHandle, Boolean> {
@@ -226,7 +247,9 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
             try {
                 new LogRangeProducer(myStartSeqNum, Long.MAX_VALUE, (Transport.Packet aPacket, long aLogOffset) ->
-                        AcceptorLearner.this.process(aPacket, new ReplayWriter(aLogOffset), new RecoverySender()),
+                        AcceptorLearner.this.process(aPacket,
+                                (aReplayPacket, aSender) -> aLogOffset,
+                                new RecoverySender()),
                         _storage, _common.getTransport().getPickler()).produce(0);
             } catch (Exception anE) {
                 _logger.error(toString() + " Failed to replay log", anE);
@@ -360,7 +383,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
             // Write collect from our new checkpoint to log and use that as the starting point for replay.
             //
-            _storage.mark(new LiveWriter().write(aHandle.getLastCollect(), false), true);
+            _storage.mark(_liveWriter.apply(aHandle.getLastCollect(), false), true);
 
             /*
              * If we're out of date, there will be no active timers and no activity on the log.
@@ -484,7 +507,6 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 }
             }
 
-            final Writer myWriter = new LiveWriter();
             int myProcessed;
 
             _logger.debug(toString() + " queuing " + aPacket.getSource() + ", " + myMessage +
@@ -500,7 +522,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                                 Sender mySender = ((myRecoveryInProgress) || (! _common.amMember())) ?
                                         new RecoverySender() : new LiveSender();
 
-                                process(aPacket, myWriter, mySender);
+                                process(aPacket, _liveWriter, mySender);
 
                                 if (myRecoveryInProgress) {
                                     if ((_lowWatermark.get().getSeqNum() == _recoveryWindow.get().getMaxSeq()) &&
@@ -591,7 +613,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     private void serveNeedFromRecovery(Transport.Packet aPacket) {
         _logger.debug(toString() + "Serving NEED from recovery " + aPacket);
 
-        process(aPacket, new ReplayWriter(0), new LiveSender());
+        process(aPacket, (aReplayPacket, aForce) -> 0L, new LiveSender());
     }
 
     /* ********************************************************************************************
@@ -733,7 +755,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 if (_leadershipState.supercedes(aPacket)) {
                     _logger.trace(toString() + " Accepting collect: " + myCollect);
 
-                    aWriter.write(aPacket, true);
+                    aWriter.apply(aPacket, true);
 
                     aSender.send(constructLast(myCollect), myNodeId);
 
@@ -776,7 +798,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                     } else {
                         _cachedBegins.put(myBegin.getSeqNum(), myBegin);
 
-                        aWriter.write(aPacket, true);
+                        aWriter.apply(aPacket, true);
 
                         aSender.send(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
                                 _common.getTransport().getBroadcastAddress());
@@ -868,7 +890,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
         // Record the learned value even if it's the heartbeat so there are no gaps in the Paxos sequence
         //
-        long myLogOffset = aWriter.write(aPacket, true);
+        long myLogOffset = aWriter.apply(aPacket, true);
 
         _lowWatermark.set(new Watermark(mySeqNum, myLogOffset));
 
@@ -1009,39 +1031,6 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     static class RecoverySender implements Sender {
         public void send(PaxosMessage aMessage, InetSocketAddress aNodeId) {
             // Drop silently
-        }
-    }
-    
-    /* ********************************************************************************************
-     *
-     * Operation log handling
-     *
-     ******************************************************************************************** */
-
-    interface Writer {
-        long write(Transport.Packet aPacket, boolean aForceRequired);
-    }
-
-    static class ReplayWriter implements Writer {
-        private final long _offset;
-
-        ReplayWriter(long anOffset) {
-            _offset = anOffset;
-        }
-
-        public long write(Transport.Packet aPacket, boolean aForceRequired) {
-            return _offset;
-        }
-    }
-
-    class LiveWriter implements Writer {
-        public long write(Transport.Packet aPacket, boolean aForceRequired) {
-            try {
-                return _storage.put(_common.getTransport().getPickler().pickle(aPacket), aForceRequired);
-            } catch (Exception anE) {
-                _logger.error(AcceptorLearner.this.toString() + " cannot log: " + System.currentTimeMillis(), anE);
-                throw new RuntimeException(anE);
-            }            
         }
     }
     
