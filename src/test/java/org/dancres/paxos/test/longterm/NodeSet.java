@@ -65,12 +65,12 @@ public class NodeSet {
         return _currentLeader;
     }
 
-    public NodeAdmin.Memento terminate(NodeAdmin anAdmin) {
+    public NodeAdmin.Memento terminate(NodeAdmin anAdmin) throws Exception {
         _nodes.remove(anAdmin);
         return anAdmin.terminate();
     }
 
-    void shutdown() {
+    void shutdown() throws Exception {
         for (NodeAdmin myNA : _nodes)
             myNA.terminate();
     }

@@ -83,7 +83,13 @@ public class MachineBlip implements Permuter.Possibility<OrderedMemoryNetwork.Co
                     (_deadCount.compareAndSet(0, 1))) {
 
                 int myRebirthTicks = aGen.nextInt(501) + 500;
-                NodeAdmin.Memento myMemento = myEnv.getNodes().terminate(myAdmin);
+                NodeAdmin.Memento myMemento = null;
+
+                try {
+                    myMemento = myEnv.getNodes().terminate(myAdmin);
+                } catch (Exception anE) {
+                    OrderedMemoryTransportImpl._logger.error("Couldn't terminate", anE);
+                }
 
                 if (myMemento != null) {
                     Grave myGrave = new Grave(myMemento, myRebirthTicks);

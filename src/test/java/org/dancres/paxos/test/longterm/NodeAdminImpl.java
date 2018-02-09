@@ -24,6 +24,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             try {
                 ObjectInputStream myOIS = new ObjectInputStream(aCkpt.getStream());
                 CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
+                myOIS.close();
 
                 try {
                     Paxos.Checkpoint myCheckpoint = aDispatcher.getCore().checkpoint().forRecovery();
@@ -38,7 +39,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             return false;
         }
 
-        void checkpoint(ServerDispatcher aDispatcher) throws Exception {
+        CheckpointHandle checkpoint(ServerDispatcher aDispatcher) throws Exception {
             Paxos.Checkpoint myCheckpoint = aDispatcher.getCore().checkpoint().forSaving();
             CheckpointStorage.WriteCheckpoint myCkpt = _ckptStorage.newCheckpoint();
             ObjectOutputStream myStream = new ObjectOutputStream(myCkpt.getStream());
@@ -51,6 +52,8 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             _checkpointTime.set(myCheckpoint.getHandle().getTimestamp());
 
             assert(_ckptStorage.numFiles() == 1);
+
+            return  myCheckpoint.getHandle();
         }
 
         CheckpointStorage.ReadCheckpoint getLastCheckpoint() {
@@ -64,9 +67,18 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     
     static class Config {
         private final LogStorageFactory _loggerFactory;
+        private CheckpointHandle _handle = CheckpointHandle.NO_CHECKPOINT;
 
         Config(LogStorageFactory aLoggerFactory) {
             _loggerFactory = aLoggerFactory;
+        }
+
+        void setHandle(CheckpointHandle aHandle) {
+            _handle = aHandle;
+        }
+
+        CheckpointHandle getHandle() {
+            return _handle;
         }
 
         public String toString() {
@@ -88,7 +100,8 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         _env = anEnv;
         _transport = aTransport;
 
-        _dispatcher = new ServerDispatcher(_config._loggerFactory.getLogger(), this);
+        _dispatcher = new ServerDispatcher(_config._loggerFactory.getLogger(),
+                _config.getHandle(), this, false);
 
         try {
             _dispatcher.init(_transport);
@@ -157,7 +170,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     }
 
     public void checkpoint() throws Exception {
-        _checkpointer.checkpoint(_dispatcher);
+        _config.setHandle(_checkpointer.checkpoint(_dispatcher));
     }
 
     public CheckpointStorage.ReadCheckpoint getLastCheckpoint() {

@@ -128,7 +128,7 @@ class EnvironmentImpl implements Environment {
         stabilise();
     }
 
-    void shutdown() {
+    void shutdown() throws Exception {
         _nodeSet.shutdown();
         _transportFactory.stop();
     }
