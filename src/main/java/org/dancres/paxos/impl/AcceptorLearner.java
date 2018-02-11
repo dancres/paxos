@@ -974,7 +974,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                         _leadershipState.getLeaderRndNum());
             } else
                 return new Last(mySeqNum, myLow.getSeqNum(),
-                        Long.MIN_VALUE, Proposal.NO_VALUE);
+                        Constants.PRIMORDIAL_RND, Proposal.NO_VALUE);
         }
 	}
 
