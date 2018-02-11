@@ -34,7 +34,7 @@ class PacketSorter {
      *                   and act accordingly.
      * @return the number of packets processed
      */
-    int process(long aLowWatermark, PacketProcessor aProcessor) {
+    int process(Watermark aLowWatermark, PacketProcessor aProcessor) {
         /*
          * Atomically remove the appropriate packets from the sorter under a lock
          *
@@ -52,7 +52,7 @@ class PacketSorter {
 
                 // Packets below aLowWatermark + 1 will be NEED's encountered during normal processing
                 //
-                if (mySeqAndPkt.getKey() <= (aLowWatermark + 1)) {
+                if (mySeqAndPkt.getKey() <= (aLowWatermark.getSeqNum() + 1)) {
                     myConsumables.addAll(mySeqAndPkt.getValue());
                     mySeqsAndPkts.remove();
                 }
@@ -65,10 +65,10 @@ class PacketSorter {
             SortedSet<Long> myAllSeqs = new TreeSet<>(_packets.keySet());
             Long myLastSeq = myAllSeqs.last();
 
-            if (myLastSeq > (aLowWatermark + _maxInflight)) {
+            if (myLastSeq > (aLowWatermark.getSeqNum() + _maxInflight)) {
                 InetSocketAddress myTriggerAddr = _packets.get(myLastSeq).get(0).getSource();
 
-                if (aProcessor.recover(new Need(aLowWatermark, myLastSeq - 1), myTriggerAddr)) {
+                if (aProcessor.recover(new Need(aLowWatermark.getSeqNum(), myLastSeq - 1), myTriggerAddr)) {
                     synchronized(this) {
                         List<Transport.Packet> myLastPackets = _packets.get(myLastSeq);
 

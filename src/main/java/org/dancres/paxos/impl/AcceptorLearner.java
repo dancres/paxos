@@ -538,7 +538,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
             do {
                 myProcessed =
-                        _sorter.process(_lowWatermark.get().getSeqNum(), new PacketSorter.PacketProcessor() {
+                        _sorter.process(_lowWatermark.get(), new PacketSorter.PacketProcessor() {
                             public void consume(Transport.Packet aPacket) {
                                 boolean myRecoveryInProgress = _common.getNodeState().test(NodeState.State.RECOVERING);
                                 Sender mySender = ((myRecoveryInProgress) || (! _common.amMember())) ?
