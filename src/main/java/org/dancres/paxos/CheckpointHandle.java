@@ -29,7 +29,7 @@ public interface CheckpointHandle extends Serializable {
                 }
 
                 public long getTimestamp() {
-                    return Constants.UNKNOWN_SEQ;
+                    return Constants.PRIMORDIAL_SEQ;
                 }
             };
 

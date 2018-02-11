@@ -8,7 +8,7 @@ public class Collect implements PaxosMessage {
     private final long _seqNum;
     private final long _rndNumber;
 
-    public static final Collect INITIAL = new Collect(Constants.UNKNOWN_SEQ, Long.MIN_VALUE);
+    public static final Collect INITIAL = new Collect(Constants.PRIMORDIAL_SEQ, Long.MIN_VALUE);
 
     public Collect(long aSeqNum, long aRndNumber) {
         _seqNum = aSeqNum;

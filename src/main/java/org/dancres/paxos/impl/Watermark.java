@@ -9,7 +9,7 @@ package org.dancres.paxos.impl;
  * paxos instances.
  */
 class Watermark implements Comparable<Watermark> {
-    static final Watermark INITIAL = new Watermark(Constants.UNKNOWN_SEQ, -1);
+    static final Watermark INITIAL = new Watermark(Constants.PRIMORDIAL_SEQ, -1);
     private final long _seqNum;
     private final long _logOffset;
 
