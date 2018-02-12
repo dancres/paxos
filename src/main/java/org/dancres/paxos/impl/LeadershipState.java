@@ -138,10 +138,6 @@ class LeadershipState {
         }
     }
 
-    boolean sameLeader(Transport.Packet aCollect) {
-        return _leaderUtils.sameLeader(aCollect, _lastCollect.get());
-    }
-
     boolean originates(Transport.Packet aBegin) {
         return _leaderUtils.originates(aBegin, _lastCollect.get());
     }
