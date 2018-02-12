@@ -53,8 +53,10 @@ public class Protocol {
     static BiFunction<InetSocketAddress, InetSocketAddress, Boolean> isSameSource = InetSocketAddress::equals;
 
     static class StateMachine {
+        private static final InetSocketAddress INITIAL_ADDR =
+                new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345);
         private Collect _elected = Collect.INITIAL;
-        private InetSocketAddress _elector = new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345);
+        private InetSocketAddress _elector = INITIAL_ADDR;
         private long _expiry = 0;
 
         /**
@@ -140,7 +142,12 @@ public class Protocol {
         InetSocketAddress getElector() {
             return _elector;
         }
-        
+
+        void resetElected() {
+            _elected = Collect.INITIAL;
+            _elector = INITIAL_ADDR;
+
+        }
         void extendExpiry() {
             _expiry = System.currentTimeMillis() + Leader.LeaseDuration.get();
         }

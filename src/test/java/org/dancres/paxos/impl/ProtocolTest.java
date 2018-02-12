@@ -190,6 +190,10 @@ public class ProtocolTest {
         Assert.assertTrue(myPreviousExpiry < myMachine.getExpiry());
         Assert.assertEquals(mySuccessful, myMachine.getElected());
         Assert.assertEquals(myProposer, myMachine.getElector());
+
+        myMachine.resetElected();
+        Assert.assertEquals(Collect.INITIAL, myMachine.getElected());
+        Assert.assertNotSame(myProposer, myMachine.getElector());
     }
 
     @Test
