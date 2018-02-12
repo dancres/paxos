@@ -133,6 +133,14 @@ public class Protocol {
             }
         }
 
+        Collect getElected() {
+            return _elected;
+        }
+
+        InetSocketAddress getElector() {
+            return _elector;
+        }
+        
         void extendExpiry() {
             _expiry = System.currentTimeMillis() + Leader.LeaseDuration.get();
         }

@@ -152,7 +152,7 @@ public class ProtocolTest {
         //
         Protocol.StateMachine myMachine = new Protocol.StateMachine();
         InetSocketAddress myProposer = Utils.getTestAddress();
-        long myCurrentExpiry = myMachine.getExpiry();
+        long myPreviousExpiry = myMachine.getExpiry();
 
         class OutdatedCapture implements Protocol.Outdated {
             boolean _outdated = false;
@@ -172,8 +172,10 @@ public class ProtocolTest {
                 myOutdatedCapture,
                 (c, w) -> {});
 
-        Assert.assertTrue("Primordial collect cannot superceed same", myOutdatedCapture._outdated);
-        Assert.assertEquals(myCurrentExpiry, myMachine.getExpiry());
+        Assert.assertTrue("Primordial collect cannot supersede same", myOutdatedCapture._outdated);
+        Assert.assertEquals(myPreviousExpiry, myMachine.getExpiry());
+        Assert.assertEquals(Collect.INITIAL, myMachine.getElected());
+        Assert.assertNotSame(myProposer, myMachine.getElector());
 
         Collect mySuccessful = new Collect(5, 5);
 
@@ -183,9 +185,11 @@ public class ProtocolTest {
         myMachine.dispatch(mySuccessful, myProposer, new Watermark(4, -1),
                 myOutdatedCapture, myActCapture);
 
-        Assert.assertFalse("Newer collect should supercede primordial", myOutdatedCapture._outdated);
+        Assert.assertFalse("Newer collect should supersede primordial", myOutdatedCapture._outdated);
         Assert.assertTrue(myActCapture._acted);
-        Assert.assertTrue(myCurrentExpiry < myMachine.getExpiry());
+        Assert.assertTrue(myPreviousExpiry < myMachine.getExpiry());
+        Assert.assertEquals(mySuccessful, myMachine.getElected());
+        Assert.assertEquals(myProposer, myMachine.getElector());
     }
 
     @Test
@@ -194,7 +198,7 @@ public class ProtocolTest {
         //
         Protocol.StateMachine myMachine = new Protocol.StateMachine();
         InetSocketAddress myProposer = Utils.getTestAddress();
-        long myCurrentExpiry = myMachine.getExpiry();
+        long myPreviousExpiry = myMachine.getExpiry();
 
         class OutdatedCapture implements Protocol.Outdated {
             boolean _outdated = false;
@@ -216,7 +220,7 @@ public class ProtocolTest {
 
         Assert.assertTrue("Begin at primordial sequence - 1 should be declared outdated",
                 myOutdatedCapture._outdated);
-        Assert.assertEquals(myCurrentExpiry, myMachine.getExpiry());
+        Assert.assertEquals(myPreviousExpiry, myMachine.getExpiry());
 
         Thread.sleep(200);
 
@@ -230,6 +234,6 @@ public class ProtocolTest {
 
         Assert.assertFalse(myOutdatedCapture._outdated);
         Assert.assertTrue("Begin for later sequence and primordial rnd should progress", myActCapture._acted);
-        Assert.assertTrue(myCurrentExpiry < myMachine.getExpiry());
+        Assert.assertTrue(myPreviousExpiry < myMachine.getExpiry());
     }
 }
