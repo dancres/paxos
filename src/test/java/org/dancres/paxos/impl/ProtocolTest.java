@@ -235,4 +235,56 @@ public class ProtocolTest {
         Assert.assertTrue("Begin for later sequence and primordial rnd should progress", myActCapture._acted);
         Assert.assertTrue(myPreviousExpiry < myMachine.getExpiry());
     }
+
+    @Test
+    public void checkRecoveryBegin() {
+        // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
+        //
+        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        InetSocketAddress myProposer = Utils.getTestAddress();
+        long myPreviousExpiry = myMachine.getExpiry();
+
+        Begin myTest = new Begin(Constants.PRIMORDIAL_SEQ - 1, Constants.PRIMORDIAL_RND, null);
+
+        OutdatedCapture myOutdatedCapture = new OutdatedCapture(myProposer);
+        ActCapture myActCapture = new ActCapture(myTest);
+
+        myMachine.dispatch(myTest,
+                new Watermark(Constants.PRIMORDIAL_SEQ, -1),
+                myOutdatedCapture,
+                myActCapture,
+                true);
+
+        // In recovery we accept anything because we're trusting the already validated log of another replica
+        //
+        Assert.assertFalse("Begin at primordial sequence - 1 should not be declared outdated",
+                myOutdatedCapture._outdated);
+        Assert.assertFalse(myPreviousExpiry == myMachine.getExpiry());
+        Assert.assertTrue("Begin should progress", myActCapture._acted);
+    }
+
+    @Test
+    public void checkRecoveryCollect() {
+        // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
+        //
+        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        InetSocketAddress myProposer = Utils.getTestAddress();
+        long myPreviousExpiry = myMachine.getExpiry();
+
+        Collect myTest = new Collect(Constants.PRIMORDIAL_SEQ, 5);
+        OutdatedCapture myOutdatedCapture = new OutdatedCapture(myProposer);
+        ActCapture myActCapture = new ActCapture(myTest);
+
+        myMachine.dispatch(myTest,
+                myProposer, new Watermark(Constants.PRIMORDIAL_SEQ, -1),
+                myOutdatedCapture,
+                myActCapture,
+                true);
+
+        Assert.assertFalse("Primordial collect can supersede same", myOutdatedCapture._outdated);
+        Assert.assertFalse(myPreviousExpiry == myMachine.getExpiry());
+        Assert.assertNotSame(Collect.INITIAL, myMachine.getElected());
+        Assert.assertEquals(myProposer, myMachine.getElector());
+        Assert.assertTrue("Collect should progress", myActCapture._acted);
+    }
 }

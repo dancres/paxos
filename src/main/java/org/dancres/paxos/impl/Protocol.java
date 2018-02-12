@@ -91,18 +91,24 @@ public class Protocol {
          * <p>
          * NOTE: ABOVE RULES MEAN WE DON'T OLD ROUND FOR A NEW RND FROM A NEW LEADER INSIDE THE LEADER LEASE, WE'RE SILENT AS INTENDED.
          */
-        void dispatch(Collect aProposed, InetSocketAddress aProposer, Watermark aWatermark,
-                      Outdated anOld, Act anAction) {
 
-            if (old(aProposed, _elected, aWatermark)) {
+        void dispatch (Collect aProposed, InetSocketAddress aProposer, Watermark aWatermark,
+                       Outdated anOld, Act anAction) {
+            dispatch(aProposed, aProposer, aWatermark, anOld, anAction, false);
+        }
+
+        void dispatch(Collect aProposed, InetSocketAddress aProposer, Watermark aWatermark,
+                      Outdated anOld, Act anAction, boolean isRecovery) {
+
+            if ((!isRecovery) && (old(aProposed, _elected, aWatermark))) {
                 anOld.accept(_elected.getRndNumber(), _elector);
-            } else if (actionable(aProposed, aProposer, _elected, _elector, _expiry)) {
+            } else if ((isRecovery) || (actionable(aProposed, aProposer, _elected, _elector, _expiry))) {
                 Collect myPreviouslyElected = _elected;
                 _elected = aProposed;
                 _elector = aProposer;
 
                 extendExpiry();
-                anAction.accept(aProposed, shouldWriteCollect.apply(aProposed, myPreviouslyElected));
+                anAction.accept(aProposed, isRecovery || shouldWriteCollect.apply(aProposed, myPreviouslyElected));
             }
         }
 
@@ -127,11 +133,15 @@ public class Protocol {
          * Emit accept for seqNum
          */
         void dispatch(Begin aBegin, Watermark aLowWatermark, Outdated anOld, Act anAction) {
-            if (old(aBegin, _elected, aLowWatermark)) {
+            dispatch(aBegin, aLowWatermark, anOld, anAction, false);
+        }
+
+        void dispatch(Begin aBegin, Watermark aLowWatermark, Outdated anOld, Act anAction, boolean isRecovery) {
+            if ((!isRecovery) && (old(aBegin, _elected, aLowWatermark))) {
                 anOld.accept(_elected.getRndNumber(), _elector);
-            } else if (actionable(aBegin, _elected)) {
+            } else if ((isRecovery) || (actionable(aBegin, _elected))) {
                 extendExpiry();
-                anAction.accept(aBegin, shouldWriteBegin.apply(aBegin, aLowWatermark));
+                anAction.accept(aBegin, isRecovery || shouldWriteBegin.apply(aBegin, aLowWatermark));
             }
         }
 
