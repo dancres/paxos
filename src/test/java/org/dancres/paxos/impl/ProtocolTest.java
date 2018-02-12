@@ -146,6 +146,23 @@ public class ProtocolTest {
         }
     }
 
+    static class OutdatedCapture implements Protocol.Outdated {
+        boolean _outdated = false;
+
+        private final InetSocketAddress _proposer;
+
+        OutdatedCapture(InetSocketAddress aProposer) {
+            _proposer = aProposer;
+        }
+
+        @Override
+        public void accept(Long aLong, InetSocketAddress anAddress) {
+            Assert.assertTrue(Collect.INITIAL.getRndNumber() == aLong);
+            Assert.assertNotSame(_proposer, anAddress);
+            _outdated = true;
+        }
+    };
+
     @Test
     public void checkCollect() {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
@@ -154,18 +171,7 @@ public class ProtocolTest {
         InetSocketAddress myProposer = Utils.getTestAddress();
         long myPreviousExpiry = myMachine.getExpiry();
 
-        class OutdatedCapture implements Protocol.Outdated {
-            boolean _outdated = false;
-
-            @Override
-            public void accept(Long aLong, InetSocketAddress anAddress) {
-                Assert.assertTrue(Collect.INITIAL.getRndNumber() == aLong);
-                Assert.assertNotSame(myProposer, anAddress);
-                _outdated = true;
-            }
-        };
-
-        OutdatedCapture myOutdatedCapture = new OutdatedCapture();
+        OutdatedCapture myOutdatedCapture = new OutdatedCapture(myProposer);
 
         myMachine.dispatch(new Collect(Constants.PRIMORDIAL_SEQ, 5),
                 myProposer, new Watermark(Constants.PRIMORDIAL_SEQ, -1),
@@ -204,18 +210,7 @@ public class ProtocolTest {
         InetSocketAddress myProposer = Utils.getTestAddress();
         long myPreviousExpiry = myMachine.getExpiry();
 
-        class OutdatedCapture implements Protocol.Outdated {
-            boolean _outdated = false;
-
-            @Override
-            public void accept(Long aLong, InetSocketAddress anAddress) {
-                Assert.assertTrue(Collect.INITIAL.getRndNumber() == aLong);
-                Assert.assertNotSame(myProposer, anAddress);
-                _outdated = true;
-            }
-        };
-
-        OutdatedCapture myOutdatedCapture = new OutdatedCapture();
+        OutdatedCapture myOutdatedCapture = new OutdatedCapture(myProposer);
 
         myMachine.dispatch(new Begin(Constants.PRIMORDIAL_SEQ - 1, Constants.PRIMORDIAL_RND, null),
                 new Watermark(Constants.PRIMORDIAL_SEQ, -1),
