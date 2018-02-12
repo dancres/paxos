@@ -158,6 +158,7 @@ public class Protocol {
             _elector = INITIAL_ADDR;
 
         }
+        
         void extendExpiry() {
             _expiry = System.currentTimeMillis() + Leader.LeaseDuration.get();
         }
