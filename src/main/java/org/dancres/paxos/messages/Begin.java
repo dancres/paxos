@@ -4,7 +4,7 @@ import org.dancres.paxos.Proposal;
 
 import java.util.EnumSet;
 
-public class Begin implements PaxosMessage {
+public class Begin implements Claim {
     private final long _seqNum;
     private final long _rndNumber;
     private final Proposal _consolidatedValue;

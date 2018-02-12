@@ -4,7 +4,7 @@ import org.dancres.paxos.impl.Constants;
 
 import java.util.EnumSet;
 
-public class Collect implements PaxosMessage {
+public class Collect implements Claim {
     private final long _seqNum;
     private final long _rndNumber;
 
