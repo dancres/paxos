@@ -566,7 +566,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
                                 if (myResult) {
                                     _recoveryWindow.set(aNeed);
-                                    _stats.incrementRecoveries();;
+                                    _stats.incrementRecoveries();
 
                                     /*
                                      * Both cachedBegins and acceptLedger run ahead of the low watermark thus if we're
