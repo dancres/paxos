@@ -5,7 +5,7 @@ import org.dancres.paxos.impl.net.Utils;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TestAddresses {
+public abstract class TestAddresses {
     private static final AtomicInteger _portAllocator = new AtomicInteger(2048);
 
     public static InetSocketAddress next() {
