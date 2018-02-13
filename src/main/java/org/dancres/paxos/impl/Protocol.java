@@ -128,6 +128,9 @@ public class Protocol {
 
                 extendExpiry();
                 anAction.accept(aProposed, isRecovery || shouldWriteCollect.apply(aProposed, myPreviouslyElected));
+            } else {
+                _logger.info(_designation + " Dropping: " + aProposed + " vs " + _elected +
+                        " from " + _elector);
             }
         }
 
@@ -169,6 +172,9 @@ public class Protocol {
 
                 extendExpiry();
                 anAction.accept(aBegin, isRecovery || shouldWriteBegin.apply(aBegin, aLowWatermark));
+            } else {
+                _logger.info(_designation + " Dropping: " + aBegin + " vs " + _elected +
+                        " from " + _elector);
             }
         }
 
