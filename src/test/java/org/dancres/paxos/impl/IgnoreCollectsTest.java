@@ -62,7 +62,7 @@ public class IgnoreCollectsTest {
         Common myCommon = _node2.getCore().getCommon();
 
         Collect myCollect = new Collect(myAl.getLowWatermark().getSeqNum() + 1,
-        		myAl.getLeaderRndNum());
+        		myAl.getLeaderRndNum() + 1);
 
         myClient.send(myCollect, _tport2.getLocalAddress());
 
