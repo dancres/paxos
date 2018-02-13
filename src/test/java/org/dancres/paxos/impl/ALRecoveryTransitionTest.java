@@ -80,6 +80,7 @@ public class ALRecoveryTransitionTest {
     }
 
 	@Test public void test() throws Exception {
+	    StandalonePickler myPickler = new StandalonePickler();
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		ALTestTransportImpl myTransport = new ALTestTransportImpl(_nodeId, _broadcastId, new FakeDetector());
         Common myCommon = new Common().setTransport(myTransport);
@@ -95,7 +96,7 @@ public class ALRecoveryTransitionTest {
 		
 		// First collect, Al has no state so this is accepted and will be held in packet buffer
 		//
-		myAl.processMessage(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum)));
+		myAl.processMessage(myPickler.newPacket(new Collect(mySeqNum, myRndNum), _nodeId));
 		
 		PaxosMessage myResponse = myTransport.getNextMsg();	
 		Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.LAST);
@@ -107,19 +108,18 @@ public class ALRecoveryTransitionTest {
 		myValue.put("data", myData);
 		myValue.put("handback", HANDBACK);
 		
-		myAl.processMessage(new FakePacket(_nodeId,
-                new Begin(mySeqNum, myRndNum, myValue)));
+		myAl.processMessage(myPickler.newPacket(new Begin(mySeqNum, myRndNum, myValue), _nodeId));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.ACCEPT);
 
 		// Commit this instance
 		//
-		myAl.processMessage(new FakePacket(_nodeId, new Learned(mySeqNum, myRndNum)));
+		myAl.processMessage(myPickler.newPacket(new Learned(mySeqNum, myRndNum), _nodeId));
 
 		// Now start an instance which should trigger recovery - happens on collect boundary
 		//
-		myAl.processMessage(new FakePacket(_nodeId, new Collect(mySeqNum + 5, myRndNum + 2)));
+		myAl.processMessage(myPickler.newPacket(new Collect(mySeqNum + 5, myRndNum + 2), _nodeId));
 		
 		Assert.assertTrue(myCommon.getNodeState().test(NodeState.State.RECOVERING));
 		

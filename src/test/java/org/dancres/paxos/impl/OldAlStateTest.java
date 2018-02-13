@@ -35,6 +35,7 @@ public class OldAlStateTest {
 	}
 	
 	@Test public void test() throws Exception {
+		StandalonePickler myPickler = new StandalonePickler();
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		ALTestTransportImpl myTransport = new ALTestTransportImpl(_nodeId);
 		
@@ -47,7 +48,7 @@ public class OldAlStateTest {
 		
 		// First collect, Al has no state so this is accepted
 		//
-		myAl.processMessage(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum)));
+		myAl.processMessage(myPickler.newPacket(new Collect(mySeqNum, myRndNum), _nodeId));
 		
 		PaxosMessage myResponse = myTransport.getNextMsg();	
 		Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.LAST);
@@ -59,8 +60,7 @@ public class OldAlStateTest {
 		myValue.put("data", myData);
 		myValue.put("handback", HANDBACK);
 		
-		myAl.processMessage(new FakePacket(_nodeId,
-                new Begin(mySeqNum, myRndNum, myValue)));
+		myAl.processMessage(myPickler.newPacket(new Begin(mySeqNum, myRndNum, myValue), _nodeId));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.ACCEPT);
@@ -69,7 +69,7 @@ public class OldAlStateTest {
 		 * Emulate leader having to do recovery and re-run the paxos instance with a new rnd number - the response
 		 * should be a last
 		 */		
-		myAl.processMessage(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum + 1)));
+		myAl.processMessage(myPickler.newPacket(new Collect(mySeqNum, myRndNum + 1), _nodeId));
 		
 		Last myLast = (Last) myTransport.getNextMsg();
 		
@@ -78,8 +78,8 @@ public class OldAlStateTest {
 		
 		// Push the value again
 		//
-		myAl.processMessage(new FakePacket(_nodeId,
-                new Begin(mySeqNum, myRndNum + 1, myLast.getConsolidatedValue())));
+		myAl.processMessage(myPickler.newPacket(new Begin(mySeqNum, myRndNum + 1,
+				myLast.getConsolidatedValue()), _nodeId));
 		
 		myResponse = myTransport.getNextMsg();
 		Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.ACCEPT);

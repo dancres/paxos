@@ -1,11 +1,10 @@
 package org.dancres.paxos.impl;
 
 import junit.framework.Assert;
-import org.dancres.paxos.impl.PacketSorter;
-import org.dancres.paxos.impl.Transport;
+import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Need;
-import org.dancres.paxos.test.net.FakePacket;
+import org.dancres.paxos.test.net.StandalonePickler;
 import org.junit.Test;
 
 import java.net.InetSocketAddress;
@@ -15,9 +14,11 @@ public class PacketSorterTest {
     public void checkConsume() {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(false);
+        StandalonePickler myPickler =
+                new StandalonePickler(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
 
         for (long mySeq = 0; mySeq < 5; mySeq++) {
-            mySorter.add(new FakePacket(new Collect(mySeq, 1)));
+            mySorter.add(myPickler.newPacket(new Collect(mySeq, 1)));
             mySorter.process(new Watermark(mySeq - 1, -1), myTester);
         }
 
@@ -30,8 +31,10 @@ public class PacketSorterTest {
     public void checkPositiveRecoverTrigger() {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(true);
+        StandalonePickler myPickler =
+                new StandalonePickler(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
 
-        mySorter.add(new FakePacket(new Collect(5, 1)));
+        mySorter.add(myPickler.newPacket(new Collect(5, 1)));
         mySorter.process(new Watermark(0, -1), myTester);
 
         Assert.assertEquals(0, myTester._consumed);
@@ -43,10 +46,12 @@ public class PacketSorterTest {
     public void checkNegativeRecoverTrigger() {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(false);
+        StandalonePickler myPickler =
+                new StandalonePickler(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
 
-        mySorter.add(new FakePacket(new Collect(4, 1)));
+        mySorter.add(myPickler.newPacket(new Collect(4, 1)));
         mySorter.process(new Watermark(0, -1), myTester);
-        mySorter.add(new FakePacket(new Collect(5, 1)));
+        mySorter.add(myPickler.newPacket(new Collect(5, 1)));
         mySorter.process(new Watermark(0, -1), myTester);
 
         Assert.assertEquals(0, myTester._consumed);
@@ -58,24 +63,26 @@ public class PacketSorterTest {
     public void checkRecoveryConsume() {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(true);
+        StandalonePickler myPickler =
+                new StandalonePickler(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
 
         // Recovery triggered immediately
         //
-        mySorter.add(new FakePacket(new Collect(4, 1)));
+        mySorter.add(myPickler.newPacket(new Collect(4, 1)));
         mySorter.process(new Watermark(-1, -1), myTester);
 
         // Simulate arrival of missing packets from elsewhere
         //
-        mySorter.add(new FakePacket(new Collect(0, 1)));
+        mySorter.add(myPickler.newPacket(new Collect(0, 1)));
         mySorter.process(new Watermark(-1, -1), myTester);
 
-        mySorter.add(new FakePacket(new Collect(1, 1)));
+        mySorter.add(myPickler.newPacket(new Collect(1, 1)));
         mySorter.process(new Watermark(0, -1), myTester);
 
-        mySorter.add(new FakePacket(new Collect(2, 1)));
+        mySorter.add(myPickler.newPacket(new Collect(2, 1)));
         mySorter.process(new Watermark(1, -1), myTester);
 
-        mySorter.add(new FakePacket(new Collect(3, 1)));
+        mySorter.add(myPickler.newPacket(new Collect(3, 1)));
         mySorter.process(new Watermark(2, -1), myTester);
 
         // Now catch up the original packet that "triggered" recovery

@@ -30,6 +30,8 @@ public class CheckpointHandleTest {
 
     @Test
     public void test() throws Exception {
+        StandalonePickler myPickler = new StandalonePickler();
+
         HowlLogger myLogger = new HowlLogger(DIRECTORY);
         ALTestTransportImpl myTransport = new ALTestTransportImpl(_nodeId, _broadcastId,
                 new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
@@ -47,7 +49,7 @@ public class CheckpointHandleTest {
         
         // First collect, Al has no state so this is accepted and will be held in packet buffer
         //
-        myAl.processMessage(new FakePacket(_nodeId, new Collect(mySeqNum, myRndNum)));
+        myAl.processMessage(myPickler.newPacket(new Collect(mySeqNum, myRndNum), _nodeId));
 
         PaxosMessage myResponse = myTransport.getNextMsg();
         Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.LAST);
@@ -59,15 +61,14 @@ public class CheckpointHandleTest {
         myValue.put("data", myData);
         myValue.put("handback", HANDBACK);
 
-        myAl.processMessage(new FakePacket(_nodeId,
-                new Begin(mySeqNum, myRndNum, myValue)));
+        myAl.processMessage(myPickler.newPacket(new Begin(mySeqNum, myRndNum, myValue), _nodeId));
 
         myResponse = myTransport.getNextMsg();
         Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.ACCEPT);
 
         // Commit this instance
         //
-        myAl.processMessage(new FakePacket(_nodeId, new Learned(mySeqNum, myRndNum)));
+        myAl.processMessage(myPickler.newPacket(new Learned(mySeqNum, myRndNum), _nodeId));
 
         CheckpointHandle mySecondHandle = myAl.newCheckpoint();
         
@@ -75,15 +76,14 @@ public class CheckpointHandleTest {
 
         // Execute and commit another instance
         //
-        myAl.processMessage(new FakePacket(_nodeId,
-                new Begin(mySeqNum + 1, myRndNum, myValue)));
+        myAl.processMessage(myPickler.newPacket(new Begin(mySeqNum + 1, myRndNum, myValue), _nodeId));
 
         myResponse = myTransport.getNextMsg();
         Assert.assertTrue(myResponse.getType() == PaxosMessage.Types.ACCEPT);
 
         // Commit this instance
         //
-        myAl.processMessage(new FakePacket(_nodeId, new Learned(mySeqNum + 1, myRndNum)));
+        myAl.processMessage(myPickler.newPacket(new Learned(mySeqNum + 1, myRndNum), _nodeId));
 
         CheckpointHandle myThirdHandle = myAl.newCheckpoint();
 
