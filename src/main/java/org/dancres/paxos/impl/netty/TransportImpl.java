@@ -81,7 +81,7 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
 
     private final Set<Dispatcher> _dispatchers = new CopyOnWriteArraySet<>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
-    private final PacketPickler _pickler = new PicklerImpl();
+    private final PacketPickler _pickler;
     private final List<Filter> _rxFilters = new LinkedList<>();
     private final List<Filter> _txFilters = new LinkedList<>();
 
@@ -91,17 +91,6 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
      * TODO: Ought to be able to run this multi-threaded but AL is not ready for that yet
      */
     private final ExecutorService _packetDispatcher = Executors.newSingleThreadExecutor();
-
-    private class PicklerImpl extends PicklerSkeleton {
-        public Packet newPacket(PaxosMessage aMessage) {
-            return new PacketImpl(aMessage, getLocalAddress());
-        }
-
-        public Packet newPacket(PaxosMessage aMessage, InetSocketAddress anAddress) {
-            return new PacketImpl(aMessage, anAddress);
-        }
-
-    }
 
     public TransportImpl(MessageBasedFailureDetector anFD) throws Exception {
         this(anFD, null);
@@ -136,6 +125,7 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
 
         _unicastChannel = (NioDatagramChannel) b.bind(aServerAddr).sync().channel();
         _unicastAddr = _unicastChannel.localAddress();
+        _pickler = new PicklerImpl(_unicastAddr);
 
         if (aMeta == null)
             _meta = _unicastAddr.toString().getBytes();
