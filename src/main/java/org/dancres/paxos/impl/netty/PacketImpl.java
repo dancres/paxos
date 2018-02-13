@@ -5,11 +5,11 @@ import org.dancres.paxos.messages.PaxosMessage;
 
 import java.net.InetSocketAddress;
 
-class PacketImpl implements Transport.Packet {
+public class PacketImpl implements Transport.Packet {
     private final PaxosMessage _msg;
     private final InetSocketAddress _source;
 
-    PacketImpl(PaxosMessage aMsg, InetSocketAddress aSource) {
+    public PacketImpl(PaxosMessage aMsg, InetSocketAddress aSource) {
         _msg = aMsg;
         _source = aSource;
     }
