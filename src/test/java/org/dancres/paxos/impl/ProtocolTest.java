@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Claim;
 import org.dancres.paxos.messages.Collect;
@@ -41,7 +42,7 @@ public class ProtocolTest {
         Assert.assertTrue(Protocol.isElectableRnd.apply(myElectable, myElected));
         Assert.assertFalse(Protocol.isElectableRnd.apply(myPast, myElected));
 
-        Begin mySameRnd = new Begin(Constants.PRIMORDIAL_SEQ, myElected.getRndNumber(), null);
+        Begin mySameRnd = new Begin(Constants.PRIMORDIAL_SEQ, myElected.getRndNumber(), Proposal.NO_VALUE);
         Assert.assertTrue(Protocol.isTheElectedRnd.apply(mySameRnd, myElected));
 
         Assert.assertTrue(Protocol.shouldWriteCollect.apply(myElectable, myElected));
@@ -50,7 +51,7 @@ public class ProtocolTest {
 
     @Test
     public void validateCollectOld() {
-        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test");
 
         // Old round
         Assert.assertTrue(myMachine.old(new Collect(5, 10),
@@ -70,7 +71,7 @@ public class ProtocolTest {
 
     @Test
     public void validateCollectActionable() {
-        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test");
         InetSocketAddress myAddrOne = Utils.getTestAddress();
         InetSocketAddress myAddrTwo = Utils.getTestAddress();
 
@@ -97,35 +98,35 @@ public class ProtocolTest {
 
     @Test
     public void validateBeginOld() {
-        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test");
 
         Assert.assertTrue("Begin is for old round but newer sequence number",
-                myMachine.old(new Begin(2, 5, null),
+                myMachine.old(new Begin(2, 5, Proposal.NO_VALUE),
                 new Collect(2, 6), new Watermark(1, -1)));
 
         Assert.assertTrue("Begin is for current round but older sequence number",
-                myMachine.old(new Begin(1, 6, null),
+                myMachine.old(new Begin(1, 6, Proposal.NO_VALUE),
                         new Collect(2, 6), new Watermark(2, -1)));
 
         Assert.assertFalse("Begin is for current round and newer sequence number",
-                myMachine.old(new Begin(3, 6, null),
+                myMachine.old(new Begin(3, 6, Proposal.NO_VALUE),
                         new Collect(2, 6), new Watermark(2, -1)));
     }
 
     @Test
     public void validateBeginActionable() {
-        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test");
 
         Assert.assertFalse("Not from elected, too low",
-                myMachine.actionable(new Begin(5, 4, null),
+                myMachine.actionable(new Begin(5, 4, Proposal.NO_VALUE),
                 new Collect(5, 5)));
 
         Assert.assertFalse("Not from elected, too high",
-                myMachine.actionable(new Begin(5, 10, null),
+                myMachine.actionable(new Begin(5, 10, Proposal.NO_VALUE),
                         new Collect(5, 5)));
 
         Assert.assertTrue("From elected",
-                myMachine.actionable(new Begin(5, 10, null),
+                myMachine.actionable(new Begin(5, 10, Proposal.NO_VALUE),
                         new Collect(5, 10)));
     }
 
@@ -167,7 +168,7 @@ public class ProtocolTest {
     public void checkCollect() {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
-        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test");
         InetSocketAddress myProposer = Utils.getTestAddress();
         long myPreviousExpiry = myMachine.getExpiry();
 
@@ -206,13 +207,14 @@ public class ProtocolTest {
     public void checkBegin() throws Exception {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
-        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test");
         InetSocketAddress myProposer = Utils.getTestAddress();
         long myPreviousExpiry = myMachine.getExpiry();
 
         OutdatedCapture myOutdatedCapture = new OutdatedCapture(myProposer);
 
-        myMachine.dispatch(new Begin(Constants.PRIMORDIAL_SEQ - 1, Constants.PRIMORDIAL_RND, null),
+        myMachine.dispatch(new Begin(Constants.PRIMORDIAL_SEQ - 1, Constants.PRIMORDIAL_RND,
+                        Proposal.NO_VALUE),
                 new Watermark(Constants.PRIMORDIAL_SEQ, -1),
                 myOutdatedCapture,
                 (c, w) -> {});
@@ -223,7 +225,7 @@ public class ProtocolTest {
 
         Thread.sleep(200);
 
-        Begin mySuccessful = new Begin(5, Constants.PRIMORDIAL_RND, null);
+        Begin mySuccessful = new Begin(5, Constants.PRIMORDIAL_RND, Proposal.NO_VALUE);
 
         ActCapture myActCapture = new ActCapture(mySuccessful);
         myOutdatedCapture._outdated = false;
@@ -240,11 +242,12 @@ public class ProtocolTest {
     public void checkRecoveryBegin() {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
-        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test");
         InetSocketAddress myProposer = Utils.getTestAddress();
         long myPreviousExpiry = myMachine.getExpiry();
 
-        Begin myTest = new Begin(Constants.PRIMORDIAL_SEQ - 1, Constants.PRIMORDIAL_RND, null);
+        Begin myTest = new Begin(Constants.PRIMORDIAL_SEQ - 1, Constants.PRIMORDIAL_RND,
+                Proposal.NO_VALUE);
 
         OutdatedCapture myOutdatedCapture = new OutdatedCapture(myProposer);
         ActCapture myActCapture = new ActCapture(myTest);
@@ -267,7 +270,7 @@ public class ProtocolTest {
     public void checkRecoveryCollect() {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
-        Protocol.StateMachine myMachine = new Protocol.StateMachine();
+        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test");
         InetSocketAddress myProposer = Utils.getTestAddress();
         long myPreviousExpiry = myMachine.getExpiry();
 

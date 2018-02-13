@@ -4,6 +4,8 @@ import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Claim;
 import org.dancres.paxos.messages.Collect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.function.BiConsumer;
@@ -20,6 +22,9 @@ import java.util.function.Function;
 
  */
 public class Protocol {
+
+    static final Logger _logger = LoggerFactory.getLogger(Protocol.class);
+
     /**
      * Tests against the low watermark
      */
@@ -55,9 +60,15 @@ public class Protocol {
     static class StateMachine {
         private static final InetSocketAddress INITIAL_ADDR =
                 new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345);
+        private final String _designation;
+
         private Collect _elected = Collect.INITIAL;
         private InetSocketAddress _elector = INITIAL_ADDR;
         private long _expiry = 0;
+
+        StateMachine(String aDesignation) {
+            _designation = aDesignation;
+        }
 
         /**
          * COLLECT
@@ -101,8 +112,16 @@ public class Protocol {
                       Outdated anOld, Act anAction, boolean isRecovery) {
 
             if ((!isRecovery) && (old(aProposed, _elected, aWatermark))) {
+
+                _logger.info(_designation + " Emitting OldRound for: " + aProposed + " vs " + _elected +
+                        " from " + _elector);
+
                 anOld.accept(_elected.getRndNumber(), _elector);
             } else if ((isRecovery) || (actionable(aProposed, aProposer, _elected, _elector, _expiry))) {
+
+                _logger.info(_designation + " Actioning: " + aProposed + " vs " + _elected +
+                        " from " + _elector);
+
                 Collect myPreviouslyElected = _elected;
                 _elected = aProposed;
                 _elector = aProposer;
@@ -138,8 +157,16 @@ public class Protocol {
 
         void dispatch(Begin aBegin, Watermark aLowWatermark, Outdated anOld, Act anAction, boolean isRecovery) {
             if ((!isRecovery) && (old(aBegin, _elected, aLowWatermark))) {
+
+                _logger.info(_designation + " Emitting OldRound for: " + aBegin + " vs " + _elected +
+                        " from " + _elector);
+
                 anOld.accept(_elected.getRndNumber(), _elector);
             } else if ((isRecovery) || (actionable(aBegin, _elected))) {
+
+                _logger.info(_designation + " Actioning: " + aBegin + " vs " + _elected +
+                        " from " + _elector);
+
                 extendExpiry();
                 anAction.accept(aBegin, isRecovery || shouldWriteBegin.apply(aBegin, aLowWatermark));
             }
