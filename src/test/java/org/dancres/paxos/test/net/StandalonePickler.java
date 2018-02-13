@@ -8,8 +8,12 @@ import org.dancres.paxos.messages.PaxosMessage;
 public class StandalonePickler extends Transport.PicklerSkeleton {
     private final InetSocketAddress _source;
 
-    public StandalonePickler(InetSocketAddress aSource) {
-        _source = aSource;
+    public StandalonePickler(InetSocketAddress aDefaultSource) {
+        _source = aDefaultSource;
+    }
+
+    public StandalonePickler() {
+        _source = null;
     }
 
     public Transport.Packet newPacket(PaxosMessage aMessage) {
