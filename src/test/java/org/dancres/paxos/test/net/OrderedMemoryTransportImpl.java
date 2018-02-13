@@ -5,6 +5,7 @@ import org.dancres.paxos.impl.Heartbeater;
 import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 
+import org.dancres.paxos.impl.netty.PicklerImpl;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.longterm.Environment;
 import org.slf4j.Logger;
@@ -60,7 +61,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
         _unicastAddr = aLocalAddr;
         _broadcastAddr = aBroadAddr;
         _parent = aParent;
-        _pickler = new StandalonePickler(_unicastAddr);
+        _pickler = new PicklerImpl(_unicastAddr);
         _fd = anFD;
 
         if (_fd != null) {

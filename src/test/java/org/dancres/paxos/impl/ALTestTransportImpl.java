@@ -1,8 +1,8 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
+import org.dancres.paxos.impl.netty.PicklerImpl;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.test.net.StandalonePickler;
 import org.dancres.paxos.test.net.TestAddresses;
 
 import java.net.InetSocketAddress;
@@ -23,7 +23,7 @@ class ALTestTransportImpl implements Transport {
     ALTestTransportImpl(InetSocketAddress aNodeId, InetSocketAddress aBroadcastAddress,
                         MessageBasedFailureDetector anFD) {
         _nodeId = aNodeId;
-        _pickler = new StandalonePickler(_nodeId);
+        _pickler = new PicklerImpl(_nodeId);
         _broadcast = aBroadcastAddress;
         _fd = anFD;
     }

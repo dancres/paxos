@@ -3,9 +3,9 @@ package org.dancres.paxos.impl;
 import junit.framework.Assert;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.net.Utils;
+import org.dancres.paxos.impl.netty.PicklerImpl;
 import org.dancres.paxos.messages.Accept;
 import org.dancres.paxos.messages.Begin;
-import org.dancres.paxos.test.net.StandalonePickler;
 import org.dancres.paxos.test.net.TestAddresses;
 import org.junit.Test;
 
@@ -15,8 +15,8 @@ public class AcceptLedgerTest {
     @Test
     public void duplicateLedger() {
         AcceptLedger myAL = new AcceptLedger("Test");
-        StandalonePickler myPickler =
-                new StandalonePickler(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
+        PicklerImpl myPickler =
+                new PicklerImpl(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
 
         // Although there are 3 packets, they are all from the same source so cannot constitute a majority
         //
@@ -30,7 +30,7 @@ public class AcceptLedgerTest {
     @Test
     public void majorityLedger() {
         AcceptLedger myAL = new AcceptLedger("Test");
-        StandalonePickler myPickler = new StandalonePickler();
+        PicklerImpl myPickler = new PicklerImpl();
 
         // Although there are 3 packets, they are all from the same source so cannot constitute a majority
         //
@@ -44,7 +44,7 @@ public class AcceptLedgerTest {
     @Test
     public void noMajorityLedger() {
         AcceptLedger myAL = new AcceptLedger("Test");
-        StandalonePickler myPickler = new StandalonePickler();
+        PicklerImpl myPickler = new PicklerImpl();
 
         // Although there are 3 packets, they are all from the same source so cannot constitute a majority
         //

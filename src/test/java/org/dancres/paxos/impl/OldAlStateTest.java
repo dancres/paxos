@@ -4,6 +4,7 @@ import java.io.File;
 import java.net.InetSocketAddress;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.impl.netty.PicklerImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Collect;
@@ -35,7 +36,7 @@ public class OldAlStateTest {
 	}
 	
 	@Test public void test() throws Exception {
-		StandalonePickler myPickler = new StandalonePickler();
+		PicklerImpl myPickler = new PicklerImpl();
 		HowlLogger myLogger = new HowlLogger(DIRECTORY);
 		ALTestTransportImpl myTransport = new ALTestTransportImpl(_nodeId);
 		

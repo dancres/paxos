@@ -2,9 +2,9 @@ package org.dancres.paxos.impl;
 
 import junit.framework.Assert;
 import org.dancres.paxos.impl.net.Utils;
+import org.dancres.paxos.impl.netty.PicklerImpl;
 import org.dancres.paxos.messages.Collect;
 import org.dancres.paxos.messages.Need;
-import org.dancres.paxos.test.net.StandalonePickler;
 import org.junit.Test;
 
 import java.net.InetSocketAddress;
@@ -14,8 +14,8 @@ public class PacketSorterTest {
     public void checkConsume() {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(false);
-        StandalonePickler myPickler =
-                new StandalonePickler(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
+        PicklerImpl myPickler =
+                new PicklerImpl(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
 
         for (long mySeq = 0; mySeq < 5; mySeq++) {
             mySorter.add(myPickler.newPacket(new Collect(mySeq, 1)));
@@ -31,8 +31,8 @@ public class PacketSorterTest {
     public void checkPositiveRecoverTrigger() {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(true);
-        StandalonePickler myPickler =
-                new StandalonePickler(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
+        PicklerImpl myPickler =
+                new PicklerImpl(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
 
         mySorter.add(myPickler.newPacket(new Collect(5, 1)));
         mySorter.process(new Watermark(0, -1), myTester);
@@ -46,8 +46,8 @@ public class PacketSorterTest {
     public void checkNegativeRecoverTrigger() {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(false);
-        StandalonePickler myPickler =
-                new StandalonePickler(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
+        PicklerImpl myPickler =
+                new PicklerImpl(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
 
         mySorter.add(myPickler.newPacket(new Collect(4, 1)));
         mySorter.process(new Watermark(0, -1), myTester);
@@ -63,8 +63,8 @@ public class PacketSorterTest {
     public void checkRecoveryConsume() {
         PacketSorter mySorter = new PacketSorter();
         Tester myTester = new Tester(true);
-        StandalonePickler myPickler =
-                new StandalonePickler(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
+        PicklerImpl myPickler =
+                new PicklerImpl(new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345));
 
         // Recovery triggered immediately
         //
