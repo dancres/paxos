@@ -36,10 +36,6 @@ public class Collect implements Claim {
                 Long.toHexString(_rndNumber) + " ] ";
     }
 
-    public boolean isInitial() {
-    	return this.equals(INITIAL);
-    }
-    
     public int hashCode() {
     	return Long.valueOf(_rndNumber).hashCode() ^ Long.valueOf(_seqNum).hashCode();
     }
