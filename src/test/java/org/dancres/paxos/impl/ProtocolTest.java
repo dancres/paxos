@@ -162,7 +162,7 @@ public class ProtocolTest {
             Assert.assertNotSame(_proposer, anAddress);
             _outdated = true;
         }
-    };
+    }
 
     @Test
     public void checkCollect() {
