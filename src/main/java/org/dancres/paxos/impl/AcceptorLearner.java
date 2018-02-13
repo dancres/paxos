@@ -793,12 +793,10 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 				Begin myBegin = (Begin) myMessage;
 
 				_stateMachine.dispatch(myBegin, _lowWatermark.get(),
-                        (anElectedRnd, anElector) -> {
-                            aSender.accept(new OldRound(_lowWatermark.get().getSeqNum(),
-                                    anElector, anElectedRnd), myNodeId);
-                        },
+                        (anElectedRnd, anElector) -> aSender.accept(new OldRound(_lowWatermark.get().getSeqNum(),
+                                anElector, anElectedRnd), myNodeId),
                         (claim, mustWrite) -> {
-				            if (mustWrite) {
+                            if (mustWrite) {
                                 _cachedBegins.put(myBegin.getSeqNum(), myBegin);
 
                                 aWriter.apply(aPacket, true);
