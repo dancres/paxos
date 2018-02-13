@@ -254,33 +254,31 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     public LedgerPosition open(CheckpointHandle aHandle) throws Exception {
         _storage.open();
 
-        try {
-            _common.getNodeState().set(NodeState.State.RECOVERING);
+        _common.getNodeState().set(NodeState.State.RECOVERING);
 
-            long myStartSeqNum = Watermark.INITIAL.getSeqNum();
-            
-            if (! aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
-                if (aHandle instanceof CheckpointHandleImpl) {
-                    CheckpointHandleImpl myHandle = (CheckpointHandleImpl) aHandle;
-                    testAndSetLast(myHandle);
-                    myStartSeqNum = install(myHandle);
-                } else
-                    throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
-            }
+        long myStartSeqNum = Watermark.INITIAL.getSeqNum();
 
-            try {
-                new LogRangeProducer(myStartSeqNum, Long.MAX_VALUE, (Transport.Packet aPacket, long aLogOffset) ->
-                        AcceptorLearner.this.process(aPacket,
-                                (aReplayPacket, aSender) -> aLogOffset,
-                                _recoverySender),
-                        _storage, _common.getTransport().getPickler()).produce(0);
-            } catch (Exception anE) {
-                _logger.error(toString() + " Failed to replay log", anE);
-            }
-        } finally {
-            if (!_common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE))
-                throw new Error("Serious state issue at open");
+        if (!aHandle.equals(CheckpointHandle.NO_CHECKPOINT)) {
+            if (aHandle instanceof CheckpointHandleImpl) {
+                CheckpointHandleImpl myHandle = (CheckpointHandleImpl) aHandle;
+                testAndSetLast(myHandle);
+                myStartSeqNum = install(myHandle);
+            } else
+                throw new IllegalArgumentException("Not a valid CheckpointHandle: " + aHandle);
         }
+
+        try {
+            new LogRangeProducer(myStartSeqNum, Long.MAX_VALUE, (Transport.Packet aPacket, long aLogOffset) ->
+                    AcceptorLearner.this.process(aPacket,
+                            (aReplayPacket, aSender) -> aLogOffset,
+                            _recoverySender),
+                    _storage, _common.getTransport().getPickler()).produce(0);
+        } catch (Exception anE) {
+            _logger.error(toString() + " Failed to replay log", anE);
+        }
+
+        if (!_common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.ACTIVE))
+            throw new Error("Serious state issue at open");
 
         return new LedgerPosition(_lowWatermark.get().getSeqNum(), _stateMachine.getElected().getRndNumber());
     }
