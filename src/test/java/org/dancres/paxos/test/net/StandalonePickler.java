@@ -1,13 +1,11 @@
 package org.dancres.paxos.test.net;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 
 import org.dancres.paxos.impl.Transport;
-import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.messages.PaxosMessage;
 
-public class StandalonePickler implements Transport.PacketPickler {
+public class StandalonePickler extends Transport.PicklerSkeleton {
     private final InetSocketAddress _source;
 
     public StandalonePickler(InetSocketAddress aSource) {
@@ -22,32 +20,7 @@ public class StandalonePickler implements Transport.PacketPickler {
         return new PacketImpl(aMessage, anAddress);
     }
 
-    public byte[] pickle(Transport.Packet aPacket) {
-        byte[] myBytes = Codecs.encode(aPacket.getMessage());
-        ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);
-        
-        myBuffer.putLong(Codecs.flatten(aPacket.getSource()));
-        myBuffer.putInt(myBytes.length);
-        myBuffer.put(myBytes);
-        myBuffer.flip();
-        
-        return myBuffer.array();
-    }
-
-    public Transport.Packet unpickle(byte[] aBytes) {
-        ByteBuffer myBuffer = ByteBuffer.wrap(aBytes);
-        
-        InetSocketAddress mySource = Codecs.expand(myBuffer.getLong());
-        int myLength = myBuffer.getInt();
-        byte[] myPaxosBytes = new byte[myLength];
-        myBuffer.get(myPaxosBytes);
-        
-        PaxosMessage myMessage = Codecs.decode(myPaxosBytes);
-        
-        return new PacketImpl(myMessage, mySource);         
-    }
-
-    class PacketImpl implements Transport.Packet {
+    static class PacketImpl implements Transport.Packet {
         private final PaxosMessage _msg;
         private final InetSocketAddress _source;
         

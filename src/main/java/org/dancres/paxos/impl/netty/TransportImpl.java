@@ -15,12 +15,10 @@ import org.dancres.paxos.impl.MessageBasedFailureDetector;
 import org.dancres.paxos.impl.Transport;
 import org.dancres.paxos.impl.net.Utils;
 import org.dancres.paxos.messages.PaxosMessage;
-import org.dancres.paxos.messages.codec.Codecs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -94,7 +92,7 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
      */
     private final ExecutorService _packetDispatcher = Executors.newSingleThreadExecutor();
 
-    private class PicklerImpl implements PacketPickler {
+    private class PicklerImpl extends PicklerSkeleton {
         public Packet newPacket(PaxosMessage aMessage) {
             return new PacketImpl(aMessage, getLocalAddress());
         }
@@ -103,30 +101,6 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
             return new PacketImpl(aMessage, anAddress);
         }
 
-        public byte[] pickle(Packet aPacket) {
-			byte[] myBytes = Codecs.encode(aPacket.getMessage());
-			ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);
-
-			myBuffer.putLong(Codecs.flatten(aPacket.getSource()));
-			myBuffer.putInt(myBytes.length);
-			myBuffer.put(myBytes);
-			myBuffer.flip();
-
-			return myBuffer.array();
-        }
-
-        public Packet unpickle(byte[] aBytes) {
-			ByteBuffer myBuffer = ByteBuffer.wrap(aBytes);
-
-			InetSocketAddress mySource = Codecs.expand(myBuffer.getLong());
-			int myLength = myBuffer.getInt();
-			byte[] myPaxosBytes = new byte[myLength];
-			myBuffer.get(myPaxosBytes);
-
-			PaxosMessage myMessage = Codecs.decode(myPaxosBytes);
-
-			return new PacketImpl(myMessage, mySource);
-        }
     }
 
     public TransportImpl(MessageBasedFailureDetector anFD) throws Exception {

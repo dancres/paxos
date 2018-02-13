@@ -1,8 +1,10 @@
 package org.dancres.paxos.impl;
 
 import org.dancres.paxos.messages.PaxosMessage;
+import org.dancres.paxos.messages.codec.Codecs;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 
 /**
  * Standard communications abstraction for all communication between leaders, acceptor/learners and clients.
@@ -23,12 +25,39 @@ public interface Transport {
 		InetSocketAddress getSource();
 		PaxosMessage getMessage();
 	}
-	
+
     interface PacketPickler extends java.io.Serializable {
         Packet newPacket(PaxosMessage aMessage);
         Packet newPacket(PaxosMessage aMessage, InetSocketAddress anAddress);
         byte[] pickle(Packet aPacket);
         Packet unpickle(byte[] aBytes);
+    }
+
+    abstract class PicklerSkeleton implements PacketPickler {
+        public byte[] pickle(Transport.Packet aPacket) {
+            byte[] myBytes = Codecs.encode(aPacket.getMessage());
+            ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);
+
+            myBuffer.putLong(Codecs.flatten(aPacket.getSource()));
+            myBuffer.putInt(myBytes.length);
+            myBuffer.put(myBytes);
+            myBuffer.flip();
+
+            return myBuffer.array();
+        }
+
+        public Transport.Packet unpickle(byte[] aBytes) {
+            ByteBuffer myBuffer = ByteBuffer.wrap(aBytes);
+
+            InetSocketAddress mySource = Codecs.expand(myBuffer.getLong());
+            int myLength = myBuffer.getInt();
+            byte[] myPaxosBytes = new byte[myLength];
+            myBuffer.get(myPaxosBytes);
+
+            PaxosMessage myMessage = Codecs.decode(myPaxosBytes);
+
+            return newPacket(myMessage, mySource);
+        }
     }
 
     FailureDetector getFD();
