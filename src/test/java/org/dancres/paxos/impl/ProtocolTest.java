@@ -4,7 +4,7 @@ import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.Begin;
 import org.dancres.paxos.messages.Claim;
 import org.dancres.paxos.messages.Collect;
-import org.dancres.paxos.test.net.Utils;
+import org.dancres.paxos.test.net.TestAddresses;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -72,8 +72,8 @@ public class ProtocolTest {
     @Test
     public void validateCollectActionable() {
         Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
-        InetSocketAddress myAddrOne = Utils.getTestAddress();
-        InetSocketAddress myAddrTwo = Utils.getTestAddress();
+        InetSocketAddress myAddrOne = TestAddresses.next();
+        InetSocketAddress myAddrTwo = TestAddresses.next();
 
         Assert.assertTrue("Same leader and greater round",
                 myMachine.actionable(new Collect(Constants.PRIMORDIAL_SEQ, 20),
@@ -169,7 +169,7 @@ public class ProtocolTest {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
         Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
-        InetSocketAddress myProposer = Utils.getTestAddress();
+        InetSocketAddress myProposer = TestAddresses.next();
         long myPreviousExpiry = myMachine.getExpiry();
 
         OutdatedCapture myOutdatedCapture = new OutdatedCapture(myProposer);
@@ -208,7 +208,7 @@ public class ProtocolTest {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
         Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
-        InetSocketAddress myProposer = Utils.getTestAddress();
+        InetSocketAddress myProposer = TestAddresses.next();
         long myPreviousExpiry = myMachine.getExpiry();
 
         OutdatedCapture myOutdatedCapture = new OutdatedCapture(myProposer);
@@ -243,7 +243,7 @@ public class ProtocolTest {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
         Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
-        InetSocketAddress myProposer = Utils.getTestAddress();
+        InetSocketAddress myProposer = TestAddresses.next();
         long myPreviousExpiry = myMachine.getExpiry();
 
         Begin myTest = new Begin(Constants.PRIMORDIAL_SEQ - 1, Constants.PRIMORDIAL_RND,
@@ -271,7 +271,7 @@ public class ProtocolTest {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
         Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
-        InetSocketAddress myProposer = Utils.getTestAddress();
+        InetSocketAddress myProposer = TestAddresses.next();
         long myPreviousExpiry = myMachine.getExpiry();
 
         Collect myTest = new Collect(Constants.PRIMORDIAL_SEQ, 5);

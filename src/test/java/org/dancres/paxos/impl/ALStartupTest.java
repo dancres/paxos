@@ -7,15 +7,15 @@ import org.dancres.paxos.CheckpointHandle;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.utils.FileSystem;
-import org.dancres.paxos.test.net.Utils;
+import org.dancres.paxos.test.net.TestAddresses;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ALStartupTest {
 	private static final String DIRECTORY = "howllogs";
 
-	private InetSocketAddress _nodeId = Utils.getTestAddress();
-    private InetSocketAddress _broadcastId = Utils.getTestAddress();
+	private InetSocketAddress _nodeId = TestAddresses.next();
+    private InetSocketAddress _broadcastId = TestAddresses.next();
 
 	@Before public void init() throws Exception {
     	FileSystem.deleteDirectory(new File(DIRECTORY));    	

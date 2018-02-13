@@ -3,7 +3,7 @@ package org.dancres.paxos.impl;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.net.StandalonePickler;
-import org.dancres.paxos.test.net.Utils;
+import org.dancres.paxos.test.net.TestAddresses;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ class ALTestTransportImpl implements Transport {
     private final MessageBasedFailureDetector _fd;
 
     ALTestTransportImpl(InetSocketAddress aNodeId) {
-        this(aNodeId, Utils.getTestAddress(), new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
+        this(aNodeId, TestAddresses.next(), new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
     }
     
     ALTestTransportImpl(InetSocketAddress aNodeId, InetSocketAddress aBroadcastAddress,

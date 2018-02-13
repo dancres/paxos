@@ -22,7 +22,7 @@ public class OldAlStateTest {
 	private static final String DIRECTORY = "howllogs";
 	private static byte[] HANDBACK = new byte[] {1, 2, 3, 4};
 	
-	private InetSocketAddress _nodeId = Utils.getTestAddress();
+	private InetSocketAddress _nodeId = TestAddresses.next();
 	
 	public static void main(String anArgs[]) throws Exception {
 		OldAlStateTest myTest = new OldAlStateTest();

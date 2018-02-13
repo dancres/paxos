@@ -84,7 +84,7 @@ class Main {
                     }
 
                     return new OrderedMemoryNetwork.Constructed(t, myClient);
-                }, null, Utils.getTestAddress(), null);
+                }, null, TestAddresses.next(), null);
 
         cycle(myClient, _env.getMaxCycles());
 

@@ -4,7 +4,7 @@ import org.dancres.paxos.impl.FailureDetector;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork;
-import org.dancres.paxos.test.net.Utils;
+import org.dancres.paxos.test.net.TestAddresses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +61,7 @@ class EnvironmentImpl implements Environment {
             LogStorageFactory myFactory = (! inMemory) ? new HowlLoggerFactory(BASEDIR, i) :
                     new MemoryLoggerFactory();
 
-            myNodes.add((NodeAdmin) newNodeAdmin(Utils.getTestAddress(), new NodeAdminImpl.Config(myFactory)).getAdditional());
+            myNodes.add((NodeAdmin) newNodeAdmin(TestAddresses.next(), new NodeAdminImpl.Config(myFactory)).getAdditional());
         }
 
         _nodeSet.init(myNodes);

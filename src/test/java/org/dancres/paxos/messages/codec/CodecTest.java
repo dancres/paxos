@@ -3,15 +3,14 @@ package org.dancres.paxos.messages.codec;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.messages.*;
-import org.dancres.paxos.messages.codec.Codecs;
 import org.dancres.paxos.impl.faildet.Heartbeat;
-import org.dancres.paxos.test.net.Utils;
+import org.dancres.paxos.test.net.TestAddresses;
 import org.junit.*;
 
 import java.net.InetSocketAddress;
 
 public class CodecTest {
-    private InetSocketAddress _testAddress = Utils.getTestAddress();
+    private InetSocketAddress _testAddress = TestAddresses.next();
 
     @Test public void outOfDate() throws Exception {
         OutOfDate myOOD = new OutOfDate();
