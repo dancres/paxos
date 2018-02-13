@@ -99,6 +99,10 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
             return new PacketImpl(aMessage, getLocalAddress());
         }
 
+        public Packet newPacket(PaxosMessage aMessage, InetSocketAddress anAddress) {
+            return new PacketImpl(aMessage, anAddress);
+        }
+
         public byte[] pickle(Packet aPacket) {
 			byte[] myBytes = Codecs.encode(aPacket.getMessage());
 			ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);

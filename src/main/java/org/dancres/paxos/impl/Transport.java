@@ -26,6 +26,7 @@ public interface Transport {
 	
     interface PacketPickler extends java.io.Serializable {
         Packet newPacket(PaxosMessage aMessage);
+        Packet newPacket(PaxosMessage aMessage, InetSocketAddress anAddress);
         byte[] pickle(Packet aPacket);
         Packet unpickle(byte[] aBytes);
     }

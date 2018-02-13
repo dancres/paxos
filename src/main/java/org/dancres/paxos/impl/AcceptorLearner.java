@@ -61,7 +61,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     private final Condition _notActive = _guardLock.newCondition();
     private int _activeCount;
 
-    private final LeadershipState _leadershipState = new LeadershipState();
+    private final Protocol.StateMachine _stateMachine;
 
     private final AtomicLong _rockBottom = new AtomicLong(Watermark.INITIAL.getSeqNum());
     private final AtomicReference<Watermark> _lowWatermark =
@@ -120,6 +120,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         };
 
         _acceptLedgers = new AcceptLedger(toString());
+        _stateMachine = new Protocol.StateMachine(_common.getTransport().getLocalAddress().toString(), _stats);
     }
 
     interface CheckpointConsumer extends Function<CheckpointHandle, Boolean> {
@@ -281,7 +282,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                 throw new Error("Serious state issue at open");
         }
 
-        return new LedgerPosition(_lowWatermark.get().getSeqNum(), _leadershipState.getLeaderRndNum());
+        return new LedgerPosition(_lowWatermark.get().getSeqNum(), _stateMachine.getElected().getRndNumber());
     }
 
     public void close() {
@@ -310,7 +311,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
             _recoveryWindow.set(null);
 
-            _leadershipState.clearLeadership();
+            _stateMachine.resetElected();
             _lowWatermark.set(Watermark.INITIAL);
 
             _sorter.clear();
@@ -331,7 +332,9 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             // Low watermark will always lag collect so no need for atomicity here
             //
             return new CheckpointHandleImpl(_lowWatermark.get(),
-                    _leadershipState.getLastCollect(), _common.getTransport().getPickler());
+                    _common.getTransport().getPickler().newPacket(_stateMachine.getElected(),
+                            _stateMachine.getElector()),
+                    _common.getTransport().getPickler());
         } finally {
             unguard();
         }
@@ -373,7 +376,8 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     }
 
     private long install(CheckpointHandleImpl aHandle) {
-        _leadershipState.setLastCollect(aHandle.getLastCollect());
+        _stateMachine.forciblyAnoint((Collect) aHandle.getLastCollect().getMessage(),
+                aHandle.getLastCollect().getSource());
 
         _logger.info(toString() + " Checkpoint installed: " + aHandle.getLastCollect() + " @ " +
                 aHandle.getLowWatermark());
@@ -424,7 +428,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
              * otherwise we risk leader jitter. This ensures we get proper leader leasing as per
              * live packet processing.
              */
-            _leadershipState.leaderAction();
+            _stateMachine.extendExpiry();
             signal(new StateEvent(StateEvent.Reason.UP_TO_DATE,
                     aHandle.getLastCollect().getMessage().getSeqNum(),
                     ((Collect) aHandle.getLastCollect().getMessage()).getRndNumber(),
@@ -451,7 +455,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     public long getLastSeq() { return _lowWatermark.get().getSeqNum(); }
 
     long getLeaderRndNum() {
-        return _leadershipState.getLeaderRndNum();
+        return _stateMachine.getElected().getRndNumber();
     }
 
     /* ********************************************************************************************
@@ -522,7 +526,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                         // @todo Signal with node that pronounced us out of date - likely user code will get ckpt from there.
                         //
                         signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
-                                _leadershipState.getLeaderRndNum(),
+                                _stateMachine.getElected().getRndNumber(),
                                 Proposal.NO_VALUE));
                         return;
                     }
@@ -550,7 +554,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                                     if ((_lowWatermark.get().getSeqNum() == _recoveryWindow.get().getMaxSeq()) &&
                                             (_common.getNodeState().testAndSet(NodeState.State.RECOVERING,
                                                     NodeState.State.ACTIVE))) {
-                                        _leadershipState.resetLeaderAction();
+                                        _stateMachine.resetExiry();
                                         completedRecovery();
                                     }
                                 }
@@ -587,12 +591,12 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
                                     _logger.debug(AcceptorLearner.this.toString() + " Transition to recovery: " +
                                             Long.toHexString(_lowWatermark.get().getSeqNum()));
 
-                                    if (_leadershipState.getLastCollect().getMessage().getSeqNum() > aNeed.getMinSeq()) {
+                                    if (_stateMachine.getElected().getSeqNum() > aNeed.getMinSeq()) {
                                         _logger.warn(AcceptorLearner.this.toString() +
                                                 " Current collect could interfere with recovery window - binning " +
-                                            _leadershipState.getLastCollect().getMessage() + ", " + aNeed);
+                                            _stateMachine.getElected() + ", " + aNeed);
 
-                                        _leadershipState.clearLeadership();
+                                        _stateMachine.resetElected();
                                     }
 
                                     /*
@@ -764,93 +768,65 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 			case PaxosMessage.Types.COLLECT: {
 				Collect myCollect = (Collect) myMessage;
 
-				if (!_leadershipState.amAccepting(aPacket)) {
-					_stats.incrementCollects();
+				_stateMachine.dispatch(myCollect, aPacket.getSource(), _lowWatermark.get(),
+                        (anElectedRnd, anElector) -> {
+                            // Another collect has already arrived with a higher priority, tell the proposer it has competition
+                            //
+                            aSender.accept(new OldRound(_lowWatermark.get().getSeqNum(),
+                                    anElector, anElectedRnd), myNodeId);
+                        },
+                        (claim, mustWrite) -> {
+                            if (mustWrite)
+                                aWriter.apply(aPacket, true);
 
-					_logger.warn(toString() + " Not accepting: " + myCollect + ", "
-							+ _stats.getIgnoredCollectsCount());
-					return;
-				}
+                            aSender.accept(constructLast(myCollect), myNodeId);
 
-				// If the collect supercedes our previous collect save it, return last proposal etc
-				//
-                if (_leadershipState.supercedes(aPacket)) {
-                    _logger.trace(toString() + " Accepting collect: " + myCollect);
+                            signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
+                                    claim.getRndNumber(),
+                                    Proposal.NO_VALUE));
 
-                    aWriter.apply(aPacket, true);
+                        },
+                        _common.getNodeState().test(NodeState.State.RECOVERING));
 
-                    aSender.accept(constructLast(myCollect), myNodeId);
-
-                    signal(new StateEvent(StateEvent.Reason.NEW_LEADER, mySeqNum,
-                            _leadershipState.getLeaderRndNum(),
-                            Proposal.NO_VALUE));
-                } else {
-                    _logger.warn(toString() + " OLDROUND - REJCOLL: " + myCollect + " vs " +
-                            _leadershipState.getLastCollect().getMessage());
-
-                    // Another collect has already arrived with a higher priority, tell the proposer it has competition
-                    //
-                    aSender.accept(new OldRound(_lowWatermark.get().getSeqNum(),
-                            _leadershipState.getLeaderAddress(), _leadershipState.getLeaderRndNum()), myNodeId);
-                }
-				
 				break;
 			}
 
 			case PaxosMessage.Types.BEGIN: {
 				Begin myBegin = (Begin) myMessage;
 
-				// If the begin matches the last round of a collect we're fine
-				//
-				if (_leadershipState.originates(aPacket)) {
-					_leadershipState.leaderAction();
+				_stateMachine.dispatch(myBegin, _lowWatermark.get(),
+                        (anElectedRnd, anElector) -> {
+                            aSender.accept(new OldRound(_lowWatermark.get().getSeqNum(),
+                                    anElector, anElectedRnd), myNodeId);
+                        },
+                        (claim, mustWrite) -> {
+				            if (mustWrite) {
+                                _cachedBegins.put(myBegin.getSeqNum(), myBegin);
 
-                    /*
-                     * Special case, the leader could be playing catchup on the ledger because it never saw
-                     * accepts (by virtue of packet loss or timeout) and has fallen back to a COLLECT which
-                     * has produced LASTs which it's now trying to re-settle and move on. This is acceptable,
-                     * just tell it ACCEPT again and let it move on.
-                     */
-                    if (mySeqNum <= _lowWatermark.get().getSeqNum()) {
-                        _logger.warn(toString() + " Leader is resync'ing with Ledger " + myBegin);
+                                aWriter.apply(aPacket, true);
 
-                        aSender.accept(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
-                                _common.getTransport().getBroadcastAddress());
+                                aSender.accept(new Accept(mySeqNum, _stateMachine.getElected().getRndNumber()),
+                                        _common.getTransport().getBroadcastAddress());
 
-                    } else {
-                        _cachedBegins.put(myBegin.getSeqNum(), myBegin);
+                                _acceptLedgers.purgeAcceptLedger(myBegin);
 
-                        aWriter.apply(aPacket, true);
+                                Learned myLearned = _acceptLedgers.tallyAccepts(myBegin,
+                                        _common.getTransport().getFD().getMajority());
+                                if (myLearned != null)
+                                    learned(_common.getTransport().getPickler().newPacket(myLearned), aWriter);
 
-                        aSender.accept(new Accept(mySeqNum, _leadershipState.getLeaderRndNum()),
-                                _common.getTransport().getBroadcastAddress());
+                            } else {
+                                /*
+                                 * Special case, the leader could be playing catchup on the ledger because it never saw
+                                 * accepts (by virtue of packet loss or timeout) and has fallen back to a COLLECT which
+                                 * has produced LASTs which it's now trying to re-settle and move on. This is acceptable,
+                                 * just tell it ACCEPT again and let it move on.
+                                 */
+                                aSender.accept(new Accept(mySeqNum, _stateMachine.getElected().getRndNumber()),
+                                        _common.getTransport().getBroadcastAddress());
+                            }
+                        });
 
-                        _acceptLedgers.purgeAcceptLedger(myBegin);
-
-                        Learned myLearned = _acceptLedgers.tallyAccepts(myBegin,
-                                _common.getTransport().getFD().getMajority());
-                        if (myLearned != null)
-                            learned(_common.getTransport().getPickler().newPacket(myLearned), aWriter);
-                    }
-
-				} else if (_leadershipState.precedes(aPacket)) {
-					// New collect was received since the collect for this begin,
-					// tell the proposer it's got competition
-					//
-                    _logger.warn(toString() + " OLDROUND - BEGTRMP " + mySeqNum +
-                            _leadershipState.getLastCollect().getMessage() +
-                            " [ " + myBegin.getRndNumber() + " ], ");
-                    aSender.accept(new OldRound(_lowWatermark.get().getSeqNum(),
-                            _leadershipState.getLeaderAddress(), _leadershipState.getLeaderRndNum()), myNodeId);
-				} else {
-					/*
-					 * Quiet, didn't see the collect, leader hasn't accounted for
-					 * our values, it hasn't seen our last and we're likely out of sync with the majority
-					 */
-					_logger.warn(toString() + " Missed collect, going silent: " + mySeqNum
-							+ " [ " + myBegin.getRndNumber() + " ], ");
-				}
-				
 				break;
 			}
 
@@ -906,7 +882,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         Learned myLearned = (Learned) aPacket.getMessage();
         long mySeqNum = myLearned.getSeqNum();
 
-        _leadershipState.leaderAction();
+        _stateMachine.extendExpiry();
 
         _acceptLedgers.remove(myLearned.getSeqNum());
 
@@ -937,7 +913,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             _logger.debug(toString() + " Learnt value: " + mySeqNum);
 
             signal(new StateEvent(StateEvent.Reason.VALUE, mySeqNum,
-                    _leadershipState.getLeaderRndNum(),
+                    _stateMachine.getElected().getRndNumber(),
                     myBegin.getConsolidatedValue()));
         }
     }
@@ -970,8 +946,8 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             if (mySeqNum <= myLow.getSeqNum()) {
                 _logger.warn(toString() + " OLDROUND - LDOUT " + mySeqNum + " vs " + myLow.getSeqNum());
 
-                return new OldRound(myLow.getSeqNum(), _leadershipState.getLeaderAddress(),
-                        _leadershipState.getLeaderRndNum());
+                return new OldRound(myLow.getSeqNum(),_stateMachine.getElector(),
+                        _stateMachine.getElected().getRndNumber());
             } else
                 return new Last(mySeqNum, myLow.getSeqNum(),
                         Constants.PRIMORDIAL_RND, Proposal.NO_VALUE);

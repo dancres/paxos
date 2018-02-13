@@ -18,6 +18,10 @@ public class StandalonePickler implements Transport.PacketPickler {
         return new PacketImpl(aMessage, _source);
     }
 
+    public Transport.Packet newPacket(PaxosMessage aMessage, InetSocketAddress anAddress) {
+        return new PacketImpl(aMessage, anAddress);
+    }
+
     public byte[] pickle(Transport.Packet aPacket) {
         byte[] myBytes = Codecs.encode(aPacket.getMessage());
         ByteBuffer myBuffer = ByteBuffer.allocate(8 + 4 + myBytes.length);
