@@ -61,15 +61,22 @@ public class Protocol {
         private static final InetSocketAddress INITIAL_ADDR =
                 new InetSocketAddress(Utils.getWorkableInterfaceAddress(), 12345);
         private final String _designation;
+        private final StatsImpl _stats;
 
         private Collect _elected = Collect.INITIAL;
         private InetSocketAddress _elector = INITIAL_ADDR;
         private long _expiry = 0;
 
-        StateMachine(String aDesignation) {
+        StateMachine(String aDesignation, StatsImpl aStats) {
             _designation = aDesignation;
+            _stats = aStats;
         }
 
+        void forciblyAnoint(Collect aCollect, InetSocketAddress anAddress) {
+            _elected = aCollect;
+            _elector = anAddress;
+        }
+        
         /**
          * COLLECT
          * =======
@@ -129,6 +136,8 @@ public class Protocol {
                 extendExpiry();
                 anAction.accept(aProposed, isRecovery || shouldWriteCollect.apply(aProposed, myPreviouslyElected));
             } else {
+                _stats.incrementCollects();
+                
                 _logger.info(_designation + " Dropping: " + aProposed + " vs " + _elected +
                         " from " + _elector);
             }
@@ -190,6 +199,10 @@ public class Protocol {
             _elected = Collect.INITIAL;
             _elector = INITIAL_ADDR;
 
+        }
+
+        void resetExiry() {
+            _expiry = 0;
         }
         
         void extendExpiry() {
