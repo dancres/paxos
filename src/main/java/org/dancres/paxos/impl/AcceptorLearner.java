@@ -75,12 +75,12 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
      *
      ******************************************************************************************** */
 
-    interface Writer extends BiFunction<Transport.Packet, Boolean, Long> {
+    private interface Writer extends BiFunction<Transport.Packet, Boolean, Long> {
     }
 
     private final Writer _liveWriter;
 
-    interface Sender extends BiConsumer<PaxosMessage, InetSocketAddress> {
+    private interface Sender extends BiConsumer<PaxosMessage, InetSocketAddress> {
     }
 
     private final Sender _recoverySender = (aMessage, anAddress) -> {};

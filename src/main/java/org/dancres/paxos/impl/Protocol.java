@@ -21,9 +21,9 @@ import java.util.function.Function;
 
 
  */
-public class Protocol {
+class Protocol {
 
-    static final Logger _logger = LoggerFactory.getLogger(Protocol.class);
+    private static final Logger _logger = LoggerFactory.getLogger(Protocol.class);
 
     /**
      * Tests against the low watermark
@@ -31,8 +31,8 @@ public class Protocol {
     interface CheckSeq<T> extends BiFunction<T, Watermark, Boolean> {
     }
 
-    static CheckSeq<Claim> isOldSeq = (c, w) -> c.getSeqNum() < w.getSeqNum() + 1;
-    static CheckSeq<Begin> shouldWriteBegin = (b, w) -> b.getSeqNum() > w.getSeqNum();
+    static final CheckSeq<Claim> isOldSeq = (c, w) -> c.getSeqNum() < w.getSeqNum() + 1;
+    private static final CheckSeq<Begin> shouldWriteBegin = (b, w) -> b.getSeqNum() > w.getSeqNum();
 
     /**
      * Tests against the last elected Collect
@@ -42,20 +42,20 @@ public class Protocol {
     interface CheckRnd<T> extends BiFunction<T, Collect, Boolean> {
     }
 
-    static CheckRnd<Claim> isPastRnd = (c, e) -> c.getRndNumber() < e.getRndNumber();
-    static CheckRnd<Collect> isElectableRnd = (c, e) -> c.getRndNumber() > e.getRndNumber();
-    static CheckRnd<Begin> isTheElectedRnd = (b, e) -> b.getRndNumber() == e.getRndNumber();
-    static CheckRnd<Collect> shouldWriteCollect = isElectableRnd;
+    static final CheckRnd<Claim> isPastRnd = (c, e) -> c.getRndNumber() < e.getRndNumber();
+    static final CheckRnd<Collect> isElectableRnd = (c, e) -> c.getRndNumber() > e.getRndNumber();
+    static final CheckRnd<Begin> isTheElectedRnd = (b, e) -> b.getRndNumber() == e.getRndNumber();
+    static final CheckRnd<Collect> shouldWriteCollect = isElectableRnd;
 
     /**
      * Test for expiry
      */
-    static Function<Long, Boolean> isExpired = l -> System.currentTimeMillis() > l;
+    private static final Function<Long, Boolean> isExpired = l -> System.currentTimeMillis() > l;
 
     /**
      * Test for same InetSocketAddress
      */
-    static BiFunction<InetSocketAddress, InetSocketAddress, Boolean> isSameSource = InetSocketAddress::equals;
+    private static final BiFunction<InetSocketAddress, InetSocketAddress, Boolean> isSameSource = InetSocketAddress::equals;
 
     static class StateMachine {
         private static final InetSocketAddress INITIAL_ADDR =
