@@ -1,5 +1,7 @@
 package org.dancres.paxos.messages;
 
+import org.dancres.paxos.impl.Constants;
+
 import java.util.EnumSet;
 
 /**
@@ -22,7 +24,7 @@ public class Need implements PaxosMessage {
 	public long getSeqNum() {
 		// No meaningful seqnum
 		//
-		return -1;
+		return Constants.RECOVERY_SEQ;
 	}
 
 	public int getType() {
