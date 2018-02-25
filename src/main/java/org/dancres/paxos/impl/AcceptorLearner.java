@@ -477,60 +477,6 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
         try {
             PaxosMessage myMessage = aPacket.getMessage();
-            long mySeqNum = myMessage.getSeqNum();
-
-            // If we're not processing packets because we're out of date
-            //
-            if (_common.getNodeState().test(NodeState.State.OUT_OF_DATE)) {
-                switch (myMessage.getType()) {
-                    /*
-                     * If the packet is a Need, we can process it for anything up to the last point of consistency
-                     * in our log. Need's are never saved to the log so can only be received from other nodes looking
-                     * to get themselves back up-to-date. This means there's no danger in us streaming loud and proud
-                     * to that node using a LiveSender and a ReplayWriter.
-                     */
-                    case PaxosMessage.Types.NEED: {
-                        serveNeedFromRecovery(aPacket);
-
-                        break;
-                    }
-                }
-
-                return;
-            } else if (_common.getNodeState().test(NodeState.State.RECOVERING)) {
-                switch (myMessage.getType()) {
-                    /*
-                     * If the packet is a Need, we can process it for anything up to the last point of consistency
-                     * in our log. Need's are never saved to the log so can only be received from other nodes looking
-                     * to get themselves back up-to-date. This means there's no danger in us streaming loud and proud
-                     * to that node using a LiveSender and a ReplayWriter.
-                     */
-                    case PaxosMessage.Types.NEED : {
-                        serveNeedFromRecovery(aPacket);
-
-                        return;
-                    }
-
-                    // If we're out of date, we need to get the user-code to find a checkpoint
-                    //
-                    case PaxosMessage.Types.OUTOFDATE : {
-                        synchronized(this) {
-                            completedRecovery();
-                            _logger.warn(AcceptorLearner.this.toString() + "Moved to Out Of Date ");
-
-                            _common.getNodeState().set(NodeState.State.OUT_OF_DATE);
-                        }
-
-                        // @todo Signal with node that pronounced us out of date - likely user code will get ckpt from there.
-                        //
-                        signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
-                                _stateMachine.getElected().getRndNumber(),
-                                Proposal.NO_VALUE));
-                        return;
-                    }
-                }
-            }
-
             int myProcessed;
 
             _logger.debug(toString() + " queuing " + aPacket.getSource() + ", " + myMessage +
@@ -538,12 +484,28 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 
             _sorter.add(aPacket);
 
+            /*
+              PacketSorter only feeds us packets at <= low_watermark + 1.
+
+              Need and OutOfDate will thus always be processed owing to being stamped with seq = Constants.RECOVERY_SEQ.
+
+              Anything at low_watermark will be old_rounded etc. Anything at + 1 will be processed to make progress.
+
+              When we're pronounced OUT_OF_DATE PacketSorter will implicitly ensure we don't process newer packets but
+              we must inhibit the other cases hence the check for OUT_OF_DATE below and the fiddling with mySender.
+
+              The last piece of the puzzle is NEED messages which we can always serve regardless of state. In that
+              specific case, we ignore which sender is specified using _liveSender regardless - see RemoteStreamer.
+              */
             do {
                 myProcessed =
                         _sorter.process(_lowWatermark.get(), new PacketSorter.PacketProcessor() {
                             public void consume(Transport.Packet aPacket) {
-                                boolean myRecoveryInProgress = _common.getNodeState().test(NodeState.State.RECOVERING);
-                                Sender mySender = ((myRecoveryInProgress) || (! _common.amMember())) ?
+                                boolean myRecoveryInProgress =
+                                        _common.getNodeState().test(NodeState.State.RECOVERING);
+                                
+                                Sender mySender = (_common.getNodeState().test(NodeState.State.OUT_OF_DATE) ||
+                                        myRecoveryInProgress || (! _common.amMember())) ?
                                         _recoverySender : _liveSender;
 
                                 process(aPacket, _liveWriter, mySender);
@@ -633,12 +595,6 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
             unguard();
         }
 	}
-
-    private void serveNeedFromRecovery(Transport.Packet aPacket) {
-        _logger.debug(toString() + "Serving NEED from recovery " + aPacket);
-
-        process(aPacket, (aReplayPacket, aForce) -> 0L, _liveSender);
-    }
 
     /* ********************************************************************************************
      *
@@ -739,6 +695,28 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
 		long mySeqNum = myMessage.getSeqNum();
 
 		switch (myMessage.getType()) {
+            // If we're out of date, we need to get the user-code to find a checkpoint
+            //
+            case PaxosMessage.Types.OUTOFDATE : {
+                // If we're not already reported out-of-date...
+                //
+                if (_common.getNodeState().testAndSet(NodeState.State.RECOVERING, NodeState.State.OUT_OF_DATE)) {
+
+                    completedRecovery();
+                    _logger.warn(toString() + " Moved to OUT_OF_DATE");
+
+                    // @todo Signal with node that pronounced us out of date - likely user code will get ckpt from there.
+                    //
+                    signal(new StateEvent(StateEvent.Reason.OUT_OF_DATE, mySeqNum,
+                            _stateMachine.getElected().getRndNumber(),
+                            Proposal.NO_VALUE));
+                }
+
+                break;
+            }
+
+            // We can always process these with a live sender, RemoteStreamer thus does not use aSender
+            //
             case PaxosMessage.Types.NEED : {
                 final Need myNeed = (Need) myMessage;
 
