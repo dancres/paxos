@@ -50,7 +50,7 @@ class PacketSorter {
             while(mySeqsAndPkts.hasNext()) {
                 Map.Entry<Long, List<Transport.Packet>> mySeqAndPkt = mySeqsAndPkts.next();
 
-                // Packets below aLowWatermark + 1 will be NEED's encountered during normal processing
+                // Packets below aLowWatermark + 1 will generally be those needing old_round or be recovery related.
                 //
                 if (mySeqAndPkt.getKey() <= (aLowWatermark.getSeqNum() + 1)) {
                     myConsumables.addAll(mySeqAndPkt.getValue());
