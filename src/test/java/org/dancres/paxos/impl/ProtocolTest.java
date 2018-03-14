@@ -25,8 +25,8 @@ public class ProtocolTest {
         Collect myAfter = new Collect(6, Constants.PRIMORDIAL_RND);
         Watermark myPointInTime = new Watermark(5, -1);
 
-        Assert.assertTrue(Protocol.isOldSeq.apply(myBefore, myPointInTime));
-        Assert.assertFalse(Protocol.isOldSeq.apply(myAfter, myPointInTime));
+        Assert.assertTrue(Consensus.isOldSeq.apply(myBefore, myPointInTime));
+        Assert.assertFalse(Consensus.isOldSeq.apply(myAfter, myPointInTime));
     }
 
     @Test
@@ -34,24 +34,24 @@ public class ProtocolTest {
         Collect myPast = new Collect(Constants.PRIMORDIAL_SEQ, 4);
         Collect myElected = new Collect(Constants.PRIMORDIAL_SEQ, 6);
 
-        Assert.assertTrue(Protocol.isPastRnd.apply(myPast, myElected));
-        Assert.assertFalse(Protocol.isPastRnd.apply(myElected, myPast));
+        Assert.assertTrue(Consensus.isPastRnd.apply(myPast, myElected));
+        Assert.assertFalse(Consensus.isPastRnd.apply(myElected, myPast));
 
         Collect myElectable = new Collect(Constants.PRIMORDIAL_SEQ, 8);
 
-        Assert.assertTrue(Protocol.isElectableRnd.apply(myElectable, myElected));
-        Assert.assertFalse(Protocol.isElectableRnd.apply(myPast, myElected));
+        Assert.assertTrue(Consensus.isElectableRnd.apply(myElectable, myElected));
+        Assert.assertFalse(Consensus.isElectableRnd.apply(myPast, myElected));
 
         Begin mySameRnd = new Begin(Constants.PRIMORDIAL_SEQ, myElected.getRndNumber(), Proposal.NO_VALUE);
-        Assert.assertTrue(Protocol.isTheElectedRnd.apply(mySameRnd, myElected));
+        Assert.assertTrue(Consensus.isTheElectedRnd.apply(mySameRnd, myElected));
 
-        Assert.assertTrue(Protocol.shouldWriteCollect.apply(myElectable, myElected));
-        Assert.assertFalse(Protocol.shouldWriteCollect.apply(myPast, myElected));
+        Assert.assertTrue(Consensus.shouldWriteCollect.apply(myElectable, myElected));
+        Assert.assertFalse(Consensus.shouldWriteCollect.apply(myPast, myElected));
     }
 
     @Test
     public void validateCollectOld() {
-        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
+        Consensus.StateMachine myMachine = new Consensus.StateMachine("Test", new StatsImpl());
 
         // Old round
         Assert.assertTrue(myMachine.old(new Collect(5, 10),
@@ -71,7 +71,7 @@ public class ProtocolTest {
 
     @Test
     public void validateCollectActionable() {
-        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
+        Consensus.StateMachine myMachine = new Consensus.StateMachine("Test", new StatsImpl());
         InetSocketAddress myAddrOne = TestAddresses.next();
         InetSocketAddress myAddrTwo = TestAddresses.next();
 
@@ -98,7 +98,7 @@ public class ProtocolTest {
 
     @Test
     public void validateBeginOld() {
-        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
+        Consensus.StateMachine myMachine = new Consensus.StateMachine("Test", new StatsImpl());
 
         Assert.assertTrue("Begin is for old round but newer sequence number",
                 myMachine.old(new Begin(2, 5, Proposal.NO_VALUE),
@@ -115,7 +115,7 @@ public class ProtocolTest {
 
     @Test
     public void validateBeginActionable() {
-        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
+        Consensus.StateMachine myMachine = new Consensus.StateMachine("Test", new StatsImpl());
 
         Assert.assertFalse("Not from elected, too low",
                 myMachine.actionable(new Begin(5, 4, Proposal.NO_VALUE),
@@ -130,7 +130,7 @@ public class ProtocolTest {
                         new Collect(5, 10)));
     }
 
-    static class ActCapture implements Protocol.Act {
+    static class ActCapture implements Consensus.Act {
         boolean _acted = false;
 
         private final Claim _successful;
@@ -147,7 +147,7 @@ public class ProtocolTest {
         }
     }
 
-    static class OutdatedCapture implements Protocol.Outdated {
+    static class OutdatedCapture implements Consensus.Outdated {
         boolean _outdated = false;
 
         private final InetSocketAddress _proposer;
@@ -168,7 +168,7 @@ public class ProtocolTest {
     public void checkCollect() {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
-        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
+        Consensus.StateMachine myMachine = new Consensus.StateMachine("Test", new StatsImpl());
         InetSocketAddress myProposer = TestAddresses.next();
         long myPreviousExpiry = myMachine.getExpiry();
 
@@ -207,7 +207,7 @@ public class ProtocolTest {
     public void checkBegin() throws Exception {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
-        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
+        Consensus.StateMachine myMachine = new Consensus.StateMachine("Test", new StatsImpl());
         InetSocketAddress myProposer = TestAddresses.next();
         long myPreviousExpiry = myMachine.getExpiry();
 
@@ -242,7 +242,7 @@ public class ProtocolTest {
     public void checkRecoveryBegin() {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
-        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
+        Consensus.StateMachine myMachine = new Consensus.StateMachine("Test", new StatsImpl());
         InetSocketAddress myProposer = TestAddresses.next();
         long myPreviousExpiry = myMachine.getExpiry();
 
@@ -270,7 +270,7 @@ public class ProtocolTest {
     public void checkRecoveryCollect() {
         // StateMachine will be initialised with Collect.INITIAL, hence PRIMORDIAL rnd and sequence number
         //
-        Protocol.StateMachine myMachine = new Protocol.StateMachine("Test", new StatsImpl());
+        Consensus.StateMachine myMachine = new Consensus.StateMachine("Test", new StatsImpl());
         InetSocketAddress myProposer = TestAddresses.next();
         long myPreviousExpiry = myMachine.getExpiry();
 

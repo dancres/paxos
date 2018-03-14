@@ -21,9 +21,9 @@ import java.util.function.Function;
 
 
  */
-class Protocol {
+class Consensus {
 
-    private static final Logger _logger = LoggerFactory.getLogger(Protocol.class);
+    private static final Logger _logger = LoggerFactory.getLogger(Consensus.class);
 
     /**
      * Tests against the low watermark

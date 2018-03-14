@@ -61,7 +61,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
     private final Condition _notActive = _guardLock.newCondition();
     private int _activeCount;
 
-    private final Protocol.StateMachine _stateMachine;
+    private final Consensus.StateMachine _stateMachine;
 
     private final AtomicLong _rockBottom = new AtomicLong(Watermark.INITIAL.getSeqNum());
     private final AtomicReference<Watermark> _lowWatermark =
@@ -120,7 +120,7 @@ public class AcceptorLearner implements Paxos.CheckpointFactory, MessageProcesso
         };
 
         _acceptLedgers = new AcceptLedger(toString());
-        _stateMachine = new Protocol.StateMachine(_common.getTransport().getLocalAddress().toString(), _stats);
+        _stateMachine = new Consensus.StateMachine(_common.getTransport().getLocalAddress().toString(), _stats);
     }
 
     interface CheckpointConsumer extends Function<CheckpointHandle, Boolean> {
