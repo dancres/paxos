@@ -24,7 +24,6 @@ public class ServerDispatcher {
     private static final Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     private Core _core;
-    private final AtomicBoolean _initd = new AtomicBoolean(false);
 
     public ServerDispatcher(LogStorage aLogger, Listener aListener) {
         this(aLogger, aListener, false);
@@ -54,7 +53,7 @@ public class ServerDispatcher {
 
     class Submitter implements Transport.Filter {
         public Packet filter(Transport aTransport, Packet aPacket) {
-            if (_initd.get()) {
+            if (_core.isInitd()) {
                 PaxosMessage myMessage = aPacket.getMessage();
 
                 try {
@@ -83,7 +82,6 @@ public class ServerDispatcher {
 	public void init(Transport aTransport) throws Exception {
         aTransport.filterRx(new Submitter());
         _core.init(aTransport);
-        _initd.set(true);
 	}
 	
     public void add(Listener aListener) {

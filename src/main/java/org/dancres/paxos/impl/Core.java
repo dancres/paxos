@@ -60,7 +60,7 @@ public class Core implements Transport.Dispatcher, Paxos {
         _al.close();
     }
 
-    public void init(Transport aTransport) throws Exception {
+    public Core init(Transport aTransport) throws Exception {
         _common.setTransport(aTransport);
         aTransport.routeTo(this);
         _initialiser.run();
@@ -71,6 +71,12 @@ public class Core implements Transport.Dispatcher, Paxos {
         _ld.resumeAt(myState.getSeqNum(), myState.getRndNum());
 
         _initd.set(true);
+        
+        return this;
+    }
+
+    public boolean isInitd() {
+        return _initd.get();
     }
 
     public Paxos.CheckpointFactory checkpoint() {
