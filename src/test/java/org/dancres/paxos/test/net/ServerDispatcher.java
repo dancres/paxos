@@ -20,11 +20,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <p>Metadata passed to the <code>ServerDispatcher</code> constructors will be advertised via Heartbeats.</p>
  */
-public class ServerDispatcher implements Transport.Dispatcher {
+public class ServerDispatcher {
     private static final Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     private Core _core;
-    private final Runnable _initialiser;
     private final AtomicBoolean _initd = new AtomicBoolean(false);
 
     public ServerDispatcher(LogStorage aLogger, Listener aListener) {
@@ -50,45 +49,43 @@ public class ServerDispatcher implements Transport.Dispatcher {
     }
 
     private ServerDispatcher(Core aCore) {
-        _initialiser = () -> _core = aCore;
+        _core = aCore;
     }
 
-	public void packetReceived(Packet aPacket) {
-        if (! _initd.get())
-            return;
+    class Submitter implements Transport.Filter {
+        public Packet filter(Transport aTransport, Packet aPacket) {
+            if (_initd.get()) {
+                PaxosMessage myMessage = aPacket.getMessage();
 
-        PaxosMessage myMessage = aPacket.getMessage();
-		
-		try {
-            if (myMessage.getClassifications().contains(PaxosMessage.Classification.CLIENT)) {
-                final InetSocketAddress mySource = aPacket.getSource();
+                try {
+                    if (myMessage.getClassifications().contains(PaxosMessage.Classification.CLIENT)) {
+                        final InetSocketAddress mySource = aPacket.getSource();
 
-                Envelope myEnvelope = (Envelope) myMessage;
-                Proposal myProposal = myEnvelope.getValue();
+                        Envelope myEnvelope = (Envelope) myMessage;
+                        Proposal myProposal = myEnvelope.getValue();
 
-                _core.submit(myProposal, (VoteOutcome anOutcome) ->
-                        _core.getCommon().getTransport().send(
-                                _core.getCommon().getTransport().getPickler().newPacket(new Event(anOutcome)),
-                                mySource));
-            } else {
-                _logger.trace("Unrecognised message:" + myMessage);
+                        _core.submit(myProposal, (VoteOutcome anOutcome) ->
+                                _core.getCommon().getTransport().send(
+                                        _core.getCommon().getTransport().getPickler().newPacket(new Event(anOutcome)),
+                                        mySource));
+
+                        return null;
+                    }
+                } catch (Throwable anE) {
+                    _logger.error("Unexpected exception", anE);
+                }
             }
-        } catch (Throwable anE) {
-        	_logger.error("Unexpected exception", anE);
+
+            return aPacket;
         }
     }
 
-
 	public void init(Transport aTransport) throws Exception {
-        aTransport.routeTo(this);
-        _initialiser.run();
+        aTransport.filterRx(new Submitter());
         _core.init(aTransport);
         _initd.set(true);
 	}
 	
-    public void terminate() {
-    }
-
     public void add(Listener aListener) {
         _core.add(aListener);
     }
