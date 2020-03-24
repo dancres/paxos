@@ -26,7 +26,6 @@ public class ALNonRecoveryTest {
     private static final String _node2Log = "node2logs";
     private static final String _node3Log = "node3logs";
 
-    private Core _core3;
     private Core _core2;
 
     private TransportImpl _tport1;
@@ -96,9 +95,9 @@ public class ALNonRecoveryTest {
 
         Builder myBuilder = new Builder();
         _tport3 = myBuilder.newDefaultTransport();
-        _core3 = myBuilder.newCoreWith(new HowlLogger(_node3Log), _tport3);
+        Core myCore = myBuilder.newCoreWith(new HowlLogger(_node3Log), _tport3);
 
-        _core3.getAcceptorLearner().setRecoveryGracePeriod(5000);
+        myCore.getAcceptorLearner().setRecoveryGracePeriod(5000);
 
         FDUtil.ensureFD(_tport3.getFD());
 
@@ -123,9 +122,9 @@ public class ALNonRecoveryTest {
         // As recovery won't have been done the low watermarks should be different
         //
         Assert.assertTrue(_core2.getAcceptorLearner().getLowWatermark().getSeqNum() !=
-        	_core3.getAcceptorLearner().getLowWatermark().getSeqNum());
+        	myCore.getAcceptorLearner().getLowWatermark().getSeqNum());
 
-        Assert.assertFalse(_core3.getCommon().getNodeState().test(NodeState.State.RECOVERING));
+        Assert.assertFalse(myCore.getCommon().getNodeState().test(NodeState.State.RECOVERING));
 
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is

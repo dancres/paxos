@@ -40,7 +40,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
     private final Timer _tasks = new Timer();
 
-    private volatile Collection<InetSocketAddress> _pinned = null;
+    private volatile Collection<InetSocketAddress> _pinned;
     private final AtomicBoolean _stopping = new AtomicBoolean(false);
 
     private final LinkedBlockingQueue<StateListener> _listeners = new LinkedBlockingQueue<>();
@@ -206,7 +206,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     private static class FutureImpl extends AbstractFuture<Assembly> {
-        private final Queue _queue;
+        private final Queue<Assembly> _queue;
         private final int _required;
 
         FutureImpl(Queue aQueue, int aRequired) {

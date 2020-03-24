@@ -89,11 +89,7 @@ class ProposalAllocator implements Messages.Subscriber<Constants.EVENTS> {
                     _amLeader = false;
                     _nextRnd = anOutcome.getRndNumber() + 1;
 
-                    Iterator<Long> myInstances = _inflight.iterator();
-
-                    while (myInstances.hasNext())
-                        if (myInstances.next() < anInstance.getSeqNum())
-                            myInstances.remove();
+                    _inflight.removeIf((s) -> s < anInstance.getSeqNum());
 
                     if (_nextSeq < anOutcome.getSeqNum())
                         _nextSeq = anOutcome.getSeqNum();

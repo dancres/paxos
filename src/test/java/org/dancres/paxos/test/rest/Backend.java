@@ -46,7 +46,7 @@ public class Backend {
     private ConcurrentHashMap<String, String> _keyValues = new ConcurrentHashMap<>();
     
     public static void main(String[] anArgs) throws Exception {
-        new Backend(Integer.valueOf(anArgs[0]), Integer.valueOf(anArgs[1])).start(anArgs[2]);
+        new Backend(Integer.parseInt(anArgs[0]), Integer.parseInt(anArgs[1])).start(anArgs[2]);
     }
 
     private Backend(int aPort, int aClusterSize) {

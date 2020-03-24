@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -126,10 +127,7 @@ public class TransportImpl extends SimpleChannelInboundHandler<DatagramPacket> i
         _unicastAddr = _unicastChannel.localAddress();
         _pickler = new PicklerImpl(_unicastAddr);
 
-        if (aMeta == null)
-            _meta = _unicastAddr.toString().getBytes();
-        else
-            _meta = aMeta;
+        _meta = Objects.requireNonNullElseGet(aMeta, () -> _unicastAddr.toString().getBytes());
 
         if (_fd != null) {
             setupFailureDetector(_fd);

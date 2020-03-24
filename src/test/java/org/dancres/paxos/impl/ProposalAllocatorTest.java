@@ -54,7 +54,7 @@ public class ProposalAllocatorTest {
         ProposalAllocator myFactory = new ProposalAllocator(myBus, myMaxInflight).resumeAt(-1, 0);
         Listener myListener = new Listener();
 
-        Messages.Subscription mySubs = myBus.subscribe("listener", myListener);
+        myBus.subscribe("listener", myListener);
 
         Instance myInstance = myFactory.nextInstance(1);
 
