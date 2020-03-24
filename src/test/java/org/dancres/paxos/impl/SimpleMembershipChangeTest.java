@@ -1,10 +1,9 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.Listener;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.test.junit.FDUtil;
-import org.dancres.paxos.test.net.ServerDispatcher;
+import org.dancres.paxos.test.utils.Builder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -13,9 +12,7 @@ import org.junit.Test;
 import java.net.InetSocketAddress;
 
 public class SimpleMembershipChangeTest {
-    private ServerDispatcher _node1;
-    private ServerDispatcher _node2;
-
+    private Core _core1;
     private TransportImpl _tport1;
     private TransportImpl _tport2;
 
@@ -23,18 +20,17 @@ public class SimpleMembershipChangeTest {
 
     @Before
     public void init() throws Exception {
-        _node1 = new ServerDispatcher(Listener.NULL_LISTENER);
-        _node2 = new ServerDispatcher(Listener.NULL_LISTENER);
-        _fd1 = new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN);
-        _tport1 = new TransportImpl(_fd1);
-        _node1.init(_tport1);
+        Builder myBuilder = new Builder();
 
-        _tport2 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node2.init(_tport2);
+        _fd1 = new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN);
+        _tport1 = myBuilder.newTransportWith(_fd1);
+        _core1 = myBuilder.newCoreWith(_tport1);
+
+        _tport2 = myBuilder.newDefaultStack();
     }
 
     @After
-    public void stop() throws Exception {
+    public void stop() {
         _tport1.terminate();
         _tport2.terminate();
     }
@@ -47,7 +43,7 @@ public class SimpleMembershipChangeTest {
 
         Assert.assertEquals(FailureDetectorImpl.OPEN_PIN, _fd1.getPinned());
 
-        boolean myResult = _node1.getCore().updateMembership(_fd1.getMembers().getMembers().keySet());
+        boolean myResult = _core1.updateMembership(_fd1.getMembers().getMembers().keySet());
 
         Assert.assertTrue(myResult);
         Assert.assertNotSame(FailureDetectorImpl.OPEN_PIN, _fd1.getPinned());

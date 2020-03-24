@@ -4,14 +4,12 @@ import org.dancres.paxos.*;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.Event;
-import org.dancres.paxos.storage.MemoryLogStorage;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.messages.Envelope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * <p></p>Handles interactions between server and client. Assumes client is using a <code>ClientDispatcher</code>.
@@ -24,24 +22,6 @@ public class ServerDispatcher {
     private static final Logger _logger = LoggerFactory.getLogger(ServerDispatcher.class);
 
     private Core _core;
-
-    public ServerDispatcher(LogStorage aLogger, Listener aListener) {
-        this(aLogger, aListener, false);
-    }
-
-    /**
-     * For testing only
-     */
-    public ServerDispatcher(Listener aListener) {
-        this(new MemoryLogStorage(), aListener, false);
-    }
-
-    /**
-     * For testing only
-     */
-    public ServerDispatcher(LogStorage aLogger, Listener aListener, boolean isDisableHeartbeats) {
-        this(aLogger, CheckpointHandle.NO_CHECKPOINT,  aListener, isDisableHeartbeats);
-    }
 
     public ServerDispatcher(LogStorage aLogger, CheckpointHandle aHandle, Listener aListener, boolean isDisableHeartbeats) {
         this(new Core(aLogger, aHandle,  aListener, isDisableHeartbeats));

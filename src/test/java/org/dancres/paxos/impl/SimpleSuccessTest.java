@@ -2,18 +2,12 @@ package org.dancres.paxos.impl;
 
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.CheckpointHandle;
-import org.dancres.paxos.Listener;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
-import org.dancres.paxos.storage.MemoryLogStorage;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
-import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.impl.netty.TransportImpl;
-import org.dancres.paxos.test.net.Submitter;
 import org.dancres.paxos.test.utils.Builder;
 import org.junit.*;
 

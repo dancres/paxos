@@ -1,15 +1,13 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.Listener;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
-import org.dancres.paxos.test.net.ServerDispatcher;
+import org.dancres.paxos.test.utils.Builder;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.junit.After;
 import org.junit.Assert;
@@ -24,9 +22,7 @@ public class OutOfDateLeaderTest {
     private static final String _node1Log = "node1logs";
     private static final String _node3Log = "node3logs";
 
-    private ServerDispatcher _node1;
-    private ServerDispatcher _node2;
-    private ServerDispatcher _node3;
+    private Core _node2;
 
     private TransportImpl _tport1;
     private TransportImpl _tport2;
@@ -40,13 +36,13 @@ public class OutOfDateLeaderTest {
 
         Leader.LeaseDuration.set(10000);
 
-        _node1 = new ServerDispatcher(new HowlLogger(_node1Log), Listener.NULL_LISTENER, true);
-        _node2 = new ServerDispatcher(new HowlLogger(_node2Log), Listener.NULL_LISTENER, true);
-        _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node1.init(_tport1);
+        Builder myBuilder = new Builder();
 
-        _tport2 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node2.init(_tport2);
+        _tport1 = myBuilder.newDefaultTransport();
+        myBuilder.newNonHeartbeatingCoreWith(new HowlLogger(_node1Log), _tport1);
+
+        _tport2 = myBuilder.newDefaultTransport();
+        _node2 = myBuilder.newNonHeartbeatingCoreWith(new HowlLogger(_node2Log), _tport2);
     }
 
     @After
@@ -93,10 +89,12 @@ public class OutOfDateLeaderTest {
 
         System.err.println("Start node3");
 
-        _node3 = new ServerDispatcher(new HowlLogger(_node3Log), Listener.NULL_LISTENER, true);
-        _tport3 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node3.init(_tport3);
-        _node3.getAcceptorLearner().setRecoveryGracePeriod(1000);
+        Builder myBuilder = new Builder();
+        Core myCore;
+
+        _tport3 = myBuilder.newDefaultTransport();
+        myCore = myBuilder.newNonHeartbeatingCoreWith(new HowlLogger(_node3Log), _tport3);
+        myCore.getAcceptorLearner().setRecoveryGracePeriod(1000);
 
         FDUtil.ensureFD(_tport3.getFD());
 
@@ -149,7 +147,7 @@ public class OutOfDateLeaderTest {
         //
         Assert.assertEquals("Watermarks aren't equal, recovery fail?",
                 _node2.getAcceptorLearner().getLowWatermark().getSeqNum(),
-                _node3.getAcceptorLearner().getLowWatermark().getSeqNum());
+                myCore.getAcceptorLearner().getLowWatermark().getSeqNum());
 
 
         /*

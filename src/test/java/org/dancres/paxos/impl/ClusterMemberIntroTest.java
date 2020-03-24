@@ -1,6 +1,5 @@
 package org.dancres.paxos.impl;
 
-import org.dancres.paxos.Listener;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
@@ -9,7 +8,7 @@ import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
-import org.dancres.paxos.test.net.ServerDispatcher;
+import org.dancres.paxos.test.utils.Builder;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.junit.After;
 import org.junit.Assert;
@@ -27,9 +26,7 @@ public class ClusterMemberIntroTest {
     private static final String _node2Log = "node2logs";
     private static final String _node3Log = "node3logs";
 
-    private ServerDispatcher _node1;
-    private ServerDispatcher _node2;
-    private ServerDispatcher _node3;
+    private Core _core2;
 
     private TransportImpl _tport1;
     private TransportImpl _tport2;
@@ -41,13 +38,13 @@ public class ClusterMemberIntroTest {
         FileSystem.deleteDirectory(new File(_node2Log));
         FileSystem.deleteDirectory(new File(_node3Log));
 
-        _node1 = new ServerDispatcher(new HowlLogger(_node1Log), Listener.NULL_LISTENER);
-        _node2 = new ServerDispatcher(new HowlLogger(_node2Log), Listener.NULL_LISTENER);
-        _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node1.init(_tport1);
+        Builder myBuilder = new Builder();
 
-        _tport2 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node2.init(_tport2);
+        _tport1 = myBuilder.newDefaultTransport();
+        myBuilder.newCoreWith(new HowlLogger(_node1Log), _tport1);
+
+        _tport2 = myBuilder.newDefaultTransport();
+        _core2 = myBuilder.newCoreWith(new HowlLogger(_node2Log), _tport2);
     }
 
     @After
@@ -95,10 +92,12 @@ public class ClusterMemberIntroTest {
         //
         Thread.sleep(2000);
 
-        _node3 = new ServerDispatcher(new HowlLogger(_node3Log), Listener.NULL_LISTENER);
-        _tport3 = new TransportImpl(new FailureDetectorImpl(5000));
-        _node3.init(_tport3);
-        _node3.getAcceptorLearner().setRecoveryGracePeriod(1000);
+        Builder myBuilder = new Builder();
+
+        _tport3 = myBuilder.newTransportWith(new FailureDetectorImpl(5000));
+
+        Core myCore = myBuilder.newCoreWith(new HowlLogger(_node3Log), _tport3);
+        myCore.getAcceptorLearner().setRecoveryGracePeriod(1000);
 
         // New instance should achieve no membership
         //
@@ -121,9 +120,9 @@ public class ClusterMemberIntroTest {
 
         // Node 3 should now have same low watermark as the other nodes & performed one recovery cycle
         //
-        Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
-                _node3.getAcceptorLearner().getLowWatermark().getSeqNum());
-        Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getRecoveryCycles());
+        Assert.assertTrue(_core2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
+                myCore.getAcceptorLearner().getLowWatermark().getSeqNum());
+        Assert.assertEquals(1, myCore.getAcceptorLearner().getStats().getRecoveryCycles());
 
         // Node 3 should still have no membership
         //
@@ -143,10 +142,10 @@ public class ClusterMemberIntroTest {
 
         // Node 3 should have same watermark, no active accepts, one recovery cycle
         //
-        Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
-                _node3.getAcceptorLearner().getLowWatermark().getSeqNum());
-        Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getRecoveryCycles());
-        Assert.assertEquals(0, _node3.getAcceptorLearner().getStats().getActiveAccepts());
+        Assert.assertTrue(_core2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
+                myCore.getAcceptorLearner().getLowWatermark().getSeqNum());
+        Assert.assertEquals(1, myCore.getAcceptorLearner().getStats().getRecoveryCycles());
+        Assert.assertEquals(0, myCore.getAcceptorLearner().getStats().getActiveAccepts());
 
         // Promote node 3
         //
@@ -154,7 +153,7 @@ public class ClusterMemberIntroTest {
         myNewMembers.addAll(_tport2.getFD().getMembers().getMembers().keySet());
         myNewMembers.add(_tport3.getLocalAddress());
 
-        Assert.assertTrue(_node2.getCore().updateMembership(myNewMembers));
+        Assert.assertTrue(_core2.updateMembership(myNewMembers));
 
         Thread.sleep(2000);
 
@@ -172,10 +171,10 @@ public class ClusterMemberIntroTest {
 
         // Node 3 should have same watermark, one active accept, one recovery cycle
         //
-        Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
-                _node3.getAcceptorLearner().getLowWatermark().getSeqNum());
-        Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getRecoveryCycles());
-        Assert.assertEquals(1, _node3.getAcceptorLearner().getStats().getActiveAccepts());
+        Assert.assertTrue(_core2.getAcceptorLearner().getLowWatermark().getSeqNum() ==
+                myCore.getAcceptorLearner().getLowWatermark().getSeqNum());
+        Assert.assertEquals(1, myCore.getAcceptorLearner().getStats().getRecoveryCycles());
+        Assert.assertEquals(1, myCore.getAcceptorLearner().getStats().getActiveAccepts());
 
         myTransport.terminate();
     }

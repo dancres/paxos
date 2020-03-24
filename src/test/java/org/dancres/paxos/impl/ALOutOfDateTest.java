@@ -8,10 +8,10 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
-import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.OutOfDate;
 import org.dancres.paxos.messages.Envelope;
+import org.dancres.paxos.test.utils.Builder;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.junit.After;
 import org.junit.Assert;
@@ -26,10 +26,6 @@ public class ALOutOfDateTest {
     private static final String _node2Log = "node2logs";
     private static final String _node3Log = "node3logs";
 
-    private ServerDispatcher _node1;
-    private ServerDispatcher _node2;
-    private ServerDispatcher _node3;
-
     private TransportImpl _tport1;
     private TransportImpl _tport2;
     private TransportImpl _tport3;
@@ -40,13 +36,13 @@ public class ALOutOfDateTest {
         FileSystem.deleteDirectory(new File(_node2Log));
         FileSystem.deleteDirectory(new File(_node3Log));
 
-        _node1 = new ServerDispatcher(new HowlLogger(_node1Log), org.dancres.paxos.Listener.NULL_LISTENER);
-        _node2 = new ServerDispatcher(new HowlLogger(_node2Log),org.dancres.paxos.Listener.NULL_LISTENER);
         _tport1 = new OODTransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node1.init(_tport1);
-
         _tport2 = new OODTransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node2.init(_tport2);
+
+        Builder myBuilder = new Builder();
+
+        myBuilder.newCoreWith(new HowlLogger(_node1Log), _tport1);
+        myBuilder.newCoreWith(new HowlLogger(_node2Log), _tport2);
     }
 
     @After
@@ -95,10 +91,13 @@ public class ALOutOfDateTest {
 
         Listener myListener = new Listener();
 
-        _node3 = new ServerDispatcher(new HowlLogger(_node3Log), org.dancres.paxos.Listener.NULL_LISTENER);
-        _tport3 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node3.init(_tport3);
-        _node3.add(myListener);
+        Builder myBuilder = new Builder();
+
+        _tport3 = myBuilder.newDefaultTransport();
+
+        Core myCore = myBuilder.newCoreWith(new HowlLogger(_node3Log), _tport3);
+
+        myCore.add(myListener);
 
         FDUtil.ensureFD(_tport3.getFD());
 
@@ -130,7 +129,7 @@ public class ALOutOfDateTest {
         boolean isInactive = false;
         
         try {
-            _node3.getCore().submit(myProp, anOutcome -> {});
+            myCore.submit(myProp, anOutcome -> {});
         } catch (InactiveException anIE) {
             isInactive = true;
         }
@@ -140,7 +139,7 @@ public class ALOutOfDateTest {
         boolean stateChecked = false;
 
         try {
-            _node3.getCore().checkpoint().forSaving();
+            myCore.checkpoint().forSaving();
         } catch (IllegalStateException anISE) {
             stateChecked = true;
         }

@@ -3,16 +3,14 @@ package org.dancres.paxos.impl;
 import java.io.File;
 import java.nio.ByteBuffer;
 
-import org.dancres.paxos.Listener;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
-import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
-import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Envelope;
+import org.dancres.paxos.test.utils.Builder;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.junit.After;
 import org.junit.Assert;
@@ -23,23 +21,20 @@ public class HowlSequenceTest {
 	private static final String _node1Log = "node1logs";
 	private static final String _node2Log = "node2logs";
 	
-    private ServerDispatcher _node1;
-    private ServerDispatcher _node2;
-
     private TransportImpl _tport1;
     private TransportImpl _tport2;
 
     @Before public void init() throws Exception {
     	FileSystem.deleteDirectory(new File(_node1Log));
     	FileSystem.deleteDirectory(new File(_node2Log));
-    	
-        _node1 = new ServerDispatcher(new HowlLogger(_node1Log), Listener.NULL_LISTENER);
-        _node2 = new ServerDispatcher(new HowlLogger(_node2Log), Listener.NULL_LISTENER);
-        _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node1.init(_tport1);
 
-        _tport2 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node2.init(_tport2);
+    	Builder myBuilder = new Builder();
+
+        _tport1 = myBuilder.newDefaultTransport();
+        _tport2 = myBuilder.newDefaultTransport();
+
+        myBuilder.newCoreWith(new HowlLogger(_node1Log), _tport1);
+        myBuilder.newCoreWith(new HowlLogger(_node2Log), _tport2);
     }
 
     @After public void stop() throws Exception {

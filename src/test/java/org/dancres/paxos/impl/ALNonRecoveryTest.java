@@ -2,7 +2,6 @@ package org.dancres.paxos.impl;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
-import org.dancres.paxos.Listener;
 import org.dancres.paxos.VoteOutcome;
 import org.dancres.paxos.Proposal;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
@@ -10,9 +9,9 @@ import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.storage.HowlLogger;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
-import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Envelope;
+import org.dancres.paxos.test.utils.Builder;
 import org.dancres.paxos.test.utils.FileSystem;
 import org.junit.After;
 import org.junit.Assert;
@@ -27,9 +26,8 @@ public class ALNonRecoveryTest {
     private static final String _node2Log = "node2logs";
     private static final String _node3Log = "node3logs";
 
-    private ServerDispatcher _node1;
-    private ServerDispatcher _node2;
-    private ServerDispatcher _node3;
+    private Core _core3;
+    private Core _core2;
 
     private TransportImpl _tport1;
     private TransportImpl _tport2;
@@ -41,13 +39,14 @@ public class ALNonRecoveryTest {
         FileSystem.deleteDirectory(new File(_node2Log));
         FileSystem.deleteDirectory(new File(_node3Log));
 
-        _node1 = new ServerDispatcher(new HowlLogger(_node1Log), Listener.NULL_LISTENER);
-        _node2 = new ServerDispatcher(new HowlLogger(_node2Log), Listener.NULL_LISTENER);
+        Builder myBuilder = new Builder();
+
         _tport1 = new DropTransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node1.init(_tport1);
+        myBuilder.newCoreWith(new HowlLogger(_node1Log), _tport1);
+
 
         _tport2 = new DropTransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node2.init(_tport2);
+        _core2 = myBuilder.newCoreWith(new HowlLogger(_node2Log), _tport2);
     }
 
     @After
@@ -95,11 +94,11 @@ public class ALNonRecoveryTest {
 
         System.err.println("Start node3");
 
-        _node3 = new ServerDispatcher(new HowlLogger(_node3Log), Listener.NULL_LISTENER);
-        _tport3 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node3.init(_tport3);
+        Builder myBuilder = new Builder();
+        _tport3 = myBuilder.newDefaultTransport();
+        _core3 = myBuilder.newCoreWith(new HowlLogger(_node3Log), _tport3);
 
-        _node3.getAcceptorLearner().setRecoveryGracePeriod(5000);
+        _core3.getAcceptorLearner().setRecoveryGracePeriod(5000);
 
         FDUtil.ensureFD(_tport3.getFD());
 
@@ -123,10 +122,10 @@ public class ALNonRecoveryTest {
 
         // As recovery won't have been done the low watermarks should be different
         //
-        Assert.assertTrue(_node2.getAcceptorLearner().getLowWatermark().getSeqNum() !=
-        	_node3.getAcceptorLearner().getLowWatermark().getSeqNum());
+        Assert.assertTrue(_core2.getAcceptorLearner().getLowWatermark().getSeqNum() !=
+        	_core3.getAcceptorLearner().getLowWatermark().getSeqNum());
 
-        Assert.assertFalse(_node3.getCore().getCommon().getNodeState().test(NodeState.State.RECOVERING));
+        Assert.assertFalse(_core3.getCommon().getNodeState().test(NodeState.State.RECOVERING));
 
         /*
          *  Let things settle before we close them off otherwise we can get a false assertion in the AL. This is

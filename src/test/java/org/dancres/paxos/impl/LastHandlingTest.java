@@ -8,18 +8,17 @@ import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.messages.PaxosMessage;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.test.net.ClientDispatcher;
-import org.dancres.paxos.test.net.ServerDispatcher;
 import org.dancres.paxos.impl.netty.TransportImpl;
 import org.dancres.paxos.messages.Envelope;
 import org.dancres.paxos.messages.Last;
+import org.dancres.paxos.test.utils.Builder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class LastHandlingTest {
-    private ServerDispatcher _node1;
-    private ServerDispatcher _node2;
+    private Core _core1;
 
     private TransportImpl _tport1;
     private TransportImpl _tport2;
@@ -32,15 +31,14 @@ public class LastHandlingTest {
     }
     
     @Before public void init() throws Exception {
-        _node1 = new ServerDispatcher(Listener.NULL_LISTENER);
-        _node2 = new ServerDispatcher(Listener.NULL_LISTENER);
+        Builder myBuilder = new Builder();
 
-        _tport1 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
-        _node1.init(_tport1);
-
+        _tport1 = myBuilder.newDefaultTransport();
+        _core1 = myBuilder.newCoreWith(_tport1);
+        
         _tport2 = new TransportImpl(new FailureDetectorImpl(5000, FailureDetectorImpl.OPEN_PIN));
         _tport2.filterTx(new LastDropper());
-        _node2.init(_tport2);
+        myBuilder.newCoreWith(_tport2);
     }
 
     @After public void stop() throws Exception {
@@ -76,7 +74,7 @@ public class LastHandlingTest {
     @Test public void post() throws Exception {
         ListenerImpl myListener = new ListenerImpl();
         
-        _node1.add(myListener);
+        _core1.add(myListener);
 
         ClientDispatcher myClient = new ClientDispatcher();
     	TransportImpl myTransport = new TransportImpl(null);
