@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -27,6 +28,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 	private final PacketPickler _pickler;
 	private final Set<Dispatcher> _dispatcher = new HashSet<>();
     private final AtomicBoolean _isStopping = new AtomicBoolean(false);
+    private final List<Filter> _rxFilters = new LinkedList<>();
     private final AtomicBoolean _dropRx = new AtomicBoolean((false));
     private final AtomicBoolean _dropTx = new AtomicBoolean((false));
 	private final InetSocketAddress _unicastAddr;
@@ -36,7 +38,7 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
     @Override
     public void filterRx(Filter aFilter) {
-        throw new UnsupportedOperationException();
+        _rxFilters.add(aFilter);
     }
 
     @Override
@@ -140,14 +142,23 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 		}
     }
 
-    public void distribute(Transport.Packet aPacket) {
-        _parent.getPermuter().tick(new OrderedMemoryNetwork.Context(aPacket, this));
+    public void distribute(Transport.Packet aPt) {
+        Packet myPacket = aPt;
+        _parent.getPermuter().tick(new OrderedMemoryNetwork.Context(myPacket, this));
 
-        if ((aPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT)) ||
+        if ((myPacket.getMessage().getClassifications().contains(PaxosMessage.Classification.CLIENT)) ||
                 ! _dropRx.get()) {
-            if ((_fd != null) && (_fd.accepts(aPacket))) {
+
+
+            for (Filter myFilter : _rxFilters) {
+                myPacket = myFilter.filter(this, myPacket);
+                if (myPacket == null)
+                    return;
+            }
+
+            if ((_fd != null) && (_fd.accepts(myPacket))) {
                 try {
-                    _fd.processMessage(aPacket);
+                    _fd.processMessage(myPacket);
                 } catch (Throwable aT) {
                     // Nothing to do
                 }
@@ -157,10 +168,10 @@ public class OrderedMemoryTransportImpl implements OrderedMemoryNetwork.OrderedM
 
             synchronized(this) {
                 for(Dispatcher d : _dispatcher)
-                    d.packetReceived(aPacket);
+                    d.packetReceived(myPacket);
             }
         } else {
-            _logger.warn("!!!!!!! OT [ " + getLocalAddress() + " ] DROPPED ON RXD: " + aPacket + " !!!!!!!");
+            _logger.warn("!!!!!!! OT [ " + getLocalAddress() + " ] DROPPED ON RXD: " + myPacket + " !!!!!!!");
         }
     }
 
