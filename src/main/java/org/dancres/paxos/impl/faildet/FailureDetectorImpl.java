@@ -206,10 +206,10 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     }
 
     private static class FutureImpl extends AbstractFuture<Assembly> {
-        private final Queue<Assembly> _queue;
+        private final Queue<FutureImpl> _queue;
         private final int _required;
 
-        FutureImpl(Queue aQueue, int aRequired) {
+        FutureImpl(Queue<FutureImpl> aQueue, int aRequired) {
             _queue = aQueue;
             _required = aRequired;
         }
