@@ -42,6 +42,15 @@ public class Builder {
         return myCore;
     }
 
+    public Core newCoreWith(LogStorage aLogger, CheckpointHandle aHandle,
+                            Listener aListener, Transport aTransport) throws Exception {
+        Core myCore = new Core(aLogger, aHandle, aListener, false);
+        myCore.init(aTransport);
+        aTransport.filterRx(new Submitter(myCore));
+
+        return myCore;
+    }
+
     public Core newNonHeartbeatingCoreWith(LogStorage aLogger, Transport aTransport) throws Exception {
         Core myCore =  new Core(aLogger, CheckpointHandle.NO_CHECKPOINT, Listener.NULL_LISTENER, true);
         myCore.init(aTransport);

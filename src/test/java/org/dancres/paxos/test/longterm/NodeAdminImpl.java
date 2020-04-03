@@ -1,8 +1,9 @@
 package org.dancres.paxos.test.longterm;
 
 import org.dancres.paxos.*;
+import org.dancres.paxos.impl.Core;
 import org.dancres.paxos.test.net.OrderedMemoryNetwork.OrderedMemoryTransport;
-import org.dancres.paxos.test.net.ServerDispatcher;
+import org.dancres.paxos.test.utils.Builder;
 import org.dancres.paxos.test.utils.MemoryCheckpointStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,14 +21,14 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         private final CheckpointStorage _ckptStorage = new MemoryCheckpointStorage();
         private final AtomicLong _checkpointTime = new AtomicLong(0);
 
-        boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt, ServerDispatcher aDispatcher) {
+        boolean bringUpToDate(CheckpointStorage.ReadCheckpoint aCkpt, Core aCore) {
             try {
                 ObjectInputStream myOIS = new ObjectInputStream(aCkpt.getStream());
                 CheckpointHandle myHandle = (CheckpointHandle) myOIS.readObject();
                 myOIS.close();
 
                 try {
-                    Paxos.Checkpoint myCheckpoint = aDispatcher.getCore().checkpoint().forRecovery();
+                    Paxos.Checkpoint myCheckpoint = aCore.checkpoint().forRecovery();
                     return myCheckpoint.getConsumer().apply(myHandle);
                 } catch (Exception anE) {
                     _logger.warn("Exception at bring up to date", anE);
@@ -39,8 +40,8 @@ class NodeAdminImpl implements NodeAdmin, Listener {
             return false;
         }
 
-        CheckpointHandle checkpoint(ServerDispatcher aDispatcher) throws Exception {
-            Paxos.Checkpoint myCheckpoint = aDispatcher.getCore().checkpoint().forSaving();
+        CheckpointHandle checkpoint(Core aCore) throws Exception {
+            Paxos.Checkpoint myCheckpoint = aCore.checkpoint().forSaving();
             CheckpointStorage.WriteCheckpoint myCkpt = _ckptStorage.newCheckpoint();
             ObjectOutputStream myStream = new ObjectOutputStream(myCkpt.getStream());
             myStream.writeObject(myCheckpoint.getHandle());
@@ -87,7 +88,7 @@ class NodeAdminImpl implements NodeAdmin, Listener {
     }
 
     private final OrderedMemoryTransport _transport;
-    private final ServerDispatcher _dispatcher;
+    private final Core _dispatcher;
     private final AtomicBoolean _outOfDate = new AtomicBoolean(false);
     private final CheckpointHandling _checkpointer = new CheckpointHandling();
     private final Environment _env;
@@ -100,13 +101,10 @@ class NodeAdminImpl implements NodeAdmin, Listener {
         _env = anEnv;
         _transport = aTransport;
 
-        _dispatcher = new ServerDispatcher(_config._loggerFactory.getLogger(),
-                _config.getHandle(), this, false);
-
         try {
-            _dispatcher.init(_transport);
+            _dispatcher = new Builder().newCoreWith(_config._loggerFactory.getLogger(), _config.getHandle(), this, _transport);
         } catch (Exception anE) {
-            throw new RuntimeException("Failed to add a dispatcher", anE);
+            throw new RuntimeException("Failed to create Core: ", anE);
         }
     }
 
