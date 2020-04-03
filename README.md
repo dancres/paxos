@@ -22,6 +22,10 @@ mvn clean compile
 mvn -Dmdep.outputFile=cp.txt dependency:build-classpath
 java -classpath $(cat cp.txt):target/classes:target/test-classes  -Djava.util.logging.config.file=target/test-classes/logging.properties  org.dancres.paxos.test.longterm.Main --calibrate --memory --cycles=100000
 
-If you're on a Mac and running without a network connection, you may need to add a multicast route"
+or:
+
+java -classpath $(cat cp.txt):target/classes:target/test-classes  -Djava.util.logging.config.file=target/test-classes/logging.properties  org.dancres.paxos.test.longterm.Main --memory --cycles=200 --allowformation > log.long 2>&1
+
+If you're on a Mac and running without a network connection, you may need to add a multicast route:
 
 sudo route add -net 224.0.0.1/32 -interface lo0
