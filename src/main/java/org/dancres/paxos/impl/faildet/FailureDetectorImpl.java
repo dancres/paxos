@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl.faildet;
 
+import org.dancres.paxos.Membership;
 import org.dancres.paxos.impl.*;
 import org.dancres.paxos.impl.Transport.Packet;
 import org.dancres.paxos.messages.PaxosMessage;
@@ -50,9 +51,9 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     private final long _maximumPeriodOfUnresponsiveness;
     private final int _majority;
 
-    private static class MetaDataImpl implements FailureDetector.MetaData {
-        final long _timestamp;
-        final byte[] _metaData;
+    private static class MetaDataImpl implements Membership.MetaData {
+        private final long _timestamp;
+        private final byte[] _metaData;
 
         MetaDataImpl(long aTimestamp, byte[] aMeta) {
             _timestamp = aTimestamp;
@@ -75,7 +76,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
 
             while (myProcesses.hasNext()) {
                 InetSocketAddress myAddress = myProcesses.next();
-                long myTimeout = _lastHeartbeats.get(myAddress)._timestamp;
+                long myTimeout = _lastHeartbeats.get(myAddress).getTimestamp();
 
                 // No heartbeat since myMinTime means we assume dead
                 //
@@ -291,7 +292,7 @@ public class FailureDetectorImpl extends MessageBasedFailureDetector {
     /**
      * A snapshot of the membership at some point in time.
      */
-    class MembershipImpl implements Assembly {
+    private class MembershipImpl implements Assembly {
         /**
          * Tracks the membership that forms the base for each round
          */

@@ -17,11 +17,6 @@ public interface FailureDetector {
         void change(FailureDetector aDetector, State aState);
     }
 
-    interface MetaData {
-        byte[] getData();
-        long getTimestamp();
-    }
-
     /**
      * @param aLocal the address of the node to exclude from the result
      *

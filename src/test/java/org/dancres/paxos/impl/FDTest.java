@@ -1,5 +1,6 @@
 package org.dancres.paxos.impl;
 
+import org.dancres.paxos.Membership;
 import org.dancres.paxos.impl.faildet.FailureDetectorImpl;
 import org.dancres.paxos.test.junit.FDUtil;
 import org.dancres.paxos.impl.netty.TransportImpl;
@@ -46,9 +47,9 @@ public class FDTest {
         Assert.assertTrue(_tport1.getFD().getMembers().getMembers().size() == 2);
         Assert.assertTrue(_tport2.getFD().getMembers().getMembers().size() == 2);
 
-        Map<InetSocketAddress, FailureDetector.MetaData> myMembers = _tport1.getFD().getMembers().getMembers();
+        Map<InetSocketAddress, Membership.MetaData> myMembers = _tport1.getFD().getMembers().getMembers();
 
-        for (Map.Entry<InetSocketAddress, FailureDetector.MetaData> myEntry : myMembers.entrySet()) {
+        for (Map.Entry<InetSocketAddress, Membership.MetaData> myEntry : myMembers.entrySet()) {
             if (myEntry.getKey().equals(_tport1.getLocalAddress())) {
                 Assert.assertTrue("node1".equals(new String(myEntry.getValue().getData())));
             } else if (myEntry.getKey().equals(_tport2.getLocalAddress())) {
@@ -143,7 +144,7 @@ public class FDTest {
         Assert.assertTrue(_tport1.getFD().getMembers().getMembers().size() == 2);
         Assert.assertTrue(_tport2.getFD().getMembers().getMembers().size() == 2);
 
-        for (FailureDetector.MetaData c : _tport1.getFD().getMembers().getMembers().values()) {
+        for (Membership.MetaData c : _tport1.getFD().getMembers().getMembers().values()) {
             System.err.println("FD Meta: " + new String(c.getData()));
         }
         

@@ -82,41 +82,8 @@ public class Core implements Transport.Dispatcher, Paxos {
     public Paxos.CheckpointFactory checkpoint() {
         return _al;
     }
-
-    private class MembershipImpl implements Membership {
-        private final Assembly _assembly;
-
-        private MembershipImpl(Assembly anAssembly) {
-            _assembly = anAssembly;
-        }
-
-        public Map<InetSocketAddress, MetaData> getMembers() {
-            Map<InetSocketAddress, MetaData> myMembership = new HashMap<>();
-
-            for (Map.Entry<InetSocketAddress, FailureDetector.MetaData> myPair : _assembly.getMembers().entrySet())
-                myMembership.put(myPair.getKey(), new MetaDataImpl(myPair.getValue()));
-
-            return myMembership;
-        }
-
-        private class MetaDataImpl implements MetaData {
-            private final FailureDetector.MetaData _metaData;
-
-            private MetaDataImpl(FailureDetector.MetaData aMeta) {
-                _metaData = aMeta;
-            }
-
-            public byte[] getData() {
-                return _metaData.getData();
-            }
-        }
-
-        public byte[] dataForNode(InetSocketAddress anAddress) {
-            return _assembly.dataForNode(anAddress);
-        }
-    }
-
-    public Membership getMembership() { return new MembershipImpl(_common.getTransport().getFD().getMembers()); }
+    
+    public Membership getMembership() { return _common.getTransport().getFD().getMembers(); }
 
     public AcceptorLearner getAcceptorLearner() {
         return _al;
