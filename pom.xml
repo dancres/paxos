@@ -13,13 +13,6 @@
     <logTests>true</logTests>
   </properties>
   
-  <repositories>
-	<repository>
-	      <id>Spark repository</id>
-	      <url>http://www.sparkjava.com/nexus/content/repositories/spark/</url>
-	</repository>
-  </repositories>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -44,7 +37,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.22.Final</version>
+            <version>4.1.41.Final</version>
         </dependency>
         <dependency>
             <groupId>org.objectweb.howl</groupId>
@@ -59,7 +52,7 @@
         <dependency>
             <groupId>com.sparkjava</groupId>
             <artifactId>spark-core</artifactId>
-            <version>2.7.1</version>
+            <version>2.7.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
