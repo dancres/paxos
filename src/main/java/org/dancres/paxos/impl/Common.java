@@ -44,12 +44,8 @@ public class Common {
 
     void addStateEventListener(Listener aListener) {
         _bus.anonSubscrbe((aMessage) -> {
-            switch(aMessage.getType()) {
-                case AL_TRANSITION : {
-                    aListener.transition((StateEvent) aMessage.getMessage());
-                    break;
-                }
-            }
-        });
+            if (aMessage.getType() == Constants.EVENTS.AL_TRANSITION)
+                aListener.transition((StateEvent) aMessage.getMessage());
+            });
+        }
     }
-}

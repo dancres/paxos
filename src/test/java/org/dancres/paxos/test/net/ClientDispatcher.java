@@ -16,15 +16,12 @@ public class ClientDispatcher implements Transport.Dispatcher {
 	
 	public void packetReceived(Packet aPacket) {
 		PaxosMessage myMessage = aPacket.getMessage();
-		
-		synchronized(this) {
-	        switch (myMessage.getType()) {
-	        	case PaxosMessage.Types.EVENT : {
-                    Event myEvent = (Event) myMessage;
-	        		_queue.add(myEvent.getOutcome());
-	        		notifyAll();
-	        		break;
-	        	}
+
+		if (myMessage.getType() == PaxosMessage.Types.EVENT) {
+			synchronized(this) {
+				Event myEvent = (Event) myMessage;
+				_queue.add(myEvent.getOutcome());
+				notifyAll();
             }
         }
 	}
