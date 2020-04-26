@@ -98,7 +98,7 @@ public class PacketSorterTest {
         int _consumed = 0;
         boolean _recoveryRequested = false;
 
-        private boolean _recoveryReturn;
+        private final boolean _recoveryReturn;
 
         Tester(boolean aRecoveryReturn) {
             _recoveryReturn = aRecoveryReturn;

@@ -10,7 +10,7 @@ import org.junit.*;
 import java.net.InetSocketAddress;
 
 public class CodecTest {
-    private InetSocketAddress _testAddress = TestAddresses.next();
+    private final InetSocketAddress _testAddress = TestAddresses.next();
 
     @Test public void outOfDate() throws Exception {
         OutOfDate myOOD = new OutOfDate();

@@ -17,7 +17,7 @@ class HowlLoggerFactory implements LogStorageFactory {
      * TODO: Change initial directory cleanup to account for disk storage loss simulation
      */
     HowlLoggerFactory(String aBase, int aNodeId) {
-        _dir = aBase + "node" + Integer.toString(aNodeId) + "logs";
+        _dir = aBase + "node" + aNodeId + "logs";
 
         _logger.info("Cleaning log directory");
         FileSystem.deleteDirectory(new File(_dir));

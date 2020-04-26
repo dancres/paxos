@@ -8,7 +8,7 @@ import java.util.List;
 
 public class PermuterTest {
     class NeverTry implements Permuter.Possibility<Object> {
-        private List<Permuter.Precondition<Object>> _preconditions = List.of(o -> false);
+        private final List<Permuter.Precondition<Object>> _preconditions = List.of(o -> false);
 
         @Override
         public List<Permuter.Precondition<Object>> getPreconditions() {
@@ -28,7 +28,7 @@ public class PermuterTest {
 
     class RestoreAll implements Permuter.Possibility<Object> {
         private boolean _wasRestored = false;
-        private List<Permuter.Precondition<Object>> _preconditions = List.of(o -> true);
+        private final List<Permuter.Precondition<Object>> _preconditions = List.of(o -> true);
 
         @Override
         public List<Permuter.Precondition<Object>> getPreconditions() {
@@ -54,7 +54,7 @@ public class PermuterTest {
 
     }
     class ZeroChance implements Permuter.Possibility<Object> {
-        private List<Permuter.Precondition<Object>> _preconditions = List.of(o -> true);
+        private final List<Permuter.Precondition<Object>> _preconditions = List.of(o -> true);
 
         @Override
         public List<Permuter.Precondition<Object>> getPreconditions() {
@@ -74,7 +74,7 @@ public class PermuterTest {
 
     class OneShot implements Permuter.Possibility<Object> {
         private boolean _actionFired = false;
-        private List<Permuter.Precondition<Object>> _preconditions = List.of(o -> !_actionFired);
+        private final List<Permuter.Precondition<Object>> _preconditions = List.of(o -> !_actionFired);
 
         @Override
         public List<Permuter.Precondition<Object>> getPreconditions() {

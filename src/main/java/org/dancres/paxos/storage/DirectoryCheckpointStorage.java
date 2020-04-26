@@ -46,7 +46,7 @@ public class DirectoryCheckpointStorage implements CheckpointStorage {
                     _stream.close();
                 } catch (Exception anE) {}
 
-                if (! _temp.renameTo(new File(_dir, "ckpt" + Long.toString(System.currentTimeMillis()))))
+                if (! _temp.renameTo(new File(_dir, "ckpt" + System.currentTimeMillis())))
                     _logger.warn("Couldn't rename checkpoint file" + _temp + ", " + _dir, new RuntimeException());
                 
                 File[] myFiles = getFiles();

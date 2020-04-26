@@ -13,7 +13,7 @@ public class MessagesTest {
     }
 
     private class Listener implements Messages.Subscriber<Dictionary> {
-        private List<String> _messages = new LinkedList<>();
+        private final List<String> _messages = new LinkedList<>();
 
         @Override
         public void msg(Messages.Message<Dictionary> aMessage) {

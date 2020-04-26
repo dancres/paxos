@@ -16,8 +16,8 @@ import java.net.InetSocketAddress;
 public class ALCheckpointTest {
     private static final String DIRECTORY = "howllogs";
 
-    private InetSocketAddress _nodeId = TestAddresses.next();
-    private InetSocketAddress _broadcastId = TestAddresses.next();
+    private final InetSocketAddress _nodeId = TestAddresses.next();
+    private final InetSocketAddress _broadcastId = TestAddresses.next();
 
     @Before
     public void init() throws Exception {

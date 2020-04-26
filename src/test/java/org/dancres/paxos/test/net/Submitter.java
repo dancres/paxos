@@ -15,7 +15,7 @@ import java.net.InetSocketAddress;
 public class Submitter implements Transport.Filter {
     private static final Logger _logger = LoggerFactory.getLogger(Submitter.class);
 
-    private Core _core;
+    private final Core _core;
 
     public Submitter(Core aCore) {
         _core = aCore;

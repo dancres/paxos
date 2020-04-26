@@ -21,10 +21,10 @@ import org.junit.Test;
 
 public class ALRecoveryTransitionTest {
 	private static final String DIRECTORY = "howllogs";
-	private static byte[] HANDBACK = new byte[] {1, 2, 3, 4};
+	private static final byte[] HANDBACK = new byte[] {1, 2, 3, 4};
 	
-	private static InetSocketAddress _nodeId = TestAddresses.next();
-    private static InetSocketAddress _broadcastId = TestAddresses.next();
+	private static final InetSocketAddress _nodeId = TestAddresses.next();
+    private static final InetSocketAddress _broadcastId = TestAddresses.next();
 
 	@Before public void init() throws Exception {
     	FileSystem.deleteDirectory(new File(DIRECTORY));

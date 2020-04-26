@@ -14,8 +14,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProposalAllocatorTest {
     private class Listener implements Messages.Subscriber<Constants.EVENTS> {
-        private AtomicInteger _inflightCount = new AtomicInteger();
-        private AtomicInteger _allConcludedCount = new AtomicInteger();
+        private final AtomicInteger _inflightCount = new AtomicInteger();
+        private final AtomicInteger _allConcludedCount = new AtomicInteger();
 
         void inFlight() {
             int myCurrent = _inflightCount.incrementAndGet();

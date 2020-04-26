@@ -61,7 +61,7 @@ public class FDTest {
     }
 
     class StateReceiver implements FailureDetector.StateListener {
-        private AtomicReference<FailureDetector.State> _state = new AtomicReference<>();
+        private final AtomicReference<FailureDetector.State> _state = new AtomicReference<>();
 
         public void change(FailureDetector aDetector, FailureDetector.State aState) {
             _state.set(aState);

@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 
 public class OrderedMemoryNetwork implements Runnable {
-    private static Logger _logger = LoggerFactory.getLogger(OrderedMemoryNetwork.class);
+    private static final Logger _logger = LoggerFactory.getLogger(OrderedMemoryNetwork.class);
 
     public interface OrderedMemoryTransport extends Transport {
         void distribute(Transport.Packet aPacket);
@@ -62,8 +62,8 @@ public class OrderedMemoryNetwork implements Runnable {
     }
 
     private class PacketWrapper {
-        private Transport.Packet _packet;
-        private InetSocketAddress _target;
+        private final Transport.Packet _packet;
+        private final InetSocketAddress _target;
 
         PacketWrapper(Transport.Packet aPacket, InetSocketAddress aTarget) {
             _packet = aPacket;
@@ -79,10 +79,10 @@ public class OrderedMemoryNetwork implements Runnable {
         }
     }
 
-    private BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<>();
-    private AtomicBoolean _isStopping = new AtomicBoolean(false);
-    private InetSocketAddress  _broadcastAddr;
-    private Map<InetSocketAddress, OrderedMemoryTransportImpl> _transports =
+    private final BlockingQueue<PacketWrapper> _queue = new LinkedBlockingQueue<>();
+    private final AtomicBoolean _isStopping = new AtomicBoolean(false);
+    private final InetSocketAddress  _broadcastAddr;
+    private final Map<InetSocketAddress, OrderedMemoryTransportImpl> _transports =
             new ConcurrentHashMap<>();
     private final Environment _env;
     private final Permuter<Context> _permuter;
